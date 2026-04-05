@@ -56,7 +56,7 @@
                         @csrf
 
                         <div class="mb-4">
-                            <label for="email" class="form-label fw-bold">📧 Correo electrónico</label>
+                            <label for="email" class="form-label fw-bold">Correo electrónico</label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-envelope" viewBox="0 0 16 16">
@@ -70,7 +70,7 @@
                         </div>
 
                         <div class="mb-4">
-                            <label for="password" class="form-label fw-bold">🔒 Contraseña</label>
+                            <label for="password" class="form-label fw-bold">Contraseña</label>
                             <div class="input-group">
                                 <span class="input-group-text">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-lock" viewBox="0 0 16 16">
@@ -89,13 +89,13 @@
 
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-primary btn-lg py-2">
-                                🚪 Ingresar
+                                Ingresar
                             </button>
                         </div>
 
                     <div class="text-center mt-3">
                         <a href="{{ route('password.request') }}" class="text-decoration-none">
-                            🔑 ¿Olvidaste tu contraseña? (Recupérala con preguntas de seguridad)
+                            ¿Olvidaste tu contraseña?
                         </a>
                     </div>
                     </form>

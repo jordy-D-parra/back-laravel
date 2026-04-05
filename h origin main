@@ -1,0 +1,64 @@
+[33mcommit bc8e2e8c3a9610928b4f271048e1441403aea975[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m
+Author: jordy-D-parra <parra26jordanys@gmail.com>
+Date:   Sun Mar 22 19:29:00 2026 -0400
+
+    feat: Implementación completa del sistema de auditoría y registro de actividad
+    
+    ✨ Características:
+    - Sistema de roles (Super Admin, Trabajador, Usuario Base)
+    - Módulo de auditoría con registro de actividad
+    - Recuperación de contraseña mediante preguntas de seguridad
+    - Panel de administración con gestión de usuarios
+    - Registro automático de cambios de rol y contraseñas
+    - Interfaz con menú lateral colapsable
+    
+    🐛 Correcciones:
+    - Solución de permisos en PostgreSQL para activity_logs
+    - Corrección de rutas para cambio de roles
+    - Mejora en el registro de actividad con logging detallado
+    
+    📝 Cambios:
+    - Nuevos controladores: AuditController, ProfileController
+    - Nuevo helper: ActivityHelper para registro de actividad
+    - Nuevos modelos: ActivityLog, SecurityAnswer
+    - Migraciones para preguntas de seguridad, roles y actividad
+    - Vistas completas para admin, auditoría, perfil
+    - Actualización de rutas y middleware
+    
+    ✅ Estado: Producción lista para deploy
+
+ app/Helpers/ActivityHelper.php                                                  |   77 [32m+++[m
+ app/Http/Controllers/AuditController.php                                        |   73 [32m+++[m
+ app/Http/Controllers/AuthController.php                                         |  363 [32m++++++++++++[m
+ app/Http/Controllers/ProfileController.php                                      |  105 [32m++++[m
+ app/Http/Middleware/RoleMiddleware.php                                          |   38 [32m++[m
+ app/Models/ActivityLog.php                                                      |   56 [32m++[m
+ app/Models/SecurityAnswer.php                                                   |   16 [32m+[m
+ app/Models/User.php                                                             |   91 [32m++[m[31m-[m
+ bootstrap/app.php                                                               |    5 [32m+[m[31m-[m
+ database/migrations/2026_03_22_172108_add_security_questions_to_users_table.php |   24 [32m+[m
+ database/migrations/2026_03_22_172108_create_security_answers_table.php         |   24 [32m+[m
+ database/migrations/2026_03_22_192959_add_role_to_users_table.php               |   23 [32m+[m
+ database/migrations/2026_03_22_213409_create_activity_logs_table.php            |   31 [32m+[m
+ database/migrations/2026_03_22_222911_create_activity_logs_table.php            |   27 [32m+[m
+ package-lock.json                                                               | 2217 [32m+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++[m
+ package.json                                                                    |    7 [32m+[m[31m-[m
+ resources/css/bootstrap.css                                                     |    1 [32m+[m
+ resources/js/app.js                                                             |   15 [32m+[m
+ resources/views/admin/user.blade.php                                            |  167 [32m++++++[m
+ resources/views/admin/users.blade.php                                           |  218 [32m+++++++[m
+ resources/views/audit/index.blade.php                                           |   64 [32m++[m
+ resources/views/audit/sessions.blade.php                                        |   94 [32m+++[m
+ resources/views/audit/user-activity.blade.php                                   |   59 [32m++[m
+ resources/views/auth/forgot-password.blade.php                                  |  369 [32m++++++++++++[m
+ resources/views/auth/login.blade.php                                            |  168 [32m++++[m[31m--[m
+ resources/views/auth/register.blade.php                                         |  269 [32m+++++++++[m
+ resources/views/auth/reset-password-questions.blade.php                         |   92 [32m+++[m
+ resources/views/auth/reset-password.blade.php                                   |   61 [32m++[m
+ resources/views/dashboard.blade.php                                             |  156 [32m+++++[m
+ resources/views/layouts/app.blade.php                                           |   22 [32m+[m
+ resources/views/layouts/dashboard.blade.php                                     |  435 [32m++++++++++++++[m
+ resources/views/profile/index.blade.php                                         |  264 [32m+++++++++[m
+ routes/web.php                                                                  |   50 [32m+[m[31m-[m
+ vite.config.js                                                                  |    2 [32m+[m[31m-[m
+ 34 files changed, 5615 insertions(+), 68 deletions(-)
