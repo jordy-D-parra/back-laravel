@@ -16,22 +16,12 @@ class Departamento extends Model
         'informacion',
         'representante',
         'ubicacion',
-        'activo'
+        'activo',
+        'responsable_id'
     ];
 
-    protected $casts = [
-        'activo' => 'boolean'
-    ];
-
-    // Relaciones
-    public function solicitudes()
+    public function responsable()
     {
-        return $this->hasMany(Solicitud::class, 'departamento_id');
-    }
-
-    // Scope para departamentos activos
-    public function scopeActivos($query)
-    {
-        return $query->where('activo', true);
+        return $this->belongsTo(Responsable::class, 'responsable_id');
     }
 }

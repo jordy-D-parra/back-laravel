@@ -11,6 +11,8 @@ use App\Http\Controllers\NotificacionController;
 use App\Http\Controllers\AprobacionController;
 use App\Http\Controllers\SoporteController;
 use App\Http\Controllers\ReporteController;
+use App\Http\Controllers\DepartamentoController;
+use App\Http\Controllers\InstitucionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -62,6 +64,14 @@ Route::middleware(['auth'])->prefix('notificaciones')->group(function () {
     Route::delete('/{id}', [NotificacionController::class, 'destroy'])->name('notificaciones.destroy');
 });
 
+// ========== RUTAS API PARA RESPONSABLES (FUERA DEL GRUPO DE ADMIN) ==========
+Route::middleware(['auth'])->prefix('api')->group(function () {
+    Route::get('/departamento/{id}/responsable', [DepartamentoController::class, 'getResponsable']);
+    Route::post('/departamento/{id}/responsable', [DepartamentoController::class, 'updateResponsable']);
+    Route::get('/institucion/{id}/responsable', [InstitucionController::class, 'getResponsable']);
+    Route::post('/institucion/{id}/responsable', [InstitucionController::class, 'updateResponsable']);
+});
+
 // ========== PANEL DE ADMINISTRACIÓN ==========
 Route::middleware(['auth'])->prefix('admin')->group(function () {
     // Gestión de usuarios
@@ -86,18 +96,23 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/modelos', function () {
         return view('admin.modelos.index');
     })->name('admin.modelos.index');
-     Route::get('/categorias', function () {
+
+    Route::get('/categorias', function () {
         return view('admin.categorias.index');
     })->name('admin.categorias.index');
+
     Route::get('/instituciones', function () {
         return view('admin.instituciones.index');
     })->name('admin.instituciones.index');
+
     Route::get('/departamentos', function () {
         return view('admin.departamentos.index');
     })->name('admin.departamentos.index');
+
     Route::get('/responsables', function () {
         return view('admin.responsables.index');
     })->name('admin.responsables.index');
+
     Route::get('/componentes', function () {
         return view('admin.componentes.index');
     })->name('admin.componentes.index');
@@ -118,11 +133,11 @@ Route::middleware(['auth'])->prefix('solicitudes')->group(function () {
     Route::post('/', [SolicitudController::class, 'store'])->name('solicitudes.store');
     Route::get('/{solicitud}', [SolicitudController::class, 'show'])->name('solicitudes.show');
     Route::get('/{id}/items', [SolicitudController::class, 'getItemsJson'])->name('solicitudes.items.json');
+    Route::get('/{id}/detalles', [SolicitudController::class, 'getDetalles'])->name('solicitudes.detalles');
     Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('solicitudes.approve');
     Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('solicitudes.reject');
     Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('solicitudes.cancel');
     Route::post('/{id}/update', [SolicitudController::class, 'update'])->name('solicitudes.update');
-     Route::get('/{id}/detalles', [SolicitudController::class, 'getDetalles'])->name('solicitudes.detalles');
 });
 
 // ========== APROBACIONES Y PRÉSTAMOS (solo admin) ==========

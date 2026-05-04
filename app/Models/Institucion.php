@@ -14,9 +14,9 @@ class Institucion extends Model
     protected $fillable = [
         'nombre',
         'informacion',
-        'representante',
         'ubicacion',
-        'activo'
+        'activo',
+        'responsable_id'
     ];
 
     protected $casts = [
@@ -29,14 +29,14 @@ class Institucion extends Model
         return $this->hasMany(Solicitud::class, 'institucion_id');
     }
 
-    public function responsables()
-    {
-        return $this->hasMany(Responsable::class, 'institucion_id');
-    }
-
     // Scope para instituciones activas
     public function scopeActivos($query)
     {
         return $query->where('activo', true);
     }
+
+    public function responsable()
+{
+    return $this->belongsTo(Responsable::class, 'responsable_id');
+}
 }

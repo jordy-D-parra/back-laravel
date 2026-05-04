@@ -273,21 +273,20 @@
                             </div>
                         </div>
 
+                        <!-- Responsable automático de la entidad -->
                         <div class="col-md-12">
                             <label class="form-label fw-semibold">Persona Responsable</label>
-                            <select name="responsable_id" id="responsableSelect" class="form-select" style="border-radius: 10px; background: white;">
-                                <option value="">Seleccione un responsable</option>
-                                @foreach($responsables ?? [] as $responsable)
-                                    <option value="{{ $responsable->id }}">{{ $responsable->nombre }} - {{ $responsable->departamento ?? $responsable->tipo }}</option>
-                                @endforeach
-                                <option value="otro">+ Otro (No está en la lista)</option>
-                            </select>
-                        </div>
-                        <div id="responsable-nuevo-field" style="display: none;" class="mt-2">
-                            <div class="col-md-12">
-                                <label class="form-label fw-semibold">Nuevo Responsable</label>
-                                <input type="text" name="nuevo_responsable" id="nuevoResponsable" class="form-control" placeholder="Nombre completo" style="border-radius: 10px; background: white;">
-                                <small class="text-muted">Se registrará automáticamente</small>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="flex-grow-1 p-3 bg-light rounded" id="responsableDisplay" style="background: #f8f9fc; border-radius: 10px; min-height: 70px;">
+                                    <span class="text-muted">Selecciona una institución o departamento</span>
+                                </div>
+                                <button type="button" onclick="editarResponsableActual()" class="btn" style="background: #1e3c72; color: white; border-radius: 10px; display: none;" id="btnEditarResponsable">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/>
+                                        <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/>
+                                    </svg>
+                                    Editar
+                                </button>
                             </div>
                         </div>
 
@@ -828,14 +827,13 @@ function mostrarNotificacion(tipo, titulo, mensaje, datos = null) {
 function isFechaVencida(fechaRequerida, estado) { if (estado !== 'pendiente') return false; const hoy = new Date(); hoy.setHours(0,0,0,0); return new Date(fechaRequerida) < hoy; }
 function escapeHtml(text) { if (!text) return ''; const div = document.createElement('div'); div.appendChild(document.createTextNode(text)); return div.innerHTML; }
 
-// ==================== VER DETALLES (CORREGIDO) ====================
+// ==================== VER DETALLES ====================
 function verDetalles(id) {
     const modal = document.getElementById('modalDetalles');
     const modalBody = document.getElementById('modalDetallesBody');
     modal.style.display = 'flex';
     modalBody.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando...</p></div>';
 
-    // USAR LA NUEVA RUTA que devuelve JSON
     fetch(`/solicitudes/${id}/detalles`)
         .then(r => r.json())
         .then(data => {
@@ -844,31 +842,20 @@ function verDetalles(id) {
                 return;
             }
 
-            // Generar HTML de items correctamente
             let itemsHtml = '';
             if (data.detalles && data.detalles.length > 0) {
                 itemsHtml = `
                     <div class="table-responsive mt-3">
                         <table class="table table-sm">
                             <thead>
-                                <tr>
-                                    <th>Tipo</th>
-                                    <th>Descripción</th>
-                                    <th class="text-center">Cantidad</th>
-                                </tr>
+                                <tr><th>Tipo</th><th>Descripción</th><th class="text-center">Cantidad</th></tr>
                             </thead>
                             <tbody>
                 `;
                 for (let i = 0; i < data.detalles.length; i++) {
-                    itemsHtml += `
-                        <tr>
-                            <td>${data.detalles[i].tipo_item === 'activo' ? 'Activo' : 'Periférico'}</td>
-                            <td>${escapeHtml(data.detalles[i].item_descripcion)}</td>
-                            <td class="text-center"><strong>${data.detalles[i].cantidad_solicitada}</strong></td>
-                        </tr>
-                    `;
+                    itemsHtml += `<tr><td>${data.detalles[i].tipo_item === 'activo' ? 'Activo' : 'Periférico'}</td><td>${escapeHtml(data.detalles[i].item_descripcion)}</td><td class="text-center"><strong>${data.detalles[i].cantidad_solicitada}</strong></td></tr>`;
                 }
-                itemsHtml += '</tbody>}</div>';
+                itemsHtml += '</tbody></table></div>';
             } else {
                 itemsHtml = '<div class="alert alert-secondary mt-3">No hay items registrados en esta solicitud</div>';
             }
@@ -887,70 +874,17 @@ function verDetalles(id) {
 
             const html = `
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="text-muted small">Fecha Solicitud</label>
-                            <div class="fw-semibold">${fechaSolicitud}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="text-muted small">Tipo Solicitante</label>
-                            <div class="fw-semibold">${data.tipo_solicitante === 'interno' ? 'Interno' : 'Externo'}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="text-muted small">Prioridad</label>
-                            <div><span class="badge-prioridad" style="background: ${prioridadColor}15; color: ${prioridadColor};">${data.prioridad}</span></div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="text-muted small">Estado</label>
-                            <div><span class="badge-estado" style="background: ${estadoColor}15; color: ${estadoColor};">${data.estado_solicitud}</span></div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="text-muted small">Entidad</label>
-                            <div class="fw-semibold">${escapeHtml(nombreEntidad)}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="text-muted small">Responsable</label>
-                            <div class="fw-semibold">${escapeHtml(nombreResponsable)}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="text-muted small">Fecha Requerida</label>
-                            <div>${fechaRequerida}</div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label class="text-muted small">Fecha Fin Estimada</label>
-                            <div>${fechaFin}</div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="mb-3">
-                            <label class="text-muted small">Justificación</label>
-                            <div class="p-2 bg-light rounded" style="background: #f8f9fc;">${escapeHtml(data.justificacion || 'No especificada')}</div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <div class="mb-3">
-                            <label class="text-muted small">Observaciones</label>
-                            <div class="p-2 bg-light rounded" style="background: #f8f9fc;">${escapeHtml(data.observaciones || 'No hay observaciones')}</div>
-                        </div>
-                    </div>
-                    <div class="col-12">
-                        <label class="text-muted small fw-semibold mb-2">Items Solicitados</label>
-                        ${itemsHtml}
-                    </div>
+                    <div class="col-md-6"><div class="mb-3"><label class="text-muted small">Fecha Solicitud</label><div class="fw-semibold">${fechaSolicitud}</div></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="text-muted small">Tipo Solicitante</label><div class="fw-semibold">${data.tipo_solicitante === 'interno' ? 'Interno' : 'Externo'}</div></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="text-muted small">Prioridad</label><div><span class="badge-prioridad" style="background: ${prioridadColor}15; color: ${prioridadColor};">${data.prioridad}</span></div></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="text-muted small">Estado</label><div><span class="badge-estado" style="background: ${estadoColor}15; color: ${estadoColor};">${data.estado_solicitud}</span></div></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="text-muted small">Entidad</label><div class="fw-semibold">${escapeHtml(nombreEntidad)}</div></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="text-muted small">Responsable</label><div class="fw-semibold">${escapeHtml(nombreResponsable)}</div></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="text-muted small">Fecha Requerida</label><div>${fechaRequerida}</div></div></div>
+                    <div class="col-md-6"><div class="mb-3"><label class="text-muted small">Fecha Fin Estimada</label><div>${fechaFin}</div></div></div>
+                    <div class="col-12"><div class="mb-3"><label class="text-muted small">Justificación</label><div class="p-2 bg-light rounded">${escapeHtml(data.justificacion || 'No especificada')}</div></div></div>
+                    <div class="col-12"><div class="mb-3"><label class="text-muted small">Observaciones</label><div class="p-2 bg-light rounded">${escapeHtml(data.observaciones || 'No hay observaciones')}</div></div></div>
+                    <div class="col-12"><label class="text-muted small fw-semibold mb-2">Items Solicitados</label>${itemsHtml}</div>
                 </div>
             `;
             modalBody.innerHTML = html;
@@ -1039,8 +973,190 @@ function aplicarFiltros() {
 
 function aplicarFiltrosConDebounce() { clearTimeout(timeoutBusqueda); timeoutBusqueda = setTimeout(() => { aplicarFiltros(); }, 300); }
 
+// ==================== RESPONSABLE DE ENTIDAD ====================
+function actualizarResponsableDisplay() {
+    const tipo = document.getElementById('tipoSolicitante').value;
+    let entidadId = null;
+    let entidadNombre = '';
+
+    if (tipo === 'interno') {
+        entidadId = document.getElementById('departamentoSelect').value;
+        entidadNombre = document.getElementById('departamentoSelect').selectedOptions[0]?.text || '';
+    } else {
+        entidadId = document.getElementById('institucionSelect').value;
+        entidadNombre = document.getElementById('institucionSelect').selectedOptions[0]?.text || '';
+    }
+
+    const display = document.getElementById('responsableDisplay');
+    const btnEditar = document.getElementById('btnEditarResponsable');
+
+    if (entidadId && entidadId !== '' && entidadId !== 'otro') {
+        const endpoint = tipo === 'interno' ? 'departamento' : 'institucion';
+        fetch(`/api/${endpoint}/${entidadId}/responsable`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.responsable && data.responsable.nombre) {
+                    display.innerHTML = `
+                        <div class="d-flex flex-column">
+                            <strong class="mb-1">${escapeHtml(data.responsable.nombre)}</strong>
+                            <div class="small text-muted">
+                                ${data.responsable.departamento ? `<span>${escapeHtml(data.responsable.departamento)}</span>` : ''}
+                                ${data.responsable.telefono ? `<span class="ms-2">📞 ${escapeHtml(data.responsable.telefono)}</span>` : ''}
+                                ${data.responsable.email ? `<span class="ms-2">✉️ ${escapeHtml(data.responsable.email)}</span>` : ''}
+                            </div>
+                        </div>
+                    `;
+                    btnEditar.style.display = 'inline-block';
+                } else {
+                    display.innerHTML = `<span class="text-muted">⚠️ No hay responsable asignado a ${entidadNombre}. Haz clic en "Editar" para agregar uno.</span>`;
+                    btnEditar.style.display = 'inline-block';
+                }
+            })
+            .catch(() => {
+                display.innerHTML = `<span class="text-danger">Error al cargar responsable de ${entidadNombre}</span>`;
+                btnEditar.style.display = 'inline-block';
+            });
+    } else {
+        display.innerHTML = '<span class="text-muted">Selecciona una institución o departamento</span>';
+        btnEditar.style.display = 'none';
+    }
+}
+
+function editarResponsableActual() {
+    const tipo = document.getElementById('tipoSolicitante').value;
+    let entidadId = null;
+
+    if (tipo === 'interno') {
+        entidadId = document.getElementById('departamentoSelect').value;
+    } else {
+        entidadId = document.getElementById('institucionSelect').value;
+    }
+
+    if (entidadId && entidadId !== '' && entidadId !== 'otro') {
+        const entidadNombre = document.getElementById(tipo === 'interno' ? 'departamentoSelect' : 'institucionSelect').selectedOptions[0]?.text;
+        abrirModalEditarResponsable(tipo === 'interno' ? 'departamento' : 'institucion', entidadId, entidadNombre);
+    }
+}
+
+function abrirModalEditarResponsable(tipo, entidadId, entidadNombre) {
+    if (!document.getElementById('modalEditarResponsable')) {
+        const modalHtml = `
+            <div id="modalEditarResponsable" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10005; justify-content: center; align-items: center;">
+                <div class="modal-dialog modal-md modal-dialog-centered">
+                    <div class="modal-content rounded-4 border-0" style="background: #fff;">
+                        <div class="modal-header" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 20px 20px 0 0; padding: 20px 24px;">
+                            <h5 class="modal-title text-white" id="modalEditarResponsableTitulo">Editar Responsable</h5>
+                            <button type="button" class="btn-close btn-close-white" onclick="cerrarModalEditarResponsable()"></button>
+                        </div>
+                        <div class="modal-body p-4">
+                            <input type="hidden" id="editResponsableTipo">
+                            <input type="hidden" id="editResponsableEntidadId">
+                            <input type="hidden" id="editResponsableId">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Nombre del Responsable</label>
+                                <input type="text" id="editResponsableNombre" class="form-control" style="border-radius: 10px;">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Cargo / Departamento</label>
+                                <input type="text" id="editResponsableCargo" class="form-control" style="border-radius: 10px;">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Teléfono</label>
+                                <input type="text" id="editResponsableTelefono" class="form-control" style="border-radius: 10px;">
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">Email</label>
+                                <input type="email" id="editResponsableEmail" class="form-control" style="border-radius: 10px;">
+                            </div>
+                        </div>
+                        <div class="modal-footer border-0 pb-4 px-4">
+                            <button type="button" onclick="cerrarModalEditarResponsable()" class="btn btn-light px-4">Cancelar</button>
+                            <button type="button" onclick="guardarResponsable()" class="btn px-4 text-white" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">Guardar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    }
+
+    document.getElementById('modalEditarResponsable').style.display = 'flex';
+    document.getElementById('editResponsableTipo').value = tipo;
+    document.getElementById('editResponsableEntidadId').value = entidadId;
+    document.getElementById('modalEditarResponsableTitulo').innerHTML = `Editar Responsable de ${entidadNombre}`;
+
+    fetch(`/api/${tipo}/${entidadId}/responsable`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.responsable) {
+                document.getElementById('editResponsableNombre').value = data.responsable.nombre || '';
+                document.getElementById('editResponsableCargo').value = data.responsable.departamento || '';
+                document.getElementById('editResponsableTelefono').value = data.responsable.telefono || '';
+                document.getElementById('editResponsableEmail').value = data.responsable.email || '';
+                document.getElementById('editResponsableId').value = data.responsable.id || '';
+            } else {
+                document.getElementById('editResponsableNombre').value = '';
+                document.getElementById('editResponsableCargo').value = '';
+                document.getElementById('editResponsableTelefono').value = '';
+                document.getElementById('editResponsableEmail').value = '';
+                document.getElementById('editResponsableId').value = '';
+            }
+        });
+}
+
+function cerrarModalEditarResponsable() {
+    const modal = document.getElementById('modalEditarResponsable');
+    if (modal) modal.style.display = 'none';
+}
+
+async function guardarResponsable() {
+    const tipo = document.getElementById('editResponsableTipo').value;
+    const entidadId = document.getElementById('editResponsableEntidadId').value;
+    const responsableId = document.getElementById('editResponsableId').value;
+    const token = document.querySelector('meta[name="csrf-token"]').content;
+
+    const data = {
+        nombre: document.getElementById('editResponsableNombre').value,
+        cargo: document.getElementById('editResponsableCargo').value,
+        telefono: document.getElementById('editResponsableTelefono').value,
+        email: document.getElementById('editResponsableEmail').value,
+        responsable_id: responsableId || null,
+        _token: token
+    };
+
+    if (!data.nombre) {
+        mostrarNotificacion('error', 'Error', 'El nombre del responsable es obligatorio');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/${tipo}/${entidadId}/responsable`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': token },
+            body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            mostrarNotificacion('success', 'Éxito', 'Responsable actualizado correctamente');
+            cerrarModalEditarResponsable();
+            actualizarResponsableDisplay();
+        } else {
+            mostrarNotificacion('error', 'Error', result.message || 'Error al guardar');
+        }
+    } catch (error) {
+        mostrarNotificacion('error', 'Error', 'Error de conexión');
+    }
+}
+
 // ==================== MODALES PRINCIPALES ====================
-function abrirModalCrear() { document.getElementById('formCrearSolicitud').reset(); document.getElementById('tipoSolicitante').value = 'interno'; actualizarCamposSolicitante(); document.getElementById('modalCrear').style.display = 'flex'; }
+function abrirModalCrear() {
+    document.getElementById('formCrearSolicitud').reset();
+    document.getElementById('tipoSolicitante').value = 'interno';
+    actualizarCamposSolicitante();
+    document.getElementById('modalCrear').style.display = 'flex';
+    actualizarResponsableDisplay();
+}
 function cerrarModalCrear() { document.getElementById('modalCrear').style.display = 'none'; }
 
 function abrirBandejaCorreos() {
@@ -1096,6 +1212,7 @@ function actualizarCamposSolicitante() {
     const externoFields = document.getElementById('externo-fields');
     if (tipo === 'interno') { internoFields.style.display = 'block'; externoFields.style.display = 'none'; }
     else { internoFields.style.display = 'none'; externoFields.style.display = 'block'; }
+    actualizarResponsableDisplay();
 }
 
 function manejarDepartamentoOtro() {
@@ -1111,14 +1228,6 @@ function manejarInstitucionOtro() {
     const nuevoField = document.getElementById('institucion-nuevo-field');
     const nuevoInput = document.getElementById('nuevaInstitucion');
     if (select.value === 'otro') { nuevoField.style.display = 'block'; nuevoInput.required = true; }
-    else { nuevoField.style.display = 'none'; nuevoInput.required = false; nuevoInput.value = ''; }
-}
-
-function manejarResponsableOtro() {
-    const select = document.getElementById('responsableSelect');
-    const nuevoField = document.getElementById('responsable-nuevo-field');
-    const nuevoInput = document.getElementById('nuevoResponsable');
-    if (select.value === 'otro') { nuevoField.style.display = 'flex'; nuevoInput.required = true; }
     else { nuevoField.style.display = 'none'; nuevoInput.required = false; nuevoInput.value = ''; }
 }
 
@@ -1320,9 +1429,10 @@ document.getElementById('limpiarFiltros')?.addEventListener('click', () => {
 });
 
 document.getElementById('tipoSolicitante')?.addEventListener('change', actualizarCamposSolicitante);
+document.getElementById('departamentoSelect')?.addEventListener('change', actualizarResponsableDisplay);
+document.getElementById('institucionSelect')?.addEventListener('change', actualizarResponsableDisplay);
 document.getElementById('departamentoSelect')?.addEventListener('change', manejarDepartamentoOtro);
 document.getElementById('institucionSelect')?.addEventListener('change', manejarInstitucionOtro);
-document.getElementById('responsableSelect')?.addEventListener('change', manejarResponsableOtro);
 
 // ==================== INICIALIZAR ====================
 renderizarTabla();

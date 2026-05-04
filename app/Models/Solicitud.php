@@ -104,4 +104,16 @@ class Solicitud extends Model
     {
         return $query->where('prioridad', $prioridad);
     }
+
+     public function getResponsableAttribute()
+{
+    if ($this->tipo_solicitante === 'interno' && $this->departamento) {
+        return $this->departamento->responsable;
+    } elseif ($this->tipo_solicitante === 'externo' && $this->institucion) {
+        return $this->institucion->responsable;
+    }
+    return null;
+}
+
+
 }
