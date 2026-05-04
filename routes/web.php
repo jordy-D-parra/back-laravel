@@ -64,7 +64,7 @@ Route::middleware(['auth'])->prefix('notificaciones')->group(function () {
     Route::delete('/{id}', [NotificacionController::class, 'destroy'])->name('notificaciones.destroy');
 });
 
-// ========== RUTAS API PARA RESPONSABLES (FUERA DEL GRUPO DE ADMIN) ==========
+// ========== RUTAS API PARA RESPONSABLES ==========
 Route::middleware(['auth'])->prefix('api')->group(function () {
     Route::get('/departamento/{id}/responsable', [DepartamentoController::class, 'getResponsable']);
     Route::post('/departamento/{id}/responsable', [DepartamentoController::class, 'updateResponsable']);
@@ -74,12 +74,23 @@ Route::middleware(['auth'])->prefix('api')->group(function () {
 
 // ========== PANEL DE ADMINISTRACIÓN ==========
 Route::middleware(['auth'])->prefix('admin')->group(function () {
-    // Gestión de usuarios
+    // Gestión de usuarios (CRUD completo)
     Route::get('/users', [AuthController::class, 'adminUsers'])->name('admin.users');
+    // ELIMINADA: Route::get('/users/create', [AuthController::class, 'createUser'])->name('admin.users.create');
+    Route::post('/users/store', [AuthController::class, 'storeUser'])->name('admin.users.store');
+    Route::delete('/users/{id}', [AuthController::class, 'deleteUser'])->name('admin.users.delete');
+
+    // Cambiar rol y estado
     Route::put('/change-role/{id}', [AuthController::class, 'changeUserRole'])->name('admin.change-role')->middleware('role:super_admin,admin');
     Route::put('/change-status', [AuthController::class, 'changeUserStatus'])->name('admin.change-status')->middleware('role:super_admin,admin');
+
+    // Cambiar contraseña
     Route::post('/reset-password', [AuthController::class, 'adminResetPassword'])->name('admin.reset-password')->middleware('role:super_admin,admin');
+
+    // Activar usuarios pendientes
     Route::post('/activate-pending', [AuthController::class, 'activatePendingUsers'])->name('admin.activate-pending')->middleware('role:super_admin,admin');
+
+    // Estadísticas y API
     Route::get('/user-stats', [AuthController::class, 'getUserStats'])->name('admin.user-stats')->middleware('role:super_admin,admin');
     Route::get('/api/users', [AuthController::class, 'getUsersList'])->name('admin.api.users')->middleware('role:super_admin,admin');
     Route::get('/api/users/{id}', [AuthController::class, 'getUserDetails'])->name('admin.api.user')->middleware('role:super_admin,admin');

@@ -16,7 +16,6 @@ class Solicitud extends Model
         'tipo_solicitante',
         'institucion_id',
         'departamento_id',
-        'responsable_id',
         'oficio_adjunto',
         'fecha_solicitud',
         'fecha_requerida',
@@ -57,11 +56,6 @@ class Solicitud extends Model
         return $this->belongsTo(Departamento::class, 'departamento_id');
     }
 
-    public function responsable()
-    {
-        return $this->belongsTo(Responsable::class, 'responsable_id');
-    }
-
     public function detalles()
     {
         return $this->hasMany(DetalleSolicitud::class, 'id_solicitud');
@@ -88,10 +82,22 @@ class Solicitud extends Model
         return 'No especificado';
     }
 
-    // Obtener el nombre del responsable
+    // Obtener el responsable desde la entidad (departamento o institución)
+    public function getResponsableEntidadAttribute()
+    {
+        if ($this->tipo_solicitante === 'interno' && $this->departamento) {
+            return $this->departamento->responsable;
+        } elseif ($this->tipo_solicitante === 'externo' && $this->institucion) {
+            return $this->institucion->responsable;
+        }
+        return null;
+    }
+
+    // Obtener el nombre del responsable desde la entidad
     public function getNombreResponsableAttribute()
     {
-        return $this->responsable ? $this->responsable->nombre : 'No especificado';
+        $responsable = $this->responsable_entidad;
+        return $responsable ? $responsable->nombre : 'No especificado';
     }
 
     // Scope para filtros
@@ -104,16 +110,4 @@ class Solicitud extends Model
     {
         return $query->where('prioridad', $prioridad);
     }
-
-     public function getResponsableAttribute()
-{
-    if ($this->tipo_solicitante === 'interno' && $this->departamento) {
-        return $this->departamento->responsable;
-    } elseif ($this->tipo_solicitante === 'externo' && $this->institucion) {
-        return $this->institucion->responsable;
-    }
-    return null;
-}
-
-
 }

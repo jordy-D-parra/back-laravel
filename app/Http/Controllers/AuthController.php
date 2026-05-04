@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Validator;
 class AuthController extends Controller
 {
     // ========== LOGIN Y REGISTRO ==========
-    
+
     // Mostrar formulario de login
     public function showLogin()
     {
@@ -93,23 +93,23 @@ class AuthController extends Controller
             // Obtener roles dinámicamente desde la base de datos
             $superAdminRol = DB::table('rol')->where('nombre', 'super_admin')->first();
             $usuarioRol = DB::table('rol')->where('nombre', 'usuario')->first();
-            
+
             // Verificar que los roles existen en la BD
             if (!$superAdminRol) {
                 Log::error('Rol super_admin no encontrado en la base de datos');
                 return back()->withErrors(['error' => 'Error de configuración: Rol super_admin no existe. Contacta al administrador.']);
             }
-            
+
             if (!$usuarioRol) {
                 Log::error('Rol usuario no encontrado en la base de datos');
                 return back()->withErrors(['error' => 'Error de configuración: Rol usuario no existe. Contacta al administrador.']);
             }
-            
+
             // Determinar rol (el primer usuario es super_admin)
             $esPrimerUsuario = User::count() === 0;
             $idRol = $esPrimerUsuario ? $superAdminRol->id : $usuarioRol->id;
             $nombreRol = $esPrimerUsuario ? $superAdminRol->nombre : $usuarioRol->nombre;
-            
+
             Log::info('Asignando rol:', [
                 'es_primer_usuario' => $esPrimerUsuario,
                 'id_rol' => $idRol,
@@ -150,11 +150,11 @@ class AuthController extends Controller
 
         } catch (\Illuminate\Database\QueryException $e) {
             Log::error('ERROR DE BASE DE DATOS EN REGISTRO: ' . $e->getMessage());
-            
+
             if (str_contains($e->getMessage(), 'foreign key constraint')) {
                 return back()->withErrors(['error' => 'Error de configuración: Roles no encontrados. Por favor ejecuta: php artisan db:seed']);
             }
-            
+
             return back()->withErrors(['error' => 'Error en la base de datos: ' . $e->getMessage()]);
         } catch (\Exception $e) {
             Log::error('ERROR EN REGISTRO: ' . $e->getMessage());
@@ -180,7 +180,7 @@ class AuthController extends Controller
     }
 
     // ========== RECUPERACIÓN DE CONTRASEÑA ==========
-    
+
     // Mostrar formulario recuperar contraseña
     public function showForgotForm()
     {
@@ -288,8 +288,7 @@ class AuthController extends Controller
         $request->validate([
             'email' => 'required|email|exists:usuario,email'
         ]);
-        
-        // Redirigir a preguntas de seguridad si no hay email configurado
+
         return redirect()->route('password.request')
             ->with('info', 'Usa el sistema de recuperación por preguntas de seguridad.');
     }
@@ -306,7 +305,7 @@ class AuthController extends Controller
     }
 
     // ========== PANEL DE ADMINISTRACIÓN ==========
-    
+
     // Panel de administración de usuarios
     public function adminUsers()
     {
@@ -317,7 +316,7 @@ class AuthController extends Controller
 
         // Obtener todos los usuarios con su rol
         $users = User::with('rol')->orderBy('created_at', 'desc')->get();
-        
+
         // Obtener todos los roles activos para el selector
         $roles = DB::table('rol')->where('es_activo', true)->get();
 
@@ -325,77 +324,77 @@ class AuthController extends Controller
     }
 
     // Admin cambiar contraseña de usuario (CON SOPORTE AJAX)
-public function adminResetPassword(Request $request)
-{
-    try {
-        // Verificar permisos
-        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'No tienes permisos para cambiar contraseñas.'
-                ], 403);
+    public function adminResetPassword(Request $request)
+    {
+        try {
+            // Verificar permisos
+            if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No tienes permisos para cambiar contraseñas.'
+                    ], 403);
+                }
+                return redirect()->route('dashboard')->with('error', 'No tienes permisos.');
             }
-            return redirect()->route('dashboard')->with('error', 'No tienes permisos.');
-        }
 
-        $validator = Validator::make($request->all(), [
-            'user_id' => 'required|exists:usuario,id',
-            'new_password' => 'required|min:6|confirmed'
-        ]);
+            $validator = Validator::make($request->all(), [
+                'user_id' => 'required|exists:usuario,id',
+                'new_password' => 'required|min:6|confirmed'
+            ]);
 
-        if ($validator->fails()) {
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $validator->errors()->first()
-                ], 422);
+            if ($validator->fails()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $validator->errors()->first()
+                    ], 422);
+                }
+                return back()->withErrors($validator);
             }
-            return back()->withErrors($validator);
-        }
 
-        $user = User::find($request->user_id);
-        
-        // No permitir cambiar la contraseña de uno mismo
-        if ($user->id === auth()->id()) {
+            $user = User::find($request->user_id);
+
+            // No permitir cambiar la contraseña de uno mismo
+            if ($user->id === auth()->id()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Usa la sección de perfil para cambiar tu propia contraseña.'
+                    ]);
+                }
+                return back()->with('error', 'Usa la sección de perfil para cambiar tu propia contraseña.');
+            }
+
+            $user->password = Hash::make($request->new_password);
+            $user->save();
+
+            ActivityHelper::log('change_password', "Admin cambió contraseña de {$user->nombre}", null, ['user_id' => $user->id]);
+
+            $message = "Contraseña de {$user->nombre} actualizada correctamente.";
+
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
-                    'success' => false,
-                    'message' => 'Usa la sección de perfil para cambiar tu propia contraseña.'
+                    'success' => true,
+                    'message' => $message
                 ]);
             }
-            return back()->with('error', 'Usa la sección de perfil para cambiar tu propia contraseña.');
+
+            return back()->with('success', $message);
+
+        } catch (\Exception $e) {
+            Log::error('Error en adminResetPassword: ' . $e->getMessage());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al cambiar la contraseña: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->with('error', 'Error al cambiar la contraseña: ' . $e->getMessage());
         }
-        
-        $user->password = Hash::make($request->new_password);
-        $user->save();
-
-        ActivityHelper::log('change_password', "Admin cambió contraseña de {$user->nombre}", null, ['user_id' => $user->id]);
-
-        $message = "Contraseña de {$user->nombre} actualizada correctamente.";
-
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => $message
-            ]);
-        }
-
-        return back()->with('success', $message);
-        
-    } catch (\Exception $e) {
-        Log::error('Error en adminResetPassword: ' . $e->getMessage());
-        
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al cambiar la contraseña: ' . $e->getMessage()
-            ], 500);
-        }
-        
-        return back()->with('error', 'Error al cambiar la contraseña: ' . $e->getMessage());
     }
-}
 
     // Cambiar rol de usuario (CON SOPORTE AJAX)
     public function changeUserRole(Request $request, $id)
@@ -405,7 +404,7 @@ public function adminResetPassword(Request $request)
             if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json([
-                        'success' => false, 
+                        'success' => false,
                         'message' => 'No tienes permisos para cambiar roles.'
                     ], 403);
                 }
@@ -432,7 +431,7 @@ public function adminResetPassword(Request $request)
             if ($user->id === auth()->id()) {
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json([
-                        'success' => false, 
+                        'success' => false,
                         'message' => 'No puedes cambiar tu propio rol.'
                     ]);
                 }
@@ -448,7 +447,7 @@ public function adminResetPassword(Request $request)
             if (!$newRol) {
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json([
-                        'success' => false, 
+                        'success' => false,
                         'message' => 'Rol no válido.'
                     ]);
                 }
@@ -457,7 +456,7 @@ public function adminResetPassword(Request $request)
 
             $user->id_rol = $newRoleId;
             $user->save();
-            
+
             // Recargar la relación del rol
             $user->load('rol');
 
@@ -469,7 +468,7 @@ public function adminResetPassword(Request $request)
             // Si es petición AJAX, devolver JSON
             if ($request->ajax() || $request->wantsJson()) {
                 $badgeHtml = $this->generateRoleBadge($newRol);
-                
+
                 return response()->json([
                     'success' => true,
                     'message' => $mensaje,
@@ -488,14 +487,14 @@ public function adminResetPassword(Request $request)
 
         } catch (\Exception $e) {
             Log::error('Error en changeUserRole: ' . $e->getMessage());
-            
+
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Error al cambiar el rol: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             return redirect()->route('admin.users')->with('error', 'Error al cambiar el rol: ' . $e->getMessage());
         }
     }
@@ -508,7 +507,7 @@ public function adminResetPassword(Request $request)
             if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json([
-                        'success' => false, 
+                        'success' => false,
                         'message' => 'No tienes permisos para cambiar estados.'
                     ], 403);
                 }
@@ -536,7 +535,7 @@ public function adminResetPassword(Request $request)
             if ($user->id === auth()->id()) {
                 if ($request->ajax() || $request->wantsJson()) {
                     return response()->json([
-                        'success' => false, 
+                        'success' => false,
                         'message' => 'No puedes cambiar tu propio estado.'
                     ]);
                 }
@@ -551,7 +550,7 @@ public function adminResetPassword(Request $request)
                 ['estado_anterior' => $oldEstado], ['estado_nuevo' => $request->estado_usuario]);
 
             $mensaje = "Estado de {$user->nombre} actualizado a " . ucfirst($request->estado_usuario);
-            
+
             if ($oldEstado === 'pendiente' && $request->estado_usuario === 'activo') {
                 $mensaje .= ". El usuario ya puede iniciar sesión.";
             }
@@ -559,7 +558,7 @@ public function adminResetPassword(Request $request)
             // Si es petición AJAX, devolver JSON
             if ($request->ajax() || $request->wantsJson()) {
                 $badgeHtml = $this->generateStatusBadge($user->estado_usuario);
-                
+
                 return response()->json([
                     'success' => true,
                     'message' => $mensaje,
@@ -572,51 +571,177 @@ public function adminResetPassword(Request $request)
             }
 
             return redirect()->route('admin.users')->with('success', $mensaje);
-            
+
         } catch (\Exception $e) {
             Log::error('Error en changeUserStatus: ' . $e->getMessage());
-            
+
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Error al cambiar el estado: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             return redirect()->route('admin.users')->with('error', 'Error al cambiar el estado: ' . $e->getMessage());
         }
     }
-    
+
     // Activar múltiples usuarios pendientes
     public function activatePendingUsers(Request $request)
     {
         if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
             return redirect()->route('dashboard')->with('error', 'No tienes permisos.');
         }
-        
+
         $request->validate([
             'user_ids' => 'required|array',
             'user_ids.*' => 'exists:usuario,id'
         ]);
-        
+
         $count = User::whereIn('id', $request->user_ids)
             ->where('estado_usuario', 'pendiente')
             ->update(['estado_usuario' => 'activo']);
-        
+
         ActivityHelper::log('activate_users', "Admin activó {$count} usuarios pendientes");
-        
+
         return redirect()->route('admin.users')->with('success', "Se activaron {$count} usuario(s) correctamente.");
     }
 
+    // ========== NUEVOS MÉTODOS: ADMIN CREAR Y ELIMINAR USUARIO ==========
+
+    /**
+     * Almacenar nuevo usuario creado por admin (MODAL)
+     * Según la migración de la tabla 'usuario'
+     */
+    public function storeUser(Request $request)
+    {
+        try {
+            // Verificar permisos
+            if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'nombre' => 'required|string|max:100',
+                'apellido' => 'required|string|max:100',
+                'cedula' => 'required|string|max:20|unique:usuario,cedula',
+                'departamento' => 'nullable|string|max:100',
+                'cargo' => 'nullable|string|max:100',
+                'departamento_id' => 'nullable|exists:departamento,id',
+                'id_rol' => 'required|exists:rol,id',
+                'estado_usuario' => 'required|in:activo,pendiente,inactivo,suspendido',
+                'password' => 'required|string|min:6|confirmed',
+                'pregunta_seguridad_1' => 'required|string',
+                'respuesta_1' => 'required|string',
+                'pregunta_seguridad_2' => 'required|string',
+                'respuesta_2' => 'required|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Crear usuario según los campos de la migración
+            $user = User::create([
+                'nombre' => $request->nombre,
+                'apellido' => $request->apellido,
+                'cedula' => $request->cedula,
+                'departamento' => $request->departamento,
+                'cargo' => $request->cargo,
+                'departamento_id' => $request->departamento_id,
+                'password' => Hash::make($request->password),
+                'pregunta_seguridad_1' => $request->pregunta_seguridad_1,
+                'respuesta_1' => Hash::make(strtolower(trim($request->respuesta_1))),
+                'pregunta_seguridad_2' => $request->pregunta_seguridad_2,
+                'respuesta_2' => Hash::make(strtolower(trim($request->respuesta_2))),
+                'id_rol' => $request->id_rol,
+                'estado_usuario' => $request->estado_usuario,
+                'fecha_solicitud' => now(),
+                'activo' => $request->estado_usuario === 'activo',
+            ]);
+
+            ActivityHelper::log('admin_create_user', "Admin creó nuevo usuario: {$user->nombre} {$user->apellido}", null, [
+                'user_id' => $user->id,
+                'cedula' => $user->cedula,
+                'rol_id' => $user->id_rol
+            ]);
+
+            $message = "Usuario {$user->nombre} {$user->apellido} creado exitosamente.";
+
+            return response()->json([
+                'success' => true,
+                'message' => $message,
+                'user' => [
+                    'id' => $user->id,
+                    'nombre' => $user->nombre,
+                    'apellido' => $user->apellido,
+                    'nombre_completo' => $user->nombre . ' ' . $user->apellido,
+                    'cedula' => $user->cedula,
+                    'estado_usuario' => $user->estado_usuario
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en storeUser: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear usuario: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Eliminar usuario (solo admin)
+     */
+    public function deleteUser($id)
+    {
+        try {
+            // Verificar permisos
+            if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
+            $user = User::findOrFail($id);
+
+            // No permitir eliminar a sí mismo
+            if ($user->id === auth()->id()) {
+                return response()->json(['success' => false, 'message' => 'No puedes eliminar tu propio usuario.'], 422);
+            }
+
+            $nombreCompleto = $user->nombre . ' ' . $user->apellido;
+            $user->delete();
+
+            ActivityHelper::log('admin_delete_user', "Admin eliminó usuario: {$nombreCompleto}", null, ['user_id' => $id]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Usuario {$nombreCompleto} eliminado correctamente."
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en deleteUser: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar usuario: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     // ========== MÉTODOS PARA API Y ESTADÍSTICAS ==========
-    
+
     // Obtener estadísticas de usuarios (para dashboard)
     public function getUserStats()
     {
         if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
-        
+
         $stats = [
             'total' => User::count(),
             'activos' => User::where('estado_usuario', 'activo')->count(),
@@ -636,7 +761,7 @@ public function adminResetPassword(Request $request)
                 $q->where('nombre', 'usuario');
             })->count(),
         ];
-        
+
         return response()->json($stats);
     }
 
@@ -647,9 +772,9 @@ public function adminResetPassword(Request $request)
             if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
                 return response()->json(['error' => 'No autorizado'], 403);
             }
-            
+
             $query = User::with('rol');
-            
+
             // Filtro por búsqueda
             if ($request->has('search')) {
                 $search = $request->search;
@@ -659,19 +784,19 @@ public function adminResetPassword(Request $request)
                       ->orWhere('cedula', 'LIKE', "%{$search}%");
                 });
             }
-            
+
             // Filtro por rol
             if ($request->has('rol_id')) {
                 $query->where('id_rol', $request->rol_id);
             }
-            
+
             // Filtro por estado
             if ($request->has('estado')) {
                 $query->where('estado_usuario', $request->estado);
             }
-            
+
             $users = $query->orderBy('nombre')->get();
-            
+
             return response()->json([
                 'success' => true,
                 'users' => $users->map(function($user) {
@@ -687,7 +812,7 @@ public function adminResetPassword(Request $request)
                     ];
                 })
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Error en getUsersList: ' . $e->getMessage());
             return response()->json([
@@ -704,9 +829,9 @@ public function adminResetPassword(Request $request)
             if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
                 return response()->json(['error' => 'No autorizado'], 403);
             }
-            
+
             $user = User::with('rol')->findOrFail($id);
-            
+
             return response()->json([
                 'success' => true,
                 'user' => [
@@ -729,7 +854,7 @@ public function adminResetPassword(Request $request)
                     ]
                 ]
             ]);
-            
+
         } catch (\Exception $e) {
             Log::error('Error en getUserDetails: ' . $e->getMessage());
             return response()->json([
@@ -740,7 +865,7 @@ public function adminResetPassword(Request $request)
     }
 
     // ========== MÉTODOS AUXILIARES ==========
-    
+
     /**
      * Genera el badge HTML para el rol
      */
@@ -749,7 +874,7 @@ public function adminResetPassword(Request $request)
         if (!$rol) {
             return '<span class="badge bg-danger fs-6 p-2">⚠️ SIN ROL</span>';
         }
-        
+
         $badgeClass = match($rol->nombre) {
             'super_admin' => 'bg-danger',
             'admin' => 'bg-warning text-dark',
@@ -757,7 +882,7 @@ public function adminResetPassword(Request $request)
             'user', 'usuario' => 'bg-success',
             default => 'bg-secondary'
         };
-        
+
         $roleIcon = match($rol->nombre) {
             'super_admin' => '👑',
             'admin' => '⚙️',
@@ -765,9 +890,9 @@ public function adminResetPassword(Request $request)
             'user', 'usuario' => '👤',
             default => '❓'
         };
-        
+
         $nivelTexto = $rol->nivel ? " <small>(Nv.{$rol->nivel})</small>" : '';
-        
+
         return '<span class="badge ' . $badgeClass . ' fs-6 p-2">' . $roleIcon . ' ' . ucfirst($rol->nombre) . $nivelTexto . '</span>';
     }
 
@@ -783,7 +908,7 @@ public function adminResetPassword(Request $request)
             'suspendido' => 'secondary'
         ];
         $color = $estadoColors[$estado] ?? 'secondary';
-        
+
         $estadoIcon = match($estado) {
             'activo' => '✅',
             'pendiente' => '⏳',
@@ -791,7 +916,7 @@ public function adminResetPassword(Request $request)
             'suspendido' => '⚠️',
             default => ''
         };
-        
+
         return '<span class="badge bg-' . $color . ' fs-6 p-2">' . $estadoIcon . ' ' . ucfirst($estado) . '</span>';
     }
 }

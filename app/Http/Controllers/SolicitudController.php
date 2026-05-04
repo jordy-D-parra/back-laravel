@@ -2,577 +2,883 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Solicitud;
-use App\Models\DetalleSolicitud;
-use App\Models\Activo;
-use App\Models\Periferico;
-use App\Models\Institucion;
-use App\Models\Departamento;
-use App\Models\Responsable;
-use App\Models\NotificacionSistema;
-use App\Models\User;
-use App\Events\SolicitudCreada;
-use App\Events\SolicitudAprobada;
-use App\Events\SolicitudRechazada;
+use App\Helpers\ActivityHelper;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+use App\Models\User;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 
-class SolicitudController extends Controller
+class AuthController extends Controller
 {
-    public function index()
+    // ========== LOGIN Y REGISTRO ==========
+
+    // Mostrar formulario de login
+    public function showLogin()
     {
-        $solicitudes = Solicitud::with(['detalles.activo', 'detalles.periferico', 'institucion', 'departamento', 'solicitante', 'responsable'])
-            ->where('id_solicitante', auth()->id())
-            ->orderBy('created_at', 'desc')
-            ->paginate(10);
-
-        $activos = Activo::all();
-        $perifericos = Periferico::all();
-
-        $instituciones = Institucion::where('activo', true)->orderBy('nombre')->get();
-        $departamentos = Departamento::where('activo', true)->orderBy('nombre')->get();
-        $responsables = Responsable::all();
-
-        return view('solicitudes.index', compact('solicitudes', 'activos', 'perifericos', 'instituciones', 'departamentos', 'responsables'));
+        return view('auth.login');
     }
 
-    public function getItemsJson($id)
+    // Procesar el login (usando cédula)
+    public function login(Request $request)
+    {
+        $credentials = $request->validate([
+            'cedula' => 'required|string',
+            'password' => 'required',
+        ]);
+
+        // Buscar por cédula usando el modelo User
+        $user = User::where('cedula', $credentials['cedula'])->first();
+
+        if (!$user) {
+            return back()->withErrors([
+                'cedula' => 'La cédula no está registrada en el sistema.',
+            ])->onlyInput('cedula');
+        }
+
+        // Verificar estado del usuario
+        if ($user->estado_usuario !== 'activo') {
+            return back()->withErrors([
+                'cedula' => 'Tu cuenta no está activa. Contacta al administrador.',
+            ])->onlyInput('cedula');
+        }
+
+        // Intentar autenticar
+        if (Auth::attempt(['cedula' => $credentials['cedula'], 'password' => $credentials['password']], $request->remember)) {
+            ActivityHelper::log('login', 'Usuario inició sesión');
+
+            // Actualizar último login
+            $user->ultimo_login = now();
+            $user->save();
+
+            $request->session()->regenerate();
+            return redirect()->intended('dashboard');
+        }
+
+        return back()->withErrors([
+            'password' => 'Contraseña incorrecta.',
+        ])->onlyInput('cedula');
+    }
+
+    // Mostrar formulario de registro
+    public function showRegister()
+    {
+        return view('auth.register');
+    }
+
+    // Procesar registro
+    public function register(Request $request)
+    {
+        Log::info('===== INICIO REGISTRO =====');
+        Log::info('Datos:', $request->all());
+
+        try {
+            $request->validate([
+                'nombre' => 'required|string|max:100',
+                'apellido' => 'required|string|max:100',
+                'cedula' => 'required|string|unique:usuario,cedula',
+                'departamento' => 'nullable|string|max:100',
+                'cargo' => 'nullable|string|max:100',
+                'password' => 'required|min:6|confirmed',
+                'pregunta_seguridad_1' => 'required|string',
+                'respuesta_1' => 'required|string',
+                'pregunta_seguridad_2' => 'required|string',
+                'respuesta_2' => 'required|string',
+            ]);
+
+            // Obtener roles dinámicamente desde la base de datos
+            $superAdminRol = DB::table('rol')->where('nombre', 'super_admin')->first();
+            $usuarioRol = DB::table('rol')->where('nombre', 'usuario')->first();
+
+            // Verificar que los roles existen en la BD
+            if (!$superAdminRol) {
+                Log::error('Rol super_admin no encontrado en la base de datos');
+                return back()->withErrors(['error' => 'Error de configuración: Rol super_admin no existe. Contacta al administrador.']);
+            }
+
+            if (!$usuarioRol) {
+                Log::error('Rol usuario no encontrado en la base de datos');
+                return back()->withErrors(['error' => 'Error de configuración: Rol usuario no existe. Contacta al administrador.']);
+            }
+
+            // Determinar rol (el primer usuario es super_admin)
+            $esPrimerUsuario = User::count() === 0;
+            $idRol = $esPrimerUsuario ? $superAdminRol->id : $usuarioRol->id;
+            $nombreRol = $esPrimerUsuario ? $superAdminRol->nombre : $usuarioRol->nombre;
+
+            Log::info('Asignando rol:', [
+                'es_primer_usuario' => $esPrimerUsuario,
+                'id_rol' => $idRol,
+                'nombre_rol' => $nombreRol
+            ]);
+
+            $user = User::create([
+                'nombre' => $request->nombre,
+                'apellido' => $request->apellido,
+                'cedula' => $request->cedula,
+                'departamento' => $request->departamento,
+                'cargo' => $request->cargo,
+                'password' => Hash::make($request->password),
+                'pregunta_seguridad_1' => $request->pregunta_seguridad_1,
+                'respuesta_1' => Hash::make(strtolower(trim($request->respuesta_1))),
+                'pregunta_seguridad_2' => $request->pregunta_seguridad_2,
+                'respuesta_2' => Hash::make(strtolower(trim($request->respuesta_2))),
+                'id_rol' => $idRol,
+                'estado_usuario' => $esPrimerUsuario ? 'activo' : 'pendiente',
+                'fecha_solicitud' => now(),
+                'activo' => true,
+            ]);
+
+            ActivityHelper::log('register', 'Nuevo usuario registrado', null, [
+                'nombre' => $user->nombre,
+                'apellido' => $user->apellido,
+                'cedula' => $user->cedula,
+                'rol' => $nombreRol,
+                'id_rol' => $idRol
+            ]);
+
+            if ($esPrimerUsuario) {
+                Auth::login($user);
+                return redirect()->route('dashboard')->with('success', '¡Bienvenido Super Administrador! El sistema ha sido configurado correctamente.');
+            }
+
+            return redirect()->route('login')->with('status', '✅ Registro exitoso. Tu cuenta será activada por un administrador.');
+
+        } catch (\Illuminate\Database\QueryException $e) {
+            Log::error('ERROR DE BASE DE DATOS EN REGISTRO: ' . $e->getMessage());
+
+            if (str_contains($e->getMessage(), 'foreign key constraint')) {
+                return back()->withErrors(['error' => 'Error de configuración: Roles no encontrados. Por favor ejecuta: php artisan db:seed']);
+            }
+
+            return back()->withErrors(['error' => 'Error en la base de datos: ' . $e->getMessage()]);
+        } catch (\Exception $e) {
+            Log::error('ERROR EN REGISTRO: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+            return back()->withErrors(['error' => 'Error al registrar: ' . $e->getMessage()]);
+        }
+    }
+
+    // Cerrar sesión
+    public function logout(Request $request)
+    {
+        ActivityHelper::log('logout', 'Usuario cerró sesión');
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+        return redirect()->route('login');
+    }
+
+    // Dashboard
+    public function dashboard()
+    {
+        return view('dashboard');
+    }
+
+    // ========== RECUPERACIÓN DE CONTRASEÑA ==========
+
+    // Mostrar formulario recuperar contraseña
+    public function showForgotForm()
+    {
+        return view('auth.forgot-password');
+    }
+
+    // Verificar cédula para recuperación (AJAX)
+    public function verifyEmailForRecovery(Request $request)
+    {
+        $request->validate(['cedula' => 'required|string|exists:usuario,cedula']);
+
+        $user = User::where('cedula', $request->cedula)->first();
+
+        if (!$user->pregunta_seguridad_1 || !$user->pregunta_seguridad_2) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Este usuario no tiene preguntas de seguridad configuradas.'
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'user_id' => $user->id,
+            'question1' => $user->pregunta_seguridad_1,
+            'question2' => $user->pregunta_seguridad_2
+        ]);
+    }
+
+    // Verificar respuestas (AJAX)
+    public function verifyAnswers(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required|exists:usuario,id',
+            'answer_1' => 'required|string',
+            'answer_2' => 'required|string',
+        ]);
+
+        $user = User::findOrFail($request->user_id);
+
+        $answer1 = strtolower(trim($request->answer_1));
+        $answer2 = strtolower(trim($request->answer_2));
+
+        $valid1 = Hash::check($answer1, $user->respuesta_1);
+        $valid2 = Hash::check($answer2, $user->respuesta_2);
+
+        if ($valid1 && $valid2) {
+            session(['reset_user_id' => $user->id]);
+            ActivityHelper::log('password_recovery', 'Usuario verificó preguntas de seguridad', null, ['user_id' => $user->id]);
+
+            return response()->json([
+                'success' => true,
+                'user_id' => $user->id
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Respuestas incorrectas. Intenta nuevamente.'
+        ]);
+    }
+
+    // Mostrar formulario nueva contraseña
+    public function showResetPasswordForm()
+    {
+        if (!session('reset_user_id')) {
+            return redirect()->route('password.request');
+        }
+        return view('auth.reset-password-questions');
+    }
+
+    // Recuperar contraseña en una sola página
+    public function resetPasswordByQuestions(Request $request)
+    {
+        $request->validate([
+            'cedula' => 'required|exists:usuario,cedula',
+            'pregunta_seguridad_1' => 'required',
+            'respuesta_1' => 'required',
+            'pregunta_seguridad_2' => 'required',
+            'respuesta_2' => 'required',
+            'password' => 'required|min:6|confirmed',
+        ]);
+
+        $user = User::where('cedula', $request->cedula)->first();
+
+        // Verificar respuestas
+        $valid1 = Hash::check(strtolower(trim($request->respuesta_1)), $user->respuesta_1);
+        $valid2 = Hash::check(strtolower(trim($request->respuesta_2)), $user->respuesta_2);
+
+        if (!$valid1 || !$valid2) {
+            return back()->withErrors(['error' => 'Respuestas de seguridad incorrectas.']);
+        }
+
+        // Cambiar contraseña
+        $user->password = Hash::make($request->password);
+        $user->save();
+
+        ActivityHelper::log('password_reset', 'Usuario cambió contraseña mediante preguntas de seguridad', null, ['user_id' => $user->id]);
+
+        return redirect()->route('login')->with('status', '✅ Contraseña actualizada correctamente.');
+    }
+
+    // Métodos para compatibilidad con sistema de email (opcional)
+    public function sendResetLink(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email|exists:usuario,email'
+        ]);
+
+        return redirect()->route('password.request')
+            ->with('info', 'Usa el sistema de recuperación por preguntas de seguridad.');
+    }
+
+    public function showResetForm($token)
+    {
+        return view('auth.reset-password', ['token' => $token]);
+    }
+
+    public function resetPassword(Request $request)
+    {
+        return redirect()->route('login')
+            ->with('info', 'Usa el sistema de recuperación por preguntas de seguridad.');
+    }
+
+    // ========== PANEL DE ADMINISTRACIÓN ==========
+
+    // Panel de administración de usuarios
+    public function adminUsers()
+    {
+        // Verificar que el usuario actual es Super Admin o Admin
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+            return redirect()->route('dashboard')->with('error', 'No tienes permisos para acceder a esta sección.');
+        }
+
+        // Obtener todos los usuarios con su rol
+        $users = User::with('rol')->orderBy('created_at', 'desc')->get();
+
+        // Obtener todos los roles activos para el selector
+        $roles = DB::table('rol')->where('es_activo', true)->get();
+
+        return view('admin.users', compact('users', 'roles'));
+    }
+
+    // Admin cambiar contraseña de usuario (CON SOPORTE AJAX)
+    public function adminResetPassword(Request $request)
     {
         try {
-            $solicitud = Solicitud::with(['detalles.activo', 'detalles.periferico'])->find($id);
-
-            if (!$solicitud) {
-                return response()->json(['error' => 'Solicitud no encontrada'], 404);
-            }
-
-            $items = [];
-            foreach ($solicitud->detalles as $detalle) {
-                $descripcion = '';
-                if ($detalle->tipo_item == 'activo' && $detalle->activo) {
-                    $descripcion = $detalle->activo->serial . ' - ' . ($detalle->activo->marca_modelo ?? 'Activo');
-                } elseif ($detalle->periferico) {
-                    $descripcion = $detalle->periferico->nombre;
-                } elseif ($detalle->observaciones) {
-                    $descripcion = $detalle->observaciones;
-                } else {
-                    $descripcion = 'Item no disponible';
+            // Verificar permisos
+            if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No tienes permisos para cambiar contraseñas.'
+                    ], 403);
                 }
-
-                $items[] = [
-                    'tipo_item' => $detalle->tipo_item,
-                    'descripcion' => $descripcion,
-                    'cantidad_solicitada' => $detalle->cantidad_solicitada
-                ];
+                return redirect()->route('dashboard')->with('error', 'No tienes permisos.');
             }
 
-            return response()->json($items);
+            $validator = Validator::make($request->all(), [
+                'user_id' => 'required|exists:usuario,id',
+                'new_password' => 'required|min:6|confirmed'
+            ]);
+
+            if ($validator->fails()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $validator->errors()->first()
+                    ], 422);
+                }
+                return back()->withErrors($validator);
+            }
+
+            $user = User::find($request->user_id);
+
+            // No permitir cambiar la contraseña de uno mismo
+            if ($user->id === auth()->id()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Usa la sección de perfil para cambiar tu propia contraseña.'
+                    ]);
+                }
+                return back()->with('error', 'Usa la sección de perfil para cambiar tu propia contraseña.');
+            }
+
+            $user->password = Hash::make($request->new_password);
+            $user->save();
+
+            ActivityHelper::log('change_password', "Admin cambió contraseña de {$user->nombre}", null, ['user_id' => $user->id]);
+
+            $message = "Contraseña de {$user->nombre} actualizada correctamente.";
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message
+                ]);
+            }
+
+            return back()->with('success', $message);
 
         } catch (\Exception $e) {
-            Log::error('Error en getItemsJson: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
+            Log::error('Error en adminResetPassword: ' . $e->getMessage());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al cambiar la contraseña: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return back()->with('error', 'Error al cambiar la contraseña: ' . $e->getMessage());
+        }
+    }
+
+    // Cambiar rol de usuario (CON SOPORTE AJAX)
+    public function changeUserRole(Request $request, $id)
+    {
+        try {
+            // Verificar permisos
+            if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No tienes permisos para cambiar roles.'
+                    ], 403);
+                }
+                return redirect()->route('admin.users')->with('error', 'No tienes permisos para cambiar roles.');
+            }
+
+            $validator = Validator::make($request->all(), [
+                'id_rol' => 'required|exists:rol,id'
+            ]);
+
+            if ($validator->fails()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $validator->errors()->first()
+                    ], 422);
+                }
+                return redirect()->route('admin.users')->with('error', $validator->errors()->first());
+            }
+
+            $user = User::findOrFail($id);
+
+            // No permitir cambiar el rol de uno mismo
+            if ($user->id === auth()->id()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No puedes cambiar tu propio rol.'
+                    ]);
+                }
+                return redirect()->route('admin.users')->with('error', 'No puedes cambiar tu propio rol.');
+            }
+
+            $oldRoleId = $user->id_rol;
+            $newRoleId = $request->input('id_rol');
+
+            $oldRol = DB::table('rol')->where('id', $oldRoleId)->first();
+            $newRol = DB::table('rol')->where('id', $newRoleId)->first();
+
+            if (!$newRol) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Rol no válido.'
+                    ]);
+                }
+                return redirect()->route('admin.users')->with('error', 'Rol no válido.');
+            }
+
+            $user->id_rol = $newRoleId;
+            $user->save();
+
+            // Recargar la relación del rol
+            $user->load('rol');
+
+            ActivityHelper::log('change_role', "Rol cambiado de " . ($oldRol->nombre ?? 'NINGUNO') . " a {$newRol->nombre} para {$user->nombre}",
+                ['id_rol' => $oldRoleId], ['id_rol' => $newRoleId]);
+
+            $mensaje = "Rol de {$user->nombre} actualizado a {$newRol->nombre}.";
+
+            // Siempre devolver JSON para peticiones AJAX
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $mensaje
+                ]);
+            }
+
+            return redirect()->route('admin.users')->with('success', $mensaje);
+
+        } catch (\Exception $e) {
+            Log::error('Error en changeUserRole: ' . $e->getMessage());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al cambiar el rol: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->route('admin.users')->with('error', 'Error al cambiar el rol: ' . $e->getMessage());
+        }
+    }
+
+    // Cambiar estado de usuario (CON SOPORTE AJAX)
+    public function changeUserStatus(Request $request)
+    {
+        try {
+            // Verificar permisos
+            if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No tienes permisos para cambiar estados.'
+                    ], 403);
+                }
+                return redirect()->route('admin.users')->with('error', 'No tienes permisos para cambiar estados.');
+            }
+
+            $validator = Validator::make($request->all(), [
+                'user_id' => 'required|exists:usuario,id',
+                'estado_usuario' => 'required|in:activo,pendiente,inactivo,suspendido',
+            ]);
+
+            if ($validator->fails()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $validator->errors()->first()
+                    ], 422);
+                }
+                return redirect()->route('admin.users')->with('error', $validator->errors()->first());
+            }
+
+            $user = User::findOrFail($request->user_id);
+
+            // No permitir cambiar el estado de uno mismo
+            if ($user->id === auth()->id()) {
+                if ($request->ajax() || $request->wantsJson()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No puedes cambiar tu propio estado.'
+                    ]);
+                }
+                return redirect()->route('admin.users')->with('error', 'No puedes cambiar tu propio estado.');
+            }
+
+            $oldEstado = $user->estado_usuario;
+            $user->estado_usuario = $request->estado_usuario;
+            $user->save();
+
+            ActivityHelper::log('change_status', "Estado cambiado de {$oldEstado} a {$request->estado_usuario} para {$user->nombre}",
+                ['estado_anterior' => $oldEstado], ['estado_nuevo' => $request->estado_usuario]);
+
+            $mensaje = "Estado de {$user->nombre} actualizado a " . ucfirst($request->estado_usuario);
+
+            if ($oldEstado === 'pendiente' && $request->estado_usuario === 'activo') {
+                $mensaje .= ". El usuario ya puede iniciar sesión.";
+            }
+
+            // Siempre devolver JSON para peticiones AJAX
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $mensaje
+                ]);
+            }
+
+            return redirect()->route('admin.users')->with('success', $mensaje);
+
+        } catch (\Exception $e) {
+            Log::error('Error en changeUserStatus: ' . $e->getMessage());
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al cambiar el estado: ' . $e->getMessage()
+                ], 500);
+            }
+
+            return redirect()->route('admin.users')->with('error', 'Error al cambiar el estado: ' . $e->getMessage());
+        }
+    }
+
+    // Activar múltiples usuarios pendientes
+    public function activatePendingUsers(Request $request)
+    {
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+            return redirect()->route('dashboard')->with('error', 'No tienes permisos.');
+        }
+
+        $request->validate([
+            'user_ids' => 'required|array',
+            'user_ids.*' => 'exists:usuario,id'
+        ]);
+
+        $count = User::whereIn('id', $request->user_ids)
+            ->where('estado_usuario', 'pendiente')
+            ->update(['estado_usuario' => 'activo']);
+
+        ActivityHelper::log('activate_users', "Admin activó {$count} usuarios pendientes");
+
+        return redirect()->route('admin.users')->with('success', "Se activaron {$count} usuario(s) correctamente.");
+    }
+
+    // ========== ADMIN CREAR Y ELIMINAR USUARIO ==========
+
+    /**
+     * Almacenar nuevo usuario creado por admin (MODAL)
+     */
+    public function storeUser(Request $request)
+    {
+        try {
+            // Verificar permisos
+            if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
+            $validator = Validator::make($request->all(), [
+                'nombre' => 'required|string|max:100',
+                'apellido' => 'required|string|max:100',
+                'cedula' => 'required|string|max:20|unique:usuario,cedula',
+                'departamento' => 'nullable|string|max:100',
+                'cargo' => 'nullable|string|max:100',
+                'departamento_id' => 'nullable|exists:departamento,id',
+                'id_rol' => 'required|exists:rol,id',
+                'estado_usuario' => 'required|in:activo,pendiente,inactivo,suspendido',
+                'password' => 'required|string|min:6|confirmed',
+                'pregunta_seguridad_1' => 'required|string',
+                'respuesta_1' => 'required|string',
+                'pregunta_seguridad_2' => 'required|string',
+                'respuesta_2' => 'required|string',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $validator->errors()->first(),
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            // Crear usuario
+            $user = User::create([
+                'nombre' => $request->nombre,
+                'apellido' => $request->apellido,
+                'cedula' => $request->cedula,
+                'departamento' => $request->departamento,
+                'cargo' => $request->cargo,
+                'departamento_id' => $request->departamento_id,
+                'password' => Hash::make($request->password),
+                'pregunta_seguridad_1' => $request->pregunta_seguridad_1,
+                'respuesta_1' => Hash::make(strtolower(trim($request->respuesta_1))),
+                'pregunta_seguridad_2' => $request->pregunta_seguridad_2,
+                'respuesta_2' => Hash::make(strtolower(trim($request->respuesta_2))),
+                'id_rol' => $request->id_rol,
+                'estado_usuario' => $request->estado_usuario,
+                'fecha_solicitud' => now(),
+                'activo' => $request->estado_usuario === 'activo',
+            ]);
+
+            ActivityHelper::log('admin_create_user', "Admin creó nuevo usuario: {$user->nombre} {$user->apellido}", null, [
+                'user_id' => $user->id,
+                'cedula' => $user->cedula,
+                'rol_id' => $user->id_rol
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Usuario {$user->nombre} {$user->apellido} creado exitosamente."
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en storeUser: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear usuario: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Obtener detalles completos de una solicitud en formato JSON para el modal
+     * Eliminar usuario (solo admin)
      */
-    public function getDetalles($id)
+    public function deleteUser($id)
     {
         try {
-            $solicitud = Solicitud::with([
-                'detalles.activo',
-                'detalles.periferico',
-                'institucion',
-                'departamento',
-                'responsable',
-                'solicitante'
-            ])->find($id);
-
-            if (!$solicitud) {
-                return response()->json(['error' => 'Solicitud no encontrada'], 404);
-            }
-
             // Verificar permisos
-            $user = auth()->user();
-            if (!$user->isSuperAdmin() && !$user->hasRole('admin') && $user->id !== $solicitud->id_solicitante) {
-                return response()->json(['error' => 'No autorizado'], 403);
-            }
-
-            // Procesar los detalles correctamente
-            $detalles = [];
-            foreach ($solicitud->detalles as $detalle) {
-                $descripcion = '';
-
-                if ($detalle->tipo_item === 'activo' && $detalle->activo) {
-                    $descripcion = $detalle->activo->serial . ' - ' . ($detalle->activo->marca_modelo ?? 'Activo sin marca');
-                } elseif ($detalle->tipo_item === 'periferico' && $detalle->periferico) {
-                    $descripcion = $detalle->periferico->nombre;
-                } elseif ($detalle->descripcion_personalizada) {
-                    $descripcion = $detalle->descripcion_personalizada;
-                } elseif ($detalle->observaciones) {
-                    $descripcion = $detalle->observaciones;
-                } else {
-                    $descripcion = 'Item sin descripción específica';
-                }
-
-                $detalles[] = [
-                    'tipo_item' => $detalle->tipo_item,
-                    'item_descripcion' => $descripcion,
-                    'cantidad_solicitada' => $detalle->cantidad_solicitada
-                ];
-            }
-
-            return response()->json([
-                'id' => $solicitud->id,
-                'tipo_solicitante' => $solicitud->tipo_solicitante,
-                'prioridad' => $solicitud->prioridad,
-                'estado_solicitud' => $solicitud->estado_solicitud,
-                'fecha_solicitud' => $solicitud->fecha_solicitud,
-                'fecha_requerida' => $solicitud->fecha_requerida,
-                'fecha_fin_estimada' => $solicitud->fecha_fin_estimada,
-                'justificacion' => $solicitud->justificacion,
-                'observaciones' => $solicitud->observaciones,
-                'departamento' => $solicitud->departamento ? [
-                    'id' => $solicitud->departamento->id,
-                    'nombre' => $solicitud->departamento->nombre
-                ] : null,
-                'institucion' => $solicitud->institucion ? [
-                    'id' => $solicitud->institucion->id,
-                    'nombre' => $solicitud->institucion->nombre
-                ] : null,
-                'responsable' => $solicitud->responsable ? [
-                    'id' => $solicitud->responsable->id,
-                    'nombre' => $solicitud->responsable->nombre
-                ] : null,
-                'detalles' => $detalles
-            ]);
-
-        } catch (\Exception $e) {
-            Log::error('Error en getDetalles: ' . $e->getMessage());
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-    public function store(Request $request)
-    {
-        try {
-            Log::info('Datos recibidos en store:', $request->all());
-
-            // Validación base
-            $rules = [
-                'tipo_solicitante' => 'required|in:interno,externo',
-                'fecha_requerida' => 'required|date|after_or_equal:today',
-                'fecha_fin_estimada' => 'required|date|after_or_equal:fecha_requerida',
-                'justificacion' => 'required|string|min:20|max:1000',
-                'prioridad' => 'required|in:baja,normal,alta,urgente',
-                'observaciones' => 'nullable|string|max:500',
-                'items' => 'required|array|min:1',
-                'items.*.tipo_item' => 'required|in:activo,periferico',
-                'items.*.cantidad' => 'required|integer|min:1',
-                'oficio_adjunto' => 'nullable|file|mimes:pdf,doc,docx|max:2048'
-            ];
-
-            // Validación condicional: puede venir item_id (select) o item_descripcion (texto libre)
-            $rules['items.*.item_id'] = 'nullable|integer';
-            $rules['items.*.item_descripcion'] = 'nullable|string|max:255';
-
-            $request->validate($rules);
-
-            DB::beginTransaction();
-
-            // Inicializar todas las variables necesarias
-            $institucionId = null;
-            $departamentoId = null;
-            $responsableId = null;
-
-            if ($request->tipo_solicitante === 'interno') {
-                // Caso interno: departamento
-                if ($request->filled('departamento_id') && $request->departamento_id !== 'otro') {
-                    $departamentoId = $request->departamento_id;
-                } elseif ($request->filled('nuevo_departamento')) {
-                    $departamento = Departamento::create([
-                        'nombre' => $request->nuevo_departamento,
-                        'informacion' => $request->departamento_informacion ?? null,
-                        'representante' => $request->departamento_representante ?? null,
-                        'ubicacion' => $request->departamento_ubicacion ?? null,
-                        'activo' => true
-                    ]);
-                    $departamentoId = $departamento->id;
-                    $this->notificarNuevaEntidad('departamento', $departamento->nombre);
-                }
-            } else {
-                // Caso externo: institución
-                if ($request->filled('institucion_id') && $request->institucion_id !== 'otro') {
-                    $institucionId = $request->institucion_id;
-                } elseif ($request->filled('nueva_institucion')) {
-                    $institucion = Institucion::create([
-                        'nombre' => $request->nueva_institucion,
-                        'informacion' => $request->informacion ?? null,
-                        'representante' => $request->representante ?? null,
-                        'ubicacion' => $request->ubicacion ?? null,
-                        'activo' => true
-                    ]);
-                    $institucionId = $institucion->id;
-                    $this->notificarNuevaEntidad('institución', $institucion->nombre);
-                }
-            }
-
-            // Procesar responsable (común para ambos casos)
-            if ($request->filled('responsable_id') && $request->responsable_id !== 'otro') {
-                $responsableId = $request->responsable_id;
-            } elseif ($request->filled('nuevo_responsable')) {
-                $responsable = Responsable::create([
-                    'nombre' => $request->nuevo_responsable,
-                    'departamento' => $request->responsable_cargo ?? null,
-                    'tipo' => $request->tipo_solicitante,
-                    'telefono' => $request->responsable_telefono ?? null,
-                    'email' => $request->responsable_email ?? null,
-                    'documento' => $request->responsable_documento ?? null,
-                    'institucion_id' => $institucionId,
-                ]);
-                $responsableId = $responsable->id;
-            }
-
-            // Subir archivo
-            $oficioPath = null;
-            if ($request->hasFile('oficio_adjunto')) {
-                $oficioPath = $request->file('oficio_adjunto')->store('solicitudes/oficios', 'public');
-            }
-
-            // Crear solicitud
-            $solicitud = Solicitud::create([
-                'id_solicitante' => auth()->id(),
-                'tipo_solicitante' => $request->tipo_solicitante,
-                'institucion_id' => $institucionId,
-                'departamento_id' => $departamentoId,
-                'responsable_id' => $responsableId,
-                'oficio_adjunto' => $oficioPath,
-                'fecha_solicitud' => now(),
-                'fecha_requerida' => $request->fecha_requerida,
-                'fecha_fin_estimada' => $request->fecha_fin_estimada,
-                'justificacion' => $request->justificacion,
-                'prioridad' => $request->prioridad,
-                'estado_solicitud' => 'pendiente',
-                'observaciones' => $request->observaciones
-            ]);
-
-            Log::info('Solicitud creada con ID: ' . $solicitud->id);
-
-            // Guardar items (soporta tanto item_id como item_descripcion)
-            foreach ($request->items as $item) {
-                $activoId = null;
-                $perifericoId = null;
-                $descripcionPersonalizada = null;
-
-                // Caso 1: Viene item_id (select de inventario)
-                if (isset($item['item_id']) && !empty($item['item_id'])) {
-                    if ($item['tipo_item'] === 'activo') {
-                        $activo = Activo::find($item['item_id']);
-                        if (!$activo || $activo->cantidad < $item['cantidad']) {
-                            throw new \Exception("No hay suficiente cantidad disponible del activo seleccionado");
-                        }
-                        $activoId = $item['item_id'];
-                    } else {
-                        $periferico = Periferico::find($item['item_id']);
-                        if (!$periferico || $periferico->cantidad_disponible < $item['cantidad']) {
-                            throw new \Exception("No hay suficiente cantidad disponible del periférico seleccionado");
-                        }
-                        $perifericoId = $item['item_id'];
-                    }
-                }
-                // Caso 2: Viene item_descripcion (texto libre desde bandeja de correos)
-                elseif (isset($item['item_descripcion']) && !empty($item['item_descripcion'])) {
-                    $descripcionPersonalizada = $item['item_descripcion'];
-                }
-                // Caso 3: Si no viene ninguno, error
-                else {
-                    throw new \Exception("Debe especificar el item (seleccionando de inventario o escribiendo la descripción)");
-                }
-
-                DetalleSolicitud::create([
-                    'id_solicitud' => $solicitud->id,
-                    'tipo_item' => $item['tipo_item'],
-                    'cantidad_solicitada' => $item['cantidad'],
-                    'id_activo' => $activoId,
-                    'periferico_id' => $perifericoId,
-                    'descripcion_personalizada' => $descripcionPersonalizada,
-                    'observaciones' => $item['observaciones'] ?? null
-                ]);
-            }
-
-            DB::commit();
-
-            try {
-                event(new SolicitudCreada($solicitud));
-            } catch (\Exception $e) {
-                Log::warning('Error al disparar evento SolicitudCreada: ' . $e->getMessage());
-            }
-
-            // Respuesta JSON para peticiones AJAX
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Solicitud creada exitosamente',
-                    'solicitud_id' => $solicitud->id,
-                    'items_guardados' => count($request->items)
-                ]);
-            }
-
-            return redirect()->route('solicitudes.index')
-                ->with('success', 'Solicitud creada exitosamente');
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            DB::rollBack();
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error de validación',
-                    'errors' => $e->errors()
-                ], 422);
-            }
-            return back()->withErrors($e->errors())->withInput();
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al crear solicitud: ' . $e->getMessage());
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage()
-                ], 500);
-            }
-
-            return back()->with('error', 'Error: ' . $e->getMessage())->withInput();
-        }
-    }
-
-    private function notificarNuevaEntidad($tipo, $nombre)
-    {
-        try {
-            $admins = User::whereHas('rol', function($query) {
-                $query->whereIn('nombre', ['super_admin', 'admin']);
-            })->get();
-
-            foreach ($admins as $admin) {
-                NotificacionSistema::create([
-                    'usuario_id' => $admin->id,
-                    'tipo' => 'nueva_entidad',
-                    'titulo' => "Nueva $tipo registrada",
-                    'mensaje' => "Se ha registrado una nueva $tipo: '$nombre' durante una solicitud de préstamo.",
-                    'datos_extra' => ['tipo' => $tipo, 'nombre' => $nombre],
-                    'fecha_envio' => now(),
-                    'leida' => false
-                ]);
-            }
-        } catch (\Exception $e) {
-            Log::warning('Error al notificar nueva entidad: ' . $e->getMessage());
-        }
-    }
-
-    public function create()
-    {
-        $activos = Activo::where('cantidad', '>', 0)->get();
-        $perifericos = Periferico::where('cantidad_disponible', '>', 0)->get();
-        $instituciones = Institucion::where('activo', true)->get();
-        $departamentos = Departamento::where('activo', true)->get();
-        $responsables = Responsable::all();
-
-        return view('solicitudes.create', compact('activos', 'perifericos', 'instituciones', 'departamentos', 'responsables'));
-    }
-
-    public function show(Solicitud $solicitud)
-    {
-        $user = auth()->user();
-
-        if (!$user->isSuperAdmin() && !$user->hasRole('admin') && $user->id !== $solicitud->id_solicitante) {
-            abort(403);
-        }
-
-        $solicitud->load(['solicitante', 'aprobador', 'detalles.activo', 'detalles.periferico', 'institucion', 'departamento', 'responsable']);
-
-        return view('solicitudes.show', compact('solicitud'));
-    }
-
-    public function approve(Solicitud $solicitud)
-    {
-        $user = auth()->user();
-
-        if (!$user->isSuperAdmin() && !$user->hasRole('admin')) {
-            abort(403);
-        }
-
-        if ($solicitud->estado_solicitud !== 'pendiente') {
-            return back()->with('error', 'Solo se pueden aprobar solicitudes pendientes');
-        }
-
-        try {
-            DB::beginTransaction();
-
-            foreach ($solicitud->detalles as $detalle) {
-                if ($detalle->tipo_item === 'activo' && $detalle->id_activo) {
-                    $activo = Activo::find($detalle->id_activo);
-                    if (!$activo || $activo->cantidad < $detalle->cantidad_solicitada) {
-                        throw new \Exception("No hay suficiente cantidad del activo");
-                    }
-                } elseif ($detalle->tipo_item === 'periferico' && $detalle->periferico_id) {
-                    $periferico = Periferico::find($detalle->periferico_id);
-                    if (!$periferico || $periferico->cantidad_disponible < $detalle->cantidad_solicitada) {
-                        throw new \Exception("No hay suficiente cantidad del periférico");
-                    }
-                }
-                // Si el item es de texto libre (sin ID), no se puede verificar disponibilidad
-            }
-
-            $solicitud->update([
-                'estado_solicitud' => 'aprobada',
-                'aprobado_por' => $user->id,
-                'fecha_aprobacion' => now()
-            ]);
-
-            DB::commit();
-
-            try {
-                event(new SolicitudAprobada($solicitud));
-            } catch (\Exception $e) {
-                Log::warning('Error al disparar evento SolicitudAprobada: ' . $e->getMessage());
-            }
-
-            NotificacionSistema::create([
-                'usuario_id' => $solicitud->id_solicitante,
-                'tipo' => 'solicitud_aprobada',
-                'titulo' => 'Solicitud Aprobada',
-                'mensaje' => "Tu solicitud #{$solicitud->id} ha sido aprobada",
-                'datos_extra' => ['solicitud_id' => $solicitud->id],
-                'fecha_envio' => now()
-            ]);
-
-            return redirect()->route('solicitudes.show', $solicitud)
-                ->with('success', 'Solicitud aprobada');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error al aprobar solicitud: ' . $e->getMessage());
-            return back()->with('error', $e->getMessage());
-        }
-    }
-
-    public function reject(Request $request, Solicitud $solicitud)
-    {
-        $user = auth()->user();
-
-        if (!$user->isSuperAdmin() && !$user->hasRole('admin')) {
-            abort(403);
-        }
-
-        $request->validate(['motivo' => 'required|string|min:10']);
-
-        $solicitud->update([
-            'estado_solicitud' => 'rechazada',
-            'aprobado_por' => $user->id,
-            'fecha_aprobacion' => now(),
-            'observaciones' => $request->motivo
-        ]);
-
-        try {
-            event(new SolicitudRechazada($solicitud, $request->motivo));
-        } catch (\Exception $e) {
-            Log::warning('Error al disparar evento SolicitudRechazada: ' . $e->getMessage());
-        }
-
-        NotificacionSistema::create([
-            'usuario_id' => $solicitud->id_solicitante,
-            'tipo' => 'solicitud_rechazada',
-            'titulo' => 'Solicitud Rechazada',
-            'mensaje' => "Tu solicitud #{$solicitud->id} ha sido rechazada. Motivo: {$request->motivo}",
-            'datos_extra' => ['solicitud_id' => $solicitud->id],
-            'fecha_envio' => now()
-        ]);
-
-        return redirect()->route('solicitudes.show', $solicitud)
-            ->with('success', 'Solicitud rechazada');
-    }
-
-    public function cancel(Solicitud $solicitud)
-    {
-        if (auth()->id() !== $solicitud->id_solicitante) {
-            abort(403);
-        }
-
-        if (!in_array($solicitud->estado_solicitud, ['pendiente', 'aprobada'])) {
-            return back()->with('error', 'No se puede cancelar esta solicitud');
-        }
-
-        $solicitud->update(['estado_solicitud' => 'cancelada']);
-
-        return redirect()->route('solicitudes.index')
-            ->with('success', 'Solicitud cancelada');
-    }
-
-    public function descargarOficio(Solicitud $solicitud)
-    {
-        $user = auth()->user();
-
-        if (!$user->isSuperAdmin() && !$user->hasRole('admin') && $user->id !== $solicitud->id_solicitante) {
-            abort(403);
-        }
-
-        if (!$solicitud->oficio_adjunto) {
-            return back()->with('error', 'No hay archivo adjunto');
-        }
-
-        $path = storage_path("app/public/{$solicitud->oficio_adjunto}");
-
-        if (!file_exists($path)) {
-            return back()->with('error', 'El archivo no existe');
-        }
-
-        return response()->download($path);
-    }
-
-    public function update(Request $request, $id)
-    {
-        try {
-            $solicitud = Solicitud::findOrFail($id);
-
-            // Verificar que el usuario sea el propietario
-            if ($solicitud->id_solicitante !== auth()->id()) {
+            if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
                 return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
             }
 
-            // Verificar que la solicitud esté pendiente
-            if ($solicitud->estado_solicitud !== 'pendiente') {
-                return response()->json(['success' => false, 'message' => 'Solo se pueden editar solicitudes pendientes'], 422);
+            $user = User::findOrFail($id);
+
+            // No permitir eliminar a sí mismo
+            if ($user->id === auth()->id()) {
+                return response()->json(['success' => false, 'message' => 'No puedes eliminar tu propio usuario.'], 422);
             }
 
-            $request->validate([
-                'tipo_solicitante' => 'required|in:interno,externo',
-                'fecha_requerida' => 'required|date|after_or_equal:today',
-                'fecha_fin_estimada' => 'required|date|after_or_equal:fecha_requerida',
-                'justificacion' => 'required|string|min:20|max:1000',
-                'prioridad' => 'required|in:baja,normal,alta,urgente',
-                'observaciones' => 'nullable|string|max:500',
-            ]);
+            $nombreCompleto = $user->nombre . ' ' . $user->apellido;
+            $user->delete();
 
-            $solicitud->update([
-                'tipo_solicitante' => $request->tipo_solicitante,
-                'prioridad' => $request->prioridad,
-                'fecha_requerida' => $request->fecha_requerida,
-                'fecha_fin_estimada' => $request->fecha_fin_estimada,
-                'justificacion' => $request->justificacion,
-                'observaciones' => $request->observaciones,
-                'departamento_id' => $request->departamento_id ?? null,
-                'institucion_id' => $request->institucion_id ?? null,
-                'responsable_id' => $request->responsable_id ?? null,
-            ]);
+            ActivityHelper::log('admin_delete_user', "Admin eliminó usuario: {$nombreCompleto}", null, ['user_id' => $id]);
 
-            return response()->json(['success' => true, 'message' => 'Solicitud actualizada exitosamente']);
+            return response()->json([
+                'success' => true,
+                'message' => "Usuario {$nombreCompleto} eliminado correctamente."
+            ]);
 
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+            Log::error('Error en deleteUser: ' . $e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar usuario: ' . $e->getMessage()
+            ], 500);
         }
+    }
+
+    // ========== MÉTODOS PARA API Y ESTADÍSTICAS ==========
+
+    // Obtener estadísticas de usuarios (para dashboard)
+    public function getUserStats()
+    {
+        if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+            return response()->json(['error' => 'No autorizado'], 403);
+        }
+
+        $stats = [
+            'total' => User::count(),
+            'activos' => User::where('estado_usuario', 'activo')->count(),
+            'pendientes' => User::where('estado_usuario', 'pendiente')->count(),
+            'inactivos' => User::where('estado_usuario', 'inactivo')->count(),
+            'suspendidos' => User::where('estado_usuario', 'suspendido')->count(),
+            'super_admins' => User::whereHas('rol', function($q) {
+                $q->where('nombre', 'super_admin');
+            })->count(),
+            'admins' => User::whereHas('rol', function($q) {
+                $q->where('nombre', 'admin');
+            })->count(),
+            'workers' => User::whereHas('rol', function($q) {
+                $q->where('nombre', 'worker');
+            })->count(),
+            'users' => User::whereHas('rol', function($q) {
+                $q->where('nombre', 'usuario');
+            })->count(),
+        ];
+
+        return response()->json($stats);
+    }
+
+    // Obtener lista de usuarios (para selectores y APIs)
+    public function getUsersList(Request $request)
+    {
+        try {
+            if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+                return response()->json(['error' => 'No autorizado'], 403);
+            }
+
+            $query = User::with('rol');
+
+            if ($request->has('search')) {
+                $search = $request->search;
+                $query->where(function($q) use ($search) {
+                    $q->where('nombre', 'LIKE', "%{$search}%")
+                      ->orWhere('apellido', 'LIKE', "%{$search}%")
+                      ->orWhere('cedula', 'LIKE', "%{$search}%");
+                });
+            }
+
+            if ($request->has('rol_id')) {
+                $query->where('id_rol', $request->rol_id);
+            }
+
+            if ($request->has('estado')) {
+                $query->where('estado_usuario', $request->estado);
+            }
+
+            $users = $query->orderBy('nombre')->get();
+
+            return response()->json([
+                'success' => true,
+                'users' => $users->map(function($user) {
+                    return [
+                        'id' => $user->id,
+                        'nombre_completo' => $user->nombre . ' ' . $user->apellido,
+                        'cedula' => $user->cedula,
+                        'rol' => $user->rol ? $user->rol->nombre : null,
+                        'rol_id' => $user->id_rol,
+                        'estado' => $user->estado_usuario,
+                        'badge_rol' => $this->generateRoleBadge($user->rol),
+                        'badge_estado' => $this->generateStatusBadge($user->estado_usuario)
+                    ];
+                })
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en getUsersList: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener usuarios: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // Obtener detalles de un usuario específico
+    public function getUserDetails($id)
+    {
+        try {
+            if (!auth()->user()->isSuperAdmin() && !auth()->user()->isAdmin()) {
+                return response()->json(['error' => 'No autorizado'], 403);
+            }
+
+            $user = User::with('rol')->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'user' => [
+                    'id' => $user->id,
+                    'nombre' => $user->nombre,
+                    'apellido' => $user->apellido,
+                    'nombre_completo' => $user->nombre . ' ' . $user->apellido,
+                    'cedula' => $user->cedula,
+                    'departamento' => $user->departamento,
+                    'cargo' => $user->cargo,
+                    'rol_id' => $user->id_rol,
+                    'rol_nombre' => $user->rol ? $user->rol->nombre : null,
+                    'estado_usuario' => $user->estado_usuario,
+                    'fecha_solicitud' => $user->fecha_solicitud ? Carbon::parse($user->fecha_solicitud)->format('d/m/Y') : null,
+                    'ultimo_login' => $user->ultimo_login ? Carbon::parse($user->ultimo_login)->format('d/m/Y H:i') : 'Nunca',
+                    'preguntas_seguridad' => [
+                        'pregunta_1' => $user->pregunta_seguridad_1,
+                        'pregunta_2' => $user->pregunta_seguridad_2
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error en getUserDetails: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuario no encontrado'
+            ], 404);
+        }
+    }
+
+    // ========== MÉTODOS AUXILIARES ==========
+
+    private function generateRoleBadge($rol)
+    {
+        if (!$rol) {
+            return '<span class="badge bg-danger fs-6 p-2">⚠️ SIN ROL</span>';
+        }
+
+        $badgeClass = match($rol->nombre) {
+            'super_admin' => 'bg-danger',
+            'admin' => 'bg-warning text-dark',
+            'worker' => 'bg-primary',
+            'user', 'usuario' => 'bg-success',
+            default => 'bg-secondary'
+        };
+
+        $roleIcon = match($rol->nombre) {
+            'super_admin' => '👑',
+            'admin' => '⚙️',
+            'worker' => '🔧',
+            'user', 'usuario' => '👤',
+            default => '❓'
+        };
+
+        $nivelTexto = $rol->nivel ? " <small>(Nv.{$rol->nivel})</small>" : '';
+
+        return '<span class="badge ' . $badgeClass . ' fs-6 p-2">' . $roleIcon . ' ' . ucfirst($rol->nombre) . $nivelTexto . '</span>';
+    }
+
+    private function generateStatusBadge($estado)
+    {
+        $estadoColors = [
+            'activo' => 'success',
+            'pendiente' => 'warning',
+            'inactivo' => 'danger',
+            'suspendido' => 'secondary'
+        ];
+        $color = $estadoColors[$estado] ?? 'secondary';
+
+        $estadoIcon = match($estado) {
+            'activo' => '✅',
+            'pendiente' => '⏳',
+            'inactivo' => '❌',
+            'suspendido' => '⚠️',
+            default => ''
+        };
+
+        return '<span class="badge bg-' . $color . ' fs-6 p-2">' . $estadoIcon . ' ' . ucfirst($estado) . '</span>';
     }
 }

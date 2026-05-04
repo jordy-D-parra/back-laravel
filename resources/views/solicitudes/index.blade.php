@@ -421,12 +421,18 @@
 
                         <div class="col-md-12">
                             <label class="form-label fw-semibold">Persona Responsable</label>
-                            <select name="responsable_id" id="editResponsableId" class="form-select" style="border-radius: 10px; background: white;">
-                                <option value="">Seleccione un responsable</option>
-                                @foreach($responsables ?? [] as $responsable)
-                                    <option value="{{ $responsable->id }}">{{ $responsable->nombre }} - {{ $responsable->departamento ?? $responsable->tipo }}</option>
-                                @endforeach
-                            </select>
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="flex-grow-1 p-3 bg-light rounded" id="editResponsableDisplay" style="background: #f8f9fc; border-radius: 10px; min-height: 70px;">
+                                    <span class="text-muted">Selecciona una institución o departamento</span>
+                                </div>
+                                <button type="button" onclick="editarResponsableActualEdit()" class="btn" style="background: #1e3c72; color: white; border-radius: 10px; display: none;" id="btnEditarResponsableEdit">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                                        <path d="M20 14.66V20a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h5.34"/>
+                                        <polygon points="18 2 22 6 12 16 8 16 8 12 18 2"/>
+                                    </svg>
+                                    Editar
+                                </button>
+                            </div>
                         </div>
 
                         <div class="col-md-6">
@@ -847,9 +853,7 @@ function verDetalles(id) {
                 itemsHtml = `
                     <div class="table-responsive mt-3">
                         <table class="table table-sm">
-                            <thead>
-                                <tr><th>Tipo</th><th>Descripción</th><th class="text-center">Cantidad</th></tr>
-                            </thead>
+                            <thead><tr><th>Tipo</th><th>Descripción</th><th class="text-center">Cantidad</th></tr></thead>
                             <tbody>
                 `;
                 for (let i = 0; i < data.detalles.length; i++) {
@@ -899,7 +903,7 @@ function cerrarModalDetalles() {
     document.getElementById('modalDetalles').style.display = 'none';
 }
 
-// ==================== RENDERIZAR TABLA ====================
+// ==================== RENDERIZAR TABLA (CORREGIDO) ====================
 function renderizarTabla() {
     const tbody = document.getElementById('tablaBody');
     const resultadosCount = document.getElementById('resultadosCount');
@@ -927,7 +931,14 @@ function renderizarTabla() {
         let nombreEntidad = 'No especificado';
         if (s.tipo_solicitante === 'interno' && s.departamento) nombreEntidad = s.departamento.nombre;
         else if (s.tipo_solicitante === 'externo' && s.institucion) nombreEntidad = s.institucion.nombre;
-        const nombreResponsable = s.responsable ? s.responsable.nombre : 'No especificado';
+
+        // OBTENER RESPONSABLE DESDE LA ENTIDAD (CORREGIDO)
+        let nombreResponsable = 'No especificado';
+        if (s.tipo_solicitante === 'interno' && s.departamento && s.departamento.responsable) {
+            nombreResponsable = s.departamento.responsable.nombre;
+        } else if (s.tipo_solicitante === 'externo' && s.institucion && s.institucion.responsable) {
+            nombreResponsable = s.institucion.responsable.nombre;
+        }
 
         html += `<tr data-id="${s.id}">
             <td class="px-4 py-3"><span class="badge-fecha fecha-solicitud-badge"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> ${fechaSolicitud}</span><\/td>
@@ -1043,7 +1054,7 @@ function abrirModalEditarResponsable(tipo, entidadId, entidadNombre) {
         const modalHtml = `
             <div id="modalEditarResponsable" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10005; justify-content: center; align-items: center;">
                 <div class="modal-dialog modal-md modal-dialog-centered">
-                    <div class="modal-content rounded-4 border-0" style="background: #fff;">
+                    <div class="modal-content rounded-4 border-0">
                         <div class="modal-header" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 20px 20px 0 0; padding: 20px 24px;">
                             <h5 class="modal-title text-white" id="modalEditarResponsableTitulo">Editar Responsable</h5>
                             <button type="button" class="btn-close btn-close-white" onclick="cerrarModalEditarResponsable()"></button>
@@ -1178,13 +1189,65 @@ function editarSolicitud(id) {
     document.getElementById('editObservaciones').value = solicitud.observaciones || '';
     if (solicitud.departamento_id) document.getElementById('editDepartamentoId').value = solicitud.departamento_id;
     if (solicitud.institucion_id) document.getElementById('editInstitucionId').value = solicitud.institucion_id;
-    if (solicitud.responsable_id) document.getElementById('editResponsableId').value = solicitud.responsable_id;
     const editInternoFields = document.getElementById('editInternoFields');
     const editExternoFields = document.getElementById('editExternoFields');
     if (solicitud.tipo_solicitante === 'interno') { editInternoFields.style.display = 'block'; editExternoFields.style.display = 'none'; }
     else { editInternoFields.style.display = 'none'; editExternoFields.style.display = 'block'; }
     document.getElementById('modalEditar').style.display = 'flex';
     document.getElementById('formEditarSolicitud').action = `/solicitudes/${id}/update`;
+
+    // Cargar responsable en el modal de edición
+    cargarResponsableEdit(solicitud);
+}
+
+function cargarResponsableEdit(solicitud) {
+    const display = document.getElementById('editResponsableDisplay');
+    const btnEditar = document.getElementById('btnEditarResponsableEdit');
+
+    if (solicitud.tipo_solicitante === 'interno' && solicitud.departamento && solicitud.departamento.responsable) {
+        display.innerHTML = `
+            <div class="d-flex flex-column">
+                <strong class="mb-1">${escapeHtml(solicitud.departamento.responsable.nombre)}</strong>
+                <div class="small text-muted">
+                    ${solicitud.departamento.responsable.departamento ? `<span>${escapeHtml(solicitud.departamento.responsable.departamento)}</span>` : ''}
+                    ${solicitud.departamento.responsable.telefono ? `<span class="ms-2">📞 ${escapeHtml(solicitud.departamento.responsable.telefono)}</span>` : ''}
+                    ${solicitud.departamento.responsable.email ? `<span class="ms-2">✉️ ${escapeHtml(solicitud.departamento.responsable.email)}</span>` : ''}
+                </div>
+            </div>
+        `;
+        btnEditar.style.display = 'inline-block';
+    } else if (solicitud.tipo_solicitante === 'externo' && solicitud.institucion && solicitud.institucion.responsable) {
+        display.innerHTML = `
+            <div class="d-flex flex-column">
+                <strong class="mb-1">${escapeHtml(solicitud.institucion.responsable.nombre)}</strong>
+                <div class="small text-muted">
+                    ${solicitud.institucion.responsable.departamento ? `<span>${escapeHtml(solicitud.institucion.responsable.departamento)}</span>` : ''}
+                    ${solicitud.institucion.responsable.telefono ? `<span class="ms-2">📞 ${escapeHtml(solicitud.institucion.responsable.telefono)}</span>` : ''}
+                    ${solicitud.institucion.responsable.email ? `<span class="ms-2">✉️ ${escapeHtml(solicitud.institucion.responsable.email)}</span>` : ''}
+                </div>
+            </div>
+        `;
+        btnEditar.style.display = 'inline-block';
+    } else {
+        display.innerHTML = '<span class="text-muted">No hay responsable asignado a esta entidad</span>';
+        btnEditar.style.display = 'inline-block';
+    }
+}
+
+function editarResponsableActualEdit() {
+    const tipo = document.getElementById('editTipoSolicitante').value;
+    let entidadId = null;
+
+    if (tipo === 'interno') {
+        entidadId = document.getElementById('editDepartamentoId').value;
+    } else {
+        entidadId = document.getElementById('editInstitucionId').value;
+    }
+
+    if (entidadId && entidadId !== '') {
+        const entidadNombre = document.getElementById(tipo === 'interno' ? 'editDepartamentoId' : 'editInstitucionId').selectedOptions[0]?.text;
+        abrirModalEditarResponsable(tipo === 'interno' ? 'departamento' : 'institucion', entidadId, entidadNombre);
+    }
 }
 
 function cerrarModalEditar() { document.getElementById('modalEditar').style.display = 'none'; }
@@ -1433,6 +1496,38 @@ document.getElementById('departamentoSelect')?.addEventListener('change', actual
 document.getElementById('institucionSelect')?.addEventListener('change', actualizarResponsableDisplay);
 document.getElementById('departamentoSelect')?.addEventListener('change', manejarDepartamentoOtro);
 document.getElementById('institucionSelect')?.addEventListener('change', manejarInstitucionOtro);
+
+// Listeners para el modal de edición
+document.getElementById('editTipoSolicitante')?.addEventListener('change', function() {
+    const tipo = this.value;
+    const editInternoFields = document.getElementById('editInternoFields');
+    const editExternoFields = document.getElementById('editExternoFields');
+    if (tipo === 'interno') {
+        editInternoFields.style.display = 'block';
+        editExternoFields.style.display = 'none';
+    } else {
+        editInternoFields.style.display = 'none';
+        editExternoFields.style.display = 'block';
+    }
+});
+
+document.getElementById('editDepartamentoId')?.addEventListener('change', function() {
+    const solicitudId = document.getElementById('editId').value;
+    const solicitud = todasLasSolicitudes.find(s => s.id == solicitudId);
+    if (solicitud) {
+        solicitud.departamento_id = this.value;
+        cargarResponsableEdit(solicitud);
+    }
+});
+
+document.getElementById('editInstitucionId')?.addEventListener('change', function() {
+    const solicitudId = document.getElementById('editId').value;
+    const solicitud = todasLasSolicitudes.find(s => s.id == solicitudId);
+    if (solicitud) {
+        solicitud.institucion_id = this.value;
+        cargarResponsableEdit(solicitud);
+    }
+});
 
 // ==================== INICIALIZAR ====================
 renderizarTabla();
