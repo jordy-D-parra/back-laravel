@@ -16,6 +16,7 @@ class Solicitud extends Model
         'tipo_solicitante',
         'institucion_id',
         'departamento_id',
+        'responsable_id',
         'oficio_adjunto',
         'fecha_solicitud',
         'fecha_requerida',
@@ -54,6 +55,11 @@ class Solicitud extends Model
     public function departamento()
     {
         return $this->belongsTo(Departamento::class, 'departamento_id');
+    }
+
+     public function responsable()
+    {
+        return $this->belongsTo(Responsable::class, 'responsable_id');
     }
 
     public function detalles()

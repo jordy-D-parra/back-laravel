@@ -148,7 +148,8 @@ Route::middleware(['auth'])->prefix('solicitudes')->group(function () {
     Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('solicitudes.approve');
     Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('solicitudes.reject');
     Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('solicitudes.cancel');
-    Route::post('/{id}/update', [SolicitudController::class, 'update'])->name('solicitudes.update');
+    // ✅ CAMBIADO: Ahora acepta PUT y POST (y cualquier otro método)
+    Route::any('/{id}/update', [SolicitudController::class, 'update'])->name('solicitudes.update');
 });
 
 // ========== APROBACIONES Y PRÉSTAMOS (solo admin) ==========
