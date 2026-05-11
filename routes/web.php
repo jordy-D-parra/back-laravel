@@ -64,19 +64,49 @@ Route::middleware(['auth'])->prefix('notificaciones')->group(function () {
     Route::delete('/{id}', [NotificacionController::class, 'destroy'])->name('notificaciones.destroy');
 });
 
-// ========== RUTAS API PARA RESPONSABLES ==========
+// ========== RUTAS API ==========
 Route::middleware(['auth'])->prefix('api')->group(function () {
+    // Responsables
     Route::get('/departamento/{id}/responsable', [DepartamentoController::class, 'getResponsable']);
     Route::post('/departamento/{id}/responsable', [DepartamentoController::class, 'updateResponsable']);
     Route::get('/institucion/{id}/responsable', [InstitucionController::class, 'getResponsable']);
     Route::post('/institucion/{id}/responsable', [InstitucionController::class, 'updateResponsable']);
+
+    // ========== MARCAS Y MODELOS (API para selects) ==========
+    Route::get('/marcas', function() {
+        return response()->json(\App\Models\Marca::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']));
+    });
+
+    // Obtener marcas por categoría
+    Route::get('/marcas/por-categoria/{categoriaId}', function($categoriaId) {
+        return response()->json(
+            \App\Models\Marca::where('categoria_id', $categoriaId)
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get(['id', 'nombre'])
+        );
+    });
+
+    // Obtener modelos por marca
+    Route::get('/modelos/por-marca/{marcaId}', function($marcaId) {
+        return response()->json(
+            \App\Models\Modelo::where('marca_id', $marcaId)
+                ->where('activo', true)
+                ->orderBy('nombre')
+                ->get(['id', 'nombre'])
+        );
+    });
+
+    // Obtener categorías
+    Route::get('/categorias', function() {
+        return response()->json(\App\Models\Categoria::where('activo', true)->orderBy('nombre')->get(['id', 'nombre']));
+    });
 });
 
 // ========== PANEL DE ADMINISTRACIÓN ==========
 Route::middleware(['auth'])->prefix('admin')->group(function () {
     // Gestión de usuarios (CRUD completo)
     Route::get('/users', [AuthController::class, 'adminUsers'])->name('admin.users');
-    // ELIMINADA: Route::get('/users/create', [AuthController::class, 'createUser'])->name('admin.users.create');
     Route::post('/users/store', [AuthController::class, 'storeUser'])->name('admin.users.store');
     Route::delete('/users/{id}', [AuthController::class, 'deleteUser'])->name('admin.users.delete');
 
@@ -148,7 +178,6 @@ Route::middleware(['auth'])->prefix('solicitudes')->group(function () {
     Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('solicitudes.approve');
     Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('solicitudes.reject');
     Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('solicitudes.cancel');
-    // ✅ CAMBIADO: Ahora acepta PUT y POST (y cualquier otro método)
     Route::any('/{id}/update', [SolicitudController::class, 'update'])->name('solicitudes.update');
 });
 
