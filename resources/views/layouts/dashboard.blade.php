@@ -9,9 +9,10 @@
     @vite(['resources/js/bootstrap.js'])
     @vite(['resources/css/dashboard-layout.css'])
     @yield('styles')
+    @vite(['resources/css/help-panel.css'])
 </head>
 <body>
-    <!-- Sidebar mejorado con estructura jerárquica clara -->
+    <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="logo-container">
@@ -92,6 +93,19 @@
             <li class="nav-divider"></li>
             <li class="nav-section">OPERACIONES</li>
 
+            <!-- Inventario -->
+            <li class="nav-item">
+                <a href="{{ route('admin.inventario.index') }}" class="nav-link {{ request()->routeIs('admin.inventario.*') ? 'active' : '' }}">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                        </svg>
+                    </span>
+                    <span>Inventario</span>
+                </a>
+            </li>
+
             <!-- Solicitudes de préstamo -->
             <li class="nav-item">
                 <a href="#" class="nav-link pending">
@@ -102,17 +116,7 @@
                 </a>
             </li>
 
-            <!-- Control de inventario -->
-            <li class="nav-item">
-                <a href="#" class="nav-link pending">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-                    </span>
-                    <span>Inventario</span>
-                </a>
-            </li>
-
-            <!-- Soporte técnico y mantenimiento -->
+            <!-- Soporte técnico -->
             <li class="nav-item">
                 <a href="#" class="nav-link pending">
                     <span class="nav-icon">
@@ -223,5 +227,6 @@
     @vite(['resources/js/dashboard-layout.js'])
     @vite(['resources/js/app.js'])
     @yield('scripts')
+    @vite(['resources/js/help-panel.js'])
 </body>
 </html>

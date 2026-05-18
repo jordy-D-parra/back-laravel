@@ -10,30 +10,33 @@ use Illuminate\Validation\Rule;
 
 class InstitucionController extends Controller
 {
-    public function index(Request $request)
-    {
-        $query = Institucion::withCount(['departamentos', 'responsables']);
+   public function index(Request $request)
+{
+    $query = Institucion::withCount(['departamentos', 'responsables']);
 
-        if ($request->has('todos')) {
-            return response()->json($query->orderBy('nombre')->get());
-        }
-
-        $instituciones = $query
-            ->when($request->buscar, function($query, $buscar) {
-                return $query->where(function($q) use ($buscar) {
-                    $q->where('nombre', 'ILIKE', "%{$buscar}%")
-                      ->orWhere('representante', 'ILIKE', "%{$buscar}%")
-                      ->orWhere('ubicacion', 'ILIKE', "%{$buscar}%");
-                });
-            })
-            ->when($request->estado, function($query, $estado) {
-                return $query->where('activo', $estado === 'activo');
-            })
-            ->orderBy('nombre')
-            ->paginate(10);
-
-        return response()->json($instituciones);
+    // Si pide JSON, devolver JSON
+    if ($request->wantsJson() || $request->has('todos')) {
+        $instituciones = $query->orderBy('nombre')->get();
+        return response()->json(['success' => true, 'data' => $instituciones]);
     }
+
+    // Si no, devolver vista
+    $instituciones = $query
+        ->when($request->buscar, function($query, $buscar) {
+            return $query->where(function($q) use ($buscar) {
+                $q->where('nombre', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('representante', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('ubicacion', 'ILIKE', "%{$buscar}%");
+            });
+        })
+        ->when($request->estado, function($query, $estado) {
+            return $query->where('activo', $estado === 'activo');
+        })
+        ->orderBy('nombre')
+        ->get();
+
+    return view('admin.entidades.index', compact('instituciones'));
+}
 
     public function store(Request $request)
     {

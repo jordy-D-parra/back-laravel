@@ -11,11 +11,11 @@ return new class extends Migration
         Schema::create('componentes', function (Blueprint $table) {
             $table->id();
             $table->string('tipo', 50)->comment('RAM, Disco, Batería, Cargador, Pantalla, Teclado, Mouse, etc.');
+            $table->foreignId('modelo_componente_id')->nullable()->constrained('modelo_componente')->onDelete('set null')->comment('Tipo de componente según modelo, NULL si es genérico');
             $table->string('marca', 100)->nullable()->comment('Marca del componente - texto libre');
             $table->string('modelo', 100)->nullable()->comment('Modelo del componente - texto libre');
             $table->string('serial', 100)->nullable()->unique()->comment('Número de serie si aplica');
             $table->string('capacidad', 50)->nullable()->comment('Ej: 8GB, 512GB, 65W, 15.6 pulgadas');
-            $table->json('especificaciones')->nullable()->comment('Campos adicionales específicos del componente');
             $table->string('estado', 20)->default('en_bodega')->comment('en_bodega, instalado, prestado, desechado, en_reparacion');
             $table->foreignId('activo_id')->nullable()->constrained('activos')->onDelete('set null')->comment('Activo donde está instalado, NULL si está en bodega');
             $table->foreignId('institucion_id')->constrained('instituciones')->onDelete('restrict');
@@ -30,6 +30,7 @@ return new class extends Migration
             $table->index('tipo');
             $table->index('estado');
             $table->index('activo_id');
+            $table->index('modelo_componente_id');
             $table->index('institucion_id');
             $table->index('serial');
         });

@@ -11,12 +11,11 @@ return new class extends Migration
         Schema::create('modelo_componente', function (Blueprint $table) {
             $table->id();
             $table->foreignId('modelo_id')->constrained('modelos')->onDelete('cascade');
-            $table->foreignId('componente_id')->constrained('componentes')->onDelete('cascade');
-            $table->integer('cantidad')->default(1)->comment('Cantidad requerida de este componente');
-            $table->boolean('requerido')->default(true)->comment('¿Es obligatorio para este modelo?');
+            $table->string('tipo', 50);
+            $table->string('descripcion', 200);
+            $table->string('capacidad', 50)->nullable();
+            $table->boolean('requerido')->default(true);
             $table->timestamps();
-
-            $table->unique(['modelo_id', 'componente_id'], 'modelo_componente_unico');
         });
     }
 

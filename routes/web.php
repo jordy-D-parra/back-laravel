@@ -12,6 +12,11 @@ use App\Http\Controllers\Admin\InstitucionController;
 use App\Http\Controllers\Admin\DepartamentoController;
 use App\Http\Controllers\Admin\ResponsableController;
 use App\Http\Controllers\Admin\EquipoController;
+use App\Http\Controllers\Admin\ModeloComponenteController;
+use App\Http\Controllers\Admin\ActivoController;
+use App\Http\Controllers\Admin\ComponenteController;
+use App\Http\Controllers\Admin\InventarioController;
+use App\Models\Estatus;
 
 // Rutas de autenticación
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -73,12 +78,16 @@ Route::middleware(['auth'])->group(function () {
         Route::put('responsables/{responsable}', [ResponsableController::class, 'update'])->name('responsables.update');
         Route::delete('responsables/{responsable}', [ResponsableController::class, 'destroy'])->name('responsables.destroy');
         Route::patch('responsables/{responsable}/toggle-status', [ResponsableController::class, 'toggleStatus'])->name('responsables.toggle-status');
-        
+
+        // ==================== UTILIDADES ====================
+        Route::get('/estatus-list', function () {
+            $estatus = Estatus::select('id', 'descripcion', 'color_badge')->orderBy('descripcion')->get();
+            return response()->json(['success' => true, 'data' => $estatus]);
+        });
+
         // ==================== EQUIPOS (CATÁLOGO) ====================
-        // Vista principal
         Route::get('/equipos', [EquipoController::class, 'index'])->name('equipos.index');
-        
-        // Rutas API para Marcas
+
         Route::prefix('equipos')->group(function () {
             // ===== MARCAS =====
             Route::get('/marcas', [EquipoController::class, 'getMarcas']);
@@ -87,7 +96,7 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/marcas/{id}', [EquipoController::class, 'updateMarca']);
             Route::delete('/marcas/{id}', [EquipoController::class, 'deleteMarca']);
             Route::patch('/marcas/{id}/toggle', [EquipoController::class, 'toggleMarca']);
-            
+
             // ===== CATEGORÍAS =====
             Route::get('/categorias', [EquipoController::class, 'getCategorias']);
             Route::post('/categorias', [EquipoController::class, 'storeCategoria']);
@@ -95,7 +104,7 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/categorias/{id}', [EquipoController::class, 'updateCategoria']);
             Route::delete('/categorias/{id}', [EquipoController::class, 'deleteCategoria']);
             Route::patch('/categorias/{id}/toggle', [EquipoController::class, 'toggleCategoria']);
-            
+
             // ===== MODELOS =====
             Route::get('/modelos', [EquipoController::class, 'getModelos']);
             Route::post('/modelos', [EquipoController::class, 'storeModelo']);
@@ -103,10 +112,39 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/modelos/{id}', [EquipoController::class, 'updateModelo']);
             Route::delete('/modelos/{id}', [EquipoController::class, 'deleteModelo']);
             Route::patch('/modelos/{id}/toggle', [EquipoController::class, 'toggleModelo']);
-            
+
+            // ===== COMPONENTES DEL MODELO =====
+            Route::get('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'index']);
+            Route::post('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'store']);
+            Route::get('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'show']);
+            Route::put('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'update']);
+            Route::delete('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'destroy']);
+
             // ===== LISTAS PARA SELECTS =====
             Route::get('/marcas-list', [EquipoController::class, 'getMarcasList']);
             Route::get('/categorias-list', [EquipoController::class, 'getCategoriasList']);
         });
+
+        // ==================== INVENTARIO ====================
+        Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario.index');
+
+        // API Activos
+        Route::get('/activos', [ActivoController::class, 'index']);
+        Route::post('/activos', [ActivoController::class, 'store']);
+        Route::get('/activos/{activo}', [ActivoController::class, 'show']);
+        Route::put('/activos/{activo}', [ActivoController::class, 'update']);
+        Route::delete('/activos/{activo}', [ActivoController::class, 'destroy']);
+        Route::patch('/activos/{activo}/toggle-status', [ActivoController::class, 'toggleStatus']);
+        Route::get('/activos/por-modelo/{modeloId}', [ActivoController::class, 'porModelo']);
+
+        // API Componentes físicos
+        Route::get('/componentes', [ComponenteController::class, 'index']);
+        Route::post('/componentes', [ComponenteController::class, 'store']);
+        Route::get('/componentes/{componente}', [ComponenteController::class, 'show']);
+        Route::put('/componentes/{componente}', [ComponenteController::class, 'update']);
+        Route::delete('/componentes/{componente}', [ComponenteController::class, 'destroy']);
+        Route::patch('/componentes/{componente}/toggle-status', [ComponenteController::class, 'toggleStatus']);
+        Route::get('/componentes/por-tipo/{tipo}', [ComponenteController::class, 'porTipo']);
+        Route::get('/componentes/en-bodega', [ComponenteController::class, 'enBodega']);
     });
 });

@@ -8,27 +8,26 @@ use Illuminate\Http\Request;
 
 class ResponsableController extends Controller
 {
-    public function index(Request $request)
-    {
-        $responsables = Responsable::with(['institucion:id,nombre', 'departamento:id,nombre'])
-            ->when($request->buscar, function($query, $buscar) {
-                return $query->where(function($q) use ($buscar) {
-                    $q->where('nombre', 'ILIKE', "%{$buscar}%")
-                      ->orWhere('documento', 'ILIKE', "%{$buscar}%")
-                      ->orWhere('cargo', 'ILIKE', "%{$buscar}%");
-                });
-            })
-            ->when($request->institucion_id, function($query, $institucionId) {
-                return $query->where('institucion_id', $institucionId);
-            })
-            ->when($request->estado, function($query, $estado) {
-                return $query->where('activo', $estado === 'activo');
-            })
-            ->orderBy('nombre')
-            ->paginate(10);
+public function index(Request $request)
+{
+    $query = Responsable::with(['institucion', 'departamento']);
 
-        return response()->json($responsables);
+    if ($request->filled('institucion_id')) {
+        $query->where('institucion_id', $request->institucion_id);
     }
+
+    if ($request->filled('buscar')) {
+        $query->where('nombre', 'ILIKE', "%{$request->buscar}%");
+    }
+
+    $responsables = $query->orderBy('nombre')->get();
+
+    if ($request->wantsJson() || $request->has('todos')) {
+        return response()->json(['success' => true, 'data' => $responsables]);
+    }
+
+    return view('admin.entidades.index', compact('responsables'));
+}
 
     public function store(Request $request)
     {

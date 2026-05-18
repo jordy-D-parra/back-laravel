@@ -20,8 +20,6 @@ return new class extends Migration
             $table->date('fecha_adquisicion')->nullable();
             $table->date('fecha_fin_garantia')->nullable();
             $table->integer('vida_util_anos')->nullable()->comment('Años de vida útil estimada');
-            $table->json('especificaciones_tecnicas')->nullable()->comment('Campos dinámicos según tipo de equipo');
-            $table->string('agrupacion', 100)->nullable()->comment('Identificador para agrupar activos en kits/lotes');
             $table->text('observaciones')->nullable();
             $table->timestamps();
 
@@ -29,7 +27,6 @@ return new class extends Migration
             $table->index('modelo_id');
             $table->index('id_estatus');
             $table->index('institucion_id');
-            $table->index('agrupacion');
             $table->index('fecha_adquisicion');
             $table->index('fecha_fin_garantia');
         });

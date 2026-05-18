@@ -12,6 +12,8 @@ class DatabaseSeeder extends Seeder
             RolSeeder::class,
             PermisoSeeder::class,
             TrabajadorSeeder::class,
+             EquiposDemoSeeder::class,
+             InventarioDemoSeeder::class,
         ]);
     }
 }

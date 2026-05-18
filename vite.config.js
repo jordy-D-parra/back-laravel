@@ -21,6 +21,16 @@ export default defineConfig({
                 'resources/js/app.jsx',
                 'resources/css/admin-entidades.css',
                 'resources/js/admin-entidades.js',
+                'resources/css/admin-inventario.css',
+                'resources/js/admin-inventario.js',
+                'resources/css/help-panel.css',
+                'resources/js/help-panel.js',
+                'resources/css/help-panel.css',        // FASE 1
+    'resources/css/contrast-system.css',   // FASE 2
+    'resources/css/skeleton-loading.css',  // FASE 3
+    'resources/css/smooth-modals.css',     // FASE 4
+    'resources/js/help-panel.js',          // FASE 1
+    'resources/js/validations.js',         //
             ],
             refresh: true,
         }),

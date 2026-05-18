@@ -20,43 +20,37 @@ class EquipoController extends Controller
         $totalMarcas = Marca::count();
         $totalCategorias = Categoria::count();
         $totalModelos = Modelo::count();
-        $totalActivos = Marca::where('activo', true)->count() + 
-                        Categoria::where('activo', true)->count() + 
+        $totalActivos = Marca::where('activo', true)->count() +
+                        Categoria::where('activo', true)->count() +
                         Modelo::where('activo', true)->count();
 
         return view('admin.equipos.index', compact(
-            'totalMarcas', 
-            'totalCategorias', 
-            'totalModelos', 
+            'totalMarcas',
+            'totalCategorias',
+            'totalModelos',
             'totalActivos'
         ));
     }
 
     // ==================== MARCAS ====================
-    
-    /**
-     * Obtener listado de marcas (API)
-     */
-    public function getMarcas(Request $request)
-    {
-        try {
-            $query = Marca::withCount('modelos');
-
-            if ($request->filled('buscar')) {
-                $query->where('nombre', 'like', "%{$request->buscar}%");
-            }
-
-            if ($request->filled('estado')) {
-                $query->where('activo', $request->estado === 'activo');
-            }
-
-            $marcas = $query->orderBy('nombre')->get();
-
-            return response()->json(['success' => true, 'data' => $marcas]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al cargar marcas: ' . $e->getMessage()], 500);
+ public function getMarcas(Request $request)
+{
+    try {
+        $query = Marca::withCount('modelos');
+        if ($request->filled('buscar')) {
+            $query->where('nombre', 'like', "%{$request->buscar}%");
         }
+        if ($request->filled('estado')) {
+            $query->where('activo', $request->estado === 'activo');
+        }
+        $marcas = $query->orderBy('nombre')->get();
+        return response()->json(['success' => true, 'data' => $marcas]);
+    } catch (\Exception $e) {
+        return response()->json(['success' => false, 'message' => 'Error al cargar marcas'], 500);
     }
+}
+
+
 
     /**
      * Crear nueva marca
@@ -87,7 +81,7 @@ class EquipoController extends Controller
             $marca = Marca::with(['modelos' => function($q) {
                 $q->with('categoria');
             }])->withCount('modelos')->findOrFail($id);
-            
+
             return response()->json(['success' => true, 'data' => $marca]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Marca no encontrada'], 404);
@@ -101,7 +95,7 @@ class EquipoController extends Controller
     {
         try {
             $marca = Marca::findOrFail($id);
-            
+
             $validated = $request->validate([
                 'nombre' => 'required|string|max:100|unique:marcas,nombre,' . $id,
                 'descripcion' => 'nullable|string'
@@ -123,7 +117,7 @@ class EquipoController extends Controller
     {
         try {
             $marca = Marca::findOrFail($id);
-            
+
             if ($marca->modelos()->count() > 0) {
                 return response()->json(['success' => false, 'message' => 'No se puede eliminar la marca porque tiene modelos asociados'], 400);
             }
@@ -152,7 +146,7 @@ class EquipoController extends Controller
     }
 
     // ==================== CATEGORÍAS ====================
-    
+
     /**
      * Obtener listado de categorías (API)
      */
@@ -206,7 +200,7 @@ class EquipoController extends Controller
             $categoria = Categoria::with(['modelos' => function($q) {
                 $q->with('marca');
             }])->withCount('modelos')->findOrFail($id);
-            
+
             return response()->json(['success' => true, 'data' => $categoria]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Categoría no encontrada'], 404);
@@ -220,7 +214,7 @@ class EquipoController extends Controller
     {
         try {
             $categoria = Categoria::findOrFail($id);
-            
+
             $validated = $request->validate([
                 'nombre' => 'required|string|max:100|unique:categorias,nombre,' . $id,
                 'descripcion' => 'nullable|string'
@@ -242,7 +236,7 @@ class EquipoController extends Controller
     {
         try {
             $categoria = Categoria::findOrFail($id);
-            
+
             if ($categoria->modelos()->count() > 0) {
                 return response()->json(['success' => false, 'message' => 'No se puede eliminar la categoría porque tiene modelos asociados'], 400);
             }
@@ -271,7 +265,7 @@ class EquipoController extends Controller
     }
 
     // ==================== MODELOS ====================
-    
+
     /**
      * Obtener listado de modelos (API)
      */
@@ -325,7 +319,7 @@ class EquipoController extends Controller
             $exists = Modelo::where('marca_id', $validated['marca_id'])
                             ->where('nombre', $validated['nombre'])
                             ->exists();
-            
+
             if ($exists) {
                 return response()->json(['success' => false, 'message' => 'Ya existe un modelo con este nombre para esta marca'], 422);
             }
@@ -359,7 +353,7 @@ class EquipoController extends Controller
     {
         try {
             $modelo = Modelo::findOrFail($id);
-            
+
             $validated = $request->validate([
                 'marca_id' => 'required|exists:marcas,id',
                 'categoria_id' => 'required|exists:categorias,id',
@@ -373,7 +367,7 @@ class EquipoController extends Controller
                             ->where('nombre', $validated['nombre'])
                             ->where('id', '!=', $id)
                             ->exists();
-            
+
             if ($exists) {
                 return response()->json(['success' => false, 'message' => 'Ya existe un modelo con este nombre para esta marca'], 422);
             }
@@ -418,7 +412,7 @@ class EquipoController extends Controller
     }
 
     // ==================== LISTAS PARA SELECTS ====================
-    
+
     /**
      * Obtener lista de marcas para selects (solo activas)
      */
