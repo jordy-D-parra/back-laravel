@@ -1,0 +1,51 @@
+/* ===========================
+   Dashboard Home
+   Tarjetas, módulos, etc.
+   =========================== */
+
+.welcome-card {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    border-radius: 20px;
+}
+
+.stat-card {
+    background: white;
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.03);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(30, 60, 114, 0.15);
+}
+
+.module-card {
+    text-align: center;
+    padding: 1.5rem;
+    border-radius: 12px;
+    background: #f8f9fc;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    display: block;
+}
+
+.module-card:hover {
+    background: #e9ecef;
+    transform: translateY(-2px);
+}
+
+.module-card svg {
+    width: 32px;
+    height: 32px;
+    stroke: #1e3c72;
+    margin-bottom: 0.5rem;
+}
+
+.module-card.pending {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
