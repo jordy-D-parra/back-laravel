@@ -1,0 +1,556 @@
+/* ============================================================
+   Panel de Usuarios - CSS Profesional
+   Colores principales: #1e3c72
+   ============================================================ */
+
+/* ---------- Variables ---------- */
+:root {
+    --primary-dark: #1e3c72;
+    --primary-light: #2a4a8a;
+    --primary-lighter: #eef3fc;
+    --success: #1e7e34;
+    --danger: #c5221f;
+    --warning: #f6c23e;
+    --info: #17a2b8;
+    --gray-bg: #f8f9fc;
+    --border-light: #e9ecef;
+    --text-muted: #6c757d;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --radius-card: 1rem;
+    --radius-table: 0.75rem;
+}
+
+/* ---------- Tarjetas de estadísticas ---------- */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card-mini {
+    background: white;
+    border-radius: var(--radius-card);
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+}
+
+.stat-card-mini:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-lighter);
+}
+
+.stat-card-mini .stat-info .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    line-height: 1.2;
+}
+
+.stat-card-mini .stat-info .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 500;
+}
+
+.stat-card-mini .stat-icon-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.stat-card-mini:hover .stat-icon-circle {
+    transform: scale(1.05);
+}
+
+/* ---------- Barra de filtros mejorada ---------- */
+.filters-bar {
+    background: white;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+.filters-bar .form-control,
+.filters-bar .form-select {
+    border-color: #dee2e6;
+    font-size: 0.85rem;
+    border-radius: 8px;
+}
+
+.filters-bar .form-control:focus,
+.filters-bar .form-select:focus {
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.15);
+}
+
+.filters-bar .input-group-text {
+    border-right: none;
+    background: white;
+}
+
+.filters-bar .form-control.border-start-0 {
+    border-left: none;
+}
+
+/* ---------- Botones ---------- */
+.btn-primary-dark {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: white;
+    font-weight: 500;
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.btn-primary-dark:hover {
+    background: var(--primary-light);
+    border-color: var(--primary-light);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-outline-primary-dark {
+    background: transparent;
+    border: 1px solid var(--primary-dark);
+    color: var(--primary-dark);
+    font-weight: 500;
+    padding: 0.4rem 1rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.btn-outline-primary-dark:hover {
+    background: var(--primary-dark);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-action {
+    padding: 0.3rem 0.6rem;
+    font-size: 0.7rem;
+    border-radius: 6px;
+    transition: all 0.15s ease;
+}
+
+.btn-action:hover {
+    transform: scale(1.02);
+    background: var(--primary-dark);
+    color: white;
+}
+
+.btn-outline-danger {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.btn-outline-danger:hover {
+    background: var(--danger);
+    color: white;
+}
+
+/* ---------- Tabla ---------- */
+.table-container {
+    background: white;
+    border-radius: var(--radius-table);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    overflow: hidden;
+}
+
+.table th {
+    background: var(--gray-bg);
+    color: var(--primary-dark);
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    border-bottom: 2px solid var(--primary-dark);
+    padding: 0.9rem 0.75rem;
+}
+
+.table td {
+    vertical-align: middle;
+    font-size: 0.85rem;
+    padding: 0.85rem 0.75rem;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--primary-lighter);
+    transition: background 0.15s ease;
+}
+
+/* ---------- Badges de Roles (mejorados) ---------- */
+.badge-role {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 20px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: inline-block;
+}
+
+.badge-role-admin {
+    background: var(--primary-dark);
+    color: white;
+}
+
+.badge-role-ingeniero {
+    background: transparent;
+    color: var(--primary-dark);
+    border: 1px solid var(--primary-dark);
+}
+
+.badge-role-tecnico {
+    background: transparent;
+    color: var(--primary-dark);
+    border: 1px solid var(--primary-dark);
+}
+
+.badge-role-secretaria {
+    background: transparent;
+    color: var(--primary-dark);
+    border: 1px solid var(--primary-dark);
+}
+
+/* ---------- Badges de Estado ---------- */
+.badge-status-activo {
+    background: transparent;
+    color: var(--success);
+    border: 1px solid var(--success);
+    font-size: 0.7rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 20px;
+}
+
+.badge-status-inactivo {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    font-size: 0.7rem;
+    padding: 0.25rem 0.7rem;
+    border-radius: 20px;
+}
+
+.badge-status-pendiente {
+    background: transparent;
+    color: var(--warning);
+    border: 1px solid var(--warning);
+    font-size: 0.65rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+}
+
+.badge-status-ok {
+    background: transparent;
+    color: var(--success);
+    border: 1px solid var(--success);
+    font-size: 0.65rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+}
+
+/* Botón toggle status */
+.btn-toggle-status {
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-toggle-status:hover {
+    opacity: 0.8;
+    transform: scale(1.02);
+}
+
+/* ---------- Modales ---------- */
+.modal-content {
+    border-radius: 1rem;
+    border: none;
+    overflow: hidden;
+    box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    background: var(--primary-dark);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-bottom: none;
+}
+
+.modal-header .btn-close {
+    filter: brightness(0) invert(1);
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.modal-header .btn-close:hover {
+    opacity: 1;
+}
+
+.modal-title {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.modal-body {
+    padding: 1.5rem;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--border-light);
+    padding: 1rem 1.5rem;
+    background: var(--gray-bg);
+}
+
+/* ---------- Formularios ---------- */
+.form-label {
+    font-weight: 500;
+    font-size: 0.8rem;
+    color: var(--primary-dark);
+    margin-bottom: 0.3rem;
+}
+
+.form-control, .form-select {
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.15);
+}
+
+.form-control.is-invalid, .form-select.is-invalid {
+    border-color: var(--danger);
+    background-image: none;
+}
+
+.invalid-feedback {
+    color: var(--danger);
+    font-size: 0.7rem;
+}
+
+/* ---------- Confirmación de eliminación ---------- */
+.delete-warning {
+    background: #fff3f3;
+    border: 1px solid #ffcdd2;
+    border-radius: 10px;
+    padding: 0.75rem;
+    margin-bottom: 0;
+}
+
+/* ---------- Contraseña temporal ---------- */
+.password-display {
+    background: var(--primary-lighter);
+    border: 2px dashed var(--primary-dark);
+    border-radius: 10px;
+    padding: 0.75rem;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    letter-spacing: 1px;
+    color: var(--primary-dark);
+    margin: 0.5rem 0;
+    word-break: break-all;
+}
+
+/* ---------- Detalle de usuario ---------- */
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+}
+
+.detail-item {
+    padding: 0.5rem 0;
+}
+
+.detail-item .detail-label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.8px;
+    font-weight: 600;
+}
+
+.detail-item .detail-value {
+    font-weight: 500;
+    color: #1a1a1a;
+    font-size: 0.9rem;
+}
+
+/* ---------- Buscador de cédula ---------- */
+#cedulaSearchResults {
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+    background: white;
+    box-shadow: var(--shadow-sm);
+}
+
+#cedulaSearchResults .p-2 {
+    padding: 0.5rem 0.75rem;
+    border-bottom: 1px solid var(--border-light);
+    font-size: 0.8rem;
+}
+
+#cedulaSearchResults .p-2:last-child {
+    border-bottom: none;
+}
+
+#cedulaSearchResults .p-2:hover {
+    background: var(--primary-lighter);
+}
+
+#infoTrabajadorEncontrado {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- Paginación ---------- */
+.pagination {
+    margin-bottom: 0;
+}
+
+.pagination .page-link {
+    color: var(--primary-dark);
+    border-radius: 8px;
+    margin: 0 2px;
+    border: 1px solid var(--border-light);
+    font-size: 0.8rem;
+    padding: 0.4rem 0.8rem;
+}
+
+.pagination .page-link:hover {
+    background: var(--primary-lighter);
+    border-color: var(--primary-dark);
+}
+
+.pagination .page-item.active .page-link {
+    background: var(--primary-dark);
+    border-color: var(--primary-dark);
+    color: white;
+}
+
+.pagination .page-item.disabled .page-link {
+    color: var(--text-muted);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 992px) {
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .filters-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .filters-bar > div {
+        width: 100%;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+    
+    .table thead {
+        display: none;
+    }
+    
+    .table tbody td {
+        display: block;
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+    }
+    
+    .table tbody td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0.75rem;
+        width: 45%;
+        text-align: left;
+        font-weight: 600;
+        color: var(--primary-dark);
+        font-size: 0.7rem;
+    }
+    
+    .table tbody tr {
+        margin-bottom: 1rem;
+        display: block;
+        border: 1px solid var(--border-light);
+        border-radius: 8px;
+    }
+    
+    .table tbody td:last-child {
+        border-bottom: none;
+    }
+    
+    .btn-group {
+        justify-content: flex-end;
+    }
+}
+
+/* ---------- Utilidades adicionales ---------- */
+.text-primary-dark {
+    color: var(--primary-dark);
+}
+
+.bg-primary-lighter {
+    background-color: var(--primary-lighter);
+}
+
+.fw-mono {
+    font-family: 'Courier New', monospace;
+}
+
+.animation-fade-in {
+    animation: fadeIn 0.3s ease;
+}
