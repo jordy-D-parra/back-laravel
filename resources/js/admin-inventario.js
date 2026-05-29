@@ -1308,6 +1308,7 @@ function guardarActivo() {
     var id = document.getElementById('activoId').value;
     var url = id ? '/admin/activos/' + id : '/admin/activos';
     var formData = new FormData(document.getElementById('formActivo'));
+<<<<<<< HEAD
     
     // ✅ CORRECCIÓN IMPORTANTE: Agregar _method=PUT para actualizar
     if (id) {
@@ -1322,18 +1323,29 @@ function guardarActivo() {
         headers: { 'X-CSRF-TOKEN': getCsrfToken() }, 
         body: formData 
     })
+=======
+    if (id) formData.append('_method', 'PUT');
+    var componentes = recolectarComponentesFormulario();
+    var equipoCompleto = document.getElementById('equipoCompleto') ? document.getElementById('equipoCompleto').checked : true;
+
+    fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': getCsrfToken() }, body: formData })
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     .then(function(r) { return r.json(); })
     .then(function(response) {
         if (response.success) {
             var activoId = id || (response.data ? response.data.id : null);
+<<<<<<< HEAD
             
             // Si hay componentes, guardarlos
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             if (activoId && componentes.length > 0) {
                 var promesas = componentes.map(function(comp) {
                     comp.activo_id = activoId;
                     var compUrl = comp.id ? '/admin/componentes/' + comp.id : '/admin/componentes';
                     var method = comp.id ? 'PUT' : 'POST';
                     if (method === 'PUT') comp._method = 'PUT';
+<<<<<<< HEAD
                     return fetch(compUrl, { 
                         method: 'POST', 
                         headers: { 
@@ -1366,6 +1378,20 @@ function guardarActivo() {
     .catch(function(error) {
         console.error('Error:', error);
         mostrarToast('Error de conexión', 'error');
+=======
+                    return fetch(compUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getCsrfToken(), 'Accept': 'application/json' }, body: JSON.stringify(comp) }).then(function(r) { return r.json(); });
+                });
+                Promise.all(promesas).then(function() {
+                    var msg = 'Activo guardado con ' + componentes.length + ' componentes. ';
+                    msg += equipoCompleto ? 'Equipo marcado como completo.' : 'Equipo marcado como incompleto.';
+                    mostrarToast(msg, 'success');
+                }).catch(function() { mostrarToast('Activo guardado. Revisar componentes', 'warning'); });
+            } else { mostrarToast(response.message || 'Activo guardado', 'success'); }
+            bootstrap.Modal.getInstance(document.getElementById('modalActivo')).hide();
+            cargarActivos();
+            cargarComponentes();
+        } else { mostrarToast(response.message || 'Error al guardar', 'error'); }
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     });
 }
 

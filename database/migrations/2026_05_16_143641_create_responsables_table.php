@@ -18,7 +18,11 @@ return new class extends Migration
             $table->string('cargo', 100)->nullable();
             $table->boolean('activo')->default(true);
 
+<<<<<<< HEAD
             $table->foreignId('institucion_id')->nullable()->constrained('instituciones')->onDelete('set null');
+=======
+            $table->foreignId('institucion_id')->constrained('instituciones')->onDelete('cascade');
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             $table->foreignId('departamento_id')->nullable()->constrained('departamentos')->onDelete('set null');
 
             $table->timestamps();

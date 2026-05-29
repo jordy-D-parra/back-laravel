@@ -263,7 +263,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (modalPasswordEl) {
         const passwordDisplay = document.getElementById('passwordDisplay');
         if (passwordDisplay && passwordDisplay.textContent.trim() !== '') {
+<<<<<<< HEAD
             let bsModalPassword = window.bootstrap.Modal.getOrCreateInstance(modalPasswordEl);
+=======
+            const bsModalPassword = window.bootstrap.Modal.getOrCreateInstance(modalPasswordEl);
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             if (!bsModalPassword) {
                 bsModalPassword = new window.bootstrap.Modal(modalPasswordEl, {
                     backdrop: 'static',

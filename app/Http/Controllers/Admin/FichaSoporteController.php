@@ -159,6 +159,7 @@ class FichaSoporteController extends Controller
             ], 500);
         }
     }
+<<<<<<< HEAD
 /**
  * Registrar equipo externo y crear ficha de soporte
  */
@@ -273,6 +274,8 @@ public function storeEquipoExterno(Request $request)
         ], 500);
     }
 }
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
     public function show($id)
     {

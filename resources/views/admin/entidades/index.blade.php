@@ -223,6 +223,10 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+<<<<<<< HEAD
+=======
+                    <!-- Datos de la Institución -->
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     <h6 style="color:#1e3c72; font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e9ecef; padding-bottom:0.5rem;">Datos de la Institución</h6>
                     <div class="row">
                         <div class="col-md-8 mb-3">
@@ -241,6 +245,10 @@
 
                     <hr>
 
+<<<<<<< HEAD
+=======
+                    <!-- Datos del Representante -->
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     <h6 style="color:#1e3c72; font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e9ecef; padding-bottom:0.5rem;">Datos del Representante <small class="text-muted">(se creará como responsable)</small></h6>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -294,14 +302,21 @@
                 @csrf
                 <input type="hidden" name="_method" value="POST" id="formMethodDepartamento">
                 <input type="hidden" name="id" id="departamentoId">
+<<<<<<< HEAD
                 <!-- ✅ CAMPOS OCULTOS NUEVOS -->
                 <input type="hidden" name="usar_responsable_institucion" id="usar_responsable_institucion_input" value="0">
                 <input type="hidden" name="responsable_id" id="responsable_id_input" value="">
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalDepartamentoLabel">Nuevo Departamento</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
+<<<<<<< HEAD
+=======
+                    <!-- Datos del Departamento -->
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     <h6 style="color:#1e3c72; font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e9ecef; padding-bottom:0.5rem;">Datos del Departamento</h6>
                     <div class="mb-3">
                         <div class="form-check">
@@ -314,7 +329,11 @@
                         <select class="form-select" id="depto_institucion_id" name="institucion_id" onchange="cargarRepresentanteInstitucion()">
                             <option value="">Seleccionar institución...</option>
                             @foreach($instituciones as $inst)
+<<<<<<< HEAD
                                 <option value="{{ $inst->id }}">{{ $inst->nombre }}</option>
+=======
+                                <option value="{{ $inst->id }}" data-representante-nombre="{{ $inst->representante }}">{{ $inst->nombre }}</option>
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                             @endforeach
                         </select>
                     </div>
@@ -337,12 +356,20 @@
 
                     <hr>
 
+<<<<<<< HEAD
+=======
+                    <!-- Datos del Representante -->
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     <h6 style="color:#1e3c72; font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e9ecef; padding-bottom:0.5rem;">Datos del Representante <small class="text-muted">(se creará como responsable)</small></h6>
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="depto_representante_nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="depto_representante_nombre" name="representante_nombre" required maxlength="150">
+<<<<<<< HEAD
                             <div class="form-check mt-2" id="contenedorCheckRepresentante">
+=======
+                            <div class="form-check mt-2" id="contenedorCheckRepresentante" style="display:none;">
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                                 <input class="form-check-input" type="checkbox" id="usarRepresentanteInstitucion" onchange="toggleRepresentanteInstitucion()">
                                 <label class="form-check-label" for="usarRepresentanteInstitucion" style="font-size: 0.85rem;">Usar representante de la institución</label>
                             </div>

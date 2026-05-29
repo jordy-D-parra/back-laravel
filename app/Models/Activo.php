@@ -5,7 +5,10 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+<<<<<<< HEAD
 use App\Models\Estatus;
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
 class Activo extends Model
 {
@@ -126,6 +129,7 @@ class Activo extends Model
         return $this->estatus?->permite_prestamo ?? false;
     }
 
+<<<<<<< HEAD
     public function marcarComoPrestado(): bool
     {
         $estatus = Estatus::where('descripcion', 'Prestado')->first();
@@ -149,6 +153,8 @@ class Activo extends Model
         return $this->update(['id_estatus' => $estatus->id]);
     }
 
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     /**
      * Verifica si la garantía está vencida.
      */
@@ -156,9 +162,17 @@ class Activo extends Model
     {
         return $this->fecha_fin_garantia && $this->fecha_fin_garantia->isPast();
     }
+<<<<<<< HEAD
 
     public function fichasSoporte(): HasMany
     {
         return $this->hasMany(FichaSoporte::class, 'activo_id');
     }
+=======
+    
+    public function fichasSoporte(): HasMany
+{
+    return $this->hasMany(FichaSoporte::class, 'activo_id');
+}
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 }

@@ -15,27 +15,43 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
+<<<<<<< HEAD
 use Illuminate\Support\Facades\Log;
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
 class SolicitudController extends Controller
 {
     public function index(Request $request)
     {
+<<<<<<< HEAD
+=======
+        // Verificar permiso
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         if (!auth()->user()->hasPermission('ver-solicitudes')) {
             abort(403, 'No tienes permiso para ver solicitudes');
         }
 
+<<<<<<< HEAD
         $user = auth()->user();
         $userId = (int) $user->id;
 
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         $query = Solicitud::with([
             'detalles',
             'institucion',
             'departamento',
             'responsable',
             'usuario'
+<<<<<<< HEAD
         ])->where('usuario_id', $userId);
 
+=======
+        ])->where('usuario_id', auth()->id());
+
+        // Filtros
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
@@ -55,6 +71,7 @@ class SolicitudController extends Controller
             $query->where('prioridad', $request->prioridad);
         }
 
+<<<<<<< HEAD
         $perPage = $request->input('per_page', 10);
 
         try {
@@ -66,6 +83,21 @@ class SolicitudController extends Controller
             $solicitudes = new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
         }
 
+=======
+        if ($request->filled('fecha_desde')) {
+            $query->whereDate('fecha_requerida', '>=', $request->fecha_desde);
+        }
+
+        if ($request->filled('fecha_hasta')) {
+            $query->whereDate('fecha_requerida', '<=', $request->fecha_hasta);
+        }
+
+        $perPage = $request->input('per_page', 10);
+        $solicitudes = $query->orderBy('created_at', 'desc')
+                            ->paginate($perPage)
+                            ->appends($request->query());
+
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json($solicitudes);
         }
@@ -84,6 +116,7 @@ class SolicitudController extends Controller
         ));
     }
 
+<<<<<<< HEAD
     public function paraPrestamo(Request $request)
     {
         $user = auth()->user();
@@ -114,6 +147,11 @@ class SolicitudController extends Controller
     {
         $user = auth()->user();
         if (!$user->hasPermission('ver-solicitudes') && !$user->hasPermission('ver-prestamos')) {
+=======
+    public function getDetalles($id)
+    {
+        if (!auth()->user()->hasPermission('ver-solicitudes')) {
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -126,26 +164,40 @@ class SolicitudController extends Controller
                 'usuario'
             ])->findOrFail($id);
 
+<<<<<<< HEAD
             if (
                 !$user->hasPermission('aprobar-solicitudes')
                 && !$user->hasPermission('ver-prestamos')
                 && $user->id !== $solicitud->usuario_id
             ) {
+=======
+            $user = auth()->user();
+            if (!$user->hasPermission('aprobar-solicitudes') && $user->id !== $solicitud->usuario_id) {
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                 return response()->json(['error' => 'No autorizado'], 403);
             }
 
             $detalles = [];
             foreach ($solicitud->detalles as $detalle) {
                 $detalles[] = [
+<<<<<<< HEAD
                     'id' => $detalle->id,
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     'tipo_item' => $detalle->tipo_item,
                     'item_descripcion' => $detalle->descripcion_item,
                     'cantidad_solicitada' => $detalle->cantidad_solicitada
                 ];
             }
 
+<<<<<<< HEAD
             return response()->json([
                 'success' => true,
+=======
+            $nombreResponsable = $solicitud->responsable ? $solicitud->responsable->nombre : 'No especificado';
+
+            return response()->json([
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                 'id' => $solicitud->id,
                 'tipo_solicitante' => $solicitud->tipo_solicitante,
                 'prioridad' => $solicitud->prioridad,
@@ -155,6 +207,7 @@ class SolicitudController extends Controller
                 'fecha_fin_estimada' => $solicitud->fecha_fin_estimada,
                 'justificacion' => $solicitud->justificacion,
                 'observaciones' => $solicitud->observaciones,
+<<<<<<< HEAD
                 'departamento_id' => $solicitud->departamento_id,
                 'institucion_id' => $solicitud->institucion_id,
                 'responsable_id' => $solicitud->responsable_id,
@@ -165,6 +218,8 @@ class SolicitudController extends Controller
                     'telefono' => $solicitud->responsable->telefono,
                     'email' => $solicitud->responsable->email,
                 ] : null,
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                 'departamento' => $solicitud->departamento ? [
                     'id' => $solicitud->departamento->id,
                     'nombre' => $solicitud->departamento->nombre
@@ -173,16 +228,26 @@ class SolicitudController extends Controller
                     'id' => $solicitud->institucion->id,
                     'nombre' => $solicitud->institucion->nombre
                 ] : null,
+<<<<<<< HEAD
                 'detalles' => $detalles
             ]);
         } catch (\Exception $e) {
             Log::error('Error en getDetalles: ' . $e->getMessage());
+=======
+                'responsable' => [
+                    'nombre' => $nombreResponsable
+                ],
+                'detalles' => $detalles
+            ]);
+        } catch (\Exception $e) {
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
 
     public function store(Request $request)
     {
+<<<<<<< HEAD
         try {
             if (!auth()->user()->hasPermission('crear-solicitud')) {
                 return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
@@ -191,12 +256,24 @@ class SolicitudController extends Controller
             $userId = (int) auth()->user()->id;
 
             $validator = validator($request->all(), [
+=======
+        if (!auth()->user()->hasPermission('crear-solicitud')) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+            abort(403);
+        }
+
+        try {
+            $rules = [
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                 'tipo_solicitante' => 'required|in:interno,externo',
                 'fecha_requerida' => 'required|date|after_or_equal:today',
                 'fecha_fin_estimada' => 'required|date|after_or_equal:fecha_requerida',
                 'justificacion' => 'required|string|min:20|max:1000',
                 'prioridad' => 'required|in:baja,normal,alta,urgente',
                 'observaciones' => 'nullable|string|max:500',
+<<<<<<< HEAD
                 'responsable_id' => 'nullable|exists:responsables,id',
                 'items' => 'required|array|min:1',
                 'items.*.tipo_item' => 'required|in:activo,componente',
@@ -211,11 +288,24 @@ class SolicitudController extends Controller
                     'errors' => $validator->errors()
                 ], 422);
             }
+=======
+                'items' => 'required|array|min:1',
+                'items.*.tipo_item' => 'required|in:activo,componente',
+                'items.*.cantidad' => 'required|integer|min:1',
+                'oficio_adjunto' => 'nullable|file|mimes:pdf,doc,docx|max:2048'
+            ];
+
+            $rules['items.*.item_id'] = 'nullable|integer';
+            $rules['items.*.item_descripcion'] = 'nullable|string|max:255';
+
+            $validated = $request->validate($rules);
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
             DB::beginTransaction();
 
             $institucionId = null;
             $departamentoId = null;
+<<<<<<< HEAD
 
             if ($request->tipo_solicitante === 'interno') {
                 if ($request->filled('departamento_id') && $request->departamento_id !== 'otro') {
@@ -234,12 +324,88 @@ class SolicitudController extends Controller
                 'departamento_id' => $departamentoId,
                 'responsable_id' => $request->responsable_id,
                 'oficio_adjunto' => null,
+=======
+            $responsableId = null;
+
+            if ($request->tipo_solicitante === 'interno') {
+                if ($request->filled('departamento_id') && $request->departamento_id !== 'otro') {
+                    $departamentoId = $request->departamento_id;
+                    $departamento = Departamento::find($departamentoId);
+                    if ($departamento && $departamento->representante) {
+                        $responsable = Responsable::where('departamento_id', $departamentoId)
+                            ->where('cargo', 'Jefe de Departamento')
+                            ->first();
+                        $responsableId = $responsable ? $responsable->id : null;
+                    }
+                } elseif ($request->filled('nuevo_departamento')) {
+                    $departamento = Departamento::create([
+                        'nombre' => $request->nuevo_departamento,
+                        'informacion' => $request->departamento_informacion ?? null,
+                        'representante' => $request->departamento_representante ?? null,
+                        'ubicacion' => $request->departamento_ubicacion ?? null,
+                        'activo' => true,
+                        'institucion_id' => null
+                    ]);
+                    $departamentoId = $departamento->id;
+                }
+            } else {
+                if ($request->filled('institucion_id') && $request->institucion_id !== 'otro') {
+                    $institucionId = $request->institucion_id;
+                    $institucion = Institucion::find($institucionId);
+                    if ($institucion && $institucion->representante) {
+                        $responsable = Responsable::where('institucion_id', $institucionId)
+                            ->whereNull('departamento_id')
+                            ->first();
+                        $responsableId = $responsable ? $responsable->id : null;
+                    }
+                } elseif ($request->filled('nueva_institucion')) {
+                    $institucion = Institucion::create([
+                        'nombre' => $request->nueva_institucion,
+                        'informacion' => $request->informacion ?? null,
+                        'representante' => $request->representante ?? null,
+                        'ubicacion' => $request->ubicacion ?? null,
+                        'activo' => true
+                    ]);
+                    $institucionId = $institucion->id;
+                }
+            }
+
+            if ($request->filled('responsable_id') && $request->responsable_id !== 'otro') {
+                $responsableId = $request->responsable_id;
+            } elseif ($request->filled('nuevo_responsable')) {
+                $responsable = Responsable::create([
+                    'nombre' => $request->nuevo_responsable,
+                    'cargo' => $request->responsable_cargo ?? 'Representante',
+                    'telefono' => $request->responsable_telefono ?? null,
+                    'email' => $request->responsable_email ?? null,
+                    'documento' => $request->responsable_documento ?? null,
+                    'activo' => true,
+                    'institucion_id' => $institucionId,
+                    'departamento_id' => $departamentoId
+                ]);
+                $responsableId = $responsable->id;
+            }
+
+            $oficioPath = null;
+            if ($request->hasFile('oficio_adjunto')) {
+                $oficioPath = $request->file('oficio_adjunto')->store('solicitudes/oficios', 'public');
+            }
+
+            $solicitud = Solicitud::create([
+                'usuario_id' => auth()->id(),
+                'tipo_solicitante' => $request->tipo_solicitante,
+                'institucion_id' => $institucionId,
+                'departamento_id' => $departamentoId,
+                'responsable_id' => $responsableId,
+                'oficio_adjunto' => $oficioPath,
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                 'fecha_solicitud' => now(),
                 'fecha_requerida' => $request->fecha_requerida,
                 'fecha_fin_estimada' => $request->fecha_fin_estimada,
                 'justificacion' => $request->justificacion,
                 'prioridad' => $request->prioridad,
                 'estado_solicitud' => 'pendiente',
+<<<<<<< HEAD
                 'observaciones' => $request->observaciones ?? null,
             ]);
 
@@ -251,12 +417,42 @@ class SolicitudController extends Controller
                     'descripcion_personalizada' => $item['item_descripcion'],
                     'activo_id' => null,
                     'componente_id' => null,
+=======
+                'observaciones' => $request->observaciones
+            ]);
+
+            foreach ($request->items as $item) {
+                $activoId = null;
+                $componenteId = null;
+                $descripcionPersonalizada = null;
+
+                if (isset($item['item_id']) && !empty($item['item_id'])) {
+                    if ($item['tipo_item'] === 'activo') {
+                        $activoId = $item['item_id'];
+                    } elseif ($item['tipo_item'] === 'componente') {
+                        $componenteId = $item['item_id'];
+                    }
+                } elseif (isset($item['item_descripcion']) && !empty($item['item_descripcion'])) {
+                    $descripcionPersonalizada = $item['item_descripcion'];
+                } else {
+                    throw new \Exception("Debe especificar el item");
+                }
+
+                DetalleSolicitud::create([
+                    'solicitud_id' => $solicitud->id,
+                    'tipo_item' => $item['tipo_item'],
+                    'cantidad_solicitada' => $item['cantidad'],
+                    'activo_id' => $activoId,
+                    'componente_id' => $componenteId,
+                    'descripcion_personalizada' => $descripcionPersonalizada,
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     'observaciones' => $item['observaciones'] ?? null
                 ]);
             }
 
             DB::commit();
 
+<<<<<<< HEAD
             $solicitudCreada = Solicitud::with(['responsable', 'departamento', 'institucion', 'detalles'])
                 ->find($solicitud->id);
 
@@ -274,11 +470,35 @@ class SolicitudController extends Controller
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()
             ], 500);
+=======
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Solicitud creada exitosamente',
+                    'solicitud_id' => $solicitud->id
+                ]);
+            }
+
+            return redirect()->route('admin.solicitudes.index')
+                ->with('success', 'Solicitud creada exitosamente');
+        } catch (\Exception $e) {
+            DB::rollBack();
+
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $e->getMessage()
+                ], 500);
+            }
+
+            return back()->with('error', $e->getMessage())->withInput();
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         }
     }
 
     public function update(Request $request, $id)
     {
+<<<<<<< HEAD
         // Verificación de permiso temporalmente comentada para pruebas
         // if (!auth()->user()->hasPermission('editar-solicitud')) {
         //     if ($request->ajax()) {
@@ -286,14 +506,28 @@ class SolicitudController extends Controller
         //     }
         //     abort(403);
         // }
+=======
+        if (!auth()->user()->hasPermission('editar-solicitud')) {
+            if ($request->ajax()) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+            abort(403);
+        }
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
         try {
             $solicitud = Solicitud::findOrFail($id);
 
+<<<<<<< HEAD
             // Verificación temporalmente comentada
             // if ($solicitud->usuario_id !== auth()->id()) {
             //     return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
             // }
+=======
+            if ($solicitud->usuario_id !== auth()->id()) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
             if ($solicitud->estado_solicitud !== 'pendiente') {
                 return response()->json(['success' => false, 'message' => 'Solo se pueden editar solicitudes pendientes'], 422);
@@ -308,6 +542,7 @@ class SolicitudController extends Controller
                 'observaciones' => 'nullable|string|max:500',
                 'departamento_id' => 'nullable|exists:departamentos,id',
                 'institucion_id' => 'nullable|exists:instituciones,id',
+<<<<<<< HEAD
                 'responsable_id' => 'nullable|exists:responsables,id',
             ]);
 
@@ -352,17 +587,27 @@ class SolicitudController extends Controller
 
             $solicitudActualizada = Solicitud::with(['responsable', 'departamento', 'institucion', 'detalles'])
                 ->find($solicitud->id);
+=======
+            ]);
+
+            $solicitud->update($validated);
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
             if ($request->ajax()) {
                 return response()->json([
                     'success' => true,
                     'message' => 'Solicitud actualizada exitosamente',
+<<<<<<< HEAD
                     'data' => $solicitudActualizada
+=======
+                    'solicitud' => $solicitud->fresh()
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                 ]);
             }
 
             return redirect()->route('admin.solicitudes.index')
                 ->with('success', 'Solicitud actualizada exitosamente');
+<<<<<<< HEAD
 
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
@@ -374,6 +619,9 @@ class SolicitudController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error en update: ' . $e->getMessage());
+=======
+        } catch (\Exception $e) {
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             if ($request->ajax()) {
                 return response()->json([
                     'success' => false,
@@ -384,6 +632,7 @@ class SolicitudController extends Controller
         }
     }
 
+<<<<<<< HEAD
     public function destroy($id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -426,11 +675,17 @@ class SolicitudController extends Controller
         }
     }
 
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     public function cancel($id)
     {
         if (!auth()->user()->hasPermission('cancelar-solicitud')) {
             if (request()->ajax()) {
+<<<<<<< HEAD
                 return response()->json(['success' => false, 'message' => 'No tienes permiso para cancelar solicitudes'], 403);
+=======
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             }
             abort(403);
         }
@@ -439,11 +694,19 @@ class SolicitudController extends Controller
             $solicitud = Solicitud::findOrFail($id);
 
             if ($solicitud->usuario_id !== auth()->id()) {
+<<<<<<< HEAD
                 return response()->json(['success' => false, 'message' => 'No puedes cancelar una solicitud que no creaste'], 403);
             }
 
             if (!in_array($solicitud->estado_solicitud, ['pendiente', 'aprobada'])) {
                 return response()->json(['success' => false, 'message' => 'No se puede cancelar esta solicitud porque ya fue ' . $solicitud->estado_solicitud], 422);
+=======
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
+            if (!in_array($solicitud->estado_solicitud, ['pendiente', 'aprobada'])) {
+                return response()->json(['success' => false, 'message' => 'No se puede cancelar esta solicitud'], 422);
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             }
 
             $solicitud->update(['estado_solicitud' => 'cancelada']);
@@ -457,9 +720,13 @@ class SolicitudController extends Controller
 
             return redirect()->route('admin.solicitudes.index')
                 ->with('success', 'Solicitud cancelada');
+<<<<<<< HEAD
 
         } catch (\Exception $e) {
             Log::error('Error en cancel: ' . $e->getMessage());
+=======
+        } catch (\Exception $e) {
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             if (request()->ajax()) {
                 return response()->json([
                     'success' => false,
@@ -473,17 +740,25 @@ class SolicitudController extends Controller
     public function approve($id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
+<<<<<<< HEAD
             if (request()->ajax()) {
                 return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
             }
             abort(403);
+=======
+            abort(403, 'No tienes permiso para aprobar solicitudes');
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         }
 
         try {
             $solicitud = Solicitud::findOrFail($id);
 
             if ($solicitud->estado_solicitud !== 'pendiente') {
+<<<<<<< HEAD
                 return response()->json(['success' => false, 'message' => 'Solo se pueden aprobar solicitudes pendientes'], 422);
+=======
+                return back()->with('error', 'Solo se pueden aprobar solicitudes pendientes');
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             }
 
             DB::beginTransaction();
@@ -496,6 +771,7 @@ class SolicitudController extends Controller
 
             DB::commit();
 
+<<<<<<< HEAD
             if (request()->ajax()) {
                 return response()->json([
                     'success' => true,
@@ -515,6 +791,12 @@ class SolicitudController extends Controller
                     'message' => $e->getMessage()
                 ], 500);
             }
+=======
+            return redirect()->route('admin.solicitudes.index')
+                ->with('success', 'Solicitud aprobada exitosamente');
+        } catch (\Exception $e) {
+            DB::rollBack();
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             return back()->with('error', $e->getMessage());
         }
     }
@@ -522,6 +804,7 @@ class SolicitudController extends Controller
     public function reject(Request $request, $id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
+<<<<<<< HEAD
             if (request()->ajax()) {
                 return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
             }
@@ -537,10 +820,23 @@ class SolicitudController extends Controller
 
             $motivo = $request->input('motivo', 'Rechazada por el administrador');
 
+=======
+            abort(403, 'No tienes permiso para rechazar solicitudes');
+        }
+
+        $request->validate([
+            'motivo' => 'required|string|min:10'
+        ]);
+
+        try {
+            $solicitud = Solicitud::findOrFail($id);
+
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             $solicitud->update([
                 'estado_solicitud' => 'rechazada',
                 'aprobado_por' => auth()->id(),
                 'fecha_aprobacion' => now(),
+<<<<<<< HEAD
                 'observaciones' => $motivo
             ]);
 
@@ -562,6 +858,14 @@ class SolicitudController extends Controller
                     'message' => $e->getMessage()
                 ], 500);
             }
+=======
+                'observaciones' => $request->motivo
+            ]);
+
+            return redirect()->route('admin.solicitudes.index')
+                ->with('success', 'Solicitud rechazada');
+        } catch (\Exception $e) {
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             return back()->with('error', $e->getMessage());
         }
     }

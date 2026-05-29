@@ -226,7 +226,10 @@
                         <div class="responsable-display" id="responsableDisplay">
                             <span class="text-muted">Seleccione una opción</span>
                         </div>
+<<<<<<< HEAD
                         <input type="hidden" name="responsable_id" id="responsable_id_hidden" value="">
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     </div>
 
                     <div class="row">
@@ -351,7 +354,10 @@
                     <div class="mb-3">
                         <label class="form-label">Responsable</label>
                         <div class="responsable-display" id="editResponsableDisplay"></div>
+<<<<<<< HEAD
                         <input type="hidden" name="responsable_id" id="edit_responsable_id_hidden" value="">
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     </div>
 
                     <div class="row">

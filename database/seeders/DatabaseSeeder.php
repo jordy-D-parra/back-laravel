@@ -34,8 +34,11 @@ class DatabaseSeeder extends Seeder
         // ========== 7. INVENTARIO (depende de equipos, entidades y estatus) ==========
         $this->call(InventarioDemoSeeder::class);
 
+<<<<<<< HEAD
         $this->call(UsuarioAdminSeeder::class);
 
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         $this->command->info('==============================');
         $this->command->info('✅ Seeding completado exitosamente');
         $this->command->info('==============================');

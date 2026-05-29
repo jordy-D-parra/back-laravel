@@ -41,15 +41,12 @@ export default defineConfig({
                 'resources/js/admin-usuarios.js',
 
                 // NUEVO: Módulo de Solicitudes
-                'resources/css/admin-solicitudes.css',
-                'resources/js/admin-solicitudes.js',
+                'resources/css/admin-solicitud.css',
+                'resources/js/admin-solicitud.js',
 
                 // NUEVO: Módulo de Fichas de Soporte
                 'resources/css/admin-soporte.css',
                 'resources/js/admin-soporte.js',
-
-                'resources/css/admin-prestamos.css',
-                'resources/js/admin-prestamos.js',
 
                 // Login y utilidades
                 'resources/css/auth/login.css',

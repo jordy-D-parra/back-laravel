@@ -7,6 +7,7 @@ let perPage = 10;
 let totalRegistros = 0;
 let timeoutBusqueda = null;
 let fichaAEliminar = null;
+<<<<<<< HEAD
 let activosEnProceso = [];
 
 // Datos para buscadores
@@ -19,6 +20,9 @@ let tecnicoSeleccionado = null;
 // Variables para buscador de técnicos en equipo externo
 let timeoutExtTecnicoBusqueda = null;
 let extTecnicoSeleccionado = null;
+=======
+let activosEnProceso = []; // Array para almacenar IDs de activos con ficha en proceso
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
@@ -77,7 +81,10 @@ function actualizarEstadisticas() {
     
     // Actualizar lista de activos en proceso
     activosEnProceso = fichasData.filter(f => f.estado === 'en_proceso').map(f => f.activo_id);
+<<<<<<< HEAD
     console.log('Activos en proceso:', activosEnProceso);
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 }
 
 function renderizarTabla() {
@@ -229,6 +236,7 @@ function aplicarFiltrosConDebounce() {
     }, 300);
 }
 
+<<<<<<< HEAD
 // ==================== BUSCADOR DE ACTIVOS ====================
 
 function cargarActivosParaBuscador() {
@@ -854,6 +862,98 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = false;
         }
     });
+=======
+// ==================== VALIDACIÓN DE ACTIVO EN PROCESO ====================
+function verificarActivoEnProceso(activoId) {
+    return activosEnProceso.includes(parseInt(activoId));
+}
+
+// ==================== CREAR FICHA ====================
+window.abrirModalCrearFicha = function() {
+    document.getElementById('formCrearFicha').reset();
+    // Limpiar mensajes de error anteriores
+    const errorDiv = document.getElementById('activoErrorMensaje');
+    if (errorDiv) errorDiv.style.display = 'none';
+    new bootstrap.Modal(document.getElementById('modalCrearFicha')).show();
+};
+
+// Validar cuando se selecciona un activo en el formulario
+document.getElementById('fichaActivoId')?.addEventListener('change', function() {
+    const activoId = this.value;
+    const errorDiv = document.getElementById('activoErrorMensaje');
+    const submitBtn = document.querySelector('#formCrearFicha button[type="submit"]');
+    
+    if (activoId && verificarActivoEnProceso(activoId)) {
+        if (errorDiv) {
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = `
+                <div class="alert alert-danger alert-dismissible fade show mt-2" role="alert" style="font-size: 0.8rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 5px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <strong>¡Activo no disponible!</strong> Este equipo ya tiene una ficha de soporte en proceso.
+                    <button type="button" class="btn-close float-end" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+        }
+        if (submitBtn) submitBtn.disabled = true;
+        this.classList.add('is-invalid');
+    } else {
+        if (errorDiv) errorDiv.style.display = 'none';
+        if (submitBtn) submitBtn.disabled = false;
+        this.classList.remove('is-invalid');
+        this.classList.add('is-valid');
+    }
+});
+
+document.getElementById('formCrearFicha')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const activoId = document.getElementById('fichaActivoId').value;
+    
+    // Validación antes de enviar
+    if (verificarActivoEnProceso(activoId)) {
+        mostrarNotificacion('error', 'Este activo ya tiene una ficha de soporte en proceso. No puede crear otra.');
+        return;
+    }
+
+    const submitBtn = this.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Creando...';
+    submitBtn.disabled = true;
+
+    const formData = new FormData(this);
+
+    try {
+        const response = await fetch('/admin/soporte', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            mostrarNotificacion('success', result.message || 'Ficha creada exitosamente');
+            bootstrap.Modal.getInstance(document.getElementById('modalCrearFicha')).hide();
+            cargarPagina(1);
+        } else {
+            const errorMsg = result.message || 'Error al crear la ficha';
+            mostrarNotificacion('error', errorMsg);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('error', 'Error de conexión al servidor');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 });
 
 // ==================== CERRAR FICHA ====================
@@ -932,8 +1032,11 @@ document.getElementById('formCerrarFicha')?.addEventListener('submit', async fun
             mostrarNotificacion('success', result.message || 'Ficha finalizada exitosamente');
             bootstrap.Modal.getInstance(document.getElementById('modalCerrarFicha')).hide();
             cargarPagina(currentPage);
+<<<<<<< HEAD
             actualizarEstadisticas();
             cargarActivosParaBuscador();
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         } else {
             mostrarNotificacion('error', result.message || 'Error al finalizar la ficha');
         }
@@ -1111,4 +1214,15 @@ document.getElementById('limpiarFiltros')?.addEventListener('click', function() 
 function initEventListeners() {
     document.getElementById('buscarFichas')?.addEventListener('input', aplicarFiltrosConDebounce);
     document.getElementById('filtroEstadoFichas')?.addEventListener('change', aplicarFiltros);
+<<<<<<< HEAD
 }
+=======
+}
+
+// ==================== INICIALIZACIÓN ====================
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('Módulo de fichas de soporte inicializado');
+    initEventListeners();
+    cargarPagina(1);
+});
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)

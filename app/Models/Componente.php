@@ -105,6 +105,7 @@ class Componente extends Model
     {
         return $this->estado === 'en_bodega';
     }
+<<<<<<< HEAD
 
     public function marcarComoPrestado(): bool
     {
@@ -122,4 +123,6 @@ class Componente extends Model
             'fecha_retiro' => now(),
         ]);
     }
+=======
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 }
