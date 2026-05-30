@@ -101,7 +101,12 @@ class PermisoSeeder extends Seeder
            ['nombre' => 'editar-ficha-soporte', 'descripcion' => 'Editar fichas de soporte', 'categoria' => 'soporte'],
            ['nombre' => 'cerrar-ficha-soporte', 'descripcion' => 'Cerrar/finalizar fichas de soporte', 'categoria' => 'soporte'],
            ['nombre' => 'eliminar-ficha-soporte', 'descripcion' => 'Eliminar fichas de soporte', 'categoria' => 'soporte'],
-            ];
+           // ========== PRÉSTAMOS ==========
+['nombre' => 'ver-prestamos', 'descripcion' => 'Ver listado de préstamos', 'categoria' => 'prestamos'],
+['nombre' => 'crear-prestamo', 'descripcion' => 'Crear nuevos préstamos', 'categoria' => 'prestamos'],
+['nombre' => 'editar-prestamo', 'descripcion' => 'Editar préstamos', 'categoria' => 'prestamos'],
+['nombre' => 'eliminar-prestamo', 'descripcion' => 'Eliminar préstamos', 'categoria' => 'prestamos'],
+['nombre' => 'devolver-prestamo', 'descripcion' => 'Registrar devolución de préstamos', 'categoria' => 'prestamos'], ];
 
         foreach ($permisos as $permiso) {
             Permiso::updateOrCreate(

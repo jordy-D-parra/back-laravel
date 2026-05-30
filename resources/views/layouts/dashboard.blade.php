@@ -145,16 +145,21 @@
             </li>
             @endif
 
-            <!-- Préstamos (Próximamente) -->
+            <!-- Préstamos -->
+            <!-- Controlador: app/Http/Controllers/PrestamoController.php -->
+            @if($user->hasPermission('ver-prestamos'))
             <li class="nav-item">
-                <a href="#" class="nav-link pending">
+                <a href="{{ route('admin.prestamo.index') }}" class="nav-link {{ request()->routeIs('admin.prestamo.*') ? 'active' : '' }}">
                     <span class="nav-icon">
                         <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                     </span>
                     <span>Préstamos</span>
-                    <span class="badge-count">Pronto</span>
                 </a>
             </li>
+            @endif 
+             <!-- Solicitudes de Préstamo -->
+
+       
 
             <!-- Solicitudes de Préstamo -->
 @if($user->hasPermission('ver-solicitudes'))

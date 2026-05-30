@@ -19,7 +19,9 @@ use App\Http\Controllers\Admin\ComponenteController;
 use App\Http\Controllers\Admin\InventarioController;
 use App\Http\Controllers\Admin\SolicitudController;
 use App\Http\Controllers\Admin\FichaSoporteController;
+use App\Http\Controllers\Admin\PrestamoController;
 use App\Models\Estatus;
+use Illuminate\Http\Request;
 
 // ==================== RUTA PRINCIPAL ====================
 Route::get('/', function () {
@@ -122,7 +124,7 @@ Route::middleware(['auth'])->group(function () {
 
         // ========== 2. GESTIÓN DE USUARIOS ==========
 
-       // ========== ROLES Y PERMISOS ==========
+        // 2.1 Roles y Permisos
         Route::get('/roles', [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('roles.index');
         Route::get('/roles/list', [App\Http\Controllers\Admin\RoleController::class, 'getRoles'])->name('roles.list');
         Route::get('/roles/{id}', [App\Http\Controllers\Admin\RoleController::class, 'show'])->name('roles.show');
@@ -166,20 +168,19 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/componentes/por-tipo/{tipo}', [ComponenteController::class, 'porTipo']);
         Route::get('/componentes/en-bodega', [ComponenteController::class, 'enBodega']);
 
-        // 3.2 Préstamos (para futuro)
-        // Route::resource('prestamos', PrestamoController::class);
+        // 3.2 PRÉSTAMOS
+        Route::resource('prestamo', PrestamoController::class);
 
         // ========== 4. SOLICITUDES ==========
         Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
-        Route::get('/', [SolicitudController::class, 'index'])->name('index');
-        Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->name('detalles');
-        Route::post('/store', [SolicitudController::class, 'store'])->name('store');
-        Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])->name('update');
-        Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('cancel');
-        Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('approve');
-        Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
+            Route::get('/', [SolicitudController::class, 'index'])->name('index');
+            Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->name('detalles');
+            Route::post('/store', [SolicitudController::class, 'store'])->name('store');
+            Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])->name('update');
+            Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('cancel');
+            Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('approve');
+            Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
         });
-
 
         // ========== FICHAS DE SOPORTE ==========
         Route::resource('soporte', \App\Http\Controllers\Admin\FichaSoporteController::class);
@@ -189,104 +190,107 @@ Route::middleware(['auth'])->group(function () {
         // 3.4 Reportes (para futuro)
         // Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
 
-        // ========== 4. UTILIDADES ==========
+        // ========== 5. UTILIDADES ==========
         Route::get('/estatus-list', function () {
             $estatus = Estatus::select('id', 'descripcion', 'color_badge')->orderBy('descripcion')->get();
             return response()->json(['success' => true, 'data' => $estatus]);
         });
     });
+
+    // ==================== API PARA RESPONSABLES (FUERA DEL GRUPO ADMIN) ====================
+    
     // API para obtener responsables de entidades (usado por el frontend)
-Route::get('/api/departamento/{id}/responsable', function ($id) {
-    $departamento = App\Models\Departamento::with('responsables')->find($id);
-    $responsable = $departamento ? $departamento->responsables->first() : null;
-    return response()->json([
-        'responsable' => $responsable ? [
-            'id' => $responsable->id,
-            'nombre' => $responsable->nombre,
-            'departamento' => $responsable->cargo,
-            'telefono' => $responsable->telefono,
-            'email' => $responsable->email,
-        ] : null
-    ]);
-});
-
-Route::get('/api/institucion/{id}/responsable', function ($id) {
-    $institucion = App\Models\Institucion::with('responsablesDirectos')->find($id);
-    $responsable = $institucion ? $institucion->responsablesDirectos->first() : null;
-    return response()->json([
-        'responsable' => $responsable ? [
-            'id' => $responsable->id,
-            'nombre' => $responsable->nombre,
-            'departamento' => $responsable->cargo,
-            'telefono' => $responsable->telefono,
-            'email' => $responsable->email,
-        ] : null
-    ]);
-});
-
-Route::post('/api/departamento/{id}/responsable', function (Request $request, $id) {
-    $departamento = App\Models\Departamento::findOrFail($id);
-    $data = $request->validate([
-        'nombre' => 'required|string|max:150',
-        'cargo' => 'nullable|string|max:100',
-        'telefono' => 'nullable|string|max:20',
-        'email' => 'nullable|email|max:100',
-        'responsable_id' => 'nullable|exists:responsables,id'
-    ]);
-
-    if ($request->responsable_id) {
-        $responsable = App\Models\Responsable::find($request->responsable_id);
-        $responsable->update([
-            'nombre' => $data['nombre'],
-            'cargo' => $data['cargo'] ?? $responsable->cargo,
-            'telefono' => $data['telefono'] ?? $responsable->telefono,
-            'email' => $data['email'] ?? $responsable->email,
+    Route::get('/api/departamento/{id}/responsable', function ($id) {
+        $departamento = App\Models\Departamento::with('responsables')->find($id);
+        $responsable = $departamento ? $departamento->responsables->first() : null;
+        return response()->json([
+            'responsable' => $responsable ? [
+                'id' => $responsable->id,
+                'nombre' => $responsable->nombre,
+                'departamento' => $responsable->cargo,
+                'telefono' => $responsable->telefono,
+                'email' => $responsable->email,
+            ] : null
         ]);
-    } else {
-        $responsable = App\Models\Responsable::create([
-            'nombre' => $data['nombre'],
-            'cargo' => $data['cargo'] ?? 'Jefe de Departamento',
-            'telefono' => $data['telefono'] ?? null,
-            'email' => $data['email'] ?? null,
-            'activo' => true,
-            'institucion_id' => $departamento->institucion_id,
-            'departamento_id' => $departamento->id,
+    });
+
+    Route::get('/api/institucion/{id}/responsable', function ($id) {
+        $institucion = App\Models\Institucion::with('responsablesDirectos')->find($id);
+        $responsable = $institucion ? $institucion->responsablesDirectos->first() : null;
+        return response()->json([
+            'responsable' => $responsable ? [
+                'id' => $responsable->id,
+                'nombre' => $responsable->nombre,
+                'departamento' => $responsable->cargo,
+                'telefono' => $responsable->telefono,
+                'email' => $responsable->email,
+            ] : null
         ]);
-    }
+    });
 
-    return response()->json(['success' => true, 'responsable' => $responsable]);
-});
-
-Route::post('/api/institucion/{id}/responsable', function (Request $request, $id) {
-    $institucion = App\Models\Institucion::findOrFail($id);
-    $data = $request->validate([
-        'nombre' => 'required|string|max:150',
-        'cargo' => 'nullable|string|max:100',
-        'telefono' => 'nullable|string|max:20',
-        'email' => 'nullable|email|max:100',
-        'responsable_id' => 'nullable|exists:responsables,id'
-    ]);
-
-    if ($request->responsable_id) {
-        $responsable = App\Models\Responsable::find($request->responsable_id);
-        $responsable->update([
-            'nombre' => $data['nombre'],
-            'cargo' => $data['cargo'] ?? $responsable->cargo,
-            'telefono' => $data['telefono'] ?? $responsable->telefono,
-            'email' => $data['email'] ?? $responsable->email,
+    Route::post('/api/departamento/{id}/responsable', function (Request $request, $id) {
+        $departamento = App\Models\Departamento::findOrFail($id);
+        $data = $request->validate([
+            'nombre' => 'required|string|max:150',
+            'cargo' => 'nullable|string|max:100',
+            'telefono' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:100',
+            'responsable_id' => 'nullable|exists:responsables,id'
         ]);
-    } else {
-        $responsable = App\Models\Responsable::create([
-            'nombre' => $data['nombre'],
-            'cargo' => $data['cargo'] ?? 'Representante',
-            'telefono' => $data['telefono'] ?? null,
-            'email' => $data['email'] ?? null,
-            'activo' => true,
-            'institucion_id' => $institucion->id,
-            'departamento_id' => null,
-        ]);
-    }
 
-    return response()->json(['success' => true, 'responsable' => $responsable]);
-});
+        if ($request->responsable_id) {
+            $responsable = App\Models\Responsable::find($request->responsable_id);
+            $responsable->update([
+                'nombre' => $data['nombre'],
+                'cargo' => $data['cargo'] ?? $responsable->cargo,
+                'telefono' => $data['telefono'] ?? $responsable->telefono,
+                'email' => $data['email'] ?? $responsable->email,
+            ]);
+        } else {
+            $responsable = App\Models\Responsable::create([
+                'nombre' => $data['nombre'],
+                'cargo' => $data['cargo'] ?? 'Jefe de Departamento',
+                'telefono' => $data['telefono'] ?? null,
+                'email' => $data['email'] ?? null,
+                'activo' => true,
+                'institucion_id' => $departamento->institucion_id,
+                'departamento_id' => $departamento->id,
+            ]);
+        }
+
+        return response()->json(['success' => true, 'responsable' => $responsable]);
+    });
+
+    Route::post('/api/institucion/{id}/responsable', function (Request $request, $id) {
+        $institucion = App\Models\Institucion::findOrFail($id);
+        $data = $request->validate([
+            'nombre' => 'required|string|max:150',
+            'cargo' => 'nullable|string|max:100',
+            'telefono' => 'nullable|string|max:20',
+            'email' => 'nullable|email|max:100',
+            'responsable_id' => 'nullable|exists:responsables,id'
+        ]);
+
+        if ($request->responsable_id) {
+            $responsable = App\Models\Responsable::find($request->responsable_id);
+            $responsable->update([
+                'nombre' => $data['nombre'],
+                'cargo' => $data['cargo'] ?? $responsable->cargo,
+                'telefono' => $data['telefono'] ?? $responsable->telefono,
+                'email' => $data['email'] ?? $responsable->email,
+            ]);
+        } else {
+            $responsable = App\Models\Responsable::create([
+                'nombre' => $data['nombre'],
+                'cargo' => $data['cargo'] ?? 'Representante',
+                'telefono' => $data['telefono'] ?? null,
+                'email' => $data['email'] ?? null,
+                'activo' => true,
+                'institucion_id' => $institucion->id,
+                'departamento_id' => null,
+            ]);
+        }
+
+        return response()->json(['success' => true, 'responsable' => $responsable]);
+    });
 });
