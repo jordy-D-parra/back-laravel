@@ -14,6 +14,7 @@ class Prestamo extends Model
     // # | Responsable | Activo | Fecha Salida | Fecha Devolución | Estado | Acciones
 
     protected $fillable = [
+        'solicitud_id',
         'responsable_id',      // Responsable
         'activo_id',           // Activo
         'fecha_salida',        // Fecha Salida
@@ -23,6 +24,11 @@ class Prestamo extends Model
     ];
 
     // Relaciones
+    public function solicitud()
+    {
+        return $this->belongsTo(Solicitud::class, 'solicitud_id');
+    }
+
     public function responsable()
     {
         return $this->belongsTo(Responsable::class, 'responsable_id');

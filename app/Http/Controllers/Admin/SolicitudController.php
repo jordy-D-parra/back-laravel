@@ -86,7 +86,8 @@ class SolicitudController extends Controller
 
     public function getDetalles($id)
     {
-        if (!auth()->user()->hasPermission('ver-solicitudes')) {
+        $user = auth()->user();
+        if (!$user->hasPermission('ver-solicitudes') && !$user->hasPermission('ver-prestamos')) {
             return response()->json(['error' => 'No autorizado'], 403);
         }
 
@@ -99,8 +100,11 @@ class SolicitudController extends Controller
                 'usuario'
             ])->findOrFail($id);
 
-            $user = auth()->user();
-            if (!$user->hasPermission('aprobar-solicitudes') && $user->id !== $solicitud->usuario_id) {
+            if (
+                !$user->hasPermission('aprobar-solicitudes')
+                && !$user->hasPermission('ver-prestamos')
+                && $user->id !== $solicitud->usuario_id
+            ) {
                 return response()->json(['error' => 'No autorizado'], 403);
             }
 

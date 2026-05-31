@@ -169,6 +169,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/componentes/en-bodega', [ComponenteController::class, 'enBodega']);
 
         // 3.2 PRÉSTAMOS
+        Route::get('prestamo/listar', [PrestamoController::class, 'listar'])->name('prestamo.listar');
+        Route::get('prestamo/datos-form', [PrestamoController::class, 'datosForm'])->name('prestamo.datos-form');
+        Route::post('prestamo/solicitud/{solicitud}/registrar', [PrestamoController::class, 'registrarDesdeSolicitud'])
+            ->name('prestamo.registrar-desde-solicitud');
         Route::resource('prestamo', PrestamoController::class);
 
         // ========== 4. SOLICITUDES ==========

@@ -67,6 +67,11 @@ class Solicitud extends Model
         return $this->hasMany(DetalleSolicitud::class, 'solicitud_id');
     }
 
+    public function prestamos()
+    {
+        return $this->hasMany(Prestamo::class, 'solicitud_id');
+    }
+
     // Accesores
     public function getNombreEntidadAttribute()
     {

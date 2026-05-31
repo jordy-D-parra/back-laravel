@@ -40,9 +40,13 @@ export default defineConfig({
                 'resources/css/admin-usuarios.css',
                 'resources/js/admin-usuarios.js',
 
-                // NUEVO: Módulo de Solicitudes
-                'resources/css/admin-solicitud.css',
-                'resources/js/admin-solicitud.js',
+                // Módulo de Solicitudes
+                'resources/css/admin-solicitudes.css',
+                'resources/js/admin-solicitudes.js',
+
+                // Módulo de Préstamos
+                'resources/css/admin-solicitudes.css',
+                'resources/js/admin-prestamo.js',
 
                 // NUEVO: Módulo de Fichas de Soporte
                 'resources/css/admin-soporte.css',
