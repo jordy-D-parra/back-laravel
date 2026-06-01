@@ -18,71 +18,99 @@ use Illuminate\Support\Facades\Auth;
 
 class SolicitudController extends Controller
 {
-    public function index(Request $request)
-    {
-        // Verificar permiso
-        if (!auth()->user()->hasPermission('ver-solicitudes')) {
-            abort(403, 'No tienes permiso para ver solicitudes');
-        }
+ public function index(Request $request)
+{
+    // Verificar permiso
+    if (!auth()->user()->hasPermission('ver-solicitudes')) {
+        abort(403, 'No tienes permiso para ver solicitudes');
+    }
 
-        $query = Solicitud::with([
-            'detalles',
-            'institucion',
-            'departamento',
-            'responsable',
-            'usuario'
-        ])->where('usuario_id', auth()->id());
+    // Obtener el ID del usuario autenticado y forzarlo a entero
+    $user = auth()->user();
+    $userId = (int) $user->id;
 
-        // Filtros
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('institucion', function ($sq) use ($search) {
-                    $sq->where('nombre', 'ILIKE', "%{$search}%");
-                })->orWhereHas('departamento', function ($sq) use ($search) {
-                    $sq->where('nombre', 'ILIKE', "%{$search}%");
-                })->orWhere('justificacion', 'ILIKE', "%{$search}%");
-            });
-        }
+    // Log para depuración (opcional, puedes eliminarlo después)
+    \Log::info('=== SOLICITUD INDEX ===');
+    \Log::info('Usuario: ' . $user->usuario);
+    \Log::info('Usuario ID (entero): ' . $userId);
+    \Log::info('Tipo de dato: ' . gettype($userId));
 
-        if ($request->filled('estado')) {
-            $query->where('estado_solicitud', $request->estado);
-        }
+    // Query base con las relaciones
+    $query = Solicitud::with([
+        'detalles',
+        'institucion',
+        'departamento',
+        'responsable',
+        'usuario'
+    ])->where('usuario_id', $userId);
 
-        if ($request->filled('prioridad')) {
-            $query->where('prioridad', $request->prioridad);
-        }
+    // Filtro por búsqueda
+    if ($request->filled('search')) {
+        $search = $request->search;
+        $query->where(function ($q) use ($search) {
+            $q->whereHas('institucion', function ($sq) use ($search) {
+                $sq->where('nombre', 'ILIKE', "%{$search}%");
+            })->orWhereHas('departamento', function ($sq) use ($search) {
+                $sq->where('nombre', 'ILIKE', "%{$search}%");
+            })->orWhere('justificacion', 'ILIKE', "%{$search}%");
+        });
+    }
 
-        if ($request->filled('fecha_desde')) {
-            $query->whereDate('fecha_requerida', '>=', $request->fecha_desde);
-        }
+    // Filtro por estado
+    if ($request->filled('estado')) {
+        $query->where('estado_solicitud', $request->estado);
+    }
 
-        if ($request->filled('fecha_hasta')) {
-            $query->whereDate('fecha_requerida', '<=', $request->fecha_hasta);
-        }
+    // Filtro por prioridad
+    if ($request->filled('prioridad')) {
+        $query->where('prioridad', $request->prioridad);
+    }
 
-        $perPage = $request->input('per_page', 10);
+    // Filtro por fecha desde
+    if ($request->filled('fecha_desde')) {
+        $query->whereDate('fecha_requerida', '>=', $request->fecha_desde);
+    }
+
+    // Filtro por fecha hasta
+    if ($request->filled('fecha_hasta')) {
+        $query->whereDate('fecha_requerida', '<=', $request->fecha_hasta);
+    }
+
+    // Paginación
+    $perPage = $request->input('per_page', 10);
+
+    try {
         $solicitudes = $query->orderBy('created_at', 'desc')
                             ->paginate($perPage)
                             ->appends($request->query());
 
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json($solicitudes);
-        }
+        \Log::info('Solicitudes encontradas: ' . $solicitudes->total());
 
-        $activos = Activo::with(['modelo.marca', 'estatus'])->get();
-        $componentes = Componente::where('estado', 'en_bodega')->get();
-        $instituciones = Institucion::where('activo', true)->orderBy('nombre')->get();
-        $departamentos = Departamento::where('activo', true)->orderBy('nombre')->get();
-
-        return view('admin.solicitudes.index', compact(
-            'solicitudes',
-            'activos',
-            'componentes',
-            'instituciones',
-            'departamentos'
-        ));
+    } catch (\Exception $e) {
+        \Log::error('Error en consulta de solicitudes: ' . $e->getMessage());
+        // Si hay error, devolver paginación vacía
+        $solicitudes = new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
     }
+
+    // Respuesta JSON para AJAX
+    if ($request->ajax() || $request->wantsJson()) {
+        return response()->json($solicitudes);
+    }
+
+    // Datos para la vista
+    $activos = Activo::with(['modelo.marca', 'estatus'])->get();
+    $componentes = Componente::where('estado', 'en_bodega')->get();
+    $instituciones = Institucion::where('activo', true)->orderBy('nombre')->get();
+    $departamentos = Departamento::where('activo', true)->orderBy('nombre')->get();
+
+    return view('admin.solicitudes.index', compact(
+        'solicitudes',
+        'activos',
+        'componentes',
+        'instituciones',
+        'departamentos'
+    ));
+}
 
     public function getDetalles($id)
     {
@@ -147,173 +175,102 @@ class SolicitudController extends Controller
         }
     }
 
-    public function store(Request $request)
-    {
+  public function store(Request $request)
+{
+    try {
         if (!auth()->user()->hasPermission('crear-solicitud')) {
-            if ($request->ajax()) {
-                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-            }
-            abort(403);
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
-        try {
-            $rules = [
-                'tipo_solicitante' => 'required|in:interno,externo',
-                'fecha_requerida' => 'required|date|after_or_equal:today',
-                'fecha_fin_estimada' => 'required|date|after_or_equal:fecha_requerida',
-                'justificacion' => 'required|string|min:20|max:1000',
-                'prioridad' => 'required|in:baja,normal,alta,urgente',
-                'observaciones' => 'nullable|string|max:500',
-                'items' => 'required|array|min:1',
-                'items.*.tipo_item' => 'required|in:activo,componente',
-                'items.*.cantidad' => 'required|integer|min:1',
-                'oficio_adjunto' => 'nullable|file|mimes:pdf,doc,docx|max:2048'
-            ];
+        // FORZAR EL ID COMO ENTERO
+        $userId = (int) auth()->user()->id; // Usar ->id directamente
 
-            $rules['items.*.item_id'] = 'nullable|integer';
-            $rules['items.*.item_descripcion'] = 'nullable|string|max:255';
+        \Log::info('Usuario ID forzado: ' . $userId);
+        \Log::info('Tipo: ' . gettype($userId));
 
-            $validated = $request->validate($rules);
+        // Validación
+        $validator = validator($request->all(), [
+            'tipo_solicitante' => 'required|in:interno,externo',
+            'fecha_requerida' => 'required|date|after_or_equal:today',
+            'fecha_fin_estimada' => 'required|date|after_or_equal:fecha_requerida',
+            'justificacion' => 'required|string|min:20|max:1000',
+            'prioridad' => 'required|in:baja,normal,alta,urgente',
+            'observaciones' => 'nullable|string|max:500',
+            'items' => 'required|array|min:1',
+            'items.*.tipo_item' => 'required|in:activo,componente',
+            'items.*.cantidad' => 'required|integer|min:1',
+            'items.*.item_descripcion' => 'required|string|max:255',
+        ]);
 
-            DB::beginTransaction();
+        if ($validator->fails()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $validator->errors()
+            ], 422);
+        }
 
-            $institucionId = null;
-            $departamentoId = null;
-            $responsableId = null;
+        DB::beginTransaction();
 
-            if ($request->tipo_solicitante === 'interno') {
-                if ($request->filled('departamento_id') && $request->departamento_id !== 'otro') {
-                    $departamentoId = $request->departamento_id;
-                    $departamento = Departamento::find($departamentoId);
-                    if ($departamento && $departamento->representante) {
-                        $responsable = Responsable::where('departamento_id', $departamentoId)
-                            ->where('cargo', 'Jefe de Departamento')
-                            ->first();
-                        $responsableId = $responsable ? $responsable->id : null;
-                    }
-                } elseif ($request->filled('nuevo_departamento')) {
-                    $departamento = Departamento::create([
-                        'nombre' => $request->nuevo_departamento,
-                        'informacion' => $request->departamento_informacion ?? null,
-                        'representante' => $request->departamento_representante ?? null,
-                        'ubicacion' => $request->departamento_ubicacion ?? null,
-                        'activo' => true,
-                        'institucion_id' => null
-                    ]);
-                    $departamentoId = $departamento->id;
-                }
-            } else {
-                if ($request->filled('institucion_id') && $request->institucion_id !== 'otro') {
-                    $institucionId = $request->institucion_id;
-                    $institucion = Institucion::find($institucionId);
-                    if ($institucion && $institucion->representante) {
-                        $responsable = Responsable::where('institucion_id', $institucionId)
-                            ->whereNull('departamento_id')
-                            ->first();
-                        $responsableId = $responsable ? $responsable->id : null;
-                    }
-                } elseif ($request->filled('nueva_institucion')) {
-                    $institucion = Institucion::create([
-                        'nombre' => $request->nueva_institucion,
-                        'informacion' => $request->informacion ?? null,
-                        'representante' => $request->representante ?? null,
-                        'ubicacion' => $request->ubicacion ?? null,
-                        'activo' => true
-                    ]);
-                    $institucionId = $institucion->id;
-                }
+        $institucionId = null;
+        $departamentoId = null;
+
+        if ($request->tipo_solicitante === 'interno') {
+            if ($request->filled('departamento_id') && $request->departamento_id !== 'otro') {
+                $departamentoId = (int) $request->departamento_id;
             }
-
-            if ($request->filled('responsable_id') && $request->responsable_id !== 'otro') {
-                $responsableId = $request->responsable_id;
-            } elseif ($request->filled('nuevo_responsable')) {
-                $responsable = Responsable::create([
-                    'nombre' => $request->nuevo_responsable,
-                    'cargo' => $request->responsable_cargo ?? 'Representante',
-                    'telefono' => $request->responsable_telefono ?? null,
-                    'email' => $request->responsable_email ?? null,
-                    'documento' => $request->responsable_documento ?? null,
-                    'activo' => true,
-                    'institucion_id' => $institucionId,
-                    'departamento_id' => $departamentoId
-                ]);
-                $responsableId = $responsable->id;
+        } else {
+            if ($request->filled('institucion_id') && $request->institucion_id !== 'otro') {
+                $institucionId = (int) $request->institucion_id;
             }
+        }
 
-            $oficioPath = null;
-            if ($request->hasFile('oficio_adjunto')) {
-                $oficioPath = $request->file('oficio_adjunto')->store('solicitudes/oficios', 'public');
-            }
+        // Crear la solicitud con el ID forzado
+        $solicitud = Solicitud::create([
+            'usuario_id' => $userId, // AHORA ES ENTERO
+            'tipo_solicitante' => $request->tipo_solicitante,
+            'institucion_id' => $institucionId,
+            'departamento_id' => $departamentoId,
+            'responsable_id' => null,
+            'oficio_adjunto' => null,
+            'fecha_solicitud' => now(),
+            'fecha_requerida' => $request->fecha_requerida,
+            'fecha_fin_estimada' => $request->fecha_fin_estimada,
+            'justificacion' => $request->justificacion,
+            'prioridad' => $request->prioridad,
+            'estado_solicitud' => 'pendiente',
+            'observaciones' => $request->observaciones ?? null,
+        ]);
 
-            $solicitud = Solicitud::create([
-                'usuario_id' => auth()->id(),
-                'tipo_solicitante' => $request->tipo_solicitante,
-                'institucion_id' => $institucionId,
-                'departamento_id' => $departamentoId,
-                'responsable_id' => $responsableId,
-                'oficio_adjunto' => $oficioPath,
-                'fecha_solicitud' => now(),
-                'fecha_requerida' => $request->fecha_requerida,
-                'fecha_fin_estimada' => $request->fecha_fin_estimada,
-                'justificacion' => $request->justificacion,
-                'prioridad' => $request->prioridad,
-                'estado_solicitud' => 'pendiente',
-                'observaciones' => $request->observaciones
+        foreach ($request->items as $item) {
+            DetalleSolicitud::create([
+                'solicitud_id' => $solicitud->id,
+                'tipo_item' => $item['tipo_item'],
+                'cantidad_solicitada' => (int) $item['cantidad'],
+                'descripcion_personalizada' => $item['item_descripcion'],
+                'activo_id' => null,
+                'componente_id' => null,
+                'observaciones' => $item['observaciones'] ?? null
             ]);
-
-            foreach ($request->items as $item) {
-                $activoId = null;
-                $componenteId = null;
-                $descripcionPersonalizada = null;
-
-                if (isset($item['item_id']) && !empty($item['item_id'])) {
-                    if ($item['tipo_item'] === 'activo') {
-                        $activoId = $item['item_id'];
-                    } elseif ($item['tipo_item'] === 'componente') {
-                        $componenteId = $item['item_id'];
-                    }
-                } elseif (isset($item['item_descripcion']) && !empty($item['item_descripcion'])) {
-                    $descripcionPersonalizada = $item['item_descripcion'];
-                } else {
-                    throw new \Exception("Debe especificar el item");
-                }
-
-                DetalleSolicitud::create([
-                    'solicitud_id' => $solicitud->id,
-                    'tipo_item' => $item['tipo_item'],
-                    'cantidad_solicitada' => $item['cantidad'],
-                    'activo_id' => $activoId,
-                    'componente_id' => $componenteId,
-                    'descripcion_personalizada' => $descripcionPersonalizada,
-                    'observaciones' => $item['observaciones'] ?? null
-                ]);
-            }
-
-            DB::commit();
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Solicitud creada exitosamente',
-                    'solicitud_id' => $solicitud->id
-                ]);
-            }
-
-            return redirect()->route('admin.solicitudes.index')
-                ->with('success', 'Solicitud creada exitosamente');
-        } catch (\Exception $e) {
-            DB::rollBack();
-
-            if ($request->ajax() || $request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage()
-                ], 500);
-            }
-
-            return back()->with('error', $e->getMessage())->withInput();
         }
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Solicitud creada exitosamente',
+            'solicitud_id' => $solicitud->id
+        ]);
+
+    } catch (\Exception $e) {
+        DB::rollBack();
+        \Log::error('Error en store: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     public function update(Request $request, $id)
     {

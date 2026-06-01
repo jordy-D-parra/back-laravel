@@ -12,7 +12,6 @@ return new class extends Migration
             $table->id();
             $table->string('nombre', 200)->unique();
             $table->text('informacion')->nullable();
-            $table->string('representante', 150)->nullable();
             $table->string('ubicacion', 200)->nullable();
             $table->boolean('activo')->default(true);
             $table->timestamps();

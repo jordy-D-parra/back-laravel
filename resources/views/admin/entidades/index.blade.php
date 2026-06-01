@@ -288,7 +288,7 @@
     </div>
 </div>
 
-<!-- Modal Departamento -->
+<!-- Modal Departamento (CORREGIDO) -->
 <div class="modal fade" id="modalDepartamento" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -296,6 +296,9 @@
                 @csrf
                 <input type="hidden" name="_method" value="POST" id="formMethodDepartamento">
                 <input type="hidden" name="id" id="departamentoId">
+                <!-- Campo oculto para indicar que se usa el representante de la institución -->
+                <input type="hidden" name="usar_representante_institucion" id="usarRepresentanteInstitucionHidden" value="0">
+
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalDepartamentoLabel">Nuevo Departamento</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
@@ -314,7 +317,7 @@
                         <select class="form-select" id="depto_institucion_id" name="institucion_id" onchange="cargarRepresentanteInstitucion()">
                             <option value="">Seleccionar institución...</option>
                             @foreach($instituciones as $inst)
-                                <option value="{{ $inst->id }}" data-representante-nombre="{{ $inst->representante }}">{{ $inst->nombre }}</option>
+                                <option value="{{ $inst->id }}" data-representante-nombre="{{ $inst->representante }}" data-institucion-id="{{ $inst->id }}">{{ $inst->nombre }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -342,7 +345,15 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label for="depto_representante_nombre" class="form-label">Nombre <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="depto_representante_nombre" name="representante_nombre" required maxlength="150">
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="depto_representante_nombre" name="representante_nombre" required maxlength="150">
+                                <button type="button" class="btn btn-outline-secondary" id="btnCopiarRepresentante" style="display: none;" title="Copiar datos del representante de la institución">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                </button>
+                            </div>
                             <div class="form-check mt-2" id="contenedorCheckRepresentante" style="display:none;">
                                 <input class="form-check-input" type="checkbox" id="usarRepresentanteInstitucion" onchange="toggleRepresentanteInstitucion()">
                                 <label class="form-check-label" for="usarRepresentanteInstitucion" style="font-size: 0.85rem;">Usar representante de la institución</label>

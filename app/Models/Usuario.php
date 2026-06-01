@@ -13,6 +13,10 @@ class Usuario extends Authenticatable
 
     protected $table = 'usuarios';
 
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
+
     protected $fillable = [
         'usuario',
         'password',
@@ -31,7 +35,32 @@ class Usuario extends Authenticatable
     protected $casts = [
         'must_change_password' => 'boolean',
         'ultimo_login' => 'datetime',
+        'id' => 'integer',
     ];
+
+    // Para la autenticación usar 'usuario'
+    public function getAuthIdentifierName()
+    {
+        return 'usuario';
+    }
+
+    // Para autenticación, devuelve el valor del campo 'usuario'
+    public function getAuthIdentifier()
+    {
+        return $this->usuario;
+    }
+
+    // Para la sesión, devuelve el ID numérico
+    public function getAuthIdentifierForStorage()
+    {
+        return (int) $this->id;
+    }
+
+    // Para que las relaciones usen el ID numérico
+    public function getKey()
+    {
+        return (int) $this->id;
+    }
 
     public function trabajador(): BelongsTo
     {
@@ -43,13 +72,11 @@ class Usuario extends Authenticatable
         return $this->belongsTo(Rol::class, 'rol_id');
     }
 
-    // Verificar si tiene un permiso específico
     public function hasPermission(string $permisoNombre): bool
     {
         return $this->rol?->permisos()->where('nombre', $permisoNombre)->exists() ?? false;
     }
 
-    // Verificar si es un rol específico
     public function isRole(string $rolNombre): bool
     {
         return $this->rol?->nombre === $rolNombre;

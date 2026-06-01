@@ -675,13 +675,57 @@
     color: var(--danger);
 }
 
+/* Corrección de badges - texto negro para fondos claros */
+.badge-activo {
+    background: #d4edda !important;
+    color: #155724 !important;
+    border: none;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.25rem 0.7rem;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-inactivo {
+    background: #f8d7da !important;
+    color: #721c24 !important;
+    border: none;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.25rem 0.7rem;
+    border-radius: 20px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Para la tabla de instituciones */
+.table-container .badge-activo,
+.table-container .badge-inactivo {
+    color: #1a1a1a !important;
+}
+
+/* Para el árbol (fondo oscuro) */
+.arbol-raiz > .arbol-nodo-header .badge-activo {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+}
+
+.arbol-raiz > .arbol-nodo-header .badge-inactivo {
+    background: rgba(255, 255, 255, 0.2) !important;
+    color: #ffcdd2 !important;
+}
+
 /* ---------- Responsive ---------- */
 @media (max-width: 992px) {
     .stats-row {
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
     }
-    
+
     .detail-grid {
         grid-template-columns: 1fr;
     }
@@ -692,16 +736,16 @@
         padding: 0.5rem 1rem;
         font-size: 0.75rem;
     }
-    
+
     .tab-header-bar {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .tab-header-bar .d-flex {
         justify-content: space-between;
     }
-    
+
     .modal-body {
         padding: 1rem;
     }
@@ -711,18 +755,18 @@
     .stats-row {
         grid-template-columns: 1fr;
     }
-    
+
     .table thead {
         display: none;
     }
-    
+
     .table tbody td {
         display: block;
         text-align: right;
         padding-left: 50%;
         position: relative;
     }
-    
+
     .table tbody td::before {
         content: attr(data-label);
         position: absolute;
@@ -733,28 +777,28 @@
         color: var(--primary-dark);
         font-size: 0.7rem;
     }
-    
+
     .table tbody tr {
         margin-bottom: 1rem;
         display: block;
         border: 1px solid var(--border-light);
         border-radius: 8px;
     }
-    
+
     .table tbody td:last-child {
         border-bottom: none;
     }
-    
+
     .arbol-hijos {
         margin-left: 0.75rem;
         padding-left: 0.5rem;
     }
-    
+
     .arbol-nodo-header {
         flex-wrap: wrap;
         gap: 0.3rem;
     }
-    
+
     .arbol-acciones {
         opacity: 1;
         margin-left: auto;

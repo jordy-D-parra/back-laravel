@@ -16,8 +16,8 @@ class UsuarioAdminSeeder extends Seeder
         $adminRol = Rol::where('nombre', 'admin')->first();
 
         Usuario::create([
-            'usuario' => 'admin',
-            'password' => Hash::make('Admin2025!'),
+            'usuario' => 'jordy',
+            'password' => Hash::make('Mortadela1$'),
             'must_change_password' => true, // Forzará cambio en primer login
             'status' => 'activo',
             'trabajador_id' => $adminTrabajador->id,

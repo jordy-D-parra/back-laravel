@@ -36,53 +36,21 @@ class Responsable extends Model
         return $this->belongsTo(Departamento::class, 'departamento_id');
     }
 
-    // Scope: responsables activos
-    public function scopeActivos($query)
-    {
-        return $query->where('activo', true);
-    }
-
-    // Scope: búsqueda
-    public function scopeBuscar($query, $termino)
-    {
-        if ($termino) {
-            return $query->where(function($q) use ($termino) {
-                $q->where('nombre', 'ILIKE', "%{$termino}%")
-                  ->orWhere('documento', 'ILIKE', "%{$termino}%")
-                  ->orWhere('email', 'ILIKE', "%{$termino}%")
-                  ->orWhere('cargo', 'ILIKE', "%{$termino}%");
-            });
-        }
-        return $query;
-    }
-
-    // Scope: con departamento
-    public function scopeConDepartamento($query)
-    {
-        return $query->whereNotNull('departamento_id');
-    }
-
-    // Scope: sin departamento (responsables directos de institución)
-    public function scopeSinDepartamento($query)
+    // Scope: responsables directos de institución (sin departamento)
+    public function scopeDirectosDeInstitucion($query)
     {
         return $query->whereNull('departamento_id');
     }
 
-    // Scope: filtrar por institución
-    public function scopePorInstitucion($query, $institucionId)
+    // Scope: responsables de un departamento específico
+    public function scopeDeDepartamento($query, $departamentoId)
     {
-        if ($institucionId) {
-            return $query->where('institucion_id', $institucionId);
-        }
-        return $query;
+        return $query->where('departamento_id', $departamentoId);
     }
 
-    // Scope: filtrar por departamento
-    public function scopePorDepartamento($query, $departamentoId)
+    // Scope: responsables activos
+    public function scopeActivos($query)
     {
-        if ($departamentoId) {
-            return $query->where('departamento_id', $departamentoId);
-        }
-        return $query;
+        return $query->where('activo', true);
     }
 }

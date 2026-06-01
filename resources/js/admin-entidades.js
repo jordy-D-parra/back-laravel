@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (instituciones && instituciones.length > 0) {
                         instituciones.forEach(inst => {
                             selectDeptoInst.innerHTML += `
-                                <option value="${inst.id}" data-representante-nombre="${inst.representante || ''}">
+                                <option value="${inst.id}" data-representante-nombre="${inst.representante_nombre || ''}">
                                     ${escapeHtml(inst.nombre)}
                                 </option>`;
                         });
@@ -296,9 +296,20 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('contenedorInstitucionDepto').style.display = 'block';
         document.getElementById('contenedorCheckRepresentante').style.display = 'block';
         document.getElementById('usarRepresentanteInstitucion').checked = false;
-        document.getElementById('depto_representante_nombre').disabled = false;
-        document.getElementById('depto_representante_nombre').placeholder = '';
-        document.getElementById('depto_representante_cargo').value = 'Jefe de Departamento';
+        document.getElementById('usarRepresentanteInstitucionHidden').value = '0';
+
+        // Habilitar y limpiar campos del representante
+        const inputs = ['depto_representante_nombre', 'depto_representante_documento',
+                        'depto_representante_telefono', 'depto_representante_email',
+                        'depto_representante_direccion', 'depto_representante_cargo'];
+        inputs.forEach(id => {
+            const input = document.getElementById(id);
+            if (input) {
+                input.disabled = false;
+                input.value = '';
+            }
+        });
+
         document.getElementById('depto_nombre').classList.remove('is-valid', 'is-invalid');
         document.getElementById('iconoNombreDepto').style.display = 'none';
         document.getElementById('feedbackNombreDeptoOk').style.display = 'none';
@@ -320,35 +331,113 @@ document.addEventListener('DOMContentLoaded', function() {
         if (sinInstitucion) {
             document.getElementById('depto_institucion_id').value = '';
             document.getElementById('usarRepresentanteInstitucion').checked = false;
-            document.getElementById('depto_representante_nombre').disabled = false;
-            document.getElementById('depto_representante_nombre').value = '';
+            document.getElementById('usarRepresentanteInstitucionHidden').value = '0';
+
+            // Habilitar y limpiar campos
+            const inputs = ['depto_representante_nombre', 'depto_representante_documento',
+                            'depto_representante_telefono', 'depto_representante_email',
+                            'depto_representante_direccion'];
+            inputs.forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.disabled = false;
+                    input.value = '';
+                }
+            });
         }
     };
 
     window.cargarRepresentanteInstitucion = function() {
-        document.getElementById('usarRepresentanteInstitucion').checked = false;
-        document.getElementById('depto_representante_nombre').disabled = false;
-        document.getElementById('depto_representante_nombre').value = '';
+        const checkbox = document.getElementById('usarRepresentanteInstitucion');
+        const hiddenField = document.getElementById('usarRepresentanteInstitucionHidden');
+
+        if (checkbox && checkbox.checked) {
+            checkbox.checked = false;
+            if (hiddenField) hiddenField.value = '0';
+
+            const inputs = ['depto_representante_nombre', 'depto_representante_documento',
+                            'depto_representante_telefono', 'depto_representante_email',
+                            'depto_representante_direccion'];
+            inputs.forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.value = '';
+                    input.disabled = false;
+                }
+            });
+        }
     };
 
     window.toggleRepresentanteInstitucion = function() {
         const select = document.getElementById('depto_institucion_id');
         const checkbox = document.getElementById('usarRepresentanteInstitucion');
-        const inputNombre = document.getElementById('depto_representante_nombre');
+        const hiddenField = document.getElementById('usarRepresentanteInstitucionHidden');
+        const inputs = {
+            nombre: document.getElementById('depto_representante_nombre'),
+            documento: document.getElementById('depto_representante_documento'),
+            telefono: document.getElementById('depto_representante_telefono'),
+            email: document.getElementById('depto_representante_email'),
+            direccion: document.getElementById('depto_representante_direccion'),
+            cargo: document.getElementById('depto_representante_cargo')
+        };
 
         if (checkbox.checked) {
-            const selectedOption = select.options[select.selectedIndex];
-            const representante = selectedOption.getAttribute('data-representante-nombre');
-            if (representante && representante.trim() !== '') {
-                inputNombre.value = representante;
-                inputNombre.disabled = true;
-            } else {
+            const institucionId = select.value;
+
+            if (!institucionId) {
                 checkbox.checked = false;
-                mostrarToast('La institución no tiene representante', 'warning');
+                mostrarToast('Debe seleccionar una institución primero', 'warning');
+                return;
             }
+
+            if (hiddenField) hiddenField.value = '1';
+
+            // Limpiar y deshabilitar campos
+            for (const key in inputs) {
+                if (inputs[key]) {
+                    inputs[key].value = '';
+                    inputs[key].disabled = true;
+                }
+            }
+
+            // Cargar datos del representante de la institución
+            fetch(`/api/institucion/${institucionId}/responsable`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.responsable) {
+                    inputs.nombre.value = data.responsable.nombre || '';
+                    inputs.documento.value = data.responsable.documento || '';
+                    inputs.telefono.value = data.responsable.telefono || '';
+                    inputs.email.value = data.responsable.email || '';
+                    inputs.direccion.value = data.responsable.direccion || '';
+                    mostrarToast('Datos del representante cargados correctamente', 'success');
+                } else {
+                    mostrarToast('La institución no tiene un representante registrado. Debe ingresar los datos manualmente.', 'warning');
+                    // Habilitar campos para ingresar manualmente
+                    for (const key in inputs) {
+                        if (inputs[key]) inputs[key].disabled = false;
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarToast('Error al cargar los datos del representante', 'error');
+                checkbox.checked = false;
+                if (hiddenField) hiddenField.value = '0';
+                for (const key in inputs) {
+                    if (inputs[key]) inputs[key].disabled = false;
+                }
+            });
         } else {
-            inputNombre.value = '';
-            inputNombre.disabled = false;
+            if (hiddenField) hiddenField.value = '0';
+            for (const key in inputs) {
+                if (inputs[key]) {
+                    inputs[key].value = '';
+                    inputs[key].disabled = false;
+                }
+            }
         }
     };
 
@@ -413,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ===========================
-    // Inicialización
+    // Inicialización y event listeners
     // ===========================
     document.querySelector('#instituciones-tab').addEventListener('shown.bs.tab', cargarInstituciones);
     document.querySelector('#departamentos-tab').addEventListener('shown.bs.tab', cargarDepartamentos);
@@ -509,11 +598,13 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderTablaInstituciones(response, buscar) {
         const data = response.data || response;
         let html = `<table class="table table-hover align-middle mb-0"><thead><tr><th>Nombre</th><th>Representante</th><th>Ubicación</th><th>Deptos.</th><th>Resp.</th><th>Estado</th><th style="width:140px">Acciones</th></tr></thead><tbody>`;
+
         if (data && data.length > 0) {
             data.forEach(item => {
+                const representante = item.representante_nombre || '—';
                 html += `<tr>
                     <td><div class="fw-medium" style="color:#1e3c72">${resaltarTexto(item.nombre, buscar)}</div>${item.informacion ? `<small class="text-muted">${escapeHtml(item.informacion.substring(0, 40))}...</small>` : ''}</td>
-                    <td>${resaltarTexto(item.representante, buscar) || '—'}</td>
+                    <td>${resaltarTexto(representante, buscar)}</div></td>
                     <td>${resaltarTexto(item.ubicacion, buscar) || '—'}</td>
                     <td><span class="badge-activo">${item.departamentos_count || 0}</span></td>
                     <td><span class="badge-activo">${item.responsables_count || 0}</span></td>
@@ -523,10 +614,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="editarInstitucion(${item.id})" title="Editar">${iconoEditar}</button>
                         <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="toggleEstado('institucion', ${item.id})" title="Cambiar estado">${iconoToggle}</button>
                         <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="confirmarEliminar('institucion', ${item.id}, '${escapeHtml(item.nombre).replace(/'/g, "\\'")}', true)" title="Eliminar">${iconoEliminar}</button>
-                    </div></td></tr>`;
+                    </div></td>
+                </tr>`;
             });
         } else {
-            html += `<tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron instituciones${buscar ? ' para "' + buscar + '"' : ''}</td></tr>`;
+            html += `<tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron instituciones${buscar ? ' para "' + buscar + '"' : ''}</div></td></tr>`;
         }
         html += '</tbody></table>';
         document.getElementById('tablaInstituciones').innerHTML = html;
@@ -535,13 +627,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderTablaDepartamentos(response, buscar) {
         const data = response.data || response;
         let html = `<table class="table table-hover align-middle mb-0"><thead><tr><th>Nombre</th><th>Institución</th><th>Representante</th><th>Resp.</th><th>Estado</th><th style="width:140px">Acciones</th></tr></thead><tbody>`;
+
         if (data && data.length > 0) {
             data.forEach(item => {
                 const nombreInstitucion = item.institucion ? item.institucion.nombre : 'Sin institución';
+                const representante = item.representante_nombre || '—';
                 html += `<tr>
                     <td><div class="fw-medium" style="color:#1e3c72">${resaltarTexto(item.nombre, buscar)}</div>${item.informacion ? `<small class="text-muted">${escapeHtml(item.informacion.substring(0, 40))}...</small>` : ''}</td>
-                    <td>${resaltarTexto(nombreInstitucion, buscar)}</td>
-                    <td>${resaltarTexto(item.representante, buscar) || '—'}</td>
+                    <td>${resaltarTexto(nombreInstitucion, buscar)}</div></td>
+                    <td>${resaltarTexto(representante, buscar) || '—'}</div></td>
                     <td><span class="badge-activo">${item.responsables_count || 0}</span></td>
                     <td><span class="badge ${item.activo ? 'badge-activo' : 'badge-inactivo'}">${item.activo ? 'Activo' : 'Inactivo'}</span></td>
                     <td><div class="d-flex gap-1">
@@ -549,10 +643,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="editarDepartamento(${item.id})" title="Editar">${iconoEditar}</button>
                         <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="toggleEstado('departamento', ${item.id})" title="Cambiar estado">${iconoToggle}</button>
                         <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="confirmarEliminar('departamento', ${item.id}, '${escapeHtml(item.nombre).replace(/'/g, "\\'")}', ${(item.responsables_count || 0) > 0})" title="Eliminar">${iconoEliminar}</button>
-                    </div></td></tr>`;
+                    </div></td>
+                </tr>`;
             });
         } else {
-            html += `<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron departamentos${buscar ? ' para "' + buscar + '"' : ''}</td></tr>`;
+            html += `<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron departamentos${buscar ? ' para "' + buscar + '"' : ''}</div></td></tr>`;
         }
         html += '</tbody></table>';
         document.getElementById('tablaDepartamentos').innerHTML = html;
@@ -561,6 +656,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderTablaResponsables(response, buscar) {
         const data = response.data || response;
         let html = `<table class="table table-hover align-middle mb-0"><thead><tr><th>Nombre</th><th>Documento</th><th>Institución</th><th>Departamento</th><th>Cargo</th><th>Estado</th><th style="width:140px">Acciones</th></tr></thead><tbody>`;
+
         if (data && data.length > 0) {
             data.forEach(item => {
                 const nombreInstitucion = item.institucion ? item.institucion.nombre : '—';
@@ -568,8 +664,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `<tr>
                     <td><div class="fw-medium" style="color:#1e3c72">${resaltarTexto(item.nombre, buscar)}</div></td>
                     <td>${resaltarTexto(item.documento, buscar) || '—'}</td>
-                    <td>${resaltarTexto(nombreInstitucion, buscar)}</td>
-                    <td>${resaltarTexto(nombreDepartamento, buscar)}</td>
+                    <td>${resaltarTexto(nombreInstitucion, buscar)}</div></td>
+                    <td>${resaltarTexto(nombreDepartamento, buscar)}</div></td>
                     <td>${resaltarTexto(item.cargo, buscar) || '—'}</td>
                     <td><span class="badge ${item.activo ? 'badge-activo' : 'badge-inactivo'}">${item.activo ? 'Activo' : 'Inactivo'}</span></td>
                     <td><div class="d-flex gap-1">
@@ -577,17 +673,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="editarResponsable(${item.id})" title="Editar">${iconoEditar}</button>
                         <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="toggleEstado('responsable', ${item.id})" title="Cambiar estado">${iconoToggle}</button>
                         <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="confirmarEliminar('responsable', ${item.id}, '${escapeHtml(item.nombre).replace(/'/g, "\\'")}', false)" title="Eliminar">${iconoEliminar}</button>
-                    </div></td></tr>`;
+                    </div></td>
+                </tr>`;
             });
         } else {
-            html += `<tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron responsables${buscar ? ' para "' + buscar + '"' : ''}</td></tr>`;
+            html += `<tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron responsables${buscar ? ' para "' + buscar + '"' : ''}</div></td></tr>`;
         }
         html += '</tbody></table>';
         document.getElementById('tablaResponsables').innerHTML = html;
     }
 
     // ===========================
-    // Funciones globales
+    // Funciones globales CRUD
     // ===========================
     window.abrirModalInstitucion = function() {
         cerrarModalDetalle();
@@ -612,15 +709,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('inst_ubicacion').value = d.ubicacion || '';
                     document.getElementById('inst_informacion').value = d.informacion || '';
 
-                    if (d.responsables && d.responsables.length > 0) {
-                        const rep = d.responsables.find(r => r.cargo === 'Representante' && !r.departamento_id) || d.responsables[0];
-                        document.getElementById('inst_representante_nombre').value = rep.nombre || '';
-                        document.getElementById('inst_representante_documento').value = rep.documento || '';
-                        document.getElementById('inst_representante_telefono').value = rep.telefono || '';
-                        document.getElementById('inst_representante_email').value = rep.email || '';
-                        document.getElementById('inst_representante_cargo').value = rep.cargo || 'Representante';
-                        document.getElementById('inst_representante_direccion').value = rep.direccion || '';
-                    }
+                    document.getElementById('inst_representante_nombre').value = d.representante_nombre || '';
+                    document.getElementById('inst_representante_documento').value = d.representante_documento || '';
+                    document.getElementById('inst_representante_telefono').value = d.representante_telefono || '';
+                    document.getElementById('inst_representante_email').value = d.representante_email || '';
+                    document.getElementById('inst_representante_cargo').value = d.representante_cargo || 'Representante';
+                    document.getElementById('inst_representante_direccion').value = d.representante_direccion || '';
+
                     new bootstrap.Modal(document.getElementById('modalInstitucion')).show();
                 }
             });
@@ -666,17 +761,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('depto_ubicacion').value = d.ubicacion || '';
                         document.getElementById('depto_informacion').value = d.informacion || '';
                         document.getElementById('usarRepresentanteInstitucion').checked = false;
-                        document.getElementById('depto_representante_nombre').disabled = false;
+                        document.getElementById('usarRepresentanteInstitucionHidden').value = '0';
 
-                        if (d.responsables && d.responsables.length > 0) {
-                            const rep = d.responsables.find(r => r.cargo === 'Jefe de Departamento') || d.responsables[0];
-                            document.getElementById('depto_representante_nombre').value = rep.nombre || '';
-                            document.getElementById('depto_representante_documento').value = rep.documento || '';
-                            document.getElementById('depto_representante_telefono').value = rep.telefono || '';
-                            document.getElementById('depto_representante_email').value = rep.email || '';
-                            document.getElementById('depto_representante_cargo').value = rep.cargo || 'Jefe de Departamento';
-                            document.getElementById('depto_representante_direccion').value = rep.direccion || '';
-                        }
+                        document.getElementById('depto_representante_nombre').value = d.representante_nombre || '';
+                        document.getElementById('depto_representante_documento').value = d.representante_documento || '';
+                        document.getElementById('depto_representante_telefono').value = d.representante_telefono || '';
+                        document.getElementById('depto_representante_email').value = d.representante_email || '';
+                        document.getElementById('depto_representante_cargo').value = d.representante_cargo || 'Jefe de Departamento';
+                        document.getElementById('depto_representante_direccion').value = d.representante_direccion || '';
+
+                        document.getElementById('depto_representante_nombre').disabled = false;
+                        document.getElementById('depto_representante_documento').disabled = false;
+                        document.getElementById('depto_representante_telefono').disabled = false;
+                        document.getElementById('depto_representante_email').disabled = false;
+                        document.getElementById('depto_representante_direccion').disabled = false;
                     }, 300);
 
                     new bootstrap.Modal(document.getElementById('modalDepartamento')).show();
@@ -832,7 +930,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     cargarInstituciones();
                     cargarDepartamentos();
                     cargarInstitucionesEnSelect();
-                } else { mostrarToast(result.message || 'Error al guardar', 'error'); }
+                } else {
+                    mostrarToast(result.message || 'Error al guardar', 'error');
+                }
             });
     });
 
@@ -850,7 +950,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     bootstrap.Modal.getInstance(document.getElementById('modalDepartamento')).hide();
                     mostrarToast(result.message || 'Guardado exitosamente', 'success');
                     cargarDepartamentos();
-                } else { mostrarToast(result.message || 'Error al guardar', 'error'); }
+                } else {
+                    mostrarToast(result.message || 'Error al guardar', 'error');
+                }
             });
     });
 
@@ -868,7 +970,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     bootstrap.Modal.getInstance(document.getElementById('modalResponsable')).hide();
                     mostrarToast(result.message || 'Guardado exitosamente', 'success');
                     cargarResponsables();
-                } else { mostrarToast(result.message || 'Error al guardar', 'error'); }
+                } else {
+                    mostrarToast(result.message || 'Error al guardar', 'error');
+                }
             });
     });
 
@@ -899,10 +1003,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (result.success) {
                     const d = result.data;
                     let html = '';
+
                     if (tipo === 'institucion') {
+                        const representante = d.representante_nombre || '—';
                         html = `<div class="detail-header"><h5>${escapeHtml(d.nombre)}</h5><span class="badge ${d.activo ? 'badge-activo' : 'badge-inactivo'}">${d.activo ? 'Activa' : 'Inactiva'}</span></div>
                             <div class="detail-grid">
-                                <div class="detail-item"><div class="detail-label">Representante</div><div class="detail-value">${escapeHtml(d.representante) || '—'}</div></div>
+                                <div class="detail-item"><div class="detail-label">Representante</div><div class="detail-value">${escapeHtml(representante)}</div></div>
                                 <div class="detail-item"><div class="detail-label">Ubicación</div><div class="detail-value">${escapeHtml(d.ubicacion) || '—'}</div></div>
                                 <div class="detail-item" style="grid-column:1/-1"><div class="detail-label">Información</div><div class="detail-value">${escapeHtml(d.informacion) || 'Sin información'}</div></div>
                             </div>
@@ -910,7 +1016,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (d.departamentos && d.departamentos.length > 0) {
                             html += '<ul class="detail-list">';
                             d.departamentos.forEach(depto => {
-                                html += `<li class="detail-list-item"><div class="item-info"><span class="item-name">${depto.activo ? iconoCheck : iconoX} ${escapeHtml(depto.nombre)}</span><span class="item-sub">${escapeHtml(depto.representante) || 'Sin representante'} · ${depto.responsables_count || 0} resp.</span></div><div class="item-actions"><button class="btn-item-action" onclick="navegarDesdeDetalle('departamento',${depto.id})" title="Ver">${iconoVerSmall}</button><button class="btn-item-action" onclick="editarDesdeDetalle('departamento',${depto.id})" title="Editar">${iconoEditarSmall}</button></div></li>`;
+                                html += `<li class="detail-list-item"><div class="item-info"><span class="item-name">${depto.activo ? iconoCheck : iconoX} ${escapeHtml(depto.nombre)}</span><span class="item-sub">${depto.responsables_count || 0} resp.</span></div><div class="item-actions"><button class="btn-item-action" onclick="navegarDesdeDetalle('departamento',${depto.id})" title="Ver">${iconoVerSmall}</button><button class="btn-item-action" onclick="editarDesdeDetalle('departamento',${depto.id})" title="Editar">${iconoEditarSmall}</button></div></li>`;
                             });
                             html += '</ul>';
                         } else { html += '<div class="detail-empty">Sin departamentos</div>'; }
@@ -923,11 +1029,13 @@ document.addEventListener('DOMContentLoaded', function() {
                             html += '</ul>';
                         } else { html += '<div class="detail-empty">Sin responsables</div>'; }
                         html += `</div><div class="detail-actions-bar"><button class="btn btn-sm btn-outline-primary-dark" onclick="editarDesdeDetalle('institucion',${d.id})">${iconoEditar} Editar</button><button class="btn btn-sm btn-primary-dark" onclick="bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide(); abrirModalDepartamento();">${iconoNuevo} Nuevo Depto.</button><button class="btn btn-sm btn-primary-dark" onclick="bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide(); abrirModalResponsable();">${iconoNuevo} Nuevo Resp.</button></div>`;
-                    } else if (tipo === 'departamento') {
+                    }
+                    else if (tipo === 'departamento') {
+                        const representante = d.representante_nombre || '—';
                         html = `<div class="detail-header"><h5>${escapeHtml(d.nombre)}</h5><span class="badge ${d.activo ? 'badge-activo' : 'badge-inactivo'}">${d.activo ? 'Activo' : 'Inactivo'}</span></div>
                             <div class="detail-grid">
                                 <div class="detail-item"><div class="detail-label">Institución</div><div class="detail-value">${d.institucion ? escapeHtml(d.institucion.nombre) : 'Sin institución'}</div></div>
-                                <div class="detail-item"><div class="detail-label">Representante</div><div class="detail-value">${escapeHtml(d.representante) || '—'}</div></div>
+                                <div class="detail-item"><div class="detail-label">Representante</div><div class="detail-value">${escapeHtml(representante)}</div></div>
                                 <div class="detail-item"><div class="detail-label">Ubicación</div><div class="detail-value">${escapeHtml(d.ubicacion) || '—'}</div></div>
                                 <div class="detail-item" style="grid-column:1/-1"><div class="detail-label">Información</div><div class="detail-value">${escapeHtml(d.informacion) || 'Sin información'}</div></div>
                             </div>
@@ -940,7 +1048,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             html += '</ul>';
                         } else { html += '<div class="detail-empty">Sin responsables</div>'; }
                         html += `</div><div class="detail-actions-bar"><button class="btn btn-sm btn-outline-primary-dark" onclick="editarDesdeDetalle('departamento',${d.id})">${iconoEditar} Editar</button><button class="btn btn-sm btn-primary-dark" onclick="bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide(); abrirModalResponsable();">${iconoNuevo} Nuevo Resp.</button></div>`;
-                    } else if (tipo === 'responsable') {
+                    }
+                    else if (tipo === 'responsable') {
                         html = `<div class="detail-header"><h5>${escapeHtml(d.nombre)}</h5><span class="badge ${d.activo ? 'badge-activo' : 'badge-inactivo'}">${d.activo ? 'Activo' : 'Inactivo'}</span></div>
                             <div class="detail-grid">
                                 <div class="detail-item"><div class="detail-label">Documento</div><div class="detail-value">${escapeHtml(d.documento) || '—'}</div></div>
@@ -957,6 +1066,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 ${d.departamento ? `<button class="btn btn-sm btn-outline-primary-dark" onclick="navegarDesdeDetalle('departamento',${d.departamento.id})">${iconoDepartamento} Ver Departamento</button>` : ''}
                             </div>`;
                     }
+
                     document.getElementById('modalDetalleLabel').textContent = 'Detalle de ' + tipo;
                     document.getElementById('detalleContenido').innerHTML = html;
                     new bootstrap.Modal(document.getElementById('modalDetalle')).show();
@@ -1003,6 +1113,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const respCount = d.responsables ? d.responsables.length : 0;
         const respDirectos = d.responsables ? d.responsables.filter(r => !r.departamento_id) : [];
         let html = `<div class="arbol-nodo arbol-raiz"><div class="arbol-nodo-header" onclick="toggleNodo(this)"><span class="arbol-toggle">▼</span><span class="arbol-icon">${iconoInstitucion}</span><span class="arbol-nombre">${escapeHtml(d.nombre)}</span><span class="arbol-badge badge-activo">${deptosCount} deptos.</span><span class="arbol-badge badge-activo">${respCount} resp.</span><span class="badge ${d.activo ? 'badge-activo' : 'badge-inactivo'} ms-2">${d.activo ? 'Activa' : 'Inactiva'}</span><div class="arbol-acciones"><button class="btn-item-action" onclick="event.stopPropagation(); verDetalle('institucion',${d.id})" title="Ver">${iconoVerSmall}</button><button class="btn-item-action" onclick="event.stopPropagation(); editarInstitucion(${d.id})" title="Editar">${iconoEditarSmall}</button></div></div><div class="arbol-hijos">`;
+
         if (d.departamentos && d.departamentos.length > 0) {
             d.departamentos.forEach(depto => {
                 const respDepto = d.responsables ? d.responsables.filter(r => r.departamento_id === depto.id) : [];
@@ -1013,6 +1124,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += '</div></div>';
             });
         }
+
         if (respDirectos.length > 0) {
             html += `<div class="arbol-nodo arbol-rama-directa"><div class="arbol-nodo-header" onclick="toggleNodo(this)"><span class="arbol-toggle">▼</span><span class="arbol-icon">${iconoResponsable}</span><span class="arbol-nombre">Responsables directos</span><span class="arbol-badge badge-activo">${respDirectos.length}</span></div><div class="arbol-hijos">`;
             respDirectos.forEach(resp => {
@@ -1020,6 +1132,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             html += '</div></div>';
         }
+
         html += '</div></div>';
         return html;
     }

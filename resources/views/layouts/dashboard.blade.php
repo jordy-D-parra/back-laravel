@@ -34,7 +34,7 @@
             <!-- ========== SECCIÓN PRINCIPAL ========== -->
             <li class="nav-section">PRINCIPAL</li>
             <li class="nav-item">
-                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
                     <span class="nav-icon">
                         <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-5v-8H9v8H4a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     </span>
@@ -146,51 +146,50 @@
             @endif
 
             <!-- Préstamos -->
-            <!-- Controlador: app/Http/Controllers/PrestamoController.php -->
             @if($user->hasPermission('ver-prestamos'))
             <li class="nav-item">
                 <a href="{{ route('admin.prestamo.index') }}" class="nav-link {{ request()->routeIs('admin.prestamo.*') ? 'active' : '' }}">
                     <span class="nav-icon">
-                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                        </svg>
                     </span>
                     <span>Préstamos</span>
                 </a>
             </li>
-            @endif 
-             <!-- Solicitudes de Préstamo -->
-
-       
+            @endif
 
             <!-- Solicitudes de Préstamo -->
-@if($user->hasPermission('ver-solicitudes'))
-<li class="nav-item">
-    <a href="{{ route('admin.solicitudes.index') }}" class="nav-link {{ request()->routeIs('admin.solicitudes.*') ? 'active' : '' }}">
-        <span class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="4" width="20" height="16" rx="2"/>
-                <path d="M22 7l-10 7L2 7"/>
-            </svg>
-        </span>
-        <span>Solicitudes</span>
-    </a>
-</li>
-@endif
+            @if($user->hasPermission('ver-solicitudes'))
+            <li class="nav-item">
+                <a href="{{ route('admin.solicitudes.index') }}" class="nav-link {{ request()->routeIs('admin.solicitudes.*') ? 'active' : '' }}">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                            <path d="M22 7l-10 7L2 7"/>
+                        </svg>
+                    </span>
+                    <span>Solicitudes</span>
+                </a>
+            </li>
+            @endif
 
             <!-- Soporte Técnico -->
-@if(auth()->user()->hasPermission('ver-fichas-soporte'))
-<li class="nav-item">
-    <a href="{{ route('admin.soporte.index') }}" class="nav-link {{ request()->routeIs('admin.soporte.*') ? 'active' : '' }}">
-        <span class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-        </span>
-        <span>Soporte Técnico</span>
-    </a>
-</li>
-@endif
+            @if($user->hasPermission('ver-fichas-soporte'))
+            <li class="nav-item">
+                <a href="{{ route('admin.soporte.index') }}" class="nav-link {{ request()->routeIs('admin.soporte.*') ? 'active' : '' }}">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                    </span>
+                    <span>Soporte Técnico</span>
+                </a>
+            </li>
+            @endif
 
             <!-- ========== REPORTES ========== -->
             <li class="nav-divider"></li>
@@ -309,6 +308,5 @@
     @vite(['resources/css/dashboard-home.css'])
     @vite(['resources/js/app.js'])
     @yield('scripts')
-    @vite(['resources/js/help-panel.js'])
 </body>
 </html>

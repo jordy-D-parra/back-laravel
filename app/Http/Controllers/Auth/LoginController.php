@@ -12,7 +12,6 @@ class LoginController extends Controller
 {
     public function showLoginForm()
     {
-        // Si no hay usuarios, redirigir al registro inicial
         if (Usuario::count() === 0) {
             return redirect()->route('primer.registro');
         }
@@ -27,7 +26,7 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (Auth::attempt($credentials)) {
+        if (Auth::attempt(['usuario' => $credentials['usuario'], 'password' => $credentials['password']])) {
             $usuario = Auth::user();
 
             if ($usuario->status !== 'activo') {
@@ -46,7 +45,8 @@ class LoginController extends Controller
                 return redirect()->route('password.change');
             }
 
-            return redirect()->intended(route('dashboard'));
+            // CORREGIDO: Usar 'admin.dashboard' que es el nombre real de la ruta
+            return redirect()->intended(route('admin.dashboard'));
         }
 
         throw ValidationException::withMessages([

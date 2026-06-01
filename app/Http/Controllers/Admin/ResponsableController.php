@@ -5,12 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Responsable;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class ResponsableController extends Controller
 {
     public function index(Request $request)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('ver-responsables')) {
             abort(403, 'No tienes permiso para ver responsables');
         }
@@ -36,14 +36,20 @@ class ResponsableController extends Controller
 
     public function store(Request $request)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('crear-responsable')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso para crear responsables'], 403);
         }
 
         $validated = $request->validate([
             'nombre' => 'required|string|max:150',
-            'documento' => 'required|string|max:50',
+            'documento' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('responsables', 'documento')->where(function ($query) {
+                    return $query->whereNotNull('documento')->where('documento', '!=', '');
+                })
+            ],
             'telefono' => 'required|string|max:20',
             'email' => 'nullable|email|max:100',
             'cargo' => 'required|string|max:100',
@@ -65,7 +71,6 @@ class ResponsableController extends Controller
 
     public function show(Responsable $responsable)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('ver-responsables')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso para ver responsables'], 403);
         }
@@ -76,14 +81,22 @@ class ResponsableController extends Controller
 
     public function update(Request $request, Responsable $responsable)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('editar-responsable')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso para editar responsables'], 403);
         }
 
         $validated = $request->validate([
             'nombre' => 'required|string|max:150',
-            'documento' => 'required|string|max:50',
+            'documento' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('responsables', 'documento')
+                    ->where(function ($query) {
+                        return $query->whereNotNull('documento')->where('documento', '!=', '');
+                    })
+                    ->ignore($responsable->id)
+            ],
             'telefono' => 'required|string|max:20',
             'email' => 'nullable|email|max:100',
             'cargo' => 'required|string|max:100',
@@ -104,9 +117,18 @@ class ResponsableController extends Controller
 
     public function destroy(Responsable $responsable)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('eliminar-responsable')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso para eliminar responsables'], 403);
+        }
+
+        // Verificar si tiene activos asociados
+        $tieneActivos = \App\Models\Activo::where('responsable_id', $responsable->id)->exists();
+
+        if ($tieneActivos) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se puede eliminar el responsable porque tiene activos asociados'
+            ], 422);
         }
 
         $responsable->delete();
@@ -115,12 +137,15 @@ class ResponsableController extends Controller
 
     public function toggleStatus(Responsable $responsable)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('editar-responsable')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso para cambiar el estado'], 403);
         }
 
         $responsable->update(['activo' => !$responsable->activo]);
-        return response()->json(['success' => true, 'message' => 'Estado actualizado', 'activo' => $responsable->activo]);
+        return response()->json([
+            'success' => true,
+            'message' => 'Estado actualizado',
+            'activo' => $responsable->activo
+        ]);
     }
 }

@@ -16,10 +16,22 @@ class InstitucionController extends Controller
             abort(403, 'No tienes permiso para ver instituciones');
         }
 
-        $query = Institucion::withCount(['departamentos', 'responsables']);
+        $query = Institucion::withCount(['departamentos', 'responsables'])
+            ->with(['responsablesDirectos']);
 
         if ($request->wantsJson() || $request->has('todos')) {
             $instituciones = $query->orderBy('nombre')->get();
+
+            $instituciones->each(function($institucion) {
+                $responsable = $institucion->responsablesDirectos->first();
+                $institucion->representante_nombre = $responsable ? $responsable->nombre : null;
+                $institucion->representante_documento = $responsable ? $responsable->documento : null;
+                $institucion->representante_telefono = $responsable ? $responsable->telefono : null;
+                $institucion->representante_email = $responsable ? $responsable->email : null;
+                $institucion->representante_cargo = $responsable ? $responsable->cargo : null;
+                $institucion->representante_direccion = $responsable ? $responsable->direccion : null;
+            });
+
             return response()->json(['success' => true, 'data' => $instituciones]);
         }
 
@@ -27,7 +39,6 @@ class InstitucionController extends Controller
             ->when($request->buscar, function($query, $buscar) {
                 return $query->where(function($q) use ($buscar) {
                     $q->where('nombre', 'ILIKE', "%{$buscar}%")
-                      ->orWhere('representante', 'ILIKE', "%{$buscar}%")
                       ->orWhere('ubicacion', 'ILIKE', "%{$buscar}%");
                 });
             })
@@ -51,7 +62,14 @@ class InstitucionController extends Controller
             'ubicacion' => 'required|string|max:200',
             'informacion' => 'required|string|max:500',
             'representante_nombre' => 'required|string|max:150',
-            'representante_documento' => 'required|string|max:50',
+            'representante_documento' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('responsables', 'documento')->where(function ($query) {
+                    return $query->whereNotNull('documento')->where('documento', '!=', '');
+                })
+            ],
             'representante_telefono' => 'required|string|max:20',
             'representante_email' => 'nullable|email|max:100',
             'representante_cargo' => 'required|string|max:100',
@@ -60,7 +78,6 @@ class InstitucionController extends Controller
 
         $institucion = Institucion::create([
             'nombre' => $validated['nombre'],
-            'representante' => $validated['representante_nombre'],
             'ubicacion' => $validated['ubicacion'],
             'informacion' => $validated['informacion'],
             'activo' => true,
@@ -96,7 +113,7 @@ class InstitucionController extends Controller
         $institucione->loadCount(['departamentos', 'responsables']);
         $institucione->load([
             'departamentos' => function($q) {
-                $q->select('id', 'nombre', 'representante', 'institucion_id', 'activo')
+                $q->select('id', 'nombre', 'institucion_id', 'activo')
                   ->withCount('responsables')
                   ->orderBy('nombre');
             },
@@ -107,9 +124,19 @@ class InstitucionController extends Controller
             }
         ]);
 
+        $representante = $institucione->responsablesDirectos()->first();
+
+        $data = $institucione->toArray();
+        $data['representante_nombre'] = $representante ? $representante->nombre : null;
+        $data['representante_documento'] = $representante ? $representante->documento : null;
+        $data['representante_telefono'] = $representante ? $representante->telefono : null;
+        $data['representante_email'] = $representante ? $representante->email : null;
+        $data['representante_cargo'] = $representante ? $representante->cargo : null;
+        $data['representante_direccion'] = $representante ? $representante->direccion : null;
+
         return response()->json([
             'success' => true,
-            'data' => $institucione
+            'data' => $data
         ]);
     }
 
@@ -124,7 +151,16 @@ class InstitucionController extends Controller
             'ubicacion' => 'required|string|max:200',
             'informacion' => 'required|string|max:500',
             'representante_nombre' => 'required|string|max:150',
-            'representante_documento' => 'required|string|max:50',
+            'representante_documento' => [
+                'required',
+                'string',
+                'max:50',
+                Rule::unique('responsables', 'documento')
+                    ->where(function ($query) {
+                        return $query->whereNotNull('documento')->where('documento', '!=', '');
+                    })
+                    ->ignore($institucione->responsablesDirectos()->first()?->id)
+            ],
             'representante_telefono' => 'required|string|max:20',
             'representante_email' => 'nullable|email|max:100',
             'representante_cargo' => 'required|string|max:100',
@@ -133,31 +169,35 @@ class InstitucionController extends Controller
 
         $institucione->update([
             'nombre' => $validated['nombre'],
-            'representante' => $validated['representante_nombre'],
             'ubicacion' => $validated['ubicacion'],
             'informacion' => $validated['informacion'],
         ]);
 
         $responsable = Responsable::where('institucion_id', $institucione->id)
-            ->where('cargo', $validated['representante_cargo'])
             ->whereNull('departamento_id')
             ->first();
 
-        $dataResponsable = [
-            'nombre' => $validated['representante_nombre'],
-            'documento' => $validated['representante_documento'],
-            'telefono' => $validated['representante_telefono'],
-            'email' => $validated['representante_email'] ?? null,
-            'cargo' => $validated['representante_cargo'],
-            'direccion' => $validated['representante_direccion'] ?? null,
-            'institucion_id' => $institucione->id,
-            'activo' => true,
-        ];
-
         if ($responsable) {
-            $responsable->update($dataResponsable);
+            $responsable->update([
+                'nombre' => $validated['representante_nombre'],
+                'documento' => $validated['representante_documento'],
+                'telefono' => $validated['representante_telefono'],
+                'email' => $validated['representante_email'] ?? null,
+                'cargo' => $validated['representante_cargo'],
+                'direccion' => $validated['representante_direccion'] ?? null,
+            ]);
         } else {
-            Responsable::create($dataResponsable);
+            Responsable::create([
+                'nombre' => $validated['representante_nombre'],
+                'documento' => $validated['representante_documento'],
+                'telefono' => $validated['representante_telefono'],
+                'email' => $validated['representante_email'] ?? null,
+                'cargo' => $validated['representante_cargo'],
+                'direccion' => $validated['representante_direccion'] ?? null,
+                'institucion_id' => $institucione->id,
+                'departamento_id' => null,
+                'activo' => true,
+            ]);
         }
 
         $institucione->loadCount(['departamentos', 'responsables']);
@@ -176,10 +216,12 @@ class InstitucionController extends Controller
         }
 
         $institucione->responsables()->delete();
+
         foreach ($institucione->departamentos as $departamento) {
             $departamento->responsables()->delete();
             $departamento->delete();
         }
+
         $institucione->delete();
 
         return response()->json([

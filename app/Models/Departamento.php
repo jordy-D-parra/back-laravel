@@ -9,13 +9,13 @@ class Departamento extends Model
     protected $table = 'departamentos';
 
     protected $fillable = [
-    'nombre',
-    'informacion',
-    'representante',
-    'ubicacion',
-    'activo',
-    'institucion_id'
-];
+        'nombre',
+        'informacion',
+        // ELIMINADO: 'representante',
+        'ubicacion',
+        'activo',
+        'institucion_id'
+    ];
 
     protected $casts = [
         'activo' => 'boolean'
@@ -33,6 +33,12 @@ class Departamento extends Model
         return $this->hasMany(Responsable::class, 'departamento_id');
     }
 
+    // Obtener el responsable principal del departamento
+    public function getResponsablePrincipalAttribute()
+    {
+        return $this->responsables()->first();
+    }
+
     // Scope: departamentos activos
     public function scopeActivos($query)
     {
@@ -45,7 +51,6 @@ class Departamento extends Model
         if ($termino) {
             return $query->where(function($q) use ($termino) {
                 $q->where('nombre', 'ILIKE', "%{$termino}%")
-                  ->orWhere('representante', 'ILIKE', "%{$termino}%")
                   ->orWhere('ubicacion', 'ILIKE', "%{$termino}%");
             });
         }

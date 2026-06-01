@@ -30,7 +30,8 @@ class DatabaseSeeder extends Seeder
 
         // ========== 6. CATÁLOGO DE EQUIPOS (depende de categorías y marcas) ==========
         $this->call(EquiposDemoSeeder::class);
-
+        $this->call(UsuarioAdminSeeder::class);
+        $this->call(SolicitudDemoSeeder::class);
         // ========== 7. INVENTARIO (depende de equipos, entidades y estatus) ==========
         $this->call(InventarioDemoSeeder::class);
 

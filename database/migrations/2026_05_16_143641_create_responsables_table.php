@@ -19,9 +19,14 @@ return new class extends Migration
             $table->boolean('activo')->default(true);
 
             $table->foreignId('institucion_id')->constrained('instituciones')->onDelete('cascade');
-            $table->foreignId('departamento_id')->nullable()->constrained('departamentos')->onDelete('set null');
+            $table->foreignId('departamento_id')->nullable()->constrained('departamentos')->onDelete('cascade');
 
             $table->timestamps();
+
+            // Índices para búsquedas rápidas
+            $table->index('institucion_id');
+            $table->index('departamento_id');
+            $table->index('activo');
         });
     }
 

@@ -11,7 +11,7 @@ class Institucion extends Model
     protected $fillable = [
         'nombre',
         'informacion',
-        'representante',
+        // ELIMINADO: 'representante',
         'ubicacion',
         'activo'
     ];
@@ -51,10 +51,15 @@ class Institucion extends Model
         if ($termino) {
             return $query->where(function($q) use ($termino) {
                 $q->where('nombre', 'ILIKE', "%{$termino}%")
-                  ->orWhere('representante', 'ILIKE', "%{$termino}%")
                   ->orWhere('ubicacion', 'ILIKE', "%{$termino}%");
             });
         }
         return $query;
+    }
+
+    // Accesor para obtener el representante principal (helper)
+    public function getRepresentantePrincipalAttribute()
+    {
+        return $this->responsablesDirectos()->first();
     }
 }
