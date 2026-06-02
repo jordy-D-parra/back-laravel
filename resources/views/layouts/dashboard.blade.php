@@ -163,7 +163,7 @@
             <!-- Solicitudes de Préstamo -->
             @if($user->hasPermission('ver-solicitudes'))
             <li class="nav-item">
-                <a href="{{ route('admin.solicitudes.index') }}" class="nav-link {{ request()->routeIs('admin.solicitudes.*') ? 'active' : '' }}">
+                <a href="{{ route('admin.solicitudes') }}" class="nav-link {{ request()->routeIs('admin.solicitudes.*') ? 'active' : '' }}">
                     <span class="nav-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="2" y="4" width="20" height="16" rx="2"/>

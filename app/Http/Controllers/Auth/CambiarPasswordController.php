@@ -32,6 +32,6 @@ class CambiarPasswordController extends Controller
         $usuario->must_change_password = false;
         $usuario->save();
 
-        return redirect()->route('dashboard')->with('status', 'Contraseña actualizada exitosamente.');
+        return redirect()->route('admin.dashboard')->with('status', 'Contraseña actualizada exitosamente.');
     }
 }

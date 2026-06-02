@@ -10,7 +10,7 @@ class TrabajadorSeeder extends Seeder
     public function run(): void
     {
         Trabajador::create([
-            'cedula' => 'V-12345678',
+            'cedula' => 'V-12345673',
             'nombre' => 'Administrador',
             'apellido' => 'Sistema',
             'departamento' => 'Informática',

@@ -21,7 +21,6 @@ use App\Http\Controllers\Admin\SolicitudController;
 use App\Http\Controllers\Admin\FichaSoporteController;
 use App\Http\Controllers\Admin\PrestamoController;
 use App\Models\Estatus;
-use Illuminate\Http\Request;
 
 // ==================== RUTA PRINCIPAL ====================
 Route::get('/', function () {
@@ -46,7 +45,7 @@ Route::middleware(['auth'])->group(function () {
 // ==================== RUTAS PROTEGIDAS ====================
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
 
-    // Dashboard - SOLO UNA VEZ DEFINIDA
+    // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ========== 1. MAESTROS ==========
@@ -171,16 +170,23 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('prestamo/solicitud/{solicitud}/registrar', [PrestamoController::class, 'registrarDesdeSolicitud'])->name('prestamo.registrar-desde-solicitud');
     Route::resource('prestamo', PrestamoController::class);
 
-    // ========== 4. SOLICITUDES ==========
-    Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
-        Route::get('/', [SolicitudController::class, 'index'])->name('index');
-        Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->name('detalles');
-        Route::post('/store', [SolicitudController::class, 'store'])->name('store');
-        Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])->name('update');
-        Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('cancel');
-        Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('approve');
-        Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
-    });
+    // ==================== SOLICITUDES ====================
+    // Vista principal - EL NOMBRE DE LA RUTA ES 'admin.solicitudes'
+    Route::get('/solicitudes', [SolicitudController::class, 'index'])->name('solicitudes');
+
+    // API / AJAX
+    Route::get('/solicitudes/list', [SolicitudController::class, 'list'])->name('solicitudes.list');
+    Route::get('/solicitudes/{id}/detalles', [SolicitudController::class, 'getDetalles'])->name('solicitudes.detalles');
+
+    // CRUD
+    Route::post('/solicitudes', [SolicitudController::class, 'store'])->name('solicitudes.store');
+    Route::post('/solicitudes/{id}/update', [SolicitudController::class, 'update'])->name('solicitudes.update');
+    Route::delete('/solicitudes/{id}', [SolicitudController::class, 'destroy'])->name('solicitudes.destroy');
+
+    // Acciones
+    Route::post('/solicitudes/{id}/cancelar', [SolicitudController::class, 'cancel'])->name('solicitudes.cancel');
+    Route::post('/solicitudes/{id}/aprobar', [SolicitudController::class, 'approve'])->name('solicitudes.approve');
+    Route::post('/solicitudes/{id}/rechazar', [SolicitudController::class, 'reject'])->name('solicitudes.reject');
 
     // ========== 5. FICHAS DE SOPORTE ==========
     Route::resource('soporte', FichaSoporteController::class);
@@ -194,37 +200,7 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     });
 });
 
-// ==================== API PARA SOLICITUDES ====================
-Route::get('/api/solicitudes/responsable-por-departamento/{id}', function ($id) {
-    $departamento = App\Models\Departamento::with('responsables')->find($id);
-    $responsable = $departamento ? $departamento->responsables->first() : null;
-    return response()->json([
-        'responsable' => $responsable ? [
-            'id' => $responsable->id,
-            'nombre' => $responsable->nombre,
-            'cargo' => $responsable->cargo,
-            'telefono' => $responsable->telefono,
-            'email' => $responsable->email,
-        ] : null
-    ]);
-});
-
-Route::get('/api/solicitudes/responsable-por-institucion/{id}', function ($id) {
-    $institucion = App\Models\Institucion::with('responsablesDirectos')->find($id);
-    $responsable = $institucion ? $institucion->responsablesDirectos->first() : null;
-    return response()->json([
-        'responsable' => $responsable ? [
-            'id' => $responsable->id,
-            'nombre' => $responsable->nombre,
-            'cargo' => $responsable->cargo,
-            'telefono' => $responsable->telefono,
-            'email' => $responsable->email,
-        ] : null
-    ]);
-});
-
-// ==================== API PARA RESPONSABLES (CORREGIDAS) ====================
-
+// ==================== API PARA RESPONSABLES ====================
 Route::get('/api/departamento/{id}/responsable', function ($id) {
     $departamento = App\Models\Departamento::with('responsables')->find($id);
     $responsable = $departamento ? $departamento->responsables->first() : null;

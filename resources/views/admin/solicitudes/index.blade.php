@@ -8,7 +8,6 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    <!-- Encabezado -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h3 class="fw-bold" style="color: #1e3c72;">Solicitudes de Préstamo</h3>
@@ -25,7 +24,6 @@
         @endif
     </div>
 
-    <!-- Tarjetas de estadísticas -->
     <div class="stats-row">
         <div class="stat-card-mini">
             <div class="stat-info">
@@ -75,7 +73,6 @@
         </div>
     </div>
 
-    <!-- Filtros simplificados (solo 3) -->
     <div class="filters-bar">
         <div class="flex-grow-1">
             <input type="text" class="form-control" id="searchInput" placeholder="Buscar...">
@@ -97,7 +94,6 @@
         <button id="limpiarFiltros" class="btn btn-outline-primary-dark">Limpiar</button>
     </div>
 
-    <!-- Tabla -->
     <div class="table-container">
         <div class="table-responsive">
             <table class="table table-hover mb-0">
@@ -128,7 +124,6 @@
         </div>
     </div>
 
-    <!-- Paginación -->
     <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
         <div class="text-muted small">
             Mostrando <span id="resultadosCount">0</span> de <span id="totalRegistrosCount">0</span>
@@ -226,6 +221,7 @@
                         <div class="responsable-display" id="responsableDisplay">
                             <span class="text-muted">Seleccione una opción</span>
                         </div>
+                        <input type="hidden" name="responsable_id" id="responsable_id_hidden">
                     </div>
 
                     <div class="row">
@@ -301,7 +297,7 @@
             </div>
             <form id="formEditarSolicitud">
                 @csrf
-                <input type="hidden" name="_method" value="PUT">
+                <input type="hidden" name="_method" value="POST">
                 <input type="hidden" name="id" id="editId">
                 <div class="modal-body">
                     <div class="row">
@@ -350,6 +346,7 @@
                     <div class="mb-3">
                         <label class="form-label">Responsable</label>
                         <div class="responsable-display" id="editResponsableDisplay"></div>
+                        <input type="hidden" name="responsable_id" id="edit_responsable_id_hidden">
                     </div>
 
                     <div class="row">
@@ -372,6 +369,15 @@
                         <label class="form-label">Observaciones</label>
                         <textarea name="observaciones" id="editObservaciones" rows="2" class="form-control"></textarea>
                     </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="form-label mb-0">Items</label>
+                            <button type="button" id="add-item-editar" class="btn btn-sm btn-outline-primary-dark">+ Agregar Item</button>
+                        </div>
+                        <div id="items-container-editar">
+                        </div>
+                    </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
@@ -391,12 +397,33 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
-                <p>¿Estás seguro?</p>
+                <p>¿Estás seguro de cancelar esta solicitud?</p>
                 <small class="text-muted">Esta acción no se puede deshacer</small>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">No</button>
                 <button type="button" id="btnConfirmarCancelar" class="btn btn-danger">Sí, cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL ELIMINAR SOLICITUD -->
+<div class="modal fade" id="modalEliminarSolicitud" tabindex="-1">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Eliminar Solicitud</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p>¿Estás seguro de eliminar esta solicitud?</p>
+                <p class="fw-bold text-danger" id="deleteSolicitudNombre"></p>
+                <small class="text-muted">Esta acción no se puede deshacer</small>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="btnConfirmarEliminarSolicitud" class="btn btn-danger">Eliminar</button>
             </div>
         </div>
     </div>

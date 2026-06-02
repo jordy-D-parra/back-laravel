@@ -23,7 +23,7 @@ class EntidadesSeeder extends Seeder
         // Crear el representante de la institución
         Responsable::create([
             'nombre' => 'Gobernador del Estado',
-            'documento' => 'V-12345678',
+            'documento' => 'V-12345676',
             'telefono' => '0412-1234567',
             'email' => 'gobernador@yaracuy.gob.ve',
             'direccion' => 'Palacio de Gobierno, San Felipe',
@@ -46,7 +46,7 @@ class EntidadesSeeder extends Seeder
         // 1.2 Responsable del Depto. Informática (reutilizar o crear nuevo)
         Responsable::create([
             'nombre' => 'Juan Pérez',
-            'documento' => 'V-12345678',
+            'documento' => 'V-12345679',
             'telefono' => '0412-1234567',
             'email' => 'jperez@gobernacion.gob.ve',
             'direccion' => 'Sede Principal, Oficina 3B',
