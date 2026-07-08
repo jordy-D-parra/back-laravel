@@ -76,14 +76,6 @@
             </button>
         </li>
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="pendientes-tab" data-bs-toggle="tab" data-bs-target="#pendientes" type="button" role="tab">
-                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" style="width: 18px; height: 18px;">
-                    <path d="M3 7h18M3 12h18M3 17h18"/>
-                </svg>
-                Pendientes
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
             <button class="nav-link" id="activos-tab" data-bs-toggle="tab" data-bs-target="#activos" type="button" role="tab">
                 <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" style="width: 18px; height: 18px;">
                     <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
@@ -121,19 +113,7 @@
             </div>
         </div>
 
-        <!-- ========== TAB 2: PRÉSTAMOS PENDIENTES ========== -->
-        <div class="tab-pane fade" id="pendientes" role="tabpanel">
-            <div class="tab-header-bar">
-                <div class="d-flex gap-2">
-                    <input type="text" class="form-control form-control-sm" id="buscarPendientes" placeholder="Buscar préstamo pendiente..." style="max-width: 300px;">
-                </div>
-            </div>
-            <div class="table-container" id="tablaPendientes">
-                <p class="text-center py-4 text-muted">Cargando...</p>
-            </div>
-        </div>
-
-        <!-- ========== TAB 3: PRÉSTAMOS ACTIVOS ========== -->
+        <!-- ========== TAB 2: PRÉSTAMOS ACTIVOS ========== -->
         <div class="tab-pane fade" id="activos" role="tabpanel">
             <div class="tab-header-bar">
                 <div class="d-flex gap-2">

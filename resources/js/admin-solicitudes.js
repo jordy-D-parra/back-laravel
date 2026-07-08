@@ -1087,6 +1087,7 @@ document.addEventListener('DOMContentLoaded', function() {
 window.cambiarPagina = function(page) {
     cargarPagina(page);
 };
+<<<<<<< HEAD
 =======
         submitBtn.innerHTML = originalText;
         submitBtn.disabled = false;
@@ -1182,3 +1183,5 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarPagina(1);
 });
 >>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
+=======
+>>>>>>> 8171491 (avance 3 del modulo de prestamo)
