@@ -1,0 +1,1 @@
+import{t as e}from"./bootstrap.esm-7HIvfK1R.js";window.bootstrap=e;

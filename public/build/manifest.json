@@ -1,0 +1,278 @@
+{
+  "_bootstrap.esm-7HIvfK1R.js": {
+    "file": "assets/bootstrap.esm-7HIvfK1R.js",
+    "name": "bootstrap.esm"
+  },
+  "node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff": {
+    "file": "assets/bootstrap-icons-BeopsB42.woff",
+    "src": "node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff"
+  },
+  "node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff2": {
+    "file": "assets/bootstrap-icons-mSm7cUeB.woff2",
+    "src": "node_modules/bootstrap-icons/font/fonts/bootstrap-icons.woff2"
+  },
+  "resources/css/admin-entidades.css": {
+    "file": "assets/admin-entidades-CPOCTacL.css",
+    "name": "admin-entidades",
+    "names": [
+      "admin-entidades.css"
+    ],
+    "src": "resources/css/admin-entidades.css",
+    "isEntry": true
+  },
+  "resources/css/admin-equipos.css": {
+    "file": "assets/admin-equipos-DE6z7KBA.css",
+    "name": "admin-equipos",
+    "names": [
+      "admin-equipos.css"
+    ],
+    "src": "resources/css/admin-equipos.css",
+    "isEntry": true
+  },
+  "resources/css/admin-inventario.css": {
+    "file": "assets/admin-inventario-BNgqFBpD.css",
+    "name": "admin-inventario",
+    "names": [
+      "admin-inventario.css"
+    ],
+    "src": "resources/css/admin-inventario.css",
+    "isEntry": true
+  },
+  "resources/css/admin-prestamos.css": {
+    "file": "assets/admin-prestamos-SCqKimje.css",
+    "name": "admin-prestamos",
+    "names": [
+      "admin-prestamos.css"
+    ],
+    "src": "resources/css/admin-prestamos.css",
+    "isEntry": true
+  },
+  "resources/css/admin-roles.css": {
+    "file": "assets/admin-roles-ISBC2cRk.css",
+    "name": "admin-roles",
+    "names": [
+      "admin-roles.css"
+    ],
+    "src": "resources/css/admin-roles.css",
+    "isEntry": true
+  },
+  "resources/css/admin-solicitudes.css": {
+    "file": "assets/admin-solicitudes-BkawEmi9.css",
+    "name": "admin-solicitudes",
+    "names": [
+      "admin-solicitudes.css"
+    ],
+    "src": "resources/css/admin-solicitudes.css",
+    "isEntry": true
+  },
+  "resources/css/admin-soporte.css": {
+    "file": "assets/admin-soporte-D-AVwUCy.css",
+    "name": "admin-soporte",
+    "names": [
+      "admin-soporte.css"
+    ],
+    "src": "resources/css/admin-soporte.css",
+    "isEntry": true
+  },
+  "resources/css/admin-trabajadores.css": {
+    "file": "assets/admin-trabajadores-DJDzxqPM.css",
+    "name": "admin-trabajadores",
+    "names": [
+      "admin-trabajadores.css"
+    ],
+    "src": "resources/css/admin-trabajadores.css",
+    "isEntry": true
+  },
+  "resources/css/admin-usuarios.css": {
+    "file": "assets/admin-usuarios-2mqciuYF.css",
+    "name": "admin-usuarios",
+    "names": [
+      "admin-usuarios.css"
+    ],
+    "src": "resources/css/admin-usuarios.css",
+    "isEntry": true
+  },
+  "resources/css/auth/login.css": {
+    "file": "assets/login-BZ9q-ksM.css",
+    "name": "login",
+    "names": [
+      "login.css"
+    ],
+    "src": "resources/css/auth/login.css",
+    "isEntry": true
+  },
+  "resources/css/bootstrap.css": {
+    "file": "assets/bootstrap-BY8NMNlz.css",
+    "name": "bootstrap",
+    "names": [
+      "bootstrap.css",
+      "bootstrap.css"
+    ],
+    "src": "resources/css/bootstrap.css",
+    "isEntry": true,
+    "assets": [
+      "assets/bootstrap-icons-mSm7cUeB.woff2",
+      "assets/bootstrap-icons-BeopsB42.woff"
+    ]
+  },
+  "resources/css/contrast-system.css": {
+    "file": "assets/contrast-system-DlyHv-Tt.css",
+    "name": "contrast-system",
+    "names": [
+      "contrast-system.css"
+    ],
+    "src": "resources/css/contrast-system.css",
+    "isEntry": true
+  },
+  "resources/css/dashboard-home.css": {
+    "file": "assets/dashboard-home-DX2s7-J-.css",
+    "name": "dashboard-home",
+    "names": [
+      "dashboard-home.css"
+    ],
+    "src": "resources/css/dashboard-home.css",
+    "isEntry": true
+  },
+  "resources/css/dashboard-layout.css": {
+    "file": "assets/dashboard-layout-BBEfrBDd.css",
+    "name": "dashboard-layout",
+    "names": [
+      "dashboard-layout.css"
+    ],
+    "src": "resources/css/dashboard-layout.css",
+    "isEntry": true
+  },
+  "resources/css/skeleton-loading.css": {
+    "file": "assets/skeleton-loading-vD9dtSug.css",
+    "name": "skeleton-loading",
+    "names": [
+      "skeleton-loading.css"
+    ],
+    "src": "resources/css/skeleton-loading.css",
+    "isEntry": true
+  },
+  "resources/css/smooth-modals.css": {
+    "file": "assets/smooth-modals-BNmic7DS.css",
+    "name": "smooth-modals",
+    "names": [
+      "smooth-modals.css"
+    ],
+    "src": "resources/css/smooth-modals.css",
+    "isEntry": true
+  },
+  "resources/js/admin-entidades.js": {
+    "file": "assets/admin-entidades--mh0tIgz.js",
+    "name": "admin-entidades",
+    "src": "resources/js/admin-entidades.js",
+    "isEntry": true
+  },
+  "resources/js/admin-equipos.js": {
+    "file": "assets/admin-equipos-Cilk57wY.js",
+    "name": "admin-equipos",
+    "src": "resources/js/admin-equipos.js",
+    "isEntry": true
+  },
+  "resources/js/admin-inventario.js": {
+    "file": "assets/admin-inventario-CWImYAHF.js",
+    "name": "admin-inventario",
+    "src": "resources/js/admin-inventario.js",
+    "isEntry": true
+  },
+  "resources/js/admin-prestamos.js": {
+    "file": "assets/admin-prestamos-CBW576lN.js",
+    "name": "admin-prestamos",
+    "src": "resources/js/admin-prestamos.js",
+    "isEntry": true
+  },
+  "resources/js/admin-roles.js": {
+    "file": "assets/admin-roles-CY2da51J.js",
+    "name": "admin-roles",
+    "src": "resources/js/admin-roles.js",
+    "isEntry": true
+  },
+  "resources/js/admin-solicitudes.js": {
+    "file": "assets/admin-solicitudes-yS_yAENb.js",
+    "name": "admin-solicitudes",
+    "src": "resources/js/admin-solicitudes.js",
+    "isEntry": true
+  },
+  "resources/js/admin-soporte.js": {
+    "file": "assets/admin-soporte-BnEWvqv4.js",
+    "name": "admin-soporte",
+    "src": "resources/js/admin-soporte.js",
+    "isEntry": true
+  },
+  "resources/js/admin-trabajadores.js": {
+    "file": "assets/admin-trabajadores-B7s8rNG1.js",
+    "name": "admin-trabajadores",
+    "src": "resources/js/admin-trabajadores.js",
+    "isEntry": true,
+    "imports": [
+      "_bootstrap.esm-7HIvfK1R.js"
+    ]
+  },
+  "resources/js/admin-usuarios.js": {
+    "file": "assets/admin-usuarios-DeJ29XOR.js",
+    "name": "admin-usuarios",
+    "src": "resources/js/admin-usuarios.js",
+    "isEntry": true,
+    "imports": [
+      "_bootstrap.esm-7HIvfK1R.js"
+    ]
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-DfWnsRPN.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "resources/js/bootstrap.js",
+      "resources/js/bootstrap.js"
+    ]
+  },
+  "resources/js/app.jsx": {
+    "file": "assets/app-C9XIS2a2.js",
+    "name": "app",
+    "src": "resources/js/app.jsx",
+    "isEntry": true,
+    "imports": [
+      "_bootstrap.esm-7HIvfK1R.js",
+      "resources/js/bootstrap.js",
+      "resources/js/bootstrap.js"
+    ]
+  },
+  "resources/js/auth/login.js": {
+    "file": "assets/login-CeBuWgXg.js",
+    "name": "login",
+    "src": "resources/js/auth/login.js",
+    "isEntry": true
+  },
+  "resources/js/bootstrap.js": {
+    "file": "assets/bootstrap-C3DwbpOE.js",
+    "name": "bootstrap",
+    "src": "resources/js/bootstrap.js",
+    "isEntry": true,
+    "imports": [
+      "_bootstrap.esm-7HIvfK1R.js"
+    ],
+    "css": [
+      "assets/bootstrap-BY8NMNlz.css"
+    ],
+    "assets": [
+      "assets/bootstrap-icons-mSm7cUeB.woff2",
+      "assets/bootstrap-icons-BeopsB42.woff"
+    ]
+  },
+  "resources/js/dashboard-layout.js": {
+    "file": "assets/dashboard-layout-BT2oqiKb.js",
+    "name": "dashboard-layout",
+    "src": "resources/js/dashboard-layout.js",
+    "isEntry": true
+  },
+  "resources/js/validations.js": {
+    "file": "assets/validations-DhTHSqPw.js",
+    "name": "validations",
+    "src": "resources/js/validations.js",
+    "isEntry": true
+  }
+}
