@@ -1,10 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-<<<<<<< HEAD
 use Illuminate\Http\Request;
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\PrimerRegistroController;
@@ -23,10 +20,7 @@ use App\Http\Controllers\Admin\ComponenteController;
 use App\Http\Controllers\Admin\InventarioController;
 use App\Http\Controllers\Admin\SolicitudController;
 use App\Http\Controllers\Admin\FichaSoporteController;
-<<<<<<< HEAD
 use App\Http\Controllers\Admin\PrestamoController;
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 use App\Models\Estatus;
 
 // ==================== RUTA PRINCIPAL ====================
@@ -174,7 +168,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/componentes/por-tipo/{tipo}', [ComponenteController::class, 'porTipo']);
         Route::get('/componentes/en-bodega', [ComponenteController::class, 'enBodega']);
 
-<<<<<<< HEAD
         // ========== 3.2 PRÉSTAMOS ==========
         Route::prefix('prestamos')->name('prestamos.')->group(function () {
             // Vista principal
@@ -215,43 +208,17 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
         });
 
-=======
-        // 3.2 Préstamos (para futuro)
-        // Route::resource('prestamos', PrestamoController::class);
-
-        // ========== 4. SOLICITUDES ==========
-        Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
-        Route::get('/', [SolicitudController::class, 'index'])->name('index');
-        Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->name('detalles');
-        Route::post('/store', [SolicitudController::class, 'store'])->name('store');
-        Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])->name('update');
-        Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('cancel');
-        Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('approve');
-        Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
-        });
-
-
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         // ========== FICHAS DE SOPORTE ==========
         Route::resource('soporte', \App\Http\Controllers\Admin\FichaSoporteController::class);
         Route::get('soporte/{id}/componentes', [\App\Http\Controllers\Admin\FichaSoporteController::class, 'getComponentesDetalle'])->name('soporte.componentes');
         Route::post('soporte/{id}/close', [\App\Http\Controllers\Admin\FichaSoporteController::class, 'close'])->name('soporte.close');
-<<<<<<< HEAD
         // ✅ RUTA PARA EQUIPO EXTERNO
         Route::post('soporte/equipo-externo', [\App\Http\Controllers\Admin\FichaSoporteController::class, 'storeEquipoExterno'])->name('soporte.equipo-externo');
         // ========== 5. UTILIDADES ==========
-=======
-
-        // 3.4 Reportes (para futuro)
-        // Route::get('/reportes', [ReporteController::class, 'index'])->name('reportes.index');
-
-        // ========== 4. UTILIDADES ==========
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         Route::get('/estatus-list', function () {
             $estatus = Estatus::select('id', 'descripcion', 'color_badge')->orderBy('descripcion')->get();
             return response()->json(['success' => true, 'data' => $estatus]);
         });
-<<<<<<< HEAD
 
         // ========== API PARA OBTENER RESPONSABLES (usado por el frontend) ==========
 
@@ -375,11 +342,11 @@ Route::middleware(['auth'])->prefix('admin/api')->group(function () {
     // Obtener técnicos por búsqueda (cédula, nombre o usuario)
     Route::get('/tecnicos', function (Request $request) {
         $search = $request->get('search');
-        
+
         $query = App\Models\Usuario::whereHas('rol', function($q) {
             $q->where('nombre', 'tecnico');
         })->with('trabajador');
-        
+
         if ($search) {
             $query->where(function($q) use ($search) {
                 $q->where('usuario', 'like', "%{$search}%")
@@ -390,119 +357,21 @@ Route::middleware(['auth'])->prefix('admin/api')->group(function () {
                   });
             });
         }
-        
+
         $tecnicos = $query->limit(15)->get();
         return response()->json($tecnicos);
     });
-    
+
     // Obtener un técnico por ID
     Route::get('/tecnicos/{id}', function ($id) {
         $tecnico = App\Models\Usuario::whereHas('rol', function($q) {
             $q->where('nombre', 'tecnico');
         })->with('trabajador')->find($id);
-        
+
         if (!$tecnico) {
             return response()->json(['success' => false, 'message' => 'Técnico no encontrado'], 404);
         }
-        
+
         return response()->json(['success' => true, 'data' => $tecnico]);
     });
 });
-=======
-    });
-    // API para obtener responsables de entidades (usado por el frontend)
-Route::get('/api/departamento/{id}/responsable', function ($id) {
-    $departamento = App\Models\Departamento::with('responsables')->find($id);
-    $responsable = $departamento ? $departamento->responsables->first() : null;
-    return response()->json([
-        'responsable' => $responsable ? [
-            'id' => $responsable->id,
-            'nombre' => $responsable->nombre,
-            'departamento' => $responsable->cargo,
-            'telefono' => $responsable->telefono,
-            'email' => $responsable->email,
-        ] : null
-    ]);
-});
-
-Route::get('/api/institucion/{id}/responsable', function ($id) {
-    $institucion = App\Models\Institucion::with('responsablesDirectos')->find($id);
-    $responsable = $institucion ? $institucion->responsablesDirectos->first() : null;
-    return response()->json([
-        'responsable' => $responsable ? [
-            'id' => $responsable->id,
-            'nombre' => $responsable->nombre,
-            'departamento' => $responsable->cargo,
-            'telefono' => $responsable->telefono,
-            'email' => $responsable->email,
-        ] : null
-    ]);
-});
-
-Route::post('/api/departamento/{id}/responsable', function (Request $request, $id) {
-    $departamento = App\Models\Departamento::findOrFail($id);
-    $data = $request->validate([
-        'nombre' => 'required|string|max:150',
-        'cargo' => 'nullable|string|max:100',
-        'telefono' => 'nullable|string|max:20',
-        'email' => 'nullable|email|max:100',
-        'responsable_id' => 'nullable|exists:responsables,id'
-    ]);
-
-    if ($request->responsable_id) {
-        $responsable = App\Models\Responsable::find($request->responsable_id);
-        $responsable->update([
-            'nombre' => $data['nombre'],
-            'cargo' => $data['cargo'] ?? $responsable->cargo,
-            'telefono' => $data['telefono'] ?? $responsable->telefono,
-            'email' => $data['email'] ?? $responsable->email,
-        ]);
-    } else {
-        $responsable = App\Models\Responsable::create([
-            'nombre' => $data['nombre'],
-            'cargo' => $data['cargo'] ?? 'Jefe de Departamento',
-            'telefono' => $data['telefono'] ?? null,
-            'email' => $data['email'] ?? null,
-            'activo' => true,
-            'institucion_id' => $departamento->institucion_id,
-            'departamento_id' => $departamento->id,
-        ]);
-    }
-
-    return response()->json(['success' => true, 'responsable' => $responsable]);
-});
-
-Route::post('/api/institucion/{id}/responsable', function (Request $request, $id) {
-    $institucion = App\Models\Institucion::findOrFail($id);
-    $data = $request->validate([
-        'nombre' => 'required|string|max:150',
-        'cargo' => 'nullable|string|max:100',
-        'telefono' => 'nullable|string|max:20',
-        'email' => 'nullable|email|max:100',
-        'responsable_id' => 'nullable|exists:responsables,id'
-    ]);
-
-    if ($request->responsable_id) {
-        $responsable = App\Models\Responsable::find($request->responsable_id);
-        $responsable->update([
-            'nombre' => $data['nombre'],
-            'cargo' => $data['cargo'] ?? $responsable->cargo,
-            'telefono' => $data['telefono'] ?? $responsable->telefono,
-            'email' => $data['email'] ?? $responsable->email,
-        ]);
-    } else {
-        $responsable = App\Models\Responsable::create([
-            'nombre' => $data['nombre'],
-            'cargo' => $data['cargo'] ?? 'Representante',
-            'telefono' => $data['telefono'] ?? null,
-            'email' => $data['email'] ?? null,
-            'activo' => true,
-            'institucion_id' => $institucion->id,
-            'departamento_id' => null,
-        ]);
-    }
-
-    return response()->json(['success' => true, 'responsable' => $responsable]);
-});
-});
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)

@@ -7,7 +7,6 @@ let perPage = 10;
 let totalRegistros = 0;
 let timeoutBusqueda = null;
 let fichaAEliminar = null;
-<<<<<<< HEAD
 let activosEnProceso = [];
 
 // Datos para buscadores
@@ -20,9 +19,6 @@ let tecnicoSeleccionado = null;
 // Variables para buscador de técnicos en equipo externo
 let timeoutExtTecnicoBusqueda = null;
 let extTecnicoSeleccionado = null;
-=======
-let activosEnProceso = []; // Array para almacenar IDs de activos con ficha en proceso
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
@@ -46,13 +42,13 @@ function mostrarNotificacion(tipo, mensaje) {
         container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; width: 320px;';
         document.body.appendChild(container);
     }
-    
+
     const colores = { success: '#28a745', error: '#dc3545', warning: '#ffc107', info: '#17a2b8' };
     const toast = document.createElement('div');
     toast.style.cssText = `background: ${colores[tipo]}; color: white; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 12px; cursor: pointer; animation: slideIn 0.3s ease-out; z-index: 10000;`;
     toast.innerHTML = `<span style="flex:1">${mensaje}</span><span style="opacity:0.7; cursor:pointer;" onclick="this.parentElement.remove()">✕</span>`;
     container.appendChild(toast);
-    
+
     setTimeout(() => {
         if (toast.parentNode) toast.remove();
     }, 4000);
@@ -75,16 +71,13 @@ function actualizarEstadisticas() {
     document.getElementById('statsTotal') && (document.getElementById('statsTotal').textContent = total);
     document.getElementById('statsEnProceso') && (document.getElementById('statsEnProceso').textContent = enProceso);
     document.getElementById('statsFinalizados') && (document.getElementById('statsFinalizados').textContent = finalizados);
-    
+
     const enReparacion = fichasData.filter(f => f.estado === 'en_proceso').length;
     document.getElementById('statsEquiposReparacion') && (document.getElementById('statsEquiposReparacion').textContent = enReparacion);
-    
+
     // Actualizar lista de activos en proceso
     activosEnProceso = fichasData.filter(f => f.estado === 'en_proceso').map(f => f.activo_id);
-<<<<<<< HEAD
     console.log('Activos en proceso:', activosEnProceso);
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 }
 
 function renderizarTabla() {
@@ -119,14 +112,14 @@ function renderizarTabla() {
                         <path d="M12 16h.01"/>
                     </svg>
                 </button>`;
-        
+
         if (f.estado === 'en_proceso') {
             html += `
                 <button type="button" class="btn btn-sm btn-cerrar-ficha ms-1" onclick="abrirModalCerrarFicha(${f.id})" title="Cerrar ficha">
                     ✓ Cerrar
                 </button>`;
         }
-        
+
         html += `
                 <button type="button" class="btn btn-sm btn-outline-danger ms-1" onclick="confirmarEliminar(${f.id})" title="Eliminar">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -171,7 +164,7 @@ function renderizarPaginacion() {
     html += `<li class="page-item ${currentPage === lastPage ? 'disabled' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(${currentPage + 1}); return false;">»</a></li>`;
 
     container.innerHTML = html;
-    
+
     const infoDiv = document.getElementById('paginationInfo');
     if (infoDiv) {
         infoDiv.innerHTML = `Mostrando ${fichasData.length} de ${totalRegistros} registros`;
@@ -236,7 +229,6 @@ function aplicarFiltrosConDebounce() {
     }, 300);
 }
 
-<<<<<<< HEAD
 // ==================== BUSCADOR DE ACTIVOS ====================
 
 function cargarActivosParaBuscador() {
@@ -255,7 +247,7 @@ function buscarActivos() {
     const input = document.getElementById('activoBuscarInput');
     const dropdown = document.getElementById('activoDropdown');
     const buscar = input.value.toLowerCase().trim();
-    
+
     if (!buscar || buscar.length < 2) {
         dropdown.style.display = 'none';
         return;
@@ -276,7 +268,7 @@ function buscarActivos() {
             const modelo = a.modelo?.nombre || 'N/A';
             const marca = a.modelo?.marca?.nombre || 'N/A';
             const id = a.id;
-            
+
             return `<div class="list-group-item list-group-item-action" data-activo-id="${id}" onclick="window.seleccionarActivo(${id}, '${escapeHtml(serial)}', '${escapeHtml(modelo)}', '${escapeHtml(marca)}', '${escapeHtml(estado)}')">
                 <div class="activo-serial"><strong>${escapeHtml(serial)}</strong></div>
                 <div class="activo-info">${escapeHtml(marca)} ${escapeHtml(modelo)} - Estado: ${escapeHtml(estado)}</div>
@@ -288,7 +280,7 @@ function buscarActivos() {
 
 window.seleccionarActivo = function(id, serial, modelo, marca, estado) {
     console.log('Seleccionando activo para reparación - ID:', id);
-    
+
     const activoIdInput = document.getElementById('fichaActivoId');
     const activoBuscarInput = document.getElementById('activoBuscarInput');
     const dropdown = document.getElementById('activoDropdown');
@@ -296,28 +288,28 @@ window.seleccionarActivo = function(id, serial, modelo, marca, estado) {
     const texto = document.getElementById('activoSeleccionadoTexto');
     const estadoBadge = document.getElementById('activoSeleccionadoEstado');
     const submitBtn = document.getElementById('btnGuardarFicha');
-    
+
     if (activoIdInput) {
         activoIdInput.value = id;
         console.log('ID guardado en fichaActivoId:', activoIdInput.value);
     }
-    
+
     if (activoBuscarInput) {
         activoBuscarInput.value = serial;
         activoBuscarInput.classList.remove('is-invalid');
         activoBuscarInput.classList.add('is-valid');
     }
-    
+
     if (dropdown) {
         dropdown.style.display = 'none';
     }
-    
+
     if (infoDiv) {
         infoDiv.style.display = 'block';
         if (texto) texto.textContent = `${serial} - ${marca} ${modelo}`;
         if (estadoBadge) estadoBadge.textContent = estado;
     }
-    
+
     if (submitBtn) {
         submitBtn.disabled = false;
     }
@@ -328,7 +320,7 @@ window.limpiarActivoSeleccionado = function() {
     const activoBuscarInput = document.getElementById('activoBuscarInput');
     const infoDiv = document.getElementById('activoSeleccionadoInfo');
     const submitBtn = document.getElementById('btnGuardarFicha');
-    
+
     if (activoIdInput) activoIdInput.value = '';
     if (activoBuscarInput) {
         activoBuscarInput.value = '';
@@ -342,12 +334,12 @@ window.limpiarActivoSeleccionado = function() {
 
 function buscarTecnicoPorCedula(cedula) {
     const url = '/admin/api/tecnicos?search=' + encodeURIComponent(cedula);
-    
-    fetch(url, { 
-        headers: { 
+
+    fetch(url, {
+        headers: {
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
-        } 
+        }
     })
     .then(r => {
         if (!r.ok) {
@@ -358,9 +350,9 @@ function buscarTecnicoPorCedula(cedula) {
     .then(tecnicos => {
         const searchResults = document.getElementById('tecnicoSearchResults');
         const infoTecnico = document.getElementById('tecnicoEncontrado');
-        
+
         if (!searchResults) return;
-        
+
         if (!tecnicos || tecnicos.length === 0) {
             searchResults.innerHTML = `<div class="p-2 text-muted small">No se encontraron técnicos con esta búsqueda.</div>`;
             searchResults.style.display = 'block';
@@ -379,13 +371,13 @@ function buscarTecnicoPorCedula(cedula) {
         let html = '';
         tecnicos.forEach(t => {
             const trabajador = t.trabajador || {};
-            const nombre = trabajador.nombre && trabajador.apellido ? 
-                `${trabajador.nombre} ${trabajador.apellido}`.trim() : 
+            const nombre = trabajador.nombre && trabajador.apellido ?
+                `${trabajador.nombre} ${trabajador.apellido}`.trim() :
                 t.usuario || 'Sin nombre';
             const cedulaTecnico = trabajador.cedula || 'Sin cédula';
             const usuario = t.usuario || 'Sin usuario';
             const id = t.id;
-            
+
             html += `
                 <div class="p-2 border-bottom" style="cursor:pointer;" onclick="window.seleccionarTecnicoPorId(${id})">
                     <strong>${escapeHtml(nombre)}</strong>
@@ -409,12 +401,12 @@ function buscarTecnicoPorCedula(cedula) {
 
 window.seleccionarTecnicoPorId = function(id) {
     const url = '/admin/api/tecnicos/' + id;
-    
-    fetch(url, { 
-        headers: { 
+
+    fetch(url, {
+        headers: {
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
-        } 
+        }
     })
     .then(r => {
         if (!r.ok) {
@@ -434,17 +426,17 @@ window.seleccionarTecnicoPorId = function(id) {
 
 window.seleccionarTecnico = function(tecnico) {
     const trabajador = tecnico.trabajador || {};
-    const nombre = trabajador.nombre && trabajador.apellido ? 
-        `${trabajador.nombre} ${trabajador.apellido}`.trim() : 
+    const nombre = trabajador.nombre && trabajador.apellido ?
+        `${trabajador.nombre} ${trabajador.apellido}`.trim() :
         tecnico.usuario || 'Sin nombre';
     const cedula = trabajador.cedula || 'Sin cédula';
     const usuario = tecnico.usuario || 'Sin usuario';
-    
+
     document.getElementById('fichaTecnicoId').value = tecnico.id;
     document.getElementById('fichaTecnicoNombre').value = nombre;
     document.getElementById('tecnicoBuscarInput').value = nombre;
     document.getElementById('tecnicoSearchResults').style.display = 'none';
-    
+
     const infoTecnico = document.getElementById('tecnicoEncontrado');
     if (infoTecnico) {
         document.getElementById('tecnicoEncontradoNombre').textContent = nombre;
@@ -452,7 +444,7 @@ window.seleccionarTecnico = function(tecnico) {
         document.getElementById('tecnicoEncontradoUsuario').textContent = `Usuario: ${usuario}`;
         infoTecnico.style.display = 'block';
     }
-    
+
     tecnicoSeleccionado = tecnico;
 }
 
@@ -469,12 +461,12 @@ window.limpiarTecnicoSeleccionado = function() {
 
 function buscarExtTecnicoPorCedula(cedula) {
     const url = '/admin/api/tecnicos?search=' + encodeURIComponent(cedula);
-    
-    fetch(url, { 
-        headers: { 
+
+    fetch(url, {
+        headers: {
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
-        } 
+        }
     })
     .then(r => {
         if (!r.ok) {
@@ -485,9 +477,9 @@ function buscarExtTecnicoPorCedula(cedula) {
     .then(tecnicos => {
         const searchResults = document.getElementById('extTecnicoSearchResults');
         const infoTecnico = document.getElementById('extTecnicoEncontrado');
-        
+
         if (!searchResults) return;
-        
+
         if (!tecnicos || tecnicos.length === 0) {
             searchResults.innerHTML = `<div class="p-2 text-muted small">No se encontraron técnicos con esta búsqueda.</div>`;
             searchResults.style.display = 'block';
@@ -506,13 +498,13 @@ function buscarExtTecnicoPorCedula(cedula) {
         let html = '';
         tecnicos.forEach(t => {
             const trabajador = t.trabajador || {};
-            const nombre = trabajador.nombre && trabajador.apellido ? 
-                `${trabajador.nombre} ${trabajador.apellido}`.trim() : 
+            const nombre = trabajador.nombre && trabajador.apellido ?
+                `${trabajador.nombre} ${trabajador.apellido}`.trim() :
                 t.usuario || 'Sin nombre';
             const cedulaTecnico = trabajador.cedula || 'Sin cédula';
             const usuario = t.usuario || 'Sin usuario';
             const id = t.id;
-            
+
             html += `
                 <div class="p-2 border-bottom" style="cursor:pointer;" onclick="window.seleccionarExtTecnicoPorId(${id})">
                     <strong>${escapeHtml(nombre)}</strong>
@@ -536,12 +528,12 @@ function buscarExtTecnicoPorCedula(cedula) {
 
 window.seleccionarExtTecnicoPorId = function(id) {
     const url = '/admin/api/tecnicos/' + id;
-    
-    fetch(url, { 
-        headers: { 
+
+    fetch(url, {
+        headers: {
             'Accept': 'application/json',
             'X-Requested-With': 'XMLHttpRequest'
-        } 
+        }
     })
     .then(r => {
         if (!r.ok) {
@@ -561,17 +553,17 @@ window.seleccionarExtTecnicoPorId = function(id) {
 
 window.seleccionarExtTecnico = function(tecnico) {
     const trabajador = tecnico.trabajador || {};
-    const nombre = trabajador.nombre && trabajador.apellido ? 
-        `${trabajador.nombre} ${trabajador.apellido}`.trim() : 
+    const nombre = trabajador.nombre && trabajador.apellido ?
+        `${trabajador.nombre} ${trabajador.apellido}`.trim() :
         tecnico.usuario || 'Sin nombre';
     const cedula = trabajador.cedula || 'Sin cédula';
     const usuario = tecnico.usuario || 'Sin usuario';
-    
+
     document.getElementById('ext_fichaTecnicoId').value = tecnico.id;
     document.getElementById('ext_fichaTecnicoNombre').value = nombre;
     document.getElementById('ext_tecnicoBuscarInput').value = nombre;
     document.getElementById('extTecnicoSearchResults').style.display = 'none';
-    
+
     const infoTecnico = document.getElementById('extTecnicoEncontrado');
     if (infoTecnico) {
         document.getElementById('extTecnicoEncontradoNombre').textContent = nombre;
@@ -579,7 +571,7 @@ window.seleccionarExtTecnico = function(tecnico) {
         document.getElementById('extTecnicoEncontradoUsuario').textContent = `Usuario: ${usuario}`;
         infoTecnico.style.display = 'block';
     }
-    
+
     extTecnicoSeleccionado = tecnico;
 }
 
@@ -596,18 +588,18 @@ window.limpiarExtTecnicoSeleccionado = function() {
 window.abrirModalCrearFicha = function() {
     const form = document.getElementById('formCrearFicha');
     if (form) form.reset();
-    
+
     window.limpiarActivoSeleccionado();
     window.limpiarTecnicoSeleccionado();
-    
+
     const errorDiv = document.getElementById('activoErrorMensaje');
     if (errorDiv) errorDiv.style.display = 'none';
-    
+
     const submitBtn = document.getElementById('btnGuardarFicha');
     if (submitBtn) submitBtn.disabled = true;
-    
+
     new bootstrap.Modal(document.getElementById('modalCrearFicha')).show();
-    
+
     if (todosActivos.length === 0) cargarActivosParaBuscador();
 };
 
@@ -615,18 +607,18 @@ window.abrirModalCrearFicha = function() {
 window.abrirModalEquipoExterno = function() {
     const form = document.getElementById('formEquipoExterno');
     if (form) form.reset();
-    
+
     window.limpiarExtTecnicoSeleccionado();
     window.limpiarActivoSeleccionado();
-    
+
     const fechaInput = document.getElementById('ext_fecha_adquisicion');
     if (fechaInput) {
         fechaInput.value = new Date().toISOString().split('T')[0];
     }
-    
+
     cargarCategoriasExterno();
     cargarInstitucionesExterno();
-    
+
     new bootstrap.Modal(document.getElementById('modalEquipoExterno')).show();
 };
 
@@ -668,14 +660,14 @@ function cargarInstitucionesExterno() {
 function cargarResponsablesExterno(institucionId) {
     const select = document.getElementById('ext_responsable_id');
     if (!select) return;
-    
+
     if (!institucionId) {
         select.innerHTML = '<option value="">Seleccionar responsable...</option>';
         return;
     }
-    
-    fetch(`/admin/responsables?institucion_id=${institucionId}`, { 
-        headers: { 'Accept': 'application/json' } 
+
+    fetch(`/admin/responsables?institucion_id=${institucionId}`, {
+        headers: { 'Accept': 'application/json' }
     })
     .then(r => r.json())
     .then(response => {
@@ -692,12 +684,12 @@ function cargarResponsablesExterno(institucionId) {
 // ==================== EVENTOS DOM ====================
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Módulo de fichas de soporte inicializado');
-    
+
     initEventListeners();
-    
+
     cargarPagina(1);
     cargarActivosParaBuscador();
-    
+
     // Eventos para el buscador de activos
     const activoInput = document.getElementById('activoBuscarInput');
     if (activoInput) {
@@ -712,14 +704,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 300);
         });
     }
-    
+
     // Eventos para el buscador de técnicos
     const tecnicoInput = document.getElementById('tecnicoBuscarInput');
     if (tecnicoInput) {
         tecnicoInput.addEventListener('input', function() {
             const cedula = this.value.trim();
             clearTimeout(timeoutTecnicoBusqueda);
-            
+
             if (cedula.length < 2) {
                 document.getElementById('tecnicoSearchResults').style.display = 'none';
                 document.getElementById('tecnicoEncontrado').style.display = 'none';
@@ -727,20 +719,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('fichaTecnicoNombre').value = '';
                 return;
             }
-            
+
             timeoutTecnicoBusqueda = setTimeout(() => {
                 buscarTecnicoPorCedula(cedula);
             }, 400);
         });
     }
-    
+
     // Eventos para el buscador de técnicos en equipo externo
     const extTecnicoInput = document.getElementById('ext_tecnicoBuscarInput');
     if (extTecnicoInput) {
         extTecnicoInput.addEventListener('input', function() {
             const cedula = this.value.trim();
             clearTimeout(timeoutExtTecnicoBusqueda);
-            
+
             if (cedula.length < 2) {
                 document.getElementById('extTecnicoSearchResults').style.display = 'none';
                 document.getElementById('extTecnicoEncontrado').style.display = 'none';
@@ -748,13 +740,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('ext_fichaTecnicoNombre').value = '';
                 return;
             }
-            
+
             timeoutExtTecnicoBusqueda = setTimeout(() => {
                 buscarExtTecnicoPorCedula(cedula);
             }, 400);
         });
     }
-    
+
     // Evento para cargar responsables al cambiar institución
     const instSelect = document.getElementById('ext_institucion_id');
     if (instSelect) {
@@ -762,19 +754,19 @@ document.addEventListener('DOMContentLoaded', function() {
             cargarResponsablesExterno(this.value);
         });
     }
-    
+
     // Evento submit del formulario de ficha
     document.getElementById('formCrearFicha')?.addEventListener('submit', async function(e) {
         e.preventDefault();
 
         const activoId = document.getElementById('fichaActivoId').value;
-        
+
         if (!activoId) {
             mostrarNotificacion('error', 'Debe seleccionar un activo válido');
             document.getElementById('activoBuscarInput').classList.add('is-invalid');
             return;
         }
-        
+
         if (activosEnProceso.includes(parseInt(activoId))) {
             mostrarNotificacion('error', 'Este activo ya tiene una ficha de soporte en proceso');
             return;
@@ -786,7 +778,7 @@ document.addEventListener('DOMContentLoaded', function() {
         submitBtn.disabled = true;
 
         const formData = new FormData(this);
-        
+
         const tecnicoNombre = document.getElementById('fichaTecnicoNombre').value;
         if (tecnicoNombre) {
             formData.set('tecnico_nombre', tecnicoNombre);
@@ -822,18 +814,18 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = false;
         }
     });
-    
+
     // Evento submit del formulario de equipo externo
     document.getElementById('formEquipoExterno')?.addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
         const submitBtn = document.getElementById('btnGuardarEquipoExterno');
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Registrando...';
         submitBtn.disabled = true;
-        
+
         const formData = new FormData(this);
-        
+
         try {
             const response = await fetch('/admin/soporte/equipo-externo', {
                 method: 'POST',
@@ -843,9 +835,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 body: formData
             });
-            
+
             const result = await response.json();
-            
+
             if (response.ok && result.success) {
                 mostrarNotificacion('success', result.message || 'Equipo registrado y ficha creada exitosamente');
                 bootstrap.Modal.getInstance(document.getElementById('modalEquipoExterno')).hide();
@@ -862,98 +854,6 @@ document.addEventListener('DOMContentLoaded', function() {
             submitBtn.disabled = false;
         }
     });
-=======
-// ==================== VALIDACIÓN DE ACTIVO EN PROCESO ====================
-function verificarActivoEnProceso(activoId) {
-    return activosEnProceso.includes(parseInt(activoId));
-}
-
-// ==================== CREAR FICHA ====================
-window.abrirModalCrearFicha = function() {
-    document.getElementById('formCrearFicha').reset();
-    // Limpiar mensajes de error anteriores
-    const errorDiv = document.getElementById('activoErrorMensaje');
-    if (errorDiv) errorDiv.style.display = 'none';
-    new bootstrap.Modal(document.getElementById('modalCrearFicha')).show();
-};
-
-// Validar cuando se selecciona un activo en el formulario
-document.getElementById('fichaActivoId')?.addEventListener('change', function() {
-    const activoId = this.value;
-    const errorDiv = document.getElementById('activoErrorMensaje');
-    const submitBtn = document.querySelector('#formCrearFicha button[type="submit"]');
-    
-    if (activoId && verificarActivoEnProceso(activoId)) {
-        if (errorDiv) {
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML = `
-                <div class="alert alert-danger alert-dismissible fade show mt-2" role="alert" style="font-size: 0.8rem;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: inline; margin-right: 5px;">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                    <strong>¡Activo no disponible!</strong> Este equipo ya tiene una ficha de soporte en proceso.
-                    <button type="button" class="btn-close float-end" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-        }
-        if (submitBtn) submitBtn.disabled = true;
-        this.classList.add('is-invalid');
-    } else {
-        if (errorDiv) errorDiv.style.display = 'none';
-        if (submitBtn) submitBtn.disabled = false;
-        this.classList.remove('is-invalid');
-        this.classList.add('is-valid');
-    }
-});
-
-document.getElementById('formCrearFicha')?.addEventListener('submit', async function(e) {
-    e.preventDefault();
-
-    const activoId = document.getElementById('fichaActivoId').value;
-    
-    // Validación antes de enviar
-    if (verificarActivoEnProceso(activoId)) {
-        mostrarNotificacion('error', 'Este activo ya tiene una ficha de soporte en proceso. No puede crear otra.');
-        return;
-    }
-
-    const submitBtn = this.querySelector('button[type="submit"]');
-    const originalText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Creando...';
-    submitBtn.disabled = true;
-
-    const formData = new FormData(this);
-
-    try {
-        const response = await fetch('/admin/soporte', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json'
-            },
-            body: formData
-        });
-
-        const result = await response.json();
-
-        if (response.ok && result.success) {
-            mostrarNotificacion('success', result.message || 'Ficha creada exitosamente');
-            bootstrap.Modal.getInstance(document.getElementById('modalCrearFicha')).hide();
-            cargarPagina(1);
-        } else {
-            const errorMsg = result.message || 'Error al crear la ficha';
-            mostrarNotificacion('error', errorMsg);
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarNotificacion('error', 'Error de conexión al servidor');
-    } finally {
-        submitBtn.innerHTML = originalText;
-        submitBtn.disabled = false;
-    }
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 });
 
 // ==================== CERRAR FICHA ====================
@@ -1032,11 +932,8 @@ document.getElementById('formCerrarFicha')?.addEventListener('submit', async fun
             mostrarNotificacion('success', result.message || 'Ficha finalizada exitosamente');
             bootstrap.Modal.getInstance(document.getElementById('modalCerrarFicha')).hide();
             cargarPagina(currentPage);
-<<<<<<< HEAD
             actualizarEstadisticas();
             cargarActivosParaBuscador();
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         } else {
             mostrarNotificacion('error', result.message || 'Error al finalizar la ficha');
         }
@@ -1061,13 +958,13 @@ window.verDetalle = async function(id) {
 
         if (result.success && result.data) {
             const f = result.data;
-            
+
             const fechaIngreso = f.fecha_ingreso ? new Date(f.fecha_ingreso).toLocaleString() : 'No registrada';
             const fechaSalida = f.fecha_salida ? new Date(f.fecha_salida).toLocaleString() : 'En proceso';
-            
+
             const estadoColor = f.estado === 'en_proceso' ? '#fd7e14' : '#28a745';
             const estadoIcono = f.estado === 'en_proceso' ? '🔧' : '✅';
-            
+
             let detallesHtml = '';
             if (f.detalles && f.detalles.length > 0) {
                 detallesHtml = `
@@ -1083,10 +980,10 @@ window.verDetalle = async function(id) {
                                 <div class="col-md-6 mb-2">
                                     <div class="border rounded p-2" style="background: #f8f9fc;">
                                         <strong>${escapeHtml(det.componente_nombre)}</strong><br>
-                                        ${det.estado_salida ? 
+                                        ${det.estado_salida ?
                                             `<span class="badge ${det.estado_salida === 'funcionando' ? 'bg-success' : (det.estado_salida === 'reemplazado' ? 'bg-warning' : 'bg-danger')} text-white">
                                                 Salida: ${escapeHtml(det.estado_salida)}
-                                            </span>` : 
+                                            </span>` :
                                             `<span class="badge bg-info">Ingreso: ${escapeHtml(det.estado_ingreso || 'N/A')}</span>`
                                         }
                                         ${det.observaciones ? `<br><small class="text-muted">${escapeHtml(det.observaciones)}</small>` : ''}
@@ -1097,7 +994,7 @@ window.verDetalle = async function(id) {
                     </div>
                 `;
             }
-            
+
             const html = `
                 <div>
                     <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); margin: -1rem -1rem 1.5rem -1rem; padding: 1.5rem; border-radius: 12px 12px 0 0;">
@@ -1113,7 +1010,7 @@ window.verDetalle = async function(id) {
                             </span>
                         </div>
                     </div>
-                    
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
@@ -1136,26 +1033,26 @@ window.verDetalle = async function(id) {
                             </div>
                         </div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="text-muted small">Diagnóstico Inicial</label>
                         <div class="p-2 bg-light rounded">${escapeHtml(f.diagnostico || 'No registrado')}</div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="text-muted small">Trabajo Realizado</label>
                         <div class="p-2 bg-light rounded">${escapeHtml(f.trabajo_realizado || 'No registrado')}</div>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="text-muted small">Observaciones</label>
                         <div class="p-2 bg-light rounded">${escapeHtml(f.observaciones || 'Sin observaciones')}</div>
                     </div>
-                    
+
                     ${detallesHtml}
                 </div>
             `;
-            
+
             document.getElementById('modalDetalleLabel').textContent = 'Detalle de Ficha de Soporte';
             modalBody.innerHTML = html;
         } else {
@@ -1214,15 +1111,4 @@ document.getElementById('limpiarFiltros')?.addEventListener('click', function() 
 function initEventListeners() {
     document.getElementById('buscarFichas')?.addEventListener('input', aplicarFiltrosConDebounce);
     document.getElementById('filtroEstadoFichas')?.addEventListener('change', aplicarFiltros);
-<<<<<<< HEAD
 }
-=======
-}
-
-// ==================== INICIALIZACIÓN ====================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('Módulo de fichas de soporte inicializado');
-    initEventListeners();
-    cargarPagina(1);
-});
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)

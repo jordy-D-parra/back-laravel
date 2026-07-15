@@ -4,11 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', function() {
 
-<<<<<<< HEAD
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
-=======
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     let elementoAEliminar = null;
 
     // ===========================
@@ -40,12 +36,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function cerrarModalDetalle() {
         const modalDetalle = document.getElementById('modalDetalle');
         if (modalDetalle && modalDetalle.classList.contains('show')) {
-<<<<<<< HEAD
             const bsModal = bootstrap.Modal.getInstance(modalDetalle);
             if (bsModal) bsModal.hide();
-=======
-            bootstrap.Modal.getInstance(modalDetalle).hide();
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         }
         setTimeout(() => {
             document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
@@ -55,7 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     }
 
-<<<<<<< HEAD
     const modalDetalleEl = document.getElementById('modalDetalle');
     if (modalDetalleEl) {
         modalDetalleEl.addEventListener('hidden.bs.modal', function() {
@@ -65,14 +56,6 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.style.paddingRight = '';
         });
     }
-=======
-    document.getElementById('modalDetalle').addEventListener('hidden.bs.modal', function() {
-        document.querySelectorAll('.modal-backdrop').forEach(backdrop => backdrop.remove());
-        document.body.classList.remove('modal-open');
-        document.body.style.overflow = '';
-        document.body.style.paddingRight = '';
-    });
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
     // ===========================
     // SVG Iconos
@@ -108,13 +91,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function mostrarCarga(contenedorId) {
-<<<<<<< HEAD
         const contenedor = document.getElementById(contenedorId);
         if (!contenedor) return;
         contenedor.innerHTML = `
-=======
-        document.getElementById(contenedorId).innerHTML = `
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             <div class="loading-spinner">
                 <svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px">
                     <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
@@ -155,10 +134,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===========================
-<<<<<<< HEAD
     // Helper: habilitar/deshabilitar campos del representante
     // ===========================
-    function setCamposRepresentanteEstado(deshabilitar) {
+    window.setCamposRepresentanteEstado = function(deshabilitar) {
         const campos = [
             'depto_representante_nombre',
             'depto_representante_documento',
@@ -171,9 +149,9 @@ document.addEventListener('DOMContentLoaded', function() {
             const el = document.getElementById(id);
             if (el) el.disabled = deshabilitar;
         });
-    }
+    };
 
-    function limpiarCamposRepresentante() {
+    window.limpiarCamposRepresentante = function() {
         const campos = [
             'depto_representante_nombre',
             'depto_representante_documento',
@@ -187,43 +165,29 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         const cargoEl = document.getElementById('depto_representante_cargo');
         if (cargoEl) cargoEl.value = 'Jefe de Departamento';
-    }
+    };
 
-    function resetCamposOcultosResponsable() {
+    window.resetCamposOcultosResponsable = function() {
         const inputUsarResp = document.getElementById('usar_responsable_institucion_input');
         const inputRespId = document.getElementById('responsable_id_input');
         if (inputUsarResp) inputUsarResp.value = '0';
         if (inputRespId) inputRespId.value = '';
-    }
+    };
 
     // ===========================
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     // Validaciones de campos
     // ===========================
     function validarDocumento(input) {
         let valor = input.value.replace(/[^0-9]/g, '');
         if (valor.length > 8) valor = valor.substring(0, 8);
-<<<<<<< HEAD
         if (valor.length > 0) valor = 'V-' + valor;
-=======
-        if (valor.length > 0) {
-            valor = 'V-' + valor;
-        }
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         input.value = valor;
     }
 
     function validarTelefono(input) {
         let valor = input.value.replace(/[^0-9]/g, '');
         if (valor.length > 11) valor = valor.substring(0, 11);
-<<<<<<< HEAD
         if (valor.length >= 4) valor = valor.substring(0, 4) + '-' + valor.substring(4);
-=======
-        if (valor.length >= 4) {
-            valor = valor.substring(0, 4) + '-' + valor.substring(4);
-        }
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         input.value = valor;
     }
 
@@ -246,7 +210,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-<<<<<<< HEAD
     document.querySelectorAll('input[name="representante_documento"], input[name="documento"]').forEach(input => {
         input.addEventListener('input', () => validarDocumento(input));
         input.addEventListener('blur', function() {
@@ -269,50 +232,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.querySelectorAll('input[type="email"], input[name="representante_email"], input[name="email"]').forEach(input => {
         input.addEventListener('blur', () => validarEmail(input));
-=======
-    // Asignar validaciones a campos de documento
-    document.querySelectorAll('input[name="representante_documento"], input[name="documento"]').forEach(input => {
-        input.addEventListener('input', function() {
-            validarDocumento(this);
-        });
-        input.addEventListener('blur', function() {
-            if (this.value.length < 10) {
-                this.classList.add('is-invalid');
-            } else {
-                this.classList.remove('is-invalid');
-                this.classList.add('is-valid');
-            }
-        });
-    });
-
-    // Asignar validaciones a campos de teléfono
-    document.querySelectorAll('input[name="representante_telefono"], input[name="telefono"]').forEach(input => {
-        input.addEventListener('input', function() {
-            validarTelefono(this);
-        });
-        input.addEventListener('blur', function() {
-            if (this.value.length < 10) {
-                this.classList.add('is-invalid');
-            } else {
-                this.classList.remove('is-invalid');
-                this.classList.add('is-valid');
-            }
-        });
-    });
-
-    // Asignar validaciones a campos de nombre (solo letras)
-    document.querySelectorAll('input[name="representante_nombre"], input[name="nombre"], #inst_nombre, #depto_nombre').forEach(input => {
-        input.addEventListener('input', function() {
-            validarSoloLetras(this);
-        });
-    });
-
-    // Asignar validación de email
-    document.querySelectorAll('input[type="email"], input[name="representante_email"], input[name="email"]').forEach(input => {
-        input.addEventListener('blur', function() {
-            validarEmail(this);
-        });
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     });
 
     // ===========================
@@ -323,7 +242,6 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(r => r.json())
             .then(response => {
                 const instituciones = response.data || response;
-<<<<<<< HEAD
                 if (!instituciones) return;
 
                 const selects = [
@@ -345,66 +263,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     select.value = valorActual;
                 });
-=======
-
-                // Actualizar select del modal de departamento
-                const selectDeptoInst = document.getElementById('depto_institucion_id');
-                if (selectDeptoInst) {
-                    const valorActual = selectDeptoInst.value;
-                    selectDeptoInst.innerHTML = '<option value="">Seleccionar institución...</option>';
-                    if (instituciones && instituciones.length > 0) {
-                        instituciones.forEach(inst => {
-                            selectDeptoInst.innerHTML += `
-                                <option value="${inst.id}" data-representante-nombre="${inst.representante || ''}">
-                                    ${escapeHtml(inst.nombre)}
-                                </option>`;
-                        });
-                    }
-                    selectDeptoInst.value = valorActual;
-                }
-
-                // Actualizar select del modal de responsable
-                const selectRespInst = document.getElementById('resp_institucion_id');
-                if (selectRespInst) {
-                    const valorActual = selectRespInst.value;
-                    selectRespInst.innerHTML = '<option value="">Seleccionar institución...</option>';
-                    if (instituciones && instituciones.length > 0) {
-                        instituciones.forEach(inst => {
-                            selectRespInst.innerHTML += `
-                                <option value="${inst.id}">${escapeHtml(inst.nombre)}</option>`;
-                        });
-                    }
-                    selectRespInst.value = valorActual;
-                }
-
-                // Actualizar filtro de departamentos
-                const filtroDepto = document.getElementById('filtroInstitucionDepartamentos');
-                if (filtroDepto) {
-                    const valorActual = filtroDepto.value;
-                    filtroDepto.innerHTML = '<option value="">Todas las instituciones</option>';
-                    if (instituciones && instituciones.length > 0) {
-                        instituciones.forEach(inst => {
-                            filtroDepto.innerHTML += `
-                                <option value="${inst.id}">${escapeHtml(inst.nombre)}</option>`;
-                        });
-                    }
-                    filtroDepto.value = valorActual;
-                }
-
-                // Actualizar filtro de responsables
-                const filtroResp = document.getElementById('filtroInstitucionResponsables');
-                if (filtroResp) {
-                    const valorActual = filtroResp.value;
-                    filtroResp.innerHTML = '<option value="">Todas las instituciones</option>';
-                    if (instituciones && instituciones.length > 0) {
-                        instituciones.forEach(inst => {
-                            filtroResp.innerHTML += `
-                                <option value="${inst.id}">${escapeHtml(inst.nombre)}</option>`;
-                        });
-                    }
-                    filtroResp.value = valorActual;
-                }
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             })
             .catch(e => console.error('Error cargando instituciones:', e));
     }
@@ -413,7 +271,35 @@ document.addEventListener('DOMContentLoaded', function() {
     // Limpiar formularios
     // ===========================
     window.limpiarFormInstitucion = function() {
-<<<<<<< HEAD
+        // Resetear pasos del wizard de institución
+        if (typeof pasoActualInst !== 'undefined') {
+            pasoActualInst = 1;
+            const step1 = document.getElementById('stepInst1');
+            const step2 = document.getElementById('stepInst2');
+            if (step1) step1.style.display = 'block';
+            if (step2) step2.style.display = 'none';
+            if (typeof actualizarIndicadoresInst === 'function') actualizarIndicadoresInst();
+            if (typeof actualizarBotonesInst === 'function') actualizarBotonesInst();
+        }
+
+        // Resetear campos del representante
+        const campos = [
+            'inst_representante_nombre',
+            'inst_representante_documento',
+            'inst_representante_telefono',
+            'inst_representante_email',
+            'inst_representante_cargo',
+            'inst_representante_direccion'
+        ];
+        campos.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.value = '';
+                el.disabled = false;
+            }
+        });
+
+        // Resetear campos de institución
         const form = document.getElementById('formInstitucion');
         if (form) form.reset();
         const cargo = document.getElementById('inst_representante_cargo');
@@ -423,6 +309,19 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     window.limpiarFormDepartamento = function() {
+        // Resetear pasos del wizard de departamento
+        if (typeof pasoActual !== 'undefined') {
+            pasoActual = 1;
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            const step3 = document.getElementById('step3');
+            if (step1) step1.style.display = 'block';
+            if (step2) step2.style.display = 'none';
+            if (step3) step3.style.display = 'none';
+            if (typeof actualizarIndicadores === 'function') actualizarIndicadores();
+            if (typeof actualizarBotones === 'function') actualizarBotones();
+        }
+
         const form = document.getElementById('formDepartamento');
         if (form) form.reset();
 
@@ -438,9 +337,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const usarRep = document.getElementById('usarRepresentanteInstitucion');
         if (usarRep) usarRep.checked = false;
 
-        setCamposRepresentanteEstado(false);
-        limpiarCamposRepresentante();
-        resetCamposOcultosResponsable();
+        window.setCamposRepresentanteEstado(false);
+        window.limpiarCamposRepresentante();
+        window.resetCamposOcultosResponsable();
 
         const deptoNombre = document.getElementById('depto_nombre');
         if (deptoNombre) deptoNombre.classList.remove('is-valid', 'is-invalid');
@@ -453,6 +352,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const feedbackError = document.getElementById('feedbackNombreDeptoError');
         if (feedbackError) feedbackError.style.display = 'none';
+
+        // Resetear tarjetas de institución
+        const cardGob = document.getElementById('cardGobernacion');
+        const cardOtra = document.getElementById('cardOtra');
+        if (cardGob) {
+            cardGob.classList.add('active');
+            cardGob.style.borderColor = '#1e3c72';
+        }
+        if (cardOtra) {
+            cardOtra.classList.remove('active');
+            cardOtra.style.borderColor = '#dee2e6';
+        }
+
+        // Resetear radios
+        const radioGob = document.querySelector('input[name="tipo_institucion"][value="gobernacion"]');
+        const radioOtr = document.querySelector('input[name="tipo_institucion"][value="otra"]');
+        if (radioGob) radioGob.checked = true;
+        if (radioOtr) radioOtr.checked = false;
+
+        // Ocultar contenedor de "Otra"
+        const contenedorOtra = document.getElementById('contenedorOtraInstitucion');
+        if (contenedorOtra) contenedorOtra.style.display = 'none';
+
+        // Seleccionar Gobernación en el select
+        const selectInst = document.getElementById('depto_institucion_id');
+        if (selectInst) {
+            const gobOption = Array.from(selectInst.options).find(opt => opt.text.includes('Gobernación'));
+            if (gobOption) selectInst.value = gobOption.value;
+        }
     };
 
     window.limpiarFormResponsable = function() {
@@ -460,38 +388,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (form) form.reset();
         const deptoSelect = document.getElementById('resp_departamento_id');
         if (deptoSelect) deptoSelect.innerHTML = '<option value="">Sin departamento</option>';
-=======
-        document.getElementById('formInstitucion').reset();
-        document.getElementById('inst_representante_cargo').value = 'Representante';
-        document.getElementById('inst_nombre').classList.remove('is-valid', 'is-invalid');
-    };
-
-    window.limpiarFormDepartamento = function() {
-        document.getElementById('formDepartamento').reset();
-        document.getElementById('sinInstitucion').checked = false;
-        document.getElementById('contenedorInstitucionDepto').style.display = 'block';
-        document.getElementById('contenedorCheckRepresentante').style.display = 'block';
-        document.getElementById('usarRepresentanteInstitucion').checked = false;
-        document.getElementById('depto_representante_nombre').disabled = false;
-        document.getElementById('depto_representante_nombre').placeholder = '';
-        document.getElementById('depto_representante_cargo').value = 'Jefe de Departamento';
-        document.getElementById('depto_nombre').classList.remove('is-valid', 'is-invalid');
-        document.getElementById('iconoNombreDepto').style.display = 'none';
-        document.getElementById('feedbackNombreDeptoOk').style.display = 'none';
-        document.getElementById('feedbackNombreDeptoError').style.display = 'none';
-    };
-
-    window.limpiarFormResponsable = function() {
-        document.getElementById('formResponsable').reset();
-        document.getElementById('resp_departamento_id').innerHTML = '<option value="">Sin departamento</option>';
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
+        const origen = document.getElementById('responsableOrigen');
+        if (origen) origen.value = 'directo';
     };
 
     // ===========================
     // Toggle institución en departamento
     // ===========================
     window.toggleInstitucionDepartamento = function() {
-<<<<<<< HEAD
         const sinInstitucion = document.getElementById('sinInstitucion')?.checked || false;
         const contenedorInst = document.getElementById('contenedorInstitucionDepto');
         const contenedorCheck = document.getElementById('contenedorCheckRepresentante');
@@ -506,33 +410,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const usarRep = document.getElementById('usarRepresentanteInstitucion');
             if (usarRep) usarRep.checked = false;
 
-            setCamposRepresentanteEstado(false);
-            limpiarCamposRepresentante();
-            resetCamposOcultosResponsable();
-=======
-        const sinInstitucion = document.getElementById('sinInstitucion').checked;
-        document.getElementById('contenedorInstitucionDepto').style.display = sinInstitucion ? 'none' : 'block';
-        document.getElementById('contenedorCheckRepresentante').style.display = sinInstitucion ? 'none' : 'block';
-        if (sinInstitucion) {
-            document.getElementById('depto_institucion_id').value = '';
-            document.getElementById('usarRepresentanteInstitucion').checked = false;
-            document.getElementById('depto_representante_nombre').disabled = false;
-            document.getElementById('depto_representante_nombre').value = '';
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
+            window.setCamposRepresentanteEstado(false);
+            window.limpiarCamposRepresentante();
+            window.resetCamposOcultosResponsable();
         }
     };
 
-    window.cargarRepresentanteInstitucion = function() {
-<<<<<<< HEAD
-        const usarRep = document.getElementById('usarRepresentanteInstitucion');
-        if (usarRep) usarRep.checked = false;
-        setCamposRepresentanteEstado(false);
-        limpiarCamposRepresentante();
-        resetCamposOcultosResponsable();
-    };
-
     // ===========================
-    // ✅ CORREGIDO: Usar representante de la institución
+    // Toggle representante de institución (departamento)
     // ===========================
     window.toggleRepresentanteInstitucion = function() {
         const select = document.getElementById('depto_institucion_id');
@@ -541,9 +426,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!checkbox || !select) return;
 
         if (!checkbox.checked) {
-            setCamposRepresentanteEstado(false);
-            limpiarCamposRepresentante();
-            resetCamposOcultosResponsable();
+            window.setCamposRepresentanteEstado(false);
+            window.limpiarCamposRepresentante();
+            window.resetCamposOcultosResponsable();
             return;
         }
 
@@ -569,13 +454,11 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(data => {
             if (data.responsable) {
-                // ✅ Setear campos ocultos
                 const inputUsarResp = document.getElementById('usar_responsable_institucion_input');
                 const inputRespId = document.getElementById('responsable_id_input');
                 if (inputUsarResp) inputUsarResp.value = '1';
                 if (inputRespId) inputRespId.value = data.responsable.id;
 
-                // Rellenar campos
                 const campos = {
                     'depto_representante_nombre': data.responsable.nombre || '',
                     'depto_representante_documento': data.responsable.documento || '',
@@ -594,46 +477,20 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             } else {
                 checkbox.checked = false;
-                setCamposRepresentanteEstado(false);
-                limpiarCamposRepresentante();
-                resetCamposOcultosResponsable();
+                window.setCamposRepresentanteEstado(false);
+                window.limpiarCamposRepresentante();
+                window.resetCamposOcultosResponsable();
                 mostrarToast('La institución no tiene un responsable asignado', 'warning');
             }
         })
         .catch(error => {
             console.error('Error al obtener responsable:', error);
             checkbox.checked = false;
-            setCamposRepresentanteEstado(false);
-            limpiarCamposRepresentante();
-            resetCamposOcultosResponsable();
+            window.setCamposRepresentanteEstado(false);
+            window.limpiarCamposRepresentante();
+            window.resetCamposOcultosResponsable();
             mostrarToast('Error al obtener el responsable', 'error');
         });
-=======
-        document.getElementById('usarRepresentanteInstitucion').checked = false;
-        document.getElementById('depto_representante_nombre').disabled = false;
-        document.getElementById('depto_representante_nombre').value = '';
-    };
-
-    window.toggleRepresentanteInstitucion = function() {
-        const select = document.getElementById('depto_institucion_id');
-        const checkbox = document.getElementById('usarRepresentanteInstitucion');
-        const inputNombre = document.getElementById('depto_representante_nombre');
-
-        if (checkbox.checked) {
-            const selectedOption = select.options[select.selectedIndex];
-            const representante = selectedOption.getAttribute('data-representante-nombre');
-            if (representante && representante.trim() !== '') {
-                inputNombre.value = representante;
-                inputNombre.disabled = true;
-            } else {
-                checkbox.checked = false;
-                mostrarToast('La institución no tiene representante', 'warning');
-            }
-        } else {
-            inputNombre.value = '';
-            inputNombre.disabled = false;
-        }
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     };
 
     // ===========================
@@ -642,7 +499,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let timeoutValidacionDepto = null;
     window.validarNombreDepto = function() {
         clearTimeout(timeoutValidacionDepto);
-<<<<<<< HEAD
         const input = document.getElementById('depto_nombre');
         const icono = document.getElementById('iconoNombreDepto');
         const feedbackOk = document.getElementById('feedbackNombreDeptoOk');
@@ -657,26 +513,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (icono) icono.style.display = 'none';
             if (feedbackOk) feedbackOk.style.display = 'none';
             if (feedbackError) feedbackError.style.display = 'none';
-=======
-        const nombre = document.getElementById('depto_nombre').value.trim();
-        const icono = document.getElementById('iconoNombreDepto');
-        const feedbackOk = document.getElementById('feedbackNombreDeptoOk');
-        const feedbackError = document.getElementById('feedbackNombreDeptoError');
-        const input = document.getElementById('depto_nombre');
-        const institucionId = document.getElementById('depto_institucion_id').value;
-        const departamentoId = document.getElementById('departamentoId').value;
-
-        if (nombre.length < 2) {
-            icono.style.display = 'none';
-            feedbackOk.style.display = 'none';
-            feedbackError.style.display = 'none';
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             input.classList.remove('is-valid', 'is-invalid');
             return;
         }
 
         timeoutValidacionDepto = setTimeout(() => {
-<<<<<<< HEAD
             fetch(`/admin/departamentos?buscar=${encodeURIComponent(nombre)}`, {
                 headers: { 'Accept': 'application/json' }
             })
@@ -712,47 +553,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     input.classList.remove('is-invalid');
                 }
             });
-=======
-            let url = `/admin/departamentos?buscar=${encodeURIComponent(nombre)}`;
-            fetch(url, { headers: { 'Accept': 'application/json' } })
-                .then(r => r.json())
-                .then(response => {
-                    const data = response.data || response;
-                    let existe = false;
-                    if (data && data.length > 0) {
-                        data.forEach(item => {
-                            if (item.nombre.toLowerCase() === nombre.toLowerCase()) {
-                                if (departamentoId && item.id == departamentoId) return;
-                                if (institucionId) {
-                                    if (item.institucion_id == institucionId) existe = true;
-                                } else {
-                                    if (!item.institucion_id) existe = true;
-                                }
-                            }
-                        });
-                    }
-                    if (existe) {
-                        icono.style.display = 'inline';
-                        icono.innerHTML = '<svg viewBox="0 0 24 24" stroke="#c5221f" stroke-width="2" fill="none" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
-                        feedbackOk.style.display = 'none';
-                        feedbackError.style.display = 'block';
-                        input.classList.add('is-invalid');
-                        input.classList.remove('is-valid');
-                    } else {
-                        icono.style.display = 'inline';
-                        icono.innerHTML = '<svg viewBox="0 0 24 24" stroke="#1e7e34" stroke-width="2" fill="none" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>';
-                        feedbackOk.style.display = 'block';
-                        feedbackError.style.display = 'none';
-                        input.classList.add('is-valid');
-                        input.classList.remove('is-invalid');
-                    }
-                });
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         }, 500);
     };
 
     // ===========================
-<<<<<<< HEAD
     // Inicialización de tabs y eventos
     // ===========================
     const tabInstituciones = document.querySelector('#instituciones-tab');
@@ -815,51 +619,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const respInstitucion = document.getElementById('resp_institucion_id');
     if (respInstitucion) respInstitucion.addEventListener('change', cargarDepartamentosDeInstitucion);
-=======
-    // Inicialización
-    // ===========================
-    document.querySelector('#instituciones-tab').addEventListener('shown.bs.tab', cargarInstituciones);
-    document.querySelector('#departamentos-tab').addEventListener('shown.bs.tab', cargarDepartamentos);
-    document.querySelector('#responsables-tab').addEventListener('shown.bs.tab', cargarResponsables);
-    document.querySelector('#arbol-tab').addEventListener('shown.bs.tab', cargarArbol);
-    cargarInstituciones();
-
-    document.getElementById('buscarInstituciones').addEventListener('input', function() {
-        clearTimeout(this.timeout);
-        this.timeout = setTimeout(cargarInstituciones, 300);
-    });
-    document.getElementById('filtroEstadoInstituciones').addEventListener('change', cargarInstituciones);
-    document.getElementById('buscarDepartamentos').addEventListener('input', function() {
-        clearTimeout(this.timeout);
-        this.timeout = setTimeout(cargarDepartamentos, 300);
-    });
-    document.getElementById('filtroInstitucionDepartamentos').addEventListener('change', cargarDepartamentos);
-    document.getElementById('buscarResponsables').addEventListener('input', function() {
-        clearTimeout(this.timeout);
-        this.timeout = setTimeout(cargarResponsables, 300);
-    });
-    document.getElementById('filtroInstitucionResponsables').addEventListener('change', function() {
-        cargarResponsables();
-        cargarDepartamentosDeInstitucion();
-    });
-    document.getElementById('buscarArbol').addEventListener('input', function() {
-        clearTimeout(this.timeout);
-        this.timeout = setTimeout(cargarArbol, 300);
-    });
-    document.getElementById('resp_institucion_id').addEventListener('change', cargarDepartamentosDeInstitucion);
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
     // ===========================
     // Carga de datos
     // ===========================
     function cargarInstituciones() {
-<<<<<<< HEAD
         const buscar = document.getElementById('buscarInstituciones')?.value || '';
         const estado = document.getElementById('filtroEstadoInstituciones')?.value || '';
-=======
-        const buscar = document.getElementById('buscarInstituciones').value;
-        const estado = document.getElementById('filtroEstadoInstituciones').value;
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         mostrarCarga('tablaInstituciones');
         let url = '/admin/instituciones?';
         if (buscar) url += `buscar=${encodeURIComponent(buscar)}&`;
@@ -871,13 +637,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function cargarDepartamentos() {
-<<<<<<< HEAD
         const buscar = document.getElementById('buscarDepartamentos')?.value || '';
         const institucionId = document.getElementById('filtroInstitucionDepartamentos')?.value || '';
-=======
-        const buscar = document.getElementById('buscarDepartamentos').value;
-        const institucionId = document.getElementById('filtroInstitucionDepartamentos').value;
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         mostrarCarga('tablaDepartamentos');
         let url = '/admin/departamentos?';
         if (buscar) url += `buscar=${encodeURIComponent(buscar)}&`;
@@ -889,13 +650,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function cargarResponsables() {
-<<<<<<< HEAD
         const buscar = document.getElementById('buscarResponsables')?.value || '';
         const institucionId = document.getElementById('filtroInstitucionResponsables')?.value || '';
-=======
-        const buscar = document.getElementById('buscarResponsables').value;
-        const institucionId = document.getElementById('filtroInstitucionResponsables').value;
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         mostrarCarga('tablaResponsables');
         let url = '/admin/responsables?';
         if (buscar) url += `buscar=${encodeURIComponent(buscar)}&`;
@@ -907,14 +663,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function cargarDepartamentosDeInstitucion() {
-<<<<<<< HEAD
         const institucionId = document.getElementById('resp_institucion_id')?.value || '';
         const selectDepto = document.getElementById('resp_departamento_id');
         if (!selectDepto) return;
-=======
-        const institucionId = document.getElementById('resp_institucion_id').value;
-        const selectDepto = document.getElementById('resp_departamento_id');
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         selectDepto.innerHTML = '<option value="">Sin departamento</option>';
         if (!institucionId) return;
         fetch(`/admin/departamentos/por-institucion/${institucionId}`, { headers: { 'Accept': 'application/json' } })
@@ -954,12 +705,8 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron instituciones${buscar ? ' para "' + buscar + '"' : ''}</td></tr>`;
         }
         html += '</tbody></table>';
-<<<<<<< HEAD
         const tabla = document.getElementById('tablaInstituciones');
         if (tabla) tabla.innerHTML = html;
-=======
-        document.getElementById('tablaInstituciones').innerHTML = html;
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     }
 
     function renderTablaDepartamentos(response, buscar) {
@@ -985,12 +732,8 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron departamentos${buscar ? ' para "' + buscar + '"' : ''}</td></tr>`;
         }
         html += '</tbody></table>';
-<<<<<<< HEAD
         const tabla = document.getElementById('tablaDepartamentos');
         if (tabla) tabla.innerHTML = html;
-=======
-        document.getElementById('tablaDepartamentos').innerHTML = html;
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     }
 
     function renderTablaResponsables(response, buscar) {
@@ -1018,26 +761,18 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron responsables${buscar ? ' para "' + buscar + '"' : ''}</td></tr>`;
         }
         html += '</tbody></table>';
-<<<<<<< HEAD
         const tabla = document.getElementById('tablaResponsables');
         if (tabla) tabla.innerHTML = html;
     }
 
     // ===========================
     // Funciones globales (modales)
-=======
-        document.getElementById('tablaResponsables').innerHTML = html;
-    }
-
-    // ===========================
-    // Funciones globales
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     // ===========================
     window.abrirModalInstitucion = function() {
         cerrarModalDetalle();
         document.getElementById('modalInstitucionLabel').textContent = 'Nueva Institución';
         document.getElementById('formMethodInstitucion').value = 'POST';
-        limpiarFormInstitucion();
+        window.limpiarFormInstitucion();
         document.getElementById('institucionId').value = '';
         new bootstrap.Modal(document.getElementById('modalInstitucion')).show();
     };
@@ -1056,6 +791,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('inst_ubicacion').value = d.ubicacion || '';
                     document.getElementById('inst_informacion').value = d.informacion || '';
 
+                    // Cargar datos del representante
                     if (d.responsables && d.responsables.length > 0) {
                         const rep = d.responsables.find(r => r.cargo === 'Representante' && !r.departamento_id) || d.responsables[0];
                         document.getElementById('inst_representante_nombre').value = rep.nombre || '';
@@ -1065,6 +801,18 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('inst_representante_cargo').value = rep.cargo || 'Representante';
                         document.getElementById('inst_representante_direccion').value = rep.direccion || '';
                     }
+
+                    // Configurar wizard en paso 2 para edición
+                    if (typeof pasoActualInst !== 'undefined') {
+                        pasoActualInst = 2;
+                        const step1 = document.getElementById('stepInst1');
+                        const step2 = document.getElementById('stepInst2');
+                        if (step1) step1.style.display = 'none';
+                        if (step2) step2.style.display = 'block';
+                        if (typeof actualizarIndicadoresInst === 'function') actualizarIndicadoresInst();
+                        if (typeof actualizarBotonesInst === 'function') actualizarBotonesInst();
+                    }
+
                     new bootstrap.Modal(document.getElementById('modalInstitucion')).show();
                 }
             });
@@ -1074,7 +822,7 @@ document.addEventListener('DOMContentLoaded', function() {
         cerrarModalDetalle();
         document.getElementById('modalDepartamentoLabel').textContent = 'Nuevo Departamento';
         document.getElementById('formMethodDepartamento').value = 'POST';
-        limpiarFormDepartamento();
+        window.limpiarFormDepartamento();
         document.getElementById('departamentoId').value = '';
         cargarInstitucionesEnSelect();
         new bootstrap.Modal(document.getElementById('modalDepartamento')).show();
@@ -1110,13 +858,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('depto_ubicacion').value = d.ubicacion || '';
                         document.getElementById('depto_informacion').value = d.informacion || '';
                         document.getElementById('usarRepresentanteInstitucion').checked = false;
-<<<<<<< HEAD
 
-                        setCamposRepresentanteEstado(false);
-                        resetCamposOcultosResponsable();
-=======
-                        document.getElementById('depto_representante_nombre').disabled = false;
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
+                        window.setCamposRepresentanteEstado(false);
+                        window.resetCamposOcultosResponsable();
 
                         if (d.responsables && d.responsables.length > 0) {
                             const rep = d.responsables.find(r => r.cargo === 'Jefe de Departamento') || d.responsables[0];
@@ -1138,8 +882,10 @@ document.addEventListener('DOMContentLoaded', function() {
         cerrarModalDetalle();
         document.getElementById('modalResponsableLabel').textContent = 'Nuevo Responsable';
         document.getElementById('formMethodResponsable').value = 'POST';
-        limpiarFormResponsable();
+        window.limpiarFormResponsable();
         document.getElementById('responsableId').value = '';
+        const origen = document.getElementById('responsableOrigen');
+        if (origen) origen.value = 'directo';
         cargarInstitucionesEnSelect();
         new bootstrap.Modal(document.getElementById('modalResponsable')).show();
     };
@@ -1175,6 +921,50 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     };
 
+    // ===========================
+    // Institución rápida desde departamento
+    // ===========================
+    window.abrirModalInstitucionDesdeDepartamento = function() {
+        const form = document.getElementById('formInstitucionRapida');
+        if (form) form.reset();
+        const modal = new bootstrap.Modal(document.getElementById('modalInstitucionRapida'));
+        modal.show();
+        setTimeout(() => {
+            const input = document.getElementById('inst_rapida_nombre');
+            if (input) input.focus();
+        }, 300);
+    };
+
+    // ===========================
+    // Responsable desde institución
+    // ===========================
+    window.abrirModalResponsableDesdeInstitucion = function() {
+        const form = document.getElementById('formResponsable');
+        if (form) form.reset();
+
+        const origen = document.getElementById('responsableOrigen');
+        if (origen) origen.value = 'institucion';
+
+        const selectInst = document.getElementById('resp_institucion_id');
+        const instActual = document.getElementById('inst_nombre')?.value || '';
+        if (selectInst && instActual) {
+            const options = Array.from(selectInst.options);
+            const match = options.find(opt => opt.text === instActual || opt.text.includes(instActual));
+            if (match) selectInst.value = match.value;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('modalResponsable'));
+        modal.show();
+
+        setTimeout(() => {
+            const input = document.getElementById('resp_nombre');
+            if (input) input.focus();
+        }, 300);
+    };
+
+    // ===========================
+    // Toggle estado
+    // ===========================
     window.toggleEstado = function(tipo, id) {
         fetch(getUrl(tipo, id) + '/toggle-status', {
             method: 'PATCH',
@@ -1191,6 +981,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     };
 
+    // ===========================
+    // Confirmar eliminar
+    // ===========================
     window.confirmarEliminar = function(tipo, id, nombre, tieneDependencias) {
         elementoAEliminar = { tipo, id };
         document.getElementById('deleteNombre').textContent = nombre;
@@ -1199,7 +992,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const advertencia = document.getElementById('deleteAdvertencia');
         const btnEliminar = document.getElementById('btnConfirmarEliminar');
 
-<<<<<<< HEAD
         if (warning) warning.style.display = 'none';
         if (advertencia) advertencia.style.display = 'none';
         if (btnEliminar) {
@@ -1213,19 +1005,6 @@ document.addEventListener('DOMContentLoaded', function() {
             advertencia.style.display = 'block';
             advertencia.textContent = 'Se eliminarán también todos los departamentos y responsables asociados.';
         } else if (tipo === 'departamento' && advertencia) {
-=======
-        warning.style.display = 'none';
-        advertencia.style.display = 'none';
-        btnEliminar.style.display = 'inline-block';
-        btnEliminar.textContent = 'Eliminar';
-        btnEliminar.className = 'btn btn-danger';
-        btnEliminar.removeAttribute('data-confirmado');
-
-        if (tipo === 'institucion') {
-            advertencia.style.display = 'block';
-            advertencia.textContent = 'Se eliminarán también todos los departamentos y responsables asociados.';
-        } else if (tipo === 'departamento') {
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             advertencia.style.display = 'block';
             advertencia.textContent = 'Se eliminará el responsable asociado a este departamento.';
         }
@@ -1233,7 +1012,6 @@ document.addEventListener('DOMContentLoaded', function() {
         new bootstrap.Modal(document.getElementById('modalEliminar')).show();
     };
 
-<<<<<<< HEAD
     const btnConfirmarEliminar = document.getElementById('btnConfirmarEliminar');
     if (btnConfirmarEliminar) {
         btnConfirmarEliminar.addEventListener('click', function() {
@@ -1287,67 +1065,21 @@ document.addEventListener('DOMContentLoaded', function() {
             elementoAEliminar = null;
         });
     }
-=======
-    document.getElementById('btnConfirmarEliminar').addEventListener('click', function() {
-        if (!elementoAEliminar) return;
-        const btn = this;
-
-        if (btn.getAttribute('data-confirmado') !== 'true') {
-            btn.textContent = '¿Confirmar?';
-            btn.className = 'btn btn-warning';
-            btn.setAttribute('data-confirmado', 'true');
-            setTimeout(() => {
-                btn.textContent = 'Eliminar';
-                btn.className = 'btn btn-danger';
-                btn.removeAttribute('data-confirmado');
-            }, 3000);
-            return;
-        }
-
-        const { tipo, id } = elementoAEliminar;
-        fetch(getUrl(tipo, id), {
-            method: 'DELETE',
-            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
-        })
-        .then(r => r.json())
-        .then(result => {
-            bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
-            if (result.success) {
-                mostrarToast(result.message || 'Eliminado exitosamente', 'success');
-                if (tipo === 'institucion') { cargarInstituciones(); cargarDepartamentos(); cargarResponsables(); }
-                else if (tipo === 'departamento') cargarDepartamentos();
-                else cargarResponsables();
-            } else {
-                mostrarToast(result.message || 'Error al eliminar', 'error');
-            }
-            btn.textContent = 'Eliminar';
-            btn.className = 'btn btn-danger';
-            btn.removeAttribute('data-confirmado');
-        });
-    });
-
-    document.getElementById('modalEliminar').addEventListener('hidden.bs.modal', function() {
-        const btn = document.getElementById('btnConfirmarEliminar');
-        btn.textContent = 'Eliminar';
-        btn.className = 'btn btn-danger';
-        btn.removeAttribute('data-confirmado');
-        elementoAEliminar = null;
-    });
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
     // ===========================
     // Guardar formularios
     // ===========================
-<<<<<<< HEAD
     const formInstitucion = document.getElementById('formInstitucion');
     if (formInstitucion) {
         formInstitucion.addEventListener('submit', function(e) {
             e.preventDefault();
+
             const formData = new FormData(this);
             const method = document.getElementById('formMethodInstitucion')?.value || 'POST';
             const id = document.getElementById('institucionId')?.value || '';
             let url = getUrlBase('institucion');
             if (method === 'PUT' && id) { url = getUrl('institucion', id); formData.append('_method', 'PUT'); }
+
             fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' } })
                 .then(r => r.json())
                 .then(result => {
@@ -1364,12 +1096,94 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // ===========================
+    // Formulario Institución Rápida
+    // ===========================
+    const formInstitucionRapida = document.getElementById('formInstitucionRapida');
+    if (formInstitucionRapida) {
+        formInstitucionRapida.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const submitBtn = this.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Guardando...';
+            submitBtn.disabled = true;
+
+            const formData = new FormData(this);
+
+            fetch('/admin/instituciones', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    const nuevaInstitucion = result.data;
+                    bootstrap.Modal.getInstance(document.getElementById('modalInstitucionRapida')).hide();
+                    mostrarToast('Institución "' + nuevaInstitucion.nombre + '" creada exitosamente', 'success');
+                    actualizarSelectInstituciones(nuevaInstitucion);
+                    cargarInstitucionesEnSelect();
+                } else {
+                    if (result.errors) {
+                        let mensaje = 'Error de validación:\n';
+                        Object.values(result.errors).forEach(error => {
+                            mensaje += '- ' + error.join('\n') + '\n';
+                        });
+                        mostrarToast(mensaje, 'error');
+                    } else {
+                        mostrarToast(result.message || 'Error al crear la institución', 'error');
+                    }
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarToast('Error de conexión al crear la institución', 'error');
+            })
+            .finally(() => {
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
+            });
+        });
+    }
+
+    function actualizarSelectInstituciones(nuevaInstitucion) {
+        const select = document.getElementById('depto_institucion_id');
+        if (!select) return;
+
+        const existe = Array.from(select.options).some(opt => opt.value == nuevaInstitucion.id);
+        if (!existe) {
+            const option = document.createElement('option');
+            option.value = nuevaInstitucion.id;
+            option.textContent = nuevaInstitucion.nombre;
+            select.appendChild(option);
+        }
+
+        select.value = nuevaInstitucion.id;
+        const event = new Event('change');
+        select.dispatchEvent(event);
+
+        const radioOtra = document.querySelector('input[name="tipo_institucion"][value="otra"]');
+        if (radioOtra && !radioOtra.checked) {
+            const cardOtra = document.getElementById('cardOtra');
+            if (cardOtra) cardOtra.click();
+        }
+
+        const contenedorOtra = document.getElementById('contenedorOtraInstitucion');
+        if (contenedorOtra) contenedorOtra.style.display = 'block';
+    }
+
+    // ===========================
+    // Formulario Departamento
+    // ===========================
     const formDepartamento = document.getElementById('formDepartamento');
     if (formDepartamento) {
         formDepartamento.addEventListener('submit', function(e) {
             e.preventDefault();
 
-            // ✅ Habilitar temporalmente campos deshabilitados para que se envíen
             const camposDeshabilitados = this.querySelectorAll('input:disabled, textarea:disabled, select:disabled');
             camposDeshabilitados.forEach(campo => campo.disabled = false);
 
@@ -1391,94 +1205,49 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
                 .finally(() => {
-                    // ✅ Volver a deshabilitar si el checkbox sigue marcado
                     const usarRep = document.getElementById('usarRepresentanteInstitucion');
                     if (usarRep && usarRep.checked) {
-                        setCamposRepresentanteEstado(true);
+                        window.setCamposRepresentanteEstado(true);
                     }
                 });
         });
     }
 
+    // ===========================
+    // Formulario Responsable
+    // ===========================
     const formResponsable = document.getElementById('formResponsable');
     if (formResponsable) {
         formResponsable.addEventListener('submit', function(e) {
             e.preventDefault();
+
             const formData = new FormData(this);
             const method = document.getElementById('formMethodResponsable')?.value || 'POST';
             const id = document.getElementById('responsableId')?.value || '';
             let url = getUrlBase('responsable');
             if (method === 'PUT' && id) { url = getUrl('responsable', id); formData.append('_method', 'PUT'); }
+
+            const origen = document.getElementById('responsableOrigen')?.value || 'directo';
+
             fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' } })
                 .then(r => r.json())
                 .then(result => {
                     if (result.success) {
                         bootstrap.Modal.getInstance(document.getElementById('modalResponsable')).hide();
                         mostrarToast(result.message || 'Guardado exitosamente', 'success');
-                        cargarResponsables();
+
+                        if (origen === 'institucion') {
+                            cargarInstitucionesEnSelect();
+                            cargarResponsables();
+                        } else {
+                            cargarResponsables();
+                        }
                     } else {
                         mostrarToast(result.message || 'Error al guardar', 'error');
                     }
                 });
         });
     }
-=======
-    document.getElementById('formInstitucion').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const method = document.getElementById('formMethodInstitucion').value;
-        const id = document.getElementById('institucionId').value;
-        let url = getUrlBase('institucion');
-        if (method === 'PUT') { url = getUrl('institucion', id); formData.append('_method', 'PUT'); }
-        fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(result => {
-                if (result.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('modalInstitucion')).hide();
-                    mostrarToast(result.message || 'Guardado exitosamente', 'success');
-                    cargarInstituciones();
-                    cargarDepartamentos();
-                    cargarInstitucionesEnSelect();
-                } else { mostrarToast(result.message || 'Error al guardar', 'error'); }
-            });
-    });
-
-    document.getElementById('formDepartamento').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const method = document.getElementById('formMethodDepartamento').value;
-        const id = document.getElementById('departamentoId').value;
-        let url = getUrlBase('departamento');
-        if (method === 'PUT') { url = getUrl('departamento', id); formData.append('_method', 'PUT'); }
-        fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(result => {
-                if (result.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('modalDepartamento')).hide();
-                    mostrarToast(result.message || 'Guardado exitosamente', 'success');
-                    cargarDepartamentos();
-                } else { mostrarToast(result.message || 'Error al guardar', 'error'); }
-            });
-    });
-
-    document.getElementById('formResponsable').addEventListener('submit', function(e) {
-        e.preventDefault();
-        const formData = new FormData(this);
-        const method = document.getElementById('formMethodResponsable').value;
-        const id = document.getElementById('responsableId').value;
-        let url = getUrlBase('responsable');
-        if (method === 'PUT') { url = getUrl('responsable', id); formData.append('_method', 'PUT'); }
-        fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(result => {
-                if (result.success) {
-                    bootstrap.Modal.getInstance(document.getElementById('modalResponsable')).hide();
-                    mostrarToast(result.message || 'Guardado exitosamente', 'success');
-                    cargarResponsables();
-                } else { mostrarToast(result.message || 'Error al guardar', 'error'); }
-            });
-    });
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
     // ===========================
     // Navegación desde detalle
@@ -1577,18 +1346,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Vista de Árbol Jerárquico
     // ===========================
     function cargarArbol() {
-<<<<<<< HEAD
         const buscar = document.getElementById('buscarArbol')?.value?.toLowerCase() || '';
         const contenedor = document.getElementById('arbolContenedor');
         if (!contenedor) return;
 
         contenedor.innerHTML = `<div class="loading-spinner"><svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Cargando árbol...</div>`;
 
-=======
-        const buscar = document.getElementById('buscarArbol').value.toLowerCase();
-        const contenedor = document.getElementById('arbolContenedor');
-        contenedor.innerHTML = `<div class="loading-spinner"><svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Cargando árbol...</div>`;
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         fetch('/admin/instituciones?todos=1', { headers: { 'Accept': 'application/json' } })
             .then(r => r.json())
             .then(response => {
@@ -1603,7 +1366,6 @@ document.addEventListener('DOMContentLoaded', function() {
                             .then(result => {
                                 if (result.success) {
                                     const d = result.data;
-<<<<<<< HEAD
                                     const coincide = !buscar ||
                                         d.nombre.toLowerCase().includes(buscar) ||
                                         (d.departamentos && d.departamentos.some(depto => depto.nombre.toLowerCase().includes(buscar))) ||
@@ -1624,18 +1386,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.error('Error:', e);
                 contenedor.innerHTML = '<p class="text-center py-4 text-danger">Error al cargar el árbol</p>';
             });
-=======
-                                    const coincide = !buscar || d.nombre.toLowerCase().includes(buscar) || (d.departamentos && d.departamentos.some(depto => depto.nombre.toLowerCase().includes(buscar))) || (d.responsables && d.responsables.some(resp => resp.nombre.toLowerCase().includes(buscar)));
-                                    if (coincide || !buscar) arbolContainer.innerHTML += renderNodoInstitucion(d);
-                                }
-                                cargadas++;
-                                if (cargadas === instituciones.length && arbolContainer.innerHTML === '') arbolContainer.innerHTML = '<p class="text-center py-4 text-muted">No se encontraron resultados</p>';
-                            });
-                    });
-                } else { contenedor.innerHTML = '<p class="text-center py-4 text-muted">No hay instituciones registradas</p>'; }
-            })
-            .catch(e => { console.error('Error:', e); contenedor.innerHTML = '<p class="text-center py-4 text-danger">Error al cargar el árbol</p>'; });
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     }
 
     function renderNodoInstitucion(d) {
@@ -1669,11 +1419,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const toggle = header.querySelector('.arbol-toggle');
         if (hijos && hijos.classList.contains('arbol-hijos')) {
             hijos.classList.toggle('collapsed');
-<<<<<<< HEAD
             if (toggle) toggle.classList.toggle('collapsed');
-=======
-            toggle.classList.toggle('collapsed');
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         }
     };
 
@@ -1687,4 +1433,462 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.arbol-toggle').forEach(t => t.classList.add('collapsed'));
     };
 
+    // ===========================
+    // EVENTOS RESPONSABLE - DEPARTAMENTOS POR INSTITUCIÓN
+    // ===========================
+    const respInstitucionSelect = document.getElementById('resp_institucion_id');
+    if (respInstitucionSelect) {
+        respInstitucionSelect.addEventListener('change', function() {
+            const selectDepto = document.getElementById('resp_departamento_id');
+            if (!selectDepto) return;
+
+            const id = this.value;
+            selectDepto.innerHTML = '<option value="">Sin departamento</option>';
+
+            if (!id) return;
+
+            fetch(`/admin/departamentos/por-institucion/${id}`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success && result.data) {
+                    result.data.forEach(depto => {
+                        selectDepto.innerHTML += `<option value="${depto.id}">${escapeHtml(depto.nombre)}</option>`;
+                    });
+                }
+            })
+            .catch(e => console.error('Error:', e));
+        });
+    }
+
+    // ===========================
+    // WIZARD DE 3 PASOS - DEPARTAMENTOS
+    // ===========================
+
+    let pasoActual = 1;
+    const totalPasos = 3;
+
+    window.cambiarPaso = function(direccion) {
+        const nuevoPaso = pasoActual + direccion;
+
+        if (nuevoPaso < 1 || nuevoPaso > totalPasos) return;
+
+        if (direccion === 1 && !validarPaso(pasoActual)) {
+            return;
+        }
+
+        const stepActual = document.getElementById(`step${pasoActual}`);
+        if (stepActual) stepActual.style.display = 'none';
+
+        pasoActual = nuevoPaso;
+
+        const stepNuevo = document.getElementById(`step${pasoActual}`);
+        if (stepNuevo) stepNuevo.style.display = 'block';
+
+        actualizarIndicadores();
+        actualizarBotones();
+    };
+
+    function validarPaso(paso) {
+        switch(paso) {
+            case 1:
+                const tipoInstitucion = document.querySelector('input[name="tipo_institucion"]:checked');
+                if (!tipoInstitucion) {
+                    mostrarToast('Seleccione un tipo de institución', 'warning');
+                    return false;
+                }
+
+                if (tipoInstitucion.value === 'otra') {
+                    const selectInst = document.getElementById('depto_institucion_id');
+                    if (!selectInst || !selectInst.value) {
+                        mostrarToast('Seleccione una institución', 'warning');
+                        return false;
+                    }
+                }
+                return true;
+
+            case 2:
+                const nombre = document.getElementById('depto_nombre');
+                const ubicacion = document.getElementById('depto_ubicacion');
+                const informacion = document.getElementById('depto_informacion');
+
+                if (!nombre || !nombre.value.trim()) {
+                    mostrarToast('Ingrese el nombre del departamento', 'warning');
+                    if (nombre) nombre.focus();
+                    return false;
+                }
+
+                if (nombre.value.trim().length < 3) {
+                    mostrarToast('El nombre debe tener al menos 3 caracteres', 'warning');
+                    if (nombre) nombre.focus();
+                    return false;
+                }
+
+                if (!ubicacion || !ubicacion.value.trim()) {
+                    mostrarToast('Ingrese la ubicación', 'warning');
+                    if (ubicacion) ubicacion.focus();
+                    return false;
+                }
+
+                if (!informacion || !informacion.value.trim()) {
+                    mostrarToast('Ingrese información del departamento', 'warning');
+                    if (informacion) informacion.focus();
+                    return false;
+                }
+
+                return true;
+
+            case 3:
+                const nombreRep = document.getElementById('depto_representante_nombre');
+                const documento = document.getElementById('depto_representante_documento');
+                const telefono = document.getElementById('depto_representante_telefono');
+                const cargo = document.getElementById('depto_representante_cargo');
+
+                if (!nombreRep || !nombreRep.value.trim()) {
+                    mostrarToast('Ingrese el nombre del representante', 'warning');
+                    if (nombreRep) nombreRep.focus();
+                    return false;
+                }
+
+                if (!documento || !documento.value.trim()) {
+                    mostrarToast('Ingrese el documento del representante', 'warning');
+                    if (documento) documento.focus();
+                    return false;
+                }
+
+                if (documento.value.trim().length < 8) {
+                    mostrarToast('El documento debe tener al menos 8 caracteres', 'warning');
+                    if (documento) documento.focus();
+                    return false;
+                }
+
+                if (!telefono || !telefono.value.trim()) {
+                    mostrarToast('Ingrese el teléfono del representante', 'warning');
+                    if (telefono) telefono.focus();
+                    return false;
+                }
+
+                if (!cargo || !cargo.value.trim()) {
+                    mostrarToast('Ingrese el cargo del representante', 'warning');
+                    if (cargo) cargo.focus();
+                    return false;
+                }
+
+                return true;
+
+            default:
+                return true;
+        }
+    }
+
+    function actualizarIndicadores() {
+        for (let i = 1; i <= totalPasos; i++) {
+            const circle = document.querySelector(`#stepLabel${i} .step-circle`);
+            if (!circle) continue;
+            circle.classList.remove('active', 'completed');
+
+            if (i < pasoActual) {
+                circle.classList.add('completed');
+                circle.textContent = '✓';
+            } else if (i === pasoActual) {
+                circle.classList.add('active');
+                circle.textContent = i;
+            } else {
+                circle.textContent = i;
+            }
+        }
+
+        for (let i = 1; i <= totalPasos; i++) {
+            const label = document.getElementById(`stepLabel${i}`);
+            if (!label) continue;
+            if (i <= pasoActual) {
+                label.style.color = '#1e3c72';
+            } else {
+                label.style.color = '#adb5bd';
+            }
+        }
+
+        const progress = ((pasoActual - 1) / (totalPasos - 1)) * 100;
+        const progressBar = document.getElementById('progressBar');
+        if (progressBar) {
+            progressBar.style.width = `${progress}%`;
+        }
+
+        const indicator = document.getElementById('stepIndicator');
+        if (indicator) {
+            indicator.textContent = `Paso ${pasoActual} de ${totalPasos}`;
+        }
+    }
+
+    function actualizarBotones() {
+        const btnAnterior = document.getElementById('btnAnterior');
+        const btnSiguiente = document.getElementById('btnSiguiente');
+        const btnGuardar = document.getElementById('btnGuardar');
+
+        if (btnAnterior) {
+            btnAnterior.style.display = pasoActual === 1 ? 'none' : 'inline-block';
+        }
+
+        if (pasoActual === totalPasos) {
+            if (btnSiguiente) btnSiguiente.style.display = 'none';
+            if (btnGuardar) btnGuardar.style.display = 'inline-block';
+        } else {
+            if (btnSiguiente) btnSiguiente.style.display = 'inline-block';
+            if (btnGuardar) btnGuardar.style.display = 'none';
+        }
+    }
+
+    // ===========================
+    // WIZARD DE 2 PASOS - INSTITUCIÓN (REPRESENTANTE OBLIGATORIO)
+    // ===========================
+
+    let pasoActualInst = 1;
+    const totalPasosInst = 2;
+
+    window.cambiarPasoInst = function(direccion) {
+        const nuevoPaso = pasoActualInst + direccion;
+
+        if (nuevoPaso < 1 || nuevoPaso > totalPasosInst) return;
+
+        if (direccion === 1 && !validarPasoInst(pasoActualInst)) {
+            return;
+        }
+
+        const stepActual = document.getElementById(`stepInst${pasoActualInst}`);
+        if (stepActual) stepActual.style.display = 'none';
+
+        pasoActualInst = nuevoPaso;
+
+        const stepNuevo = document.getElementById(`stepInst${pasoActualInst}`);
+        if (stepNuevo) stepNuevo.style.display = 'block';
+
+        actualizarIndicadoresInst();
+        actualizarBotonesInst();
+    };
+
+    function validarPasoInst(paso) {
+        switch(paso) {
+            case 1:
+                const nombre = document.getElementById('inst_nombre');
+                const ubicacion = document.getElementById('inst_ubicacion');
+                const informacion = document.getElementById('inst_informacion');
+
+                if (!nombre || !nombre.value.trim()) {
+                    mostrarToast('Ingrese el nombre de la institución', 'warning');
+                    if (nombre) nombre.focus();
+                    return false;
+                }
+
+                if (nombre.value.trim().length < 3) {
+                    mostrarToast('El nombre debe tener al menos 3 caracteres', 'warning');
+                    if (nombre) nombre.focus();
+                    return false;
+                }
+
+                if (!ubicacion || !ubicacion.value.trim()) {
+                    mostrarToast('Ingrese la ubicación', 'warning');
+                    if (ubicacion) ubicacion.focus();
+                    return false;
+                }
+
+                if (!informacion || !informacion.value.trim()) {
+                    mostrarToast('Ingrese información de la institución', 'warning');
+                    if (informacion) informacion.focus();
+                    return false;
+                }
+
+                return true;
+
+            case 2:
+                // VALIDAR REPRESENTANTE - OBLIGATORIO
+                const nombreRep = document.getElementById('inst_representante_nombre');
+                const documento = document.getElementById('inst_representante_documento');
+                const telefono = document.getElementById('inst_representante_telefono');
+                const cargo = document.getElementById('inst_representante_cargo');
+
+                if (!nombreRep || !nombreRep.value.trim()) {
+                    mostrarToast('Ingrese el nombre del representante', 'warning');
+                    if (nombreRep) nombreRep.focus();
+                    return false;
+                }
+
+                if (!documento || !documento.value.trim()) {
+                    mostrarToast('Ingrese el documento del representante', 'warning');
+                    if (documento) documento.focus();
+                    return false;
+                }
+
+                if (documento.value.trim().length < 8) {
+                    mostrarToast('El documento debe tener al menos 8 caracteres', 'warning');
+                    if (documento) documento.focus();
+                    return false;
+                }
+
+                if (!telefono || !telefono.value.trim()) {
+                    mostrarToast('Ingrese el teléfono del representante', 'warning');
+                    if (telefono) telefono.focus();
+                    return false;
+                }
+
+                if (!cargo || !cargo.value.trim()) {
+                    mostrarToast('Ingrese el cargo del representante', 'warning');
+                    if (cargo) cargo.focus();
+                    return false;
+                }
+
+                return true;
+
+            default:
+                return true;
+        }
+    }
+
+    function actualizarIndicadoresInst() {
+        for (let i = 1; i <= totalPasosInst; i++) {
+            const circle = document.querySelector(`#stepLabelInst${i} .step-circle`);
+            if (!circle) continue;
+            circle.classList.remove('active', 'completed');
+
+            if (i < pasoActualInst) {
+                circle.classList.add('completed');
+                circle.textContent = '✓';
+            } else if (i === pasoActualInst) {
+                circle.classList.add('active');
+                circle.textContent = i;
+            } else {
+                circle.textContent = i;
+            }
+        }
+
+        for (let i = 1; i <= totalPasosInst; i++) {
+            const label = document.getElementById(`stepLabelInst${i}`);
+            if (!label) continue;
+            if (i <= pasoActualInst) {
+                label.style.color = '#1e3c72';
+            } else {
+                label.style.color = '#adb5bd';
+            }
+        }
+
+        const progress = ((pasoActualInst - 1) / (totalPasosInst - 1)) * 100;
+        const progressBar = document.getElementById('progressBarInst');
+        if (progressBar) {
+            progressBar.style.width = `${progress}%`;
+        }
+
+        const indicator = document.getElementById('stepIndicatorInst');
+        if (indicator) {
+            indicator.textContent = `Paso ${pasoActualInst} de ${totalPasosInst}`;
+        }
+    }
+
+    function actualizarBotonesInst() {
+        const btnAnterior = document.getElementById('btnAnteriorInst');
+        const btnSiguiente = document.getElementById('btnSiguienteInst');
+        const btnGuardar = document.getElementById('btnGuardarInst');
+
+        if (btnAnterior) {
+            btnAnterior.style.display = pasoActualInst === 1 ? 'none' : 'inline-block';
+        }
+
+        if (pasoActualInst === totalPasosInst) {
+            if (btnSiguiente) btnSiguiente.style.display = 'none';
+            if (btnGuardar) btnGuardar.style.display = 'inline-block';
+        } else {
+            if (btnSiguiente) btnSiguiente.style.display = 'inline-block';
+            if (btnGuardar) btnGuardar.style.display = 'none';
+        }
+    }
+
+    // ===========================
+    // EVENTOS DE TARJETAS DE INSTITUCIÓN (DEPARTAMENTO)
+    // ===========================
+    function initWizardEvents() {
+        const cardGobernacion = document.getElementById('cardGobernacion');
+        const cardOtra = document.getElementById('cardOtra');
+        const radioGobernacion = document.querySelector('input[name="tipo_institucion"][value="gobernacion"]');
+        const radioOtra = document.querySelector('input[name="tipo_institucion"][value="otra"]');
+        const contenedorOtra = document.getElementById('contenedorOtraInstitucion');
+        const selectInstitucion = document.getElementById('depto_institucion_id');
+
+        if (!cardGobernacion || !cardOtra) return;
+
+        cardGobernacion.addEventListener('click', function() {
+            if (radioGobernacion) radioGobernacion.checked = true;
+            this.classList.add('active');
+            cardOtra.classList.remove('active');
+            this.style.borderColor = '#1e3c72';
+            cardOtra.style.borderColor = '#dee2e6';
+            if (contenedorOtra) contenedorOtra.style.display = 'none';
+
+            if (selectInstitucion) {
+                const gobOption = Array.from(selectInstitucion.options).find(opt => opt.text.includes('Gobernación'));
+                if (gobOption) selectInstitucion.value = gobOption.value;
+            }
+        });
+
+        cardOtra.addEventListener('click', function() {
+            if (radioOtra) radioOtra.checked = true;
+            this.classList.add('active');
+            cardGobernacion.classList.remove('active');
+            this.style.borderColor = '#1e3c72';
+            cardGobernacion.style.borderColor = '#dee2e6';
+            if (contenedorOtra) contenedorOtra.style.display = 'block';
+
+            if (selectInstitucion && selectInstitucion.value) {
+                const selectedOpt = selectInstitucion.options[selectInstitucion.selectedIndex];
+                if (selectedOpt && selectedOpt.text.includes('Gobernación')) {
+                    selectInstitucion.value = '';
+                }
+            }
+        });
+
+        if (selectInstitucion) {
+            selectInstitucion.addEventListener('change', function() {
+                if (this.value) {
+                    const selectedOpt = this.options[this.selectedIndex];
+                    if (selectedOpt && selectedOpt.text.includes('Gobernación')) {
+                        if (cardGobernacion) cardGobernacion.click();
+                    } else {
+                        if (!radioOtra || !radioOtra.checked) {
+                            if (cardOtra) cardOtra.click();
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    // ===========================
+    // INICIALIZACIÓN
+    // ===========================
+    initWizardEvents();
+
+    const modalDepartamento = document.getElementById('modalDepartamento');
+    if (modalDepartamento) {
+        modalDepartamento.addEventListener('shown.bs.modal', function() {
+            window.limpiarFormDepartamento();
+        });
+    }
+
+    const modalInstitucion = document.getElementById('modalInstitucion');
+    if (modalInstitucion) {
+        modalInstitucion.addEventListener('shown.bs.modal', function() {
+            window.limpiarFormInstitucion();
+        });
+    }
+
+    // ===========================
+    // EXPONER FUNCIONES GLOBALMENTE
+    // ===========================
+    window.cambiarPaso = window.cambiarPaso || cambiarPaso;
+    window.validarPaso = validarPaso;
+    window.actualizarIndicadores = actualizarIndicadores;
+    window.actualizarBotones = actualizarBotones;
+    window.initWizardEvents = initWizardEvents;
+    window.cambiarPasoInst = window.cambiarPasoInst || cambiarPasoInst;
+    window.validarPasoInst = validarPasoInst;
+    window.actualizarIndicadoresInst = actualizarIndicadoresInst;
+    window.actualizarBotonesInst = actualizarBotonesInst;
 });

@@ -122,13 +122,7 @@ class ActivoController extends Controller
         }
     }
 
-<<<<<<< HEAD
  public function update(Request $request, $id)
-=======
-   // En app/Http/Controllers/Admin/ActivoController.php
-
-public function update(Request $request, $id)
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 {
     // Verificar permiso
     if (!auth()->user()->hasPermission('editar-activo')) {
@@ -138,7 +132,6 @@ public function update(Request $request, $id)
     try {
         $activo = Activo::findOrFail($id);
 
-<<<<<<< HEAD
         // Validación completa para edición normal
         $validated = $request->validate([
             'serial' => 'required|string|max:100|unique:activos,serial,' . $id,
@@ -167,42 +160,15 @@ public function update(Request $request, $id)
 
     } catch (\Illuminate\Validation\ValidationException $e) {
         return response()->json([
-            'success' => false, 
-            'message' => 'Error de validación', 
+            'success' => false,
+            'message' => 'Error de validación',
             'errors' => $e->errors()
         ], 422);
     } catch (\Exception $e) {
         return response()->json([
-            'success' => false, 
+            'success' => false,
             'message' => 'Error al actualizar: ' . $e->getMessage()
         ], 500);
-=======
-        // Si solo viene id_estatus, es un cambio de estado rápido
-        if ($request->has('id_estatus') && count($request->all()) === 1) {
-            $nuevoEstatus = Estatus::find($request->id_estatus);
-            if (!$nuevoEstatus) {
-                return response()->json(['success' => false, 'message' => 'Estado no válido'], 422);
-            }
-
-            if ($nuevoEstatus->es_terminal) {
-                return response()->json(['success' => false, 'message' => 'No se puede cambiar a un estado terminal'], 400);
-            }
-
-            $activo->update(['id_estatus' => $request->id_estatus]);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Estado actualizado correctamente a: ' . $nuevoEstatus->descripcion,
-                'data' => $activo->fresh(['modelo.marca', 'modelo.categoria', 'estatus', 'institucion', 'responsable'])
-            ]);
-        }
-
-        // Validación completa para edición normal (resto del código...)
-        // ... tu código existente de validación completa ...
-
-    } catch (\Exception $e) {
-        return response()->json(['success' => false, 'message' => 'Error al actualizar: ' . $e->getMessage()], 500);
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     }
 }
 

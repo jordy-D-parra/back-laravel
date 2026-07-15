@@ -127,7 +127,6 @@
             @endif
 
             <!-- ========== PROCESOS ========== -->
-<<<<<<< HEAD
             @if($user->hasPermission('ver-activos') || $user->hasPermission('ver-componentes') ||
                 $user->hasPermission('ver-prestamos') || $user->hasPermission('ver-solicitudes') ||
                 $user->hasPermission('ver-fichas-soporte'))
@@ -137,13 +136,6 @@
 
             <!-- Inventario -->
             @if($user->hasPermission('ver-activos') || $user->hasPermission('ver-componentes'))
-=======
-            @if($user->hasPermission('ver-activos') || $user->hasPermission('ver-componentes'))
-            <li class="nav-divider"></li>
-            <li class="nav-section">PROCESOS</li>
-
-            <!-- Inventario -->
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             <li class="nav-item">
                 <a href="{{ route('admin.inventario.index') }}" class="nav-link {{ request()->routeIs('admin.inventario.*') ? 'active' : '' }}">
                     <span class="nav-icon">
@@ -157,7 +149,6 @@
             </li>
             @endif
 
-<<<<<<< HEAD
             <!-- ✅ PRÉSTAMOS (ACTIVADO) -->
             @if($user->hasPermission('ver-prestamos'))
             <li class="nav-item">
@@ -204,49 +195,6 @@
                 </a>
             </li>
             @endif
-=======
-            <!-- Préstamos (Próximamente) -->
-            <li class="nav-item">
-                <a href="#" class="nav-link pending">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-                    </span>
-                    <span>Préstamos</span>
-                    <span class="badge-count">Pronto</span>
-                </a>
-            </li>
-
-            <!-- Solicitudes de Préstamo -->
-@if($user->hasPermission('ver-solicitudes'))
-<li class="nav-item">
-    <a href="{{ route('admin.solicitudes.index') }}" class="nav-link {{ request()->routeIs('admin.solicitudes.*') ? 'active' : '' }}">
-        <span class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="2" y="4" width="20" height="16" rx="2"/>
-                <path d="M22 7l-10 7L2 7"/>
-            </svg>
-        </span>
-        <span>Solicitudes</span>
-    </a>
-</li>
-@endif
-
-            <!-- Soporte Técnico -->
-@if(auth()->user()->hasPermission('ver-fichas-soporte'))
-<li class="nav-item">
-    <a href="{{ route('admin.soporte.index') }}" class="nav-link {{ request()->routeIs('admin.soporte.*') ? 'active' : '' }}">
-        <span class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <line x1="12" y1="8" x2="12" y2="12"/>
-                <line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-        </span>
-        <span>Soporte Técnico</span>
-    </a>
-</li>
-@endif
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
             <!-- ========== REPORTES ========== -->
             <li class="nav-divider"></li>
@@ -365,6 +313,6 @@
     @vite(['resources/css/dashboard-home.css'])
     @vite(['resources/js/app.js'])
     @yield('scripts')
-    @vite(['resources/js/help-panel.js'])
+
 </body>
 </html>

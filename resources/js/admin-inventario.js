@@ -193,13 +193,13 @@ function renderComponentesInstalados(componentes) {
     if (!componentes || componentes.length === 0) {
         return '<div class="text-center py-4 text-muted"><i class="fas fa-info-circle"></i> No hay componentes instalados</div>';
     }
-    
+
     var html = '<div class="componentes-grid">';
     for (var i = 0; i < componentes.length; i++) {
         var c = componentes[i];
         var estadoClass = getEstadoComponenteClass(c.estado);
         var estadoTexto = getEstadoComponenteTexto(c.estado);
-        
+
         html += `
             <div class="componente-card">
                 <div class="componente-card-header">
@@ -237,7 +237,7 @@ function renderComponentesModelo(componentes) {
     if (!componentes || componentes.length === 0) {
         return '<div class="text-center py-4 text-muted"><i class="fas fa-info-circle"></i> No hay componentes definidos para este modelo</div>';
     }
-    
+
     var html = '<div class="componentes-modelo-grid">';
     for (var i = 0; i < componentes.length; i++) {
         var c = componentes[i];
@@ -259,20 +259,20 @@ function renderComponentesModelo(componentes) {
 
 function agregarEstilosDetalle() {
     if (document.getElementById('detalle-activo-styles')) return;
-    
+
     var styles = `
         <style id="detalle-activo-styles">
             .detalle-activo-moderno {
                 font-family: 'Inter', system-ui, -apple-system, sans-serif;
             }
-            
+
             .detalle-seccion {
                 background: #ffffff;
                 border-radius: 16px;
                 padding: 1rem;
                 border: 1px solid #e9ecef;
             }
-            
+
             .detalle-seccion-titulo {
                 font-size: 0.85rem;
                 font-weight: 600;
@@ -283,29 +283,29 @@ function agregarEstilosDetalle() {
                 display: flex;
                 align-items: center;
             }
-            
+
             .detalle-seccion-titulo i {
                 color: #1e3c72;
             }
-            
+
             .detalle-grid {
                 display: grid;
                 grid-template-columns: repeat(2, 1fr);
                 gap: 0.75rem;
             }
-            
+
             .detalle-item {
                 padding: 0.5rem;
                 background: #f8f9fc;
                 border-radius: 12px;
                 transition: all 0.2s ease;
             }
-            
+
             .detalle-item:hover {
                 background: #eef3fc;
                 transform: translateY(-1px);
             }
-            
+
             .detalle-label {
                 font-size: 0.65rem;
                 text-transform: uppercase;
@@ -316,19 +316,19 @@ function agregarEstilosDetalle() {
                 align-items: center;
                 gap: 0.25rem;
             }
-            
+
             .detalle-label i {
                 font-size: 0.7rem;
                 color: #1e3c72;
             }
-            
+
             .detalle-valor {
                 font-weight: 600;
                 color: #1a1a1a;
                 font-size: 0.9rem;
                 word-break: break-word;
             }
-            
+
             .detalle-observaciones {
                 background: #f8f9fc;
                 padding: 1rem;
@@ -337,12 +337,12 @@ function agregarEstilosDetalle() {
                 color: #495057;
                 line-height: 1.5;
             }
-            
+
             .nav-tabs-componentes {
                 border-bottom: 2px solid #e9ecef;
                 margin-bottom: 0;
             }
-            
+
             .nav-tabs-componentes .nav-link {
                 border: none;
                 background: transparent;
@@ -352,17 +352,17 @@ function agregarEstilosDetalle() {
                 position: relative;
                 transition: all 0.2s ease;
             }
-            
+
             .nav-tabs-componentes .nav-link:hover {
                 color: #1e3c72;
                 background: #f8f9fc;
             }
-            
+
             .nav-tabs-componentes .nav-link.active {
                 color: #1e3c72;
                 background: transparent;
             }
-            
+
             .nav-tabs-componentes .nav-link.active::after {
                 content: '';
                 position: absolute;
@@ -373,7 +373,7 @@ function agregarEstilosDetalle() {
                 background: #1e3c72;
                 border-radius: 2px;
             }
-            
+
             .badge-componentes {
                 background: #e9ecef;
                 color: #495057;
@@ -382,13 +382,13 @@ function agregarEstilosDetalle() {
                 font-size: 0.65rem;
                 margin-left: 0.5rem;
             }
-            
+
             .componentes-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
                 gap: 1rem;
             }
-            
+
             .componente-card {
                 background: #ffffff;
                 border: 1px solid #e9ecef;
@@ -396,12 +396,12 @@ function agregarEstilosDetalle() {
                 overflow: hidden;
                 transition: all 0.2s ease;
             }
-            
+
             .componente-card:hover {
                 box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
                 transform: translateY(-2px);
             }
-            
+
             .componente-card-header {
                 padding: 0.75rem 1rem;
                 background: #f8f9fc;
@@ -410,7 +410,7 @@ function agregarEstilosDetalle() {
                 justify-content: space-between;
                 align-items: center;
             }
-            
+
             .componente-tipo {
                 font-weight: 600;
                 color: #1e3c72;
@@ -418,69 +418,69 @@ function agregarEstilosDetalle() {
                 align-items: center;
                 gap: 0.5rem;
             }
-            
+
             .componente-tipo i {
                 font-size: 0.9rem;
             }
-            
+
             .componente-estado {
                 padding: 0.2rem 0.6rem;
                 border-radius: 20px;
                 font-size: 0.65rem;
                 font-weight: 600;
             }
-            
+
             .componente-estado-instalado {
                 background: #d4edda;
                 color: #155724;
             }
-            
+
             .componente-estado-bodega {
                 background: #e2e3e5;
                 color: #383d41;
             }
-            
+
             .componente-estado-prestado {
                 background: #fff3cd;
                 color: #856404;
             }
-            
+
             .componente-estado-reparacion {
                 background: #f8d7da;
                 color: #721c24;
             }
-            
+
             .componente-card-body {
                 padding: 0.75rem 1rem;
             }
-            
+
             .componente-info {
                 display: flex;
                 justify-content: space-between;
                 margin-bottom: 0.5rem;
                 font-size: 0.8rem;
             }
-            
+
             .componente-label {
                 color: #6c757d;
             }
-            
+
             .componente-value {
                 font-weight: 500;
                 color: #1a1a1a;
             }
-            
+
             .componente-serial {
                 font-family: 'Courier New', monospace;
                 font-size: 0.75rem;
             }
-            
+
             .componentes-modelo-grid {
                 display: grid;
                 grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
                 gap: 1rem;
             }
-            
+
             .componente-modelo-card {
                 background: #f8f9fc;
                 border-radius: 12px;
@@ -489,12 +489,12 @@ function agregarEstilosDetalle() {
                 transition: all 0.2s ease;
                 border: 1px solid #e9ecef;
             }
-            
+
             .componente-modelo-card:hover {
                 background: #eef3fc;
                 transform: translateY(-2px);
             }
-            
+
             .componente-modelo-tipo {
                 font-weight: 700;
                 color: #1e3c72;
@@ -504,13 +504,13 @@ function agregarEstilosDetalle() {
                 justify-content: center;
                 gap: 0.5rem;
             }
-            
+
             .componente-modelo-descripcion {
                 font-size: 0.75rem;
                 color: #6c757d;
                 margin-bottom: 0.5rem;
             }
-            
+
             .componente-modelo-capacidad {
                 font-size: 0.7rem;
                 color: #28a745;
@@ -519,7 +519,7 @@ function agregarEstilosDetalle() {
                 padding: 0.2rem 0.6rem;
                 border-radius: 20px;
             }
-            
+
             .detalle-acciones .btn-editar-detalle {
                 background: #1e3c72;
                 border: none;
@@ -530,13 +530,13 @@ function agregarEstilosDetalle() {
                 font-weight: 500;
                 transition: all 0.2s ease;
             }
-            
+
             .detalle-acciones .btn-editar-detalle:hover {
                 background: #2a5298;
                 transform: translateY(-1px);
                 box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
             }
-            
+
             .detalle-acciones .btn-cerrar-detalle {
                 background: #f8f9fa;
                 border: 1px solid #dee2e6;
@@ -547,12 +547,12 @@ function agregarEstilosDetalle() {
                 font-weight: 500;
                 transition: all 0.2s ease;
             }
-            
+
             .detalle-acciones .btn-cerrar-detalle:hover {
                 background: #e9ecef;
                 border-color: #ced4da;
             }
-            
+
             .badge-garantia-vencida {
                 background: #f8d7da;
                 color: #721c24;
@@ -560,7 +560,7 @@ function agregarEstilosDetalle() {
                 border-radius: 20px;
                 font-size: 0.7rem;
             }
-            
+
             .badge-garantia-vigente {
                 background: #d4edda;
                 color: #155724;
@@ -568,17 +568,17 @@ function agregarEstilosDetalle() {
                 border-radius: 20px;
                 font-size: 0.7rem;
             }
-            
+
             @media (max-width: 768px) {
                 .detalle-grid {
                     grid-template-columns: 1fr;
                 }
-                
+
                 .componentes-grid,
                 .componentes-modelo-grid {
                     grid-template-columns: 1fr;
                 }
-                
+
                 .nav-tabs-componentes .nav-link {
                     padding: 0.4rem 0.8rem;
                     font-size: 0.75rem;
@@ -586,7 +586,7 @@ function agregarEstilosDetalle() {
             }
         </style>
     `;
-    
+
     document.head.insertAdjacentHTML('beforeend', styles);
 }
 
@@ -1104,17 +1104,17 @@ window.verActivo = function(id) {
     .then(function(response) {
         if (response.success) {
             var a = response.data;
-            
+
             // Formatear fechas
             var fechaAdquisicion = a.fecha_adquisicion ? new Date(a.fecha_adquisicion).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'No registrada';
             var fechaGarantia = a.fecha_fin_garantia ? new Date(a.fecha_fin_garantia).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'No registrada';
-            
+
             // Calcular si garantía está vencida
             var garantiaVencidaFlag = a.fecha_fin_garantia && new Date(a.fecha_fin_garantia) < new Date();
-            var garantiaBadge = garantiaVencidaFlag ? 
-                '<span class="badge-garantia-vencida ms-2"><i class="fas fa-exclamation-triangle"></i> Vencida</span>' : 
+            var garantiaBadge = garantiaVencidaFlag ?
+                '<span class="badge-garantia-vencida ms-2"><i class="fas fa-exclamation-triangle"></i> Vencida</span>' :
                 (a.fecha_fin_garantia ? '<span class="badge-garantia-vigente ms-2"><i class="fas fa-check-circle"></i> Vigente</span>' : '');
-            
+
             var estadoIcono = '';
             switch(a.estatus?.descripcion) {
                 case 'Disponible': estadoIcono = '<i class="fas fa-check-circle"></i> '; break;
@@ -1123,10 +1123,10 @@ window.verActivo = function(id) {
                 case 'Desechado': estadoIcono = '<i class="fas fa-trash-alt"></i> '; break;
                 default: estadoIcono = '<i class="fas fa-circle"></i> ';
             }
-            
+
             // Agregar estilos CSS
             agregarEstilosDetalle();
-            
+
             var html = `
                 <div class="detalle-activo-moderno">
                     <div class="detalle-header-moderno" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); margin: -1.5rem -1.5rem 1.5rem -1.5rem; padding: 1.5rem; border-radius: 12px 12px 0 0;">
@@ -1241,7 +1241,7 @@ window.verActivo = function(id) {
 
                     <div class="detalle-acciones mt-4 pt-3 border-top">
                         <div class="d-flex justify-content-end gap-2">
-                            ${window.authUserHasPermission && authUserHasPermission('editar-activo') ? 
+                            ${window.authUserHasPermission && authUserHasPermission('editar-activo') ?
                                 `<button class="btn btn-editar-detalle" onclick="editarActivo(${a.id}); bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide();">
                                     <i class="fas fa-edit"></i> Editar Activo
                                 </button>` : ''}
@@ -1252,13 +1252,13 @@ window.verActivo = function(id) {
                     </div>
                 </div>
             `;
-            
+
             document.getElementById('modalDetalleLabel').textContent = 'Detalle del Activo';
             document.getElementById('detalleContenido').innerHTML = html;
-            
+
             var modal = new bootstrap.Modal(document.getElementById('modalDetalle'));
             modal.show();
-            
+
             if (a.modelo_id) {
                 fetch('/admin/equipos/modelos/' + a.modelo_id + '/componentes', { headers: { 'Accept': 'application/json' } })
                 .then(function(r) { return r.json(); })
@@ -1308,66 +1308,54 @@ function guardarActivo() {
     var id = document.getElementById('activoId').value;
     var url = id ? '/admin/activos/' + id : '/admin/activos';
     var formData = new FormData(document.getElementById('formActivo'));
-<<<<<<< HEAD
-    
+
     // ✅ CORRECCIÓN IMPORTANTE: Agregar _method=PUT para actualizar
     if (id) {
         formData.append('_method', 'PUT');
     }
-    
+
     var componentes = recolectarComponentesFormulario();
     var equipoCompleto = document.getElementById('equipoCompleto') ? document.getElementById('equipoCompleto').checked : true;
 
-    fetch(url, { 
-        method: 'POST', 
-        headers: { 'X-CSRF-TOKEN': getCsrfToken() }, 
-        body: formData 
+    fetch(url, {
+        method: 'POST',
+        headers: { 'X-CSRF-TOKEN': getCsrfToken() },
+        body: formData
     })
-=======
-    if (id) formData.append('_method', 'PUT');
-    var componentes = recolectarComponentesFormulario();
-    var equipoCompleto = document.getElementById('equipoCompleto') ? document.getElementById('equipoCompleto').checked : true;
-
-    fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': getCsrfToken() }, body: formData })
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     .then(function(r) { return r.json(); })
     .then(function(response) {
         if (response.success) {
             var activoId = id || (response.data ? response.data.id : null);
-<<<<<<< HEAD
-            
+
             // Si hay componentes, guardarlos
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
             if (activoId && componentes.length > 0) {
                 var promesas = componentes.map(function(comp) {
                     comp.activo_id = activoId;
                     var compUrl = comp.id ? '/admin/componentes/' + comp.id : '/admin/componentes';
                     var method = comp.id ? 'PUT' : 'POST';
                     if (method === 'PUT') comp._method = 'PUT';
-<<<<<<< HEAD
-                    return fetch(compUrl, { 
-                        method: 'POST', 
-                        headers: { 
-                            'Content-Type': 'application/json', 
-                            'X-CSRF-TOKEN': getCsrfToken(), 
-                            'Accept': 'application/json' 
-                        }, 
-                        body: JSON.stringify(comp) 
+                    return fetch(compUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': getCsrfToken(),
+                            'Accept': 'application/json'
+                        },
+                        body: JSON.stringify(comp)
                     }).then(function(r) { return r.json(); });
                 });
-                
+
                 Promise.all(promesas).then(function() {
                     var msg = id ? 'Activo actualizado con ' + componentes.length + ' componentes. ' : 'Activo guardado con ' + componentes.length + ' componentes. ';
                     msg += equipoCompleto ? 'Equipo marcado como completo.' : 'Equipo marcado como incompleto.';
                     mostrarToast(msg, 'success');
-                }).catch(function() { 
-                    mostrarToast(id ? 'Activo actualizado. Revisar componentes' : 'Activo guardado. Revisar componentes', 'warning'); 
+                }).catch(function() {
+                    mostrarToast(id ? 'Activo actualizado. Revisar componentes' : 'Activo guardado. Revisar componentes', 'warning');
                 });
             } else {
                 mostrarToast(response.message || (id ? 'Activo actualizado' : 'Activo guardado'), 'success');
             }
-            
+
             bootstrap.Modal.getInstance(document.getElementById('modalActivo')).hide();
             cargarActivos();
             cargarComponentes();
@@ -1378,20 +1366,6 @@ function guardarActivo() {
     .catch(function(error) {
         console.error('Error:', error);
         mostrarToast('Error de conexión', 'error');
-=======
-                    return fetch(compUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': getCsrfToken(), 'Accept': 'application/json' }, body: JSON.stringify(comp) }).then(function(r) { return r.json(); });
-                });
-                Promise.all(promesas).then(function() {
-                    var msg = 'Activo guardado con ' + componentes.length + ' componentes. ';
-                    msg += equipoCompleto ? 'Equipo marcado como completo.' : 'Equipo marcado como incompleto.';
-                    mostrarToast(msg, 'success');
-                }).catch(function() { mostrarToast('Activo guardado. Revisar componentes', 'warning'); });
-            } else { mostrarToast(response.message || 'Activo guardado', 'success'); }
-            bootstrap.Modal.getInstance(document.getElementById('modalActivo')).hide();
-            cargarActivos();
-            cargarComponentes();
-        } else { mostrarToast(response.message || 'Error al guardar', 'error'); }
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     });
 }
 

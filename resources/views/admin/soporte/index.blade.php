@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-{{-- resources/views/admin/soporte/index.blade.php --}}
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 @extends('layouts.dashboard')
 
 @section('title', 'Fichas de Soporte Técnico')
@@ -60,7 +56,6 @@
             color: white;
             transform: translateY(-1px);
         }
-<<<<<<< HEAD
         /* Estilos para el buscador de activos */
         .activo-buscar-container {
             position: relative;
@@ -169,8 +164,6 @@
             font-weight: 600;
             margin-bottom: 1rem;
         }
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     </style>
 @endsection
 
@@ -193,7 +186,6 @@
             <ul class="dropdown-menu">
                 @if(auth()->user()->hasPermission('crear-ficha-soporte'))
                 <li>
-<<<<<<< HEAD
                     <a class="dropdown-item" href="#" onclick="window.abrirModalCrearFicha(); return false;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2">
                             <rect x="2" y="6" width="20" height="12" rx="2"/>
@@ -209,13 +201,6 @@
                             <line x1="15" y1="4" x2="15" y2="20"/>
                         </svg>
                         Registrar Equipo Externo
-=======
-                    <a class="dropdown-item" href="#" onclick="abrirModalCrearFicha(); return false;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2">
-                            <rect x="2" y="6" width="20" height="12" rx="2"/>
-                        </svg>
-                        Nueva Ficha de Soporte
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     </a>
                 </li>
                 @endif
@@ -291,11 +276,7 @@
         </button>
     </div>
 
-<<<<<<< HEAD
     <!-- Tabla -->
-=======
-    <!-- Tabla SIN columna ID -->
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     <div class="table-container">
         <div class="table-responsive">
             <table class="table table-hover">
@@ -326,13 +307,9 @@
     </div>
 </div>
 
-<<<<<<< HEAD
 <!-- ============================================================ -->
 <!-- MODAL CREAR FICHA (Desde Inventario) -->
 <!-- ============================================================ -->
-=======
-<!-- MODAL CREAR FICHA -->
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 <div class="modal fade" id="modalCrearFicha" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -343,7 +320,6 @@
             <form id="formCrearFicha">
                 @csrf
                 <div class="modal-body">
-<<<<<<< HEAD
                     <!-- Buscador de Activo -->
                     <div class="mb-3">
                         <label class="form-label">Buscar Activo <span class="text-danger">*</span></label>
@@ -372,7 +348,7 @@
                                         <path d="M21 21l-4.35-4.35"/>
                                     </svg>
                                 </span>
-                                <input type="text" class="form-control" id="tecnicoBuscarInput" 
+                                <input type="text" class="form-control" id="tecnicoBuscarInput"
                                        placeholder="Buscar por cédula, nombre o usuario..." autocomplete="off">
                             </div>
                             <div id="tecnicoSearchResults" class="tecnico-search-results" style="display:none;"></div>
@@ -401,49 +377,12 @@
                     </div>
 
                     <!-- Diagnóstico -->
-=======
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Activo <span class="text-danger">*</span></label>
-                            <select name="activo_id" id="fichaActivoId" class="form-select" required>
-                                <option value="">Seleccionar activo...</option>
-                                @foreach($activosDisponibles as $activo)
-                                    <option value="{{ $activo->id }}">{{ $activo->serial }} - {{ $activo->modelo->nombre ?? 'N/A' }}</option>
-                                @endforeach
-                            </select>
-                            <div id="activoErrorMensaje" style="display: none;"></div>
-                            <small class="text-muted">Solo se muestran activos disponibles</small>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Técnico Responsable</label>
-                            <select name="tecnico_id" id="fichaTecnicoId" class="form-select">
-                                <option value="">Seleccionar técnico...</option>
-                                @foreach($tecnicos as $tecnico)
-                                    <option value="{{ $tecnico->id }}">{{ $tecnico->trabajador->nombre ?? '' }} {{ $tecnico->trabajador->apellido ?? '' }} ({{ $tecnico->usuario }})</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Nombre del Técnico <span class="text-danger">*</span></label>
-                            <input type="text" name="tecnico_nombre" id="fichaTecnicoNombre" class="form-control" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Usuario que Reporta <span class="text-danger">*</span></label>
-                            <input type="text" name="usuario_reporta_nombre" id="fichaUsuarioReporta" class="form-control" required>
-                        </div>
-                    </div>
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     <div class="mb-3">
                         <label class="form-label">Diagnóstico</label>
                         <textarea name="diagnostico" id="fichaDiagnostico" rows="3" class="form-control" placeholder="Describa el problema del equipo..."></textarea>
                     </div>
-<<<<<<< HEAD
 
                     <!-- Observaciones -->
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                     <div class="mb-3">
                         <label class="form-label">Observaciones</label>
                         <textarea name="observaciones" id="fichaObservaciones" rows="2" class="form-control" placeholder="Observaciones adicionales..."></textarea>
@@ -451,18 +390,13 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-<<<<<<< HEAD
                     <button type="submit" class="btn btn-primary-dark" id="btnGuardarFicha">Guardar Ficha</button>
-=======
-                    <button type="submit" class="btn btn-primary-dark">Guardar Ficha</button>
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<<<<<<< HEAD
 <!-- ============================================================ -->
 <!-- MODAL REGISTRAR EQUIPO EXTERNO -->
 <!-- ============================================================ -->
@@ -564,7 +498,7 @@
                                             <path d="M21 21l-4.35-4.35"/>
                                         </svg>
                                     </span>
-                                    <input type="text" class="form-control" id="ext_tecnicoBuscarInput" 
+                                    <input type="text" class="form-control" id="ext_tecnicoBuscarInput"
                                            placeholder="Buscar por cédula, nombre o usuario..." autocomplete="off">
                                 </div>
                                 <div id="extTecnicoSearchResults" class="tecnico-search-results" style="display:none;"></div>
@@ -621,9 +555,6 @@
 <!-- ============================================================ -->
 <!-- MODAL CERRAR FICHA -->
 <!-- ============================================================ -->
-=======
-<!-- MODAL CERRAR FICHA -->
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 <div class="modal fade" id="modalCerrarFicha" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -661,13 +592,9 @@
     </div>
 </div>
 
-<<<<<<< HEAD
 <!-- ============================================================ -->
 <!-- MODAL DETALLE -->
 <!-- ============================================================ -->
-=======
-<!-- MODAL DETALLE -->
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -685,13 +612,9 @@
     </div>
 </div>
 
-<<<<<<< HEAD
 <!-- ============================================================ -->
 <!-- MODAL ELIMINAR -->
 <!-- ============================================================ -->
-=======
-<!-- MODAL ELIMINAR -->
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 <div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -712,15 +635,11 @@
     </div>
 </div>
 
-<<<<<<< HEAD
 <!-- ============================================================ -->
 <!-- NOTIFICACIONES -->
 <!-- ============================================================ -->
 <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; width: 320px;"></div>
 
-=======
-<div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; width: 320px;"></div>
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 @endsection
 
 @section('scripts')

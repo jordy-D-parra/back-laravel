@@ -47,7 +47,7 @@ class FichaSoporteController extends Controller
 
         // Activos disponibles (NO en reparación y sin ficha activa)
         $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
-        
+
         $activosDisponibles = Activo::with('modelo.marca')
             ->whereDoesntHave('fichasSoporte', function($q) {
                 $q->where('estado', 'en_proceso');
@@ -75,8 +75,8 @@ class FichaSoporteController extends Controller
         })->count();
 
         return view('admin.soporte.index', compact(
-            'fichas', 
-            'activosDisponibles', 
+            'fichas',
+            'activosDisponibles',
             'tecnicos',
             'totalFichas',
             'enProceso',
@@ -106,7 +106,7 @@ class FichaSoporteController extends Controller
             // Cambiar estado del activo a "En reparación"
             $activo = Activo::find($validated['activo_id']);
             $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
-            
+
             if ($activo && $estatusReparacion) {
                 $activo->update(['id_estatus' => $estatusReparacion->id]);
             }
@@ -159,7 +159,6 @@ class FichaSoporteController extends Controller
             ], 500);
         }
     }
-<<<<<<< HEAD
 /**
  * Registrar equipo externo y crear ficha de soporte
  */
@@ -181,7 +180,7 @@ public function storeEquipoExterno(Request $request)
             'ubicacion' => 'nullable|string|max:100',
             'fecha_adquisicion' => 'nullable|date',
             'observaciones' => 'nullable|string',
-            
+
             // Datos de la ficha
             'tecnico_id' => 'nullable|exists:usuarios,id',
             'tecnico_nombre' => 'nullable|string|max:150',
@@ -274,8 +273,6 @@ public function storeEquipoExterno(Request $request)
         ], 500);
     }
 }
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
     public function show($id)
     {
@@ -285,18 +282,18 @@ public function storeEquipoExterno(Request $request)
 
         try {
             $ficha = FichaSoporte::with([
-                'activo.modelo.marca', 
-                'tecnico.trabajador', 
+                'activo.modelo.marca',
+                'tecnico.trabajador',
                 'detalles.componente'
             ])->findOrFail($id);
-            
+
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'data' => $ficha
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => 'Ficha no encontrada'
             ], 404);
         }
@@ -313,7 +310,7 @@ public function storeEquipoExterno(Request $request)
 
             if ($ficha->estado === 'finalizado') {
                 return response()->json([
-                    'success' => false, 
+                    'success' => false,
                     'message' => 'No se puede editar una ficha finalizada'
                 ], 422);
             }
@@ -326,12 +323,12 @@ public function storeEquipoExterno(Request $request)
             $ficha->update($validated);
 
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Ficha actualizada correctamente'
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -348,7 +345,7 @@ public function storeEquipoExterno(Request $request)
 
             if ($ficha->estado === 'finalizado') {
                 return response()->json([
-                    'success' => false, 
+                    'success' => false,
                     'message' => 'La ficha ya está finalizada'
                 ], 422);
             }
@@ -393,13 +390,13 @@ public function storeEquipoExterno(Request $request)
             DB::commit();
 
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Ficha finalizada exitosamente'
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -413,7 +410,7 @@ public function storeEquipoExterno(Request $request)
 
         try {
             $ficha = FichaSoporte::findOrFail($id);
-            
+
             // Si la ficha estaba en proceso, restaurar el estado del activo
             if ($ficha->estado === 'en_proceso') {
                 $activo = Activo::find($ficha->activo_id);
@@ -424,17 +421,17 @@ public function storeEquipoExterno(Request $request)
                     }
                 }
             }
-            
+
             $ficha->detalles()->delete();
             $ficha->delete();
 
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Ficha eliminada correctamente'
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }
@@ -446,14 +443,14 @@ public function storeEquipoExterno(Request $request)
             $detalles = FichaSoporteDetalle::where('ficha_soporte_id', $id)
                 ->with('componente')
                 ->get();
-                
+
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'data' => $detalles
             ]);
         } catch (\Exception $e) {
             return response()->json([
-                'success' => false, 
+                'success' => false,
                 'message' => $e->getMessage()
             ], 500);
         }

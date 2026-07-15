@@ -681,7 +681,7 @@
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
     }
-    
+
     .detail-grid {
         grid-template-columns: 1fr;
     }
@@ -692,16 +692,16 @@
         padding: 0.5rem 1rem;
         font-size: 0.75rem;
     }
-    
+
     .tab-header-bar {
         flex-direction: column;
         align-items: stretch;
     }
-    
+
     .tab-header-bar .d-flex {
         justify-content: space-between;
     }
-    
+
     .modal-body {
         padding: 1rem;
     }
@@ -711,18 +711,18 @@
     .stats-row {
         grid-template-columns: 1fr;
     }
-    
+
     .table thead {
         display: none;
     }
-    
+
     .table tbody td {
         display: block;
         text-align: right;
         padding-left: 50%;
         position: relative;
     }
-    
+
     .table tbody td::before {
         content: attr(data-label);
         position: absolute;
@@ -733,30 +733,152 @@
         color: var(--primary-dark);
         font-size: 0.7rem;
     }
-    
+
     .table tbody tr {
         margin-bottom: 1rem;
         display: block;
         border: 1px solid var(--border-light);
         border-radius: 8px;
     }
-    
+
     .table tbody td:last-child {
         border-bottom: none;
     }
-    
+
     .arbol-hijos {
         margin-left: 0.75rem;
         padding-left: 0.5rem;
     }
-    
+
     .arbol-nodo-header {
         flex-wrap: wrap;
         gap: 0.3rem;
     }
-    
+
     .arbol-acciones {
         opacity: 1;
         margin-left: auto;
+    }
+}
+
+/* ============================================
+   WIZARD DE 3 PASOS - ESTILOS ADICIONALES
+   ============================================ */
+
+/* Tarjetas de institución */
+.institucion-card {
+    transition: all 0.3s ease;
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.institucion-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 25px rgba(30, 60, 114, 0.15);
+}
+
+.institucion-card.active {
+    border-color: #1e3c72 !important;
+    background: #f0f4ff !important;
+}
+
+.institucion-card input[type="radio"] {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+/* Círculos de paso */
+.step-circle {
+    display: inline-block;
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+    text-align: center;
+    border-radius: 50%;
+    background: #e9ecef;
+    color: #6c757d;
+    font-weight: 700;
+    font-size: 0.8rem;
+    margin-right: 6px;
+    transition: all 0.3s ease;
+}
+
+.step-circle.active {
+    background: #1e3c72;
+    color: white;
+}
+
+.step-circle.completed {
+    background: #1e7e34;
+    color: white;
+}
+
+.step-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* Pasos */
+.step-content {
+    min-height: 300px;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateX(10px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+/* Barra de progreso */
+.progress {
+    border-radius: 2px;
+}
+
+.progress-bar {
+    transition: width 0.5s ease;
+}
+
+/* Badges de institución en tabla */
+.badge-institucion {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.badge-institucion-primary { background: #1e3c72; color: white; }
+.badge-institucion-success { background: #1e7e34; color: white; }
+.badge-institucion-info { background: #17a2b8; color: white; }
+.badge-institucion-warning { background: #f6c23e; color: #1a1a1a; }
+.badge-institucion-danger { background: #c5221f; color: white; }
+.badge-institucion-secondary { background: #6c757d; color: white; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .institucion-card {
+        margin-bottom: 1rem;
+    }
+
+    .step-label {
+        font-size: 0.7rem !important;
+    }
+
+    .step-circle {
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 0.7rem;
+    }
+
+    .modal-footer {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .modal-footer .btn {
+        flex: 1;
+        min-width: 80px;
     }
 }

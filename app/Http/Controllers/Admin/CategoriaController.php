@@ -49,7 +49,7 @@ class CategoriaController extends Controller
         $categoria = Categoria::with(['modelos' => function($q) {
             $q->with('marca');
         }])->withCount('modelos')->findOrFail($id);
-        
+
         return response()->json(['success' => true, 'data' => $categoria]);
     }
 
@@ -73,7 +73,7 @@ class CategoriaController extends Controller
     public function destroy($id)
     {
         $categoria = Categoria::findOrFail($id);
-        
+
         if ($categoria->modelos()->count() > 0) {
             return response()->json(['success' => false, 'message' => 'No se puede eliminar la categoría porque tiene modelos asociados'], 400);
         }

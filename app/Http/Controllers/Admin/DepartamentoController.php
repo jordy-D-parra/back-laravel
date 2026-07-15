@@ -12,10 +12,6 @@ class DepartamentoController extends Controller
 {
     public function index(Request $request)
     {
-<<<<<<< HEAD
-=======
-        // Verificar permiso
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         if (!auth()->user()->hasPermission('ver-departamentos')) {
             abort(403, 'No tienes permiso para ver departamentos');
         }
@@ -42,10 +38,6 @@ class DepartamentoController extends Controller
 
     public function store(Request $request)
     {
-<<<<<<< HEAD
-=======
-        // Verificar permiso
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         if (!auth()->user()->hasPermission('crear-departamento')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso para crear departamentos'], 403);
         }
@@ -69,11 +61,8 @@ class DepartamentoController extends Controller
             'representante_email' => 'nullable|email|max:100',
             'representante_cargo' => 'required|string|max:100',
             'representante_direccion' => 'nullable|string|max:300',
-<<<<<<< HEAD
             'usar_responsable_institucion' => 'nullable',
             'responsable_id' => 'nullable',
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         ]);
 
         $departamento = Departamento::create([
@@ -85,7 +74,6 @@ class DepartamentoController extends Controller
             'activo' => true,
         ]);
 
-<<<<<<< HEAD
         // ✅ Si se está usando el responsable de la institución Y hay institution_id
         if ($request->institucion_id && $request->usar_responsable_institucion && $request->responsable_id) {
             $responsable = Responsable::find($request->responsable_id);
@@ -109,19 +97,6 @@ class DepartamentoController extends Controller
                 'activo' => true,
             ]);
         }
-=======
-        Responsable::create([
-            'nombre' => $validated['representante_nombre'],
-            'documento' => $validated['representante_documento'],
-            'telefono' => $validated['representante_telefono'],
-            'email' => $validated['representante_email'] ?? null,
-            'cargo' => $validated['representante_cargo'],
-            'direccion' => $validated['representante_direccion'] ?? null,
-            'institucion_id' => $departamento->institucion_id,
-            'departamento_id' => $departamento->id,
-            'activo' => true,
-        ]);
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 
         $departamento->load('institucion:id,nombre');
         $departamento->loadCount('responsables');
@@ -135,10 +110,6 @@ class DepartamentoController extends Controller
 
     public function show(Departamento $departamento)
     {
-<<<<<<< HEAD
-=======
-        // Verificar permiso
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         if (!auth()->user()->hasPermission('ver-departamentos')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso para ver departamentos'], 403);
         }
@@ -160,10 +131,6 @@ class DepartamentoController extends Controller
 
     public function update(Request $request, Departamento $departamento)
     {
-<<<<<<< HEAD
-=======
-        // Verificar permiso
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         if (!auth()->user()->hasPermission('editar-departamento')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso para editar departamentos'], 403);
         }
@@ -189,11 +156,8 @@ class DepartamentoController extends Controller
             'representante_email' => 'nullable|email|max:100',
             'representante_cargo' => 'required|string|max:100',
             'representante_direccion' => 'nullable|string|max:300',
-<<<<<<< HEAD
             'usar_responsable_institucion' => 'nullable',
             'responsable_id' => 'nullable',
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         ]);
 
         $departamento->update([
@@ -204,7 +168,6 @@ class DepartamentoController extends Controller
             'informacion' => $validated['informacion'],
         ]);
 
-<<<<<<< HEAD
         // ✅ Si se está usando el responsable de la institución Y hay institution_id
         if ($request->institucion_id && $request->usar_responsable_institucion && $request->responsable_id) {
             // Quitar departamento_id del responsable anterior
@@ -243,28 +206,6 @@ class DepartamentoController extends Controller
             } else {
                 Responsable::create($dataResponsable);
             }
-=======
-        $responsable = Responsable::where('departamento_id', $departamento->id)
-            ->where('cargo', $validated['representante_cargo'])
-            ->first();
-
-        $dataResponsable = [
-            'nombre' => $validated['representante_nombre'],
-            'documento' => $validated['representante_documento'],
-            'telefono' => $validated['representante_telefono'],
-            'email' => $validated['representante_email'] ?? null,
-            'cargo' => $validated['representante_cargo'],
-            'direccion' => $validated['representante_direccion'] ?? null,
-            'institucion_id' => $departamento->institucion_id,
-            'departamento_id' => $departamento->id,
-            'activo' => true,
-        ];
-
-        if ($responsable) {
-            $responsable->update($dataResponsable);
-        } else {
-            Responsable::create($dataResponsable);
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         }
 
         $departamento->load('institucion:id,nombre');
@@ -279,24 +220,14 @@ class DepartamentoController extends Controller
 
     public function destroy(Departamento $departamento)
     {
-<<<<<<< HEAD
-=======
-        // Verificar permiso
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         if (!auth()->user()->hasPermission('eliminar-departamento')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso para eliminar departamentos'], 403);
         }
 
-<<<<<<< HEAD
         // Liberar responsables (no eliminarlos)
         Responsable::where('departamento_id', $departamento->id)
             ->update(['departamento_id' => null]);
 
-=======
-        Responsable::where('departamento_id', $departamento->id)
-            ->where('cargo', 'Jefe de Departamento')
-            ->delete();
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         $departamento->delete();
 
         return response()->json([
@@ -307,10 +238,6 @@ class DepartamentoController extends Controller
 
     public function toggleStatus(Departamento $departamento)
     {
-<<<<<<< HEAD
-=======
-        // Verificar permiso
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
         if (!auth()->user()->hasPermission('editar-departamento')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso para cambiar el estado'], 403);
         }

@@ -67,14 +67,11 @@ class Solicitud extends Model
         return $this->hasMany(DetalleSolicitud::class, 'solicitud_id');
     }
 
-<<<<<<< HEAD
     public function prestamos()
     {
         return $this->hasMany(Prestamo::class, 'solicitud_id');
     }
 
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
     // Accesores
     public function getNombreEntidadAttribute()
     {
