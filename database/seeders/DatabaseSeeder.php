@@ -36,6 +36,11 @@ class DatabaseSeeder extends Seeder
 
         $this->call(UsuarioAdminSeeder::class);
 
+<<<<<<< HEAD
+=======
+        $this->call(SolicitudPrestamoDemoSeeder::class);
+
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
         $this->command->info('==============================');
         $this->command->info('✅ Seeding completado exitosamente');
         $this->command->info('==============================');

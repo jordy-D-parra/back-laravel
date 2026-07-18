@@ -42,6 +42,24 @@
                 </a>
             </li>
 
+<<<<<<< HEAD
+=======
+            <!-- ✅ CALENDARIO CORREGIDO -->
+            <li class="nav-item">
+                <a href="{{ route('calendario.index') }}" class="nav-link {{ request()->routeIs('calendario.*') ? 'active' : '' }}">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                    </span>
+                    <span>Calendario</span>
+                </a>
+            </li>
+
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
             <!-- ========== MAESTROS ========== -->
             @if($user->hasPermission('ver-instituciones') || $user->hasPermission('ver-departamentos') || $user->hasPermission('ver-responsables') ||
                 $user->hasPermission('ver-marcas') || $user->hasPermission('ver-categorias-equipos') || $user->hasPermission('ver-modelos'))
@@ -86,7 +104,36 @@
             <li class="nav-section">GESTIÓN DE USUARIOS</li>
             @endif
 
+<<<<<<< HEAD
             <!-- Roles y Permisos -->
+=======
+            <!-- Trabajadores -->
+            @if($user->hasPermission('ver-trabajadores'))
+            <li class="nav-item">
+                <a href="{{ route('admin.trabajadores.index') }}" class="nav-link {{ request()->routeIs('admin.trabajadores.*') ? 'active' : '' }}">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    </span>
+                    <span>Trabajadores</span>
+                </a>
+            </li>
+            @endif
+
+
+            <!-- Usuarios -->
+            @if($user->hasPermission('ver-usuarios'))
+            <li class="nav-item">
+                <a href="{{ route('admin.usuarios.index') }}" class="nav-link {{ request()->routeIs('admin.usuarios.*') ? 'active' : '' }}">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </span>
+                    <span>Usuarios</span>
+                </a>
+            </li>
+            @endif
+
+             <!-- Roles y Permisos -->
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
             @if($user->hasPermission('ver-roles'))
             <li class="nav-item">
                 <a href="{{ route('admin.roles.index') }}" class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
@@ -102,6 +149,7 @@
             </li>
             @endif
 
+<<<<<<< HEAD
             <!-- Trabajadores -->
             @if($user->hasPermission('ver-trabajadores'))
             <li class="nav-item">
@@ -126,6 +174,8 @@
             </li>
             @endif
 
+=======
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
             <!-- ========== PROCESOS ========== -->
             @if($user->hasPermission('ver-activos') || $user->hasPermission('ver-componentes') ||
                 $user->hasPermission('ver-prestamos') || $user->hasPermission('ver-solicitudes') ||
@@ -134,6 +184,40 @@
             <li class="nav-section">PROCESOS</li>
             @endif
 
+<<<<<<< HEAD
+=======
+            <!-- Solicitudes de Préstamo -->
+            @if($user->hasPermission('ver-solicitudes'))
+            <li class="nav-item">
+                <a href="{{ route('admin.solicitudes.index') }}" class="nav-link {{ request()->routeIs('admin.solicitudes.*') ? 'active' : '' }}">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                            <path d="M22 7l-10 7L2 7"/>
+                        </svg>
+                    </span>
+                    <span>Solicitudes</span>
+                </a>
+            </li>
+            @endif
+
+             <!-- ✅ PRÉSTAMOS (ACTIVADO) -->
+            @if($user->hasPermission('ver-prestamos'))
+            <li class="nav-item">
+                <a href="{{ route('admin.prestamos.index') }}" class="nav-link {{ request()->routeIs('admin.prestamos.*') ? 'active' : '' }}">
+                    <span class="nav-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                    </span>
+                    <span>Préstamos</span>
+                </a>
+            </li>
+            @endif
+
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
             <!-- Inventario -->
             @if($user->hasPermission('ver-activos') || $user->hasPermission('ver-componentes'))
             <li class="nav-item">
@@ -149,6 +233,7 @@
             </li>
             @endif
 
+<<<<<<< HEAD
             <!-- ✅ PRÉSTAMOS (ACTIVADO) -->
             @if($user->hasPermission('ver-prestamos'))
             <li class="nav-item">
@@ -179,6 +264,8 @@
                 </a>
             </li>
             @endif
+=======
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
 
             <!-- Soporte Técnico -->
             @if(auth()->user()->hasPermission('ver-fichas-soporte'))
@@ -313,6 +400,11 @@
     @vite(['resources/css/dashboard-home.css'])
     @vite(['resources/js/app.js'])
     @yield('scripts')
+<<<<<<< HEAD
 
 </body>
 </html>
+=======
+</body>
+</html>
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad

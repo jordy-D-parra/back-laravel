@@ -19,10 +19,14 @@ return new class extends Migration
             $table->boolean('activo')->default(true);
 
 <<<<<<< HEAD
+<<<<<<< HEAD
             $table->foreignId('institucion_id')->nullable()->constrained('instituciones')->onDelete('set null');
 =======
             $table->foreignId('institucion_id')->constrained('instituciones')->onDelete('cascade');
 >>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
+=======
+            $table->foreignId('institucion_id')->nullable()->constrained('instituciones')->onDelete('set null');
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
             $table->foreignId('departamento_id')->nullable()->constrained('departamentos')->onDelete('set null');
 
             $table->timestamps();

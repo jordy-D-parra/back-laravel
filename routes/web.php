@@ -21,6 +21,10 @@ use App\Http\Controllers\Admin\InventarioController;
 use App\Http\Controllers\Admin\SolicitudController;
 use App\Http\Controllers\Admin\FichaSoporteController;
 use App\Http\Controllers\Admin\PrestamoController;
+<<<<<<< HEAD
+=======
+use App\Http\Controllers\Admin\CalendarioController;
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
 use App\Models\Estatus;
 
 // ==================== RUTA PRINCIPAL ====================
@@ -48,6 +52,16 @@ Route::middleware(['auth'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+<<<<<<< HEAD
+=======
+// ========== CALENDARIO ==========
+Route::prefix('calendario')->name('calendario.')->group(function () {
+    Route::get('/', [App\Http\Controllers\Admin\CalendarioController::class, 'index'])->name('index');
+    Route::get('/eventos', [App\Http\Controllers\Admin\CalendarioController::class, 'getEventos'])->name('eventos');
+    Route::get('/evento', [App\Http\Controllers\Admin\CalendarioController::class, 'getEventoDetalle'])->name('evento.detalle');
+    Route::post('/actualizar-estado', [App\Http\Controllers\Admin\CalendarioController::class, 'actualizarEstado'])->name('actualizar-estado');
+});
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
 
     // ==================== ADMINISTRACIÓN (solo para rol admin) ====================
     Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {

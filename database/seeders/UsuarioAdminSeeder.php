@@ -17,6 +17,7 @@ class UsuarioAdminSeeder extends Seeder
 
         Usuario::create([
 <<<<<<< HEAD
+<<<<<<< HEAD
             'usuario' => 'jordy',
             'password' => Hash::make('Mortadela1$'),
             'must_change_password' => false, // Forzará cambio en primer login
@@ -25,6 +26,11 @@ class UsuarioAdminSeeder extends Seeder
             'password' => Hash::make('Admin2025!'),
             'must_change_password' => true, // Forzará cambio en primer login
 >>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
+=======
+            'usuario' => 'jordy',
+            'password' => Hash::make('Mortadela1$'),
+            'must_change_password' => false, // Forzará cambio en primer login
+>>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
             'status' => 'activo',
             'trabajador_id' => $adminTrabajador->id,
             'rol_id' => $adminRol->id,
