@@ -1,4 +1,5 @@
 <?php
+// database/migrations/2026_05_16_143641_create_responsables_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -6,6 +7,9 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
+    /**
+     * Run the migrations.
+     */
     public function up(): void
     {
         Schema::create('responsables', function (Blueprint $table) {
@@ -18,21 +22,31 @@ return new class extends Migration
             $table->string('cargo', 100)->nullable();
             $table->boolean('activo')->default(true);
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-            $table->foreignId('institucion_id')->nullable()->constrained('instituciones')->onDelete('set null');
-=======
-            $table->foreignId('institucion_id')->constrained('instituciones')->onDelete('cascade');
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
-=======
-            $table->foreignId('institucion_id')->nullable()->constrained('instituciones')->onDelete('set null');
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
-            $table->foreignId('departamento_id')->nullable()->constrained('departamentos')->onDelete('set null');
+            // ✅ SOLO UNA VEZ - Corregido el duplicado
+            $table->foreignId('institucion_id')
+                  ->nullable()
+                  ->constrained('instituciones')
+                  ->onDelete('set null');
+
+            $table->foreignId('departamento_id')
+                  ->nullable()
+                  ->constrained('departamentos')
+                  ->onDelete('set null');
 
             $table->timestamps();
+
+            // Índices para mejorar rendimiento
+            $table->index('nombre');
+            $table->index('documento');
+            $table->index('activo');
+            $table->index('institucion_id');
+            $table->index('departamento_id');
         });
     }
 
+    /**
+     * Reverse the migrations.
+     */
     public function down(): void
     {
         Schema::dropIfExists('responsables');

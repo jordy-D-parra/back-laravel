@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Admin/SolicitudController.php
 
 namespace App\Http\Controllers\Admin;
 
@@ -33,7 +34,10 @@ class SolicitudController extends Controller
             'institucion',
             'departamento',
             'responsable',
-            'usuario'
+            'usuario',
+            'estado',
+            'municipio',
+            'parroquia'
         ])->where('usuario_id', $userId);
 
         if ($request->filled('search')) {
@@ -123,7 +127,10 @@ class SolicitudController extends Controller
                 'institucion',
                 'departamento',
                 'responsable',
-                'usuario'
+                'usuario',
+                'estado',
+                'municipio',
+                'parroquia'
             ])->findOrFail($id);
 
             if (
@@ -133,6 +140,8 @@ class SolicitudController extends Controller
             ) {
                 return response()->json(['error' => 'No autorizado'], 403);
             }
+
+            $ubicacionEvento = $solicitud->ubicacion_evento;
 
             $detalles = [];
             foreach ($solicitud->detalles as $detalle) {
@@ -158,6 +167,11 @@ class SolicitudController extends Controller
                 'departamento_id' => $solicitud->departamento_id,
                 'institucion_id' => $solicitud->institucion_id,
                 'responsable_id' => $solicitud->responsable_id,
+                'estado_id' => $solicitud->estado_id,
+                'municipio_id' => $solicitud->municipio_id,
+                'parroquia_id' => $solicitud->parroquia_id,
+                'lugar_evento' => $solicitud->lugar_evento,
+                'ubicacion_evento' => $ubicacionEvento,
                 'responsable' => $solicitud->responsable ? [
                     'id' => $solicitud->responsable->id,
                     'nombre' => $solicitud->responsable->nombre,
@@ -198,6 +212,10 @@ class SolicitudController extends Controller
                 'prioridad' => 'required|in:baja,normal,alta,urgente',
                 'observaciones' => 'nullable|string|max:500',
                 'responsable_id' => 'nullable|exists:responsables,id',
+                'estado_id' => 'nullable|exists:estados,id',
+                'municipio_id' => 'nullable|exists:municipios,id',
+                'parroquia_id' => 'nullable|exists:parroquias,id',
+                'lugar_evento' => 'nullable|string|max:200',
                 'items' => 'required|array|min:1',
                 'items.*.tipo_item' => 'required|in:activo,componente',
                 'items.*.cantidad' => 'required|integer|min:1',
@@ -241,6 +259,10 @@ class SolicitudController extends Controller
                 'prioridad' => $request->prioridad,
                 'estado_solicitud' => 'pendiente',
                 'observaciones' => $request->observaciones ?? null,
+                'estado_id' => $request->estado_id,
+                'municipio_id' => $request->municipio_id,
+                'parroquia_id' => $request->parroquia_id,
+                'lugar_evento' => $request->lugar_evento,
             ]);
 
             foreach ($request->items as $item) {
@@ -257,8 +279,15 @@ class SolicitudController extends Controller
 
             DB::commit();
 
-            $solicitudCreada = Solicitud::with(['responsable', 'departamento', 'institucion', 'detalles'])
-                ->find($solicitud->id);
+            $solicitudCreada = Solicitud::with([
+                'responsable',
+                'departamento',
+                'institucion',
+                'detalles',
+                'estado',
+                'municipio',
+                'parroquia'
+            ])->find($solicitud->id);
 
             return response()->json([
                 'success' => true,
@@ -279,21 +308,8 @@ class SolicitudController extends Controller
 
     public function update(Request $request, $id)
     {
-        // Verificación de permiso temporalmente comentada para pruebas
-        // if (!auth()->user()->hasPermission('editar-solicitud')) {
-        //     if ($request->ajax()) {
-        //         return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-        //     }
-        //     abort(403);
-        // }
-
         try {
             $solicitud = Solicitud::findOrFail($id);
-
-            // Verificación temporalmente comentada
-            // if ($solicitud->usuario_id !== auth()->id()) {
-            //     return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-            // }
 
             if ($solicitud->estado_solicitud !== 'pendiente') {
                 return response()->json(['success' => false, 'message' => 'Solo se pueden editar solicitudes pendientes'], 422);
@@ -309,11 +325,14 @@ class SolicitudController extends Controller
                 'departamento_id' => 'nullable|exists:departamentos,id',
                 'institucion_id' => 'nullable|exists:instituciones,id',
                 'responsable_id' => 'nullable|exists:responsables,id',
+                'estado_id' => 'nullable|exists:estados,id',
+                'municipio_id' => 'nullable|exists:municipios,id',
+                'parroquia_id' => 'nullable|exists:parroquias,id',
+                'lugar_evento' => 'nullable|string|max:200',
             ]);
 
             DB::beginTransaction();
 
-            // Actualizar datos principales
             $solicitud->update([
                 'tipo_solicitante' => $validated['tipo_solicitante'],
                 'fecha_requerida' => $validated['fecha_requerida'],
@@ -324,9 +343,12 @@ class SolicitudController extends Controller
                 'departamento_id' => $validated['departamento_id'] ?? null,
                 'institucion_id' => $validated['institucion_id'] ?? null,
                 'responsable_id' => $validated['responsable_id'] ?? null,
+                'estado_id' => $validated['estado_id'] ?? null,
+                'municipio_id' => $validated['municipio_id'] ?? null,
+                'parroquia_id' => $validated['parroquia_id'] ?? null,
+                'lugar_evento' => $validated['lugar_evento'] ?? null,
             ]);
 
-            // Obtener items del request
             $items = $request->input('items', []);
 
             if (!empty($items) && is_array($items)) {
@@ -350,8 +372,15 @@ class SolicitudController extends Controller
 
             DB::commit();
 
-            $solicitudActualizada = Solicitud::with(['responsable', 'departamento', 'institucion', 'detalles'])
-                ->find($solicitud->id);
+            $solicitudActualizada = Solicitud::with([
+                'responsable',
+                'departamento',
+                'institucion',
+                'detalles',
+                'estado',
+                'municipio',
+                'parroquia'
+            ])->find($solicitud->id);
 
             if ($request->ajax()) {
                 return response()->json([

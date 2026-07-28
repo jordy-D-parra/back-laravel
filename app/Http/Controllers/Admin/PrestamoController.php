@@ -145,11 +145,7 @@ class PrestamoController extends Controller
     }
 
     // ===========================
-<<<<<<< HEAD
     // API: MOSTRAR PRÉSTAMO
-=======
-    // API: MOSTRAR PRÉSTAMO (CORREGIDO)
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
     // ===========================
     public function show(Prestamo $prestamo)
     {
@@ -157,25 +153,15 @@ class PrestamoController extends Controller
             return response()->json(['success' => false, 'message' => 'No tienes permiso'], 403);
         }
 
-<<<<<<< HEAD
-=======
-        // ✅ CORREGIDO: Eliminamos 'usuarioRegistra' y 'extensiones.aprobadoPor'
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
         $prestamo->load([
             'departamento:id,nombre',
             'institucion:id,nombre',
             'responsableReceptor:id,nombre,documento,telefono,email,cargo',
             'responsableEmisor:id,nombre,documento,telefono,email,cargo',
-<<<<<<< HEAD
             'usuarioRegistra:id,usuario', // <--- CORREGIDO
             'solicitud:id,estado_solicitud',
             'detalles.prestable',
             'extensiones.aprobadoPor:id,nombre,usuario',
-=======
-            'solicitud:id,estado_solicitud',
-            'detalles.prestable',
-            'extensiones', // Solo cargamos las extensiones sin la relación anidada
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
         ]);
 
         $prestamo->dias_restantes = $prestamo->dias_restantes;
@@ -820,8 +806,4 @@ class PrestamoController extends Controller
             'data' => $resultados
         ]);
     }
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad

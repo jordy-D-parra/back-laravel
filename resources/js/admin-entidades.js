@@ -1,7 +1,6 @@
-<<<<<<< HEAD
-=======
+// resources/js/admin-entidades.js
+// ✅ VERSIÓN CORREGIDA - Incluye búsqueda en tiempo real
 
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
 // ===========================
 // Panel de Entidades Unificado
 // ===========================
@@ -32,6 +31,17 @@ document.addEventListener('DOMContentLoaded', function() {
         };
         const plural = plurales[tipo] || (tipo + 's');
         return `/admin/${plural}`;
+    }
+
+    // ===========================
+    // Función debounce (definida globalmente)
+    // ===========================
+    function debounce(func, wait) {
+        let timeout;
+        return function(...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
     }
 
     // ===========================
@@ -239,6 +249,277 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ===========================
+    // CARGAR INSTITUCIONES EN LA TABLA
+    // ===========================
+    function cargarInstituciones() {
+        const buscar = document.getElementById('buscarInstituciones')?.value || '';
+        const estado = document.getElementById('filtroEstadoInstituciones')?.value || '';
+        const tabla = document.getElementById('tablaInstituciones');
+
+        if (tabla) {
+            tabla.innerHTML = '<div class="loading-spinner"><svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Cargando...</div>';
+        }
+
+        fetch(`/admin/instituciones?todos=1&buscar=${encodeURIComponent(buscar)}&estado=${estado}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(response => {
+            if (response.success) {
+                renderTablaInstituciones(response, buscar);
+            } else {
+                if (tabla) {
+                    tabla.innerHTML = '<p class="text-center py-4 text-danger">Error al cargar las instituciones</p>';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (tabla) {
+                tabla.innerHTML = '<p class="text-center py-4 text-danger">Error de conexión al servidor</p>';
+            }
+        });
+    }
+
+    // ===========================
+    // RENDERIZAR TABLA DE INSTITUCIONES
+    // ===========================
+    function renderTablaInstituciones(response, buscar) {
+        const data = response.data || [];
+        const tabla = document.getElementById('tablaInstituciones');
+
+        if (!tabla) return;
+
+        if (!data || data.length === 0) {
+            tabla.innerHTML = `
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr>
+                        <th>Nombre</th><th>Representante</th><th>Ubicación</th><th>Deptos.</th><th>Resp.</th><th>Estado</th><th style="width:140px">Acciones</th>
+                    </tr></thead>
+                    <tbody>
+                        <tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron instituciones</td></tr>
+                    </tbody>
+                </table>
+            `;
+            return;
+        }
+
+        let html = `
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr>
+                    <th>Nombre</th><th>Representante</th><th>Ubicación</th><th>Deptos.</th><th>Resp.</th><th>Estado</th><th style="width:140px">Acciones</th>
+                </tr></thead>
+                <tbody>
+        `;
+
+        data.forEach(item => {
+            const ubicacionCompleta = item.ubicacion_completa ||
+                (item.parroquia ? item.parroquia.nombre + ', ' : '') +
+                (item.municipio ? item.municipio.nombre + ', ' : '') +
+                (item.estado ? item.estado.nombre : 'No especificada');
+
+            html += `
+                <tr>
+                    <td>
+                        <div class="fw-medium" style="color:#1e3c72">${resaltarTexto(item.nombre, buscar)}</div>
+                        ${item.informacion ? `<small class="text-muted">${escapeHtml(item.informacion.substring(0, 40))}...</small>` : ''}
+                    </td>
+                    <td>${resaltarTexto(item.representante, buscar) || '—'}</td>
+                    <td><small>${escapeHtml(ubicacionCompleta)}</small></td>
+                    <td><span class="badge-activo">${item.departamentos_count || 0}</span></td>
+                    <td><span class="badge-activo">${item.responsables_count || 0}</span></td>
+                    <td><span class="badge ${item.activo ? 'badge-activo' : 'badge-inactivo'}">${item.activo ? 'Activa' : 'Inactiva'}</span></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="verDetalle('institucion', ${item.id})" title="Ver detalle">${iconoVer}</button>
+                            <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="editarInstitucion(${item.id})" title="Editar">${iconoEditar}</button>
+                            <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="toggleEstado('institucion', ${item.id})" title="Cambiar estado">${iconoToggle}</button>
+                            <button class="btn btn-action btn-outline-danger btn-sm" onclick="confirmarEliminar('institucion', ${item.id}, '${escapeHtml(item.nombre).replace(/'/g, "\\'")}', true)" title="Eliminar">${iconoEliminar}</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        tabla.innerHTML = html;
+    }
+
+    // ===========================
+    // CARGAR DEPARTAMENTOS EN LA TABLA
+    // ===========================
+    function cargarDepartamentos() {
+        const buscar = document.getElementById('buscarDepartamentos')?.value || '';
+        const institucionId = document.getElementById('filtroInstitucionDepartamentos')?.value || '';
+        const tabla = document.getElementById('tablaDepartamentos');
+
+        if (!tabla) return;
+
+        tabla.innerHTML = '<div class="loading-spinner"><svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Cargando...</div>';
+
+        let url = `/admin/departamentos?buscar=${encodeURIComponent(buscar)}`;
+        if (institucionId) {
+            url += `&institucion_id=${institucionId}`;
+        }
+
+        fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            renderTablaDepartamentos(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            tabla.innerHTML = '<p class="text-center py-4 text-danger">Error al cargar los departamentos</p>';
+        });
+    }
+
+    function renderTablaDepartamentos(data) {
+        const tabla = document.getElementById('tablaDepartamentos');
+        if (!tabla) return;
+
+        const departamentos = data.data || [];
+
+        if (departamentos.length === 0) {
+            tabla.innerHTML = `
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr>
+                        <th>Nombre</th><th>Institución</th><th>Representante</th><th>Responsables</th><th>Estado</th><th style="width:140px">Acciones</th>
+                    </tr></thead>
+                    <tbody>
+                        <tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron departamentos</td></tr>
+                    </tbody>
+                </table>
+            `;
+            return;
+        }
+
+        let html = `
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr>
+                    <th>Nombre</th><th>Institución</th><th>Representante</th><th>Responsables</th><th>Estado</th><th style="width:140px">Acciones</th>
+                </tr></thead>
+                <tbody>
+        `;
+
+        departamentos.forEach(item => {
+            html += `
+                <tr>
+                    <td><span class="fw-medium" style="color:#1e3c72">${escapeHtml(item.nombre)}</span></td>
+                    <td>${escapeHtml(item.institucion?.nombre || 'Sin institución')}</td>
+                    <td>${escapeHtml(item.representante || '—')}</td>
+                    <td><span class="badge-activo">${item.responsables_count || 0}</span></td>
+                    <td><span class="badge ${item.activo ? 'badge-activo' : 'badge-inactivo'}">${item.activo ? 'Activo' : 'Inactivo'}</span></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="verDetalle('departamento', ${item.id})" title="Ver detalle">${iconoVer}</button>
+                            <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="editarDepartamento(${item.id})" title="Editar">${iconoEditar}</button>
+                            <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="toggleEstado('departamento', ${item.id})" title="Cambiar estado">${iconoToggle}</button>
+                            <button class="btn btn-action btn-outline-danger btn-sm" onclick="confirmarEliminar('departamento', ${item.id}, '${escapeHtml(item.nombre).replace(/'/g, "\\'")}', false)" title="Eliminar">${iconoEliminar}</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        tabla.innerHTML = html;
+    }
+
+    // ===========================
+    // CARGAR RESPONSABLES EN LA TABLA
+    // ===========================
+    function cargarResponsables() {
+        const buscar = document.getElementById('buscarResponsables')?.value || '';
+        const institucionId = document.getElementById('filtroInstitucionResponsables')?.value || '';
+        const tabla = document.getElementById('tablaResponsables');
+
+        if (!tabla) return;
+
+        tabla.innerHTML = '<div class="loading-spinner"><svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Cargando...</div>';
+
+        let url = `/admin/responsables?buscar=${encodeURIComponent(buscar)}`;
+        if (institucionId) {
+            url += `&institucion_id=${institucionId}`;
+        }
+
+        fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            renderTablaResponsables(data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            tabla.innerHTML = '<p class="text-center py-4 text-danger">Error al cargar los responsables</p>';
+        });
+    }
+
+    function renderTablaResponsables(data) {
+        const tabla = document.getElementById('tablaResponsables');
+        if (!tabla) return;
+
+        const responsables = data.data || [];
+
+        if (responsables.length === 0) {
+            tabla.innerHTML = `
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr>
+                        <th>Nombre</th><th>Documento</th><th>Cargo</th><th>Institución</th><th>Departamento</th><th>Estado</th><th style="width:140px">Acciones</th>
+                    </tr></thead>
+                    <tbody>
+                        <tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron responsables</td></tr>
+                    </tbody>
+                </table>
+            `;
+            return;
+        }
+
+        let html = `
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr>
+                    <th>Nombre</th><th>Documento</th><th>Cargo</th><th>Institución</th><th>Departamento</th><th>Estado</th><th style="width:140px">Acciones</th>
+                </tr></thead>
+                <tbody>
+        `;
+
+        responsables.forEach(item => {
+            html += `
+                <tr>
+                    <td><span class="fw-medium" style="color:#1e3c72">${escapeHtml(item.nombre)}</span></td>
+                    <td>${escapeHtml(item.documento || '—')}</td>
+                    <td>${escapeHtml(item.cargo || '—')}</td>
+                    <td>${escapeHtml(item.institucion?.nombre || '—')}</td>
+                    <td>${escapeHtml(item.departamento?.nombre || 'Sin depto.')}</td>
+                    <td><span class="badge ${item.activo ? 'badge-activo' : 'badge-inactivo'}">${item.activo ? 'Activo' : 'Inactivo'}</span></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="verDetalle('responsable', ${item.id})" title="Ver detalle">${iconoVer}</button>
+                            <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="editarResponsable(${item.id})" title="Editar">${iconoEditar}</button>
+                            <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="toggleEstado('responsable', ${item.id})" title="Cambiar estado">${iconoToggle}</button>
+                            <button class="btn btn-action btn-outline-danger btn-sm" onclick="confirmarEliminar('responsable', ${item.id}, '${escapeHtml(item.nombre).replace(/'/g, "\\'")}', false)" title="Eliminar">${iconoEliminar}</button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += '</tbody></table>';
+        tabla.innerHTML = html;
+    }
+
+    // ===========================
     // Cargar instituciones en selects
     // ===========================
     function cargarInstitucionesEnSelect() {
@@ -272,10 +553,199 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===========================
-    // Limpiar formularios
+    // UBICACIONES - SELECTS ANIDADOS
+    // ===========================
+
+    // Función para cargar estados
+    function cargarEstados(selectId, selectedId = null) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        select.innerHTML = '<option value="">Cargando estados...</option>';
+        select.disabled = true;
+
+        fetch('/admin/ubicaciones/estados', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                select.innerHTML = '<option value="">Seleccionar estado...</option>';
+                data.data.forEach(estado => {
+                    const option = document.createElement('option');
+                    option.value = estado.id;
+                    option.textContent = estado.nombre;
+                    select.appendChild(option);
+                });
+                if (selectedId) {
+                    select.value = selectedId;
+                }
+                select.disabled = false;
+            } else {
+                select.innerHTML = '<option value="">Error al cargar estados</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando estados:', error);
+            select.innerHTML = '<option value="">Error al cargar estados</option>';
+        });
+    }
+
+    // Función para cargar municipios según estado seleccionado
+    function cargarMunicipios(estadoId, selectId, selectedId = null) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        if (!estadoId) {
+            select.innerHTML = '<option value="">Seleccionar estado primero</option>';
+            select.disabled = true;
+            const parroquiaSelect = document.getElementById('parroquia_id');
+            if (parroquiaSelect) {
+                parroquiaSelect.innerHTML = '<option value="">Seleccionar municipio primero</option>';
+                parroquiaSelect.disabled = true;
+            }
+            return;
+        }
+
+        select.innerHTML = '<option value="">Cargando municipios...</option>';
+        select.disabled = true;
+
+        fetch(`/admin/ubicaciones/estados/${estadoId}/municipios`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                select.innerHTML = '<option value="">Seleccionar municipio...</option>';
+                data.data.forEach(municipio => {
+                    const option = document.createElement('option');
+                    option.value = municipio.id;
+                    option.textContent = municipio.nombre;
+                    select.appendChild(option);
+                });
+                if (selectedId) {
+                    select.value = selectedId;
+                    if (selectedId) {
+                        cargarParroquias(selectedId, 'parroquia_id');
+                    }
+                }
+                select.disabled = false;
+            } else {
+                select.innerHTML = '<option value="">Error al cargar municipios</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando municipios:', error);
+            select.innerHTML = '<option value="">Error al cargar municipios</option>';
+        });
+    }
+
+    // Función para cargar parroquias según municipio seleccionado
+    function cargarParroquias(municipioId, selectId, selectedId = null) {
+        const select = document.getElementById(selectId);
+        if (!select) return;
+
+        if (!municipioId) {
+            select.innerHTML = '<option value="">Seleccionar municipio primero</option>';
+            select.disabled = true;
+            return;
+        }
+
+        select.innerHTML = '<option value="">Cargando parroquias...</option>';
+        select.disabled = true;
+
+        fetch(`/admin/ubicaciones/municipios/${municipioId}/parroquias`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                select.innerHTML = '<option value="">Seleccionar parroquia...</option>';
+                data.data.forEach(parroquia => {
+                    const option = document.createElement('option');
+                    option.value = parroquia.id;
+                    option.textContent = parroquia.nombre;
+                    select.appendChild(option);
+                });
+                if (selectedId) {
+                    select.value = selectedId;
+                }
+                select.disabled = false;
+            } else {
+                select.innerHTML = '<option value="">Error al cargar parroquias</option>';
+            }
+        })
+        .catch(error => {
+            console.error('Error cargando parroquias:', error);
+            select.innerHTML = '<option value="">Error al cargar parroquias</option>';
+        });
+    }
+
+    // Función para cargar ubicación en edición
+    function cargarUbicacionEdicion(estadoId, municipioId, parroquiaId) {
+        if (estadoId) {
+            cargarEstados('estado_id', estadoId);
+            setTimeout(() => {
+                if (municipioId) {
+                    cargarMunicipios(estadoId, 'municipio_id', municipioId);
+                    setTimeout(() => {
+                        if (parroquiaId) {
+                            cargarParroquias(municipioId, 'parroquia_id', parroquiaId);
+                        }
+                    }, 300);
+                }
+            }, 300);
+        } else {
+            cargarEstados('estado_id');
+        }
+    }
+
+    // Event listeners para selects anidados
+    function initUbicacionSelects() {
+        const estadoSelect = document.getElementById('estado_id');
+        const municipioSelect = document.getElementById('municipio_id');
+        const parroquiaSelect = document.getElementById('parroquia_id');
+
+        if (estadoSelect) {
+            const newEstadoSelect = estadoSelect.cloneNode(true);
+            estadoSelect.parentNode.replaceChild(newEstadoSelect, estadoSelect);
+
+            newEstadoSelect.addEventListener('change', function() {
+                const estadoId = this.value;
+                if (municipioSelect) {
+                    cargarMunicipios(estadoId, 'municipio_id');
+                }
+                if (parroquiaSelect) {
+                    parroquiaSelect.innerHTML = '<option value="">Seleccionar municipio primero</option>';
+                    parroquiaSelect.disabled = true;
+                }
+            });
+        }
+
+        if (municipioSelect) {
+            const newMunicipioSelect = municipioSelect.cloneNode(true);
+            municipioSelect.parentNode.replaceChild(newMunicipioSelect, municipioSelect);
+
+            newMunicipioSelect.addEventListener('change', function() {
+                const municipioId = this.value;
+                cargarParroquias(municipioId, 'parroquia_id');
+            });
+        }
+    }
+
+    // ===========================
+    // Limpiar formulario de institución
     // ===========================
     window.limpiarFormInstitucion = function() {
-        // Resetear pasos del wizard de institución
         if (typeof pasoActualInst !== 'undefined') {
             pasoActualInst = 1;
             const step1 = document.getElementById('stepInst1');
@@ -286,7 +756,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (typeof actualizarBotonesInst === 'function') actualizarBotonesInst();
         }
 
-        // Resetear campos del representante
         const campos = [
             'inst_representante_nombre',
             'inst_representante_documento',
@@ -303,471 +772,30 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
 
-        // Resetear campos de institución
         const form = document.getElementById('formInstitucion');
         if (form) form.reset();
         const cargo = document.getElementById('inst_representante_cargo');
         if (cargo) cargo.value = 'Representante';
         const nombre = document.getElementById('inst_nombre');
         if (nombre) nombre.classList.remove('is-valid', 'is-invalid');
-    };
 
-    window.limpiarFormDepartamento = function() {
-        // Resetear pasos del wizard de departamento
-        if (typeof pasoActual !== 'undefined') {
-            pasoActual = 1;
-            const step1 = document.getElementById('step1');
-            const step2 = document.getElementById('step2');
-            const step3 = document.getElementById('step3');
-            if (step1) step1.style.display = 'block';
-            if (step2) step2.style.display = 'none';
-            if (step3) step3.style.display = 'none';
-            if (typeof actualizarIndicadores === 'function') actualizarIndicadores();
-            if (typeof actualizarBotones === 'function') actualizarBotones();
+        const estadoSelect = document.getElementById('estado_id');
+        const municipioSelect = document.getElementById('municipio_id');
+        const parroquiaSelect = document.getElementById('parroquia_id');
+
+        if (estadoSelect) {
+            estadoSelect.value = '';
+            cargarEstados('estado_id');
         }
-
-        const form = document.getElementById('formDepartamento');
-        if (form) form.reset();
-
-        const sinInstitucion = document.getElementById('sinInstitucion');
-        if (sinInstitucion) sinInstitucion.checked = false;
-
-        const contenedorInst = document.getElementById('contenedorInstitucionDepto');
-        if (contenedorInst) contenedorInst.style.display = 'block';
-
-        const contenedorCheck = document.getElementById('contenedorCheckRepresentante');
-        if (contenedorCheck) contenedorCheck.style.display = 'block';
-
-        const usarRep = document.getElementById('usarRepresentanteInstitucion');
-        if (usarRep) usarRep.checked = false;
-
-        window.setCamposRepresentanteEstado(false);
-        window.limpiarCamposRepresentante();
-        window.resetCamposOcultosResponsable();
-
-        const deptoNombre = document.getElementById('depto_nombre');
-        if (deptoNombre) deptoNombre.classList.remove('is-valid', 'is-invalid');
-
-        const icono = document.getElementById('iconoNombreDepto');
-        if (icono) icono.style.display = 'none';
-
-        const feedbackOk = document.getElementById('feedbackNombreDeptoOk');
-        if (feedbackOk) feedbackOk.style.display = 'none';
-
-        const feedbackError = document.getElementById('feedbackNombreDeptoError');
-        if (feedbackError) feedbackError.style.display = 'none';
-
-        // Resetear tarjetas de institución
-        const cardGob = document.getElementById('cardGobernacion');
-        const cardOtra = document.getElementById('cardOtra');
-        if (cardGob) {
-            cardGob.classList.add('active');
-            cardGob.style.borderColor = '#1e3c72';
+        if (municipioSelect) {
+            municipioSelect.innerHTML = '<option value="">Seleccionar estado primero</option>';
+            municipioSelect.disabled = true;
         }
-        if (cardOtra) {
-            cardOtra.classList.remove('active');
-            cardOtra.style.borderColor = '#dee2e6';
-        }
-
-        // Resetear radios
-        const radioGob = document.querySelector('input[name="tipo_institucion"][value="gobernacion"]');
-        const radioOtr = document.querySelector('input[name="tipo_institucion"][value="otra"]');
-        if (radioGob) radioGob.checked = true;
-        if (radioOtr) radioOtr.checked = false;
-
-        // Ocultar contenedor de "Otra"
-        const contenedorOtra = document.getElementById('contenedorOtraInstitucion');
-        if (contenedorOtra) contenedorOtra.style.display = 'none';
-
-        // Seleccionar Gobernación en el select
-        const selectInst = document.getElementById('depto_institucion_id');
-        if (selectInst) {
-            const gobOption = Array.from(selectInst.options).find(opt => opt.text.includes('Gobernación'));
-            if (gobOption) selectInst.value = gobOption.value;
+        if (parroquiaSelect) {
+            parroquiaSelect.innerHTML = '<option value="">Seleccionar municipio primero</option>';
+            parroquiaSelect.disabled = true;
         }
     };
-
-    window.limpiarFormResponsable = function() {
-        const form = document.getElementById('formResponsable');
-        if (form) form.reset();
-        const deptoSelect = document.getElementById('resp_departamento_id');
-        if (deptoSelect) deptoSelect.innerHTML = '<option value="">Sin departamento</option>';
-        const origen = document.getElementById('responsableOrigen');
-        if (origen) origen.value = 'directo';
-    };
-
-    // ===========================
-    // Toggle institución en departamento
-    // ===========================
-    window.toggleInstitucionDepartamento = function() {
-        const sinInstitucion = document.getElementById('sinInstitucion')?.checked || false;
-        const contenedorInst = document.getElementById('contenedorInstitucionDepto');
-        const contenedorCheck = document.getElementById('contenedorCheckRepresentante');
-
-        if (contenedorInst) contenedorInst.style.display = sinInstitucion ? 'none' : 'block';
-        if (contenedorCheck) contenedorCheck.style.display = sinInstitucion ? 'none' : 'block';
-
-        if (sinInstitucion) {
-            const deptoInst = document.getElementById('depto_institucion_id');
-            if (deptoInst) deptoInst.value = '';
-
-            const usarRep = document.getElementById('usarRepresentanteInstitucion');
-            if (usarRep) usarRep.checked = false;
-
-            window.setCamposRepresentanteEstado(false);
-            window.limpiarCamposRepresentante();
-            window.resetCamposOcultosResponsable();
-        }
-    };
-
-    // ===========================
-    // Toggle representante de institución (departamento)
-    // ===========================
-    window.toggleRepresentanteInstitucion = function() {
-        const select = document.getElementById('depto_institucion_id');
-        const checkbox = document.getElementById('usarRepresentanteInstitucion');
-
-        if (!checkbox || !select) return;
-
-        if (!checkbox.checked) {
-            window.setCamposRepresentanteEstado(false);
-            window.limpiarCamposRepresentante();
-            window.resetCamposOcultosResponsable();
-            return;
-        }
-
-        const institucionId = select.value;
-        if (!institucionId) {
-            checkbox.checked = false;
-            mostrarToast('Seleccione una institución primero', 'warning');
-            return;
-        }
-
-        const inputNombre = document.getElementById('depto_representante_nombre');
-        if (inputNombre) {
-            inputNombre.value = 'Cargando...';
-            inputNombre.disabled = true;
-        }
-
-        fetch(`/admin/api/institucion/${institucionId}/responsable`, {
-            headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrfToken }
-        })
-        .then(r => {
-            if (!r.ok) throw new Error('Error en la respuesta');
-            return r.json();
-        })
-        .then(data => {
-            if (data.responsable) {
-                const inputUsarResp = document.getElementById('usar_responsable_institucion_input');
-                const inputRespId = document.getElementById('responsable_id_input');
-                if (inputUsarResp) inputUsarResp.value = '1';
-                if (inputRespId) inputRespId.value = data.responsable.id;
-
-                const campos = {
-                    'depto_representante_nombre': data.responsable.nombre || '',
-                    'depto_representante_documento': data.responsable.documento || '',
-                    'depto_representante_telefono': data.responsable.telefono || '',
-                    'depto_representante_email': data.responsable.email || '',
-                    'depto_representante_cargo': data.responsable.cargo || 'Jefe de Departamento',
-                    'depto_representante_direccion': data.responsable.direccion || ''
-                };
-
-                Object.entries(campos).forEach(([id, valor]) => {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        el.value = valor;
-                        el.disabled = true;
-                    }
-                });
-            } else {
-                checkbox.checked = false;
-                window.setCamposRepresentanteEstado(false);
-                window.limpiarCamposRepresentante();
-                window.resetCamposOcultosResponsable();
-                mostrarToast('La institución no tiene un responsable asignado', 'warning');
-            }
-        })
-        .catch(error => {
-            console.error('Error al obtener responsable:', error);
-            checkbox.checked = false;
-            window.setCamposRepresentanteEstado(false);
-            window.limpiarCamposRepresentante();
-            window.resetCamposOcultosResponsable();
-            mostrarToast('Error al obtener el responsable', 'error');
-        });
-    };
-
-    // ===========================
-    // Validación nombre depto en tiempo real
-    // ===========================
-    let timeoutValidacionDepto = null;
-    window.validarNombreDepto = function() {
-        clearTimeout(timeoutValidacionDepto);
-        const input = document.getElementById('depto_nombre');
-        const icono = document.getElementById('iconoNombreDepto');
-        const feedbackOk = document.getElementById('feedbackNombreDeptoOk');
-        const feedbackError = document.getElementById('feedbackNombreDeptoError');
-        const institucionId = document.getElementById('depto_institucion_id')?.value || '';
-        const departamentoId = document.getElementById('departamentoId')?.value || '';
-
-        if (!input) return;
-        const nombre = input.value.trim();
-
-        if (nombre.length < 2) {
-            if (icono) icono.style.display = 'none';
-            if (feedbackOk) feedbackOk.style.display = 'none';
-            if (feedbackError) feedbackError.style.display = 'none';
-            input.classList.remove('is-valid', 'is-invalid');
-            return;
-        }
-
-        timeoutValidacionDepto = setTimeout(() => {
-            fetch(`/admin/departamentos?buscar=${encodeURIComponent(nombre)}`, {
-                headers: { 'Accept': 'application/json' }
-            })
-            .then(r => r.json())
-            .then(response => {
-                const data = response.data || response;
-                let existe = false;
-                if (data && data.length > 0) {
-                    data.forEach(item => {
-                        if (item.nombre.toLowerCase() === nombre.toLowerCase()) {
-                            if (departamentoId && item.id == departamentoId) return;
-                            if (institucionId) {
-                                if (item.institucion_id == institucionId) existe = true;
-                            } else {
-                                if (!item.institucion_id) existe = true;
-                            }
-                        }
-                    });
-                }
-
-                if (icono) icono.style.display = 'inline';
-                if (existe) {
-                    if (icono) icono.innerHTML = '<svg viewBox="0 0 24 24" stroke="#c5221f" stroke-width="2" fill="none" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>';
-                    if (feedbackOk) feedbackOk.style.display = 'none';
-                    if (feedbackError) feedbackError.style.display = 'block';
-                    input.classList.add('is-invalid');
-                    input.classList.remove('is-valid');
-                } else {
-                    if (icono) icono.innerHTML = '<svg viewBox="0 0 24 24" stroke="#1e7e34" stroke-width="2" fill="none" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>';
-                    if (feedbackOk) feedbackOk.style.display = 'block';
-                    if (feedbackError) feedbackError.style.display = 'none';
-                    input.classList.add('is-valid');
-                    input.classList.remove('is-invalid');
-                }
-            });
-        }, 500);
-    };
-
-    // ===========================
-    // Inicialización de tabs y eventos
-    // ===========================
-    const tabInstituciones = document.querySelector('#instituciones-tab');
-    const tabDepartamentos = document.querySelector('#departamentos-tab');
-    const tabResponsables = document.querySelector('#responsables-tab');
-    const tabArbol = document.querySelector('#arbol-tab');
-
-    if (tabInstituciones) tabInstituciones.addEventListener('shown.bs.tab', cargarInstituciones);
-    if (tabDepartamentos) tabDepartamentos.addEventListener('shown.bs.tab', cargarDepartamentos);
-    if (tabResponsables) tabResponsables.addEventListener('shown.bs.tab', cargarResponsables);
-    if (tabArbol) tabArbol.addEventListener('shown.bs.tab', cargarArbol);
-
-    cargarInstituciones();
-
-    const buscarInstituciones = document.getElementById('buscarInstituciones');
-    if (buscarInstituciones) {
-        buscarInstituciones.addEventListener('input', function() {
-            clearTimeout(this.timeout);
-            this.timeout = setTimeout(cargarInstituciones, 300);
-        });
-    }
-
-    const filtroEstadoInstituciones = document.getElementById('filtroEstadoInstituciones');
-    if (filtroEstadoInstituciones) filtroEstadoInstituciones.addEventListener('change', cargarInstituciones);
-
-    const buscarDepartamentos = document.getElementById('buscarDepartamentos');
-    if (buscarDepartamentos) {
-        buscarDepartamentos.addEventListener('input', function() {
-            clearTimeout(this.timeout);
-            this.timeout = setTimeout(cargarDepartamentos, 300);
-        });
-    }
-
-    const filtroInstitucionDepartamentos = document.getElementById('filtroInstitucionDepartamentos');
-    if (filtroInstitucionDepartamentos) filtroInstitucionDepartamentos.addEventListener('change', cargarDepartamentos);
-
-    const buscarResponsables = document.getElementById('buscarResponsables');
-    if (buscarResponsables) {
-        buscarResponsables.addEventListener('input', function() {
-            clearTimeout(this.timeout);
-            this.timeout = setTimeout(cargarResponsables, 300);
-        });
-    }
-
-    const filtroInstitucionResponsables = document.getElementById('filtroInstitucionResponsables');
-    if (filtroInstitucionResponsables) {
-        filtroInstitucionResponsables.addEventListener('change', function() {
-            cargarResponsables();
-            cargarDepartamentosDeInstitucion();
-        });
-    }
-
-    const buscarArbol = document.getElementById('buscarArbol');
-    if (buscarArbol) {
-        buscarArbol.addEventListener('input', function() {
-            clearTimeout(this.timeout);
-            this.timeout = setTimeout(cargarArbol, 300);
-        });
-    }
-
-    const respInstitucion = document.getElementById('resp_institucion_id');
-    if (respInstitucion) respInstitucion.addEventListener('change', cargarDepartamentosDeInstitucion);
-
-    // ===========================
-    // Carga de datos
-    // ===========================
-    function cargarInstituciones() {
-        const buscar = document.getElementById('buscarInstituciones')?.value || '';
-        const estado = document.getElementById('filtroEstadoInstituciones')?.value || '';
-        mostrarCarga('tablaInstituciones');
-        let url = '/admin/instituciones?';
-        if (buscar) url += `buscar=${encodeURIComponent(buscar)}&`;
-        if (estado) url += `estado=${estado}&`;
-        fetch(url, { headers: { 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(response => renderTablaInstituciones(response, buscar))
-            .catch(e => console.error('Error:', e));
-    }
-
-    function cargarDepartamentos() {
-        const buscar = document.getElementById('buscarDepartamentos')?.value || '';
-        const institucionId = document.getElementById('filtroInstitucionDepartamentos')?.value || '';
-        mostrarCarga('tablaDepartamentos');
-        let url = '/admin/departamentos?';
-        if (buscar) url += `buscar=${encodeURIComponent(buscar)}&`;
-        if (institucionId) url += `institucion_id=${institucionId}&`;
-        fetch(url, { headers: { 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(response => renderTablaDepartamentos(response, buscar))
-            .catch(e => console.error('Error:', e));
-    }
-
-    function cargarResponsables() {
-        const buscar = document.getElementById('buscarResponsables')?.value || '';
-        const institucionId = document.getElementById('filtroInstitucionResponsables')?.value || '';
-        mostrarCarga('tablaResponsables');
-        let url = '/admin/responsables?';
-        if (buscar) url += `buscar=${encodeURIComponent(buscar)}&`;
-        if (institucionId) url += `institucion_id=${institucionId}&`;
-        fetch(url, { headers: { 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(response => renderTablaResponsables(response, buscar))
-            .catch(e => console.error('Error:', e));
-    }
-
-    function cargarDepartamentosDeInstitucion() {
-        const institucionId = document.getElementById('resp_institucion_id')?.value || '';
-        const selectDepto = document.getElementById('resp_departamento_id');
-        if (!selectDepto) return;
-        selectDepto.innerHTML = '<option value="">Sin departamento</option>';
-        if (!institucionId) return;
-        fetch(`/admin/departamentos/por-institucion/${institucionId}`, { headers: { 'Accept': 'application/json' } })
-            .then(r => r.json())
-            .then(result => {
-                if (result.success && result.data) {
-                    result.data.forEach(depto => {
-                        selectDepto.innerHTML += `<option value="${depto.id}">${escapeHtml(depto.nombre)}</option>`;
-                    });
-                }
-            });
-    }
-
-    // ===========================
-    // Renderizar tablas
-    // ===========================
-    function renderTablaInstituciones(response, buscar) {
-        const data = response.data || response;
-        let html = `<table class="table table-hover align-middle mb-0"><thead><tr><th>Nombre</th><th>Representante</th><th>Ubicación</th><th>Deptos.</th><th>Resp.</th><th>Estado</th><th style="width:140px">Acciones</th></tr></thead><tbody>`;
-        if (data && data.length > 0) {
-            data.forEach(item => {
-                html += `<tr>
-                    <td><div class="fw-medium" style="color:#1e3c72">${resaltarTexto(item.nombre, buscar)}</div>${item.informacion ? `<small class="text-muted">${escapeHtml(item.informacion.substring(0, 40))}...</small>` : ''}</td>
-                    <td>${resaltarTexto(item.representante, buscar) || '—'}</td>
-                    <td>${resaltarTexto(item.ubicacion, buscar) || '—'}</td>
-                    <td><span class="badge-activo">${item.departamentos_count || 0}</span></td>
-                    <td><span class="badge-activo">${item.responsables_count || 0}</span></td>
-                    <td><span class="badge ${item.activo ? 'badge-activo' : 'badge-inactivo'}">${item.activo ? 'Activa' : 'Inactiva'}</span></td>
-                    <td><div class="d-flex gap-1">
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="verDetalle('institucion', ${item.id})" title="Ver detalle">${iconoVer}</button>
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="editarInstitucion(${item.id})" title="Editar">${iconoEditar}</button>
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="toggleEstado('institucion', ${item.id})" title="Cambiar estado">${iconoToggle}</button>
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="confirmarEliminar('institucion', ${item.id}, '${escapeHtml(item.nombre).replace(/'/g, "\\'")}', true)" title="Eliminar">${iconoEliminar}</button>
-                    </div></td></tr>`;
-            });
-        } else {
-            html += `<tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron instituciones${buscar ? ' para "' + buscar + '"' : ''}</td></tr>`;
-        }
-        html += '</tbody></table>';
-        const tabla = document.getElementById('tablaInstituciones');
-        if (tabla) tabla.innerHTML = html;
-    }
-
-    function renderTablaDepartamentos(response, buscar) {
-        const data = response.data || response;
-        let html = `<table class="table table-hover align-middle mb-0"><thead><tr><th>Nombre</th><th>Institución</th><th>Representante</th><th>Resp.</th><th>Estado</th><th style="width:140px">Acciones</th></tr></thead><tbody>`;
-        if (data && data.length > 0) {
-            data.forEach(item => {
-                const nombreInstitucion = item.institucion ? item.institucion.nombre : 'Sin institución';
-                html += `<tr>
-                    <td><div class="fw-medium" style="color:#1e3c72">${resaltarTexto(item.nombre, buscar)}</div>${item.informacion ? `<small class="text-muted">${escapeHtml(item.informacion.substring(0, 40))}...</small>` : ''}</td>
-                    <td>${resaltarTexto(nombreInstitucion, buscar)}</td>
-                    <td>${resaltarTexto(item.representante, buscar) || '—'}</td>
-                    <td><span class="badge-activo">${item.responsables_count || 0}</span></td>
-                    <td><span class="badge ${item.activo ? 'badge-activo' : 'badge-inactivo'}">${item.activo ? 'Activo' : 'Inactivo'}</span></td>
-                    <td><div class="d-flex gap-1">
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="verDetalle('departamento', ${item.id})" title="Ver detalle">${iconoVer}</button>
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="editarDepartamento(${item.id})" title="Editar">${iconoEditar}</button>
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="toggleEstado('departamento', ${item.id})" title="Cambiar estado">${iconoToggle}</button>
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="confirmarEliminar('departamento', ${item.id}, '${escapeHtml(item.nombre).replace(/'/g, "\\'")}', ${(item.responsables_count || 0) > 0})" title="Eliminar">${iconoEliminar}</button>
-                    </div></td></tr>`;
-            });
-        } else {
-            html += `<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron departamentos${buscar ? ' para "' + buscar + '"' : ''}</td></tr>`;
-        }
-        html += '</tbody></table>';
-        const tabla = document.getElementById('tablaDepartamentos');
-        if (tabla) tabla.innerHTML = html;
-    }
-
-    function renderTablaResponsables(response, buscar) {
-        const data = response.data || response;
-        let html = `<table class="table table-hover align-middle mb-0"><thead><tr><th>Nombre</th><th>Documento</th><th>Institución</th><th>Departamento</th><th>Cargo</th><th>Estado</th><th style="width:140px">Acciones</th></tr></thead><tbody>`;
-        if (data && data.length > 0) {
-            data.forEach(item => {
-                const nombreInstitucion = item.institucion ? item.institucion.nombre : '—';
-                const nombreDepartamento = item.departamento ? item.departamento.nombre : 'Sin depto.';
-                html += `<tr>
-                    <td><div class="fw-medium" style="color:#1e3c72">${resaltarTexto(item.nombre, buscar)}</div></td>
-                    <td>${resaltarTexto(item.documento, buscar) || '—'}</td>
-                    <td>${resaltarTexto(nombreInstitucion, buscar)}</td>
-                    <td>${resaltarTexto(nombreDepartamento, buscar)}</td>
-                    <td>${resaltarTexto(item.cargo, buscar) || '—'}</td>
-                    <td><span class="badge ${item.activo ? 'badge-activo' : 'badge-inactivo'}">${item.activo ? 'Activo' : 'Inactivo'}</span></td>
-                    <td><div class="d-flex gap-1">
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="verDetalle('responsable', ${item.id})" title="Ver detalle">${iconoVer}</button>
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="editarResponsable(${item.id})" title="Editar">${iconoEditar}</button>
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="toggleEstado('responsable', ${item.id})" title="Cambiar estado">${iconoToggle}</button>
-                        <button class="btn btn-action btn-outline-primary-dark btn-sm" onclick="confirmarEliminar('responsable', ${item.id}, '${escapeHtml(item.nombre).replace(/'/g, "\\'")}', false)" title="Eliminar">${iconoEliminar}</button>
-                    </div></td></tr>`;
-            });
-        } else {
-            html += `<tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron responsables${buscar ? ' para "' + buscar + '"' : ''}</td></tr>`;
-        }
-        html += '</tbody></table>';
-        const tabla = document.getElementById('tablaResponsables');
-        if (tabla) tabla.innerHTML = html;
-    }
 
     // ===========================
     // Funciones globales (modales)
@@ -778,6 +806,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('formMethodInstitucion').value = 'POST';
         window.limpiarFormInstitucion();
         document.getElementById('institucionId').value = '';
+        setTimeout(() => {
+            cargarEstados('estado_id');
+        }, 300);
         new bootstrap.Modal(document.getElementById('modalInstitucion')).show();
     };
 
@@ -792,10 +823,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('formMethodInstitucion').value = 'PUT';
                     document.getElementById('institucionId').value = d.id;
                     document.getElementById('inst_nombre').value = d.nombre || '';
-                    document.getElementById('inst_ubicacion').value = d.ubicacion || '';
                     document.getElementById('inst_informacion').value = d.informacion || '';
 
-                    // Cargar datos del representante
                     if (d.responsables && d.responsables.length > 0) {
                         const rep = d.responsables.find(r => r.cargo === 'Representante' && !r.departamento_id) || d.responsables[0];
                         document.getElementById('inst_representante_nombre').value = rep.nombre || '';
@@ -806,7 +835,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         document.getElementById('inst_representante_direccion').value = rep.direccion || '';
                     }
 
-                    // Configurar wizard en paso 2 para edición
                     if (typeof pasoActualInst !== 'undefined') {
                         pasoActualInst = 2;
                         const step1 = document.getElementById('stepInst1');
@@ -817,7 +845,17 @@ document.addEventListener('DOMContentLoaded', function() {
                         if (typeof actualizarBotonesInst === 'function') actualizarBotonesInst();
                     }
 
-                    new bootstrap.Modal(document.getElementById('modalInstitucion')).show();
+                    const modal = new bootstrap.Modal(document.getElementById('modalInstitucion'));
+                    modal.show();
+
+                    modal._element.addEventListener('shown.bs.modal', function onShown() {
+                        modal._element.removeEventListener('shown.bs.modal', onShown);
+                        if (d.estado_id || d.municipio_id || d.parroquia_id) {
+                            cargarUbicacionEdicion(d.estado_id, d.municipio_id, d.parroquia_id);
+                        } else {
+                            cargarEstados('estado_id');
+                        }
+                    });
                 }
             });
     };
@@ -1078,25 +1116,71 @@ document.addEventListener('DOMContentLoaded', function() {
         formInstitucion.addEventListener('submit', function(e) {
             e.preventDefault();
 
+            const estadoId = document.getElementById('estado_id')?.value;
+            const municipioId = document.getElementById('municipio_id')?.value;
+            const parroquiaId = document.getElementById('parroquia_id')?.value;
+
+            if (!estadoId) {
+                mostrarToast('Seleccione un estado', 'warning');
+                document.getElementById('estado_id')?.focus();
+                return;
+            }
+            if (!municipioId) {
+                mostrarToast('Seleccione un municipio', 'warning');
+                document.getElementById('municipio_id')?.focus();
+                return;
+            }
+            if (!parroquiaId) {
+                mostrarToast('Seleccione una parroquia', 'warning');
+                document.getElementById('parroquia_id')?.focus();
+                return;
+            }
+
             const formData = new FormData(this);
             const method = document.getElementById('formMethodInstitucion')?.value || 'POST';
             const id = document.getElementById('institucionId')?.value || '';
             let url = getUrlBase('institucion');
-            if (method === 'PUT' && id) { url = getUrl('institucion', id); formData.append('_method', 'PUT'); }
+            if (method === 'PUT' && id) {
+                url = getUrl('institucion', id);
+                formData.append('_method', 'PUT');
+            }
 
-            fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' } })
-                .then(r => r.json())
-                .then(result => {
-                    if (result.success) {
-                        bootstrap.Modal.getInstance(document.getElementById('modalInstitucion')).hide();
-                        mostrarToast(result.message || 'Guardado exitosamente', 'success');
-                        cargarInstituciones();
-                        cargarDepartamentos();
-                        cargarInstitucionesEnSelect();
+            formData.set('estado_id', estadoId);
+            formData.set('municipio_id', municipioId);
+            formData.set('parroquia_id', parroquiaId);
+
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalInstitucion')).hide();
+                    mostrarToast(result.message || 'Guardado exitosamente', 'success');
+                    cargarInstituciones();
+                    cargarDepartamentos();
+                    cargarInstitucionesEnSelect();
+                } else {
+                    if (result.errors) {
+                        let mensaje = 'Error de validación:\n';
+                        Object.values(result.errors).forEach(error => {
+                            mensaje += '- ' + error.join('\n') + '\n';
+                        });
+                        mostrarToast(mensaje, 'error');
                     } else {
                         mostrarToast(result.message || 'Error al guardar', 'error');
                     }
-                });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                mostrarToast('Error de conexión al guardar', 'error');
+            });
         });
     }
 
@@ -1195,25 +1279,35 @@ document.addEventListener('DOMContentLoaded', function() {
             const method = document.getElementById('formMethodDepartamento')?.value || 'POST';
             const id = document.getElementById('departamentoId')?.value || '';
             let url = getUrlBase('departamento');
-            if (method === 'PUT' && id) { url = getUrl('departamento', id); formData.append('_method', 'PUT'); }
+            if (method === 'PUT' && id) {
+                url = getUrl('departamento', id);
+                formData.append('_method', 'PUT');
+            }
 
-            fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' } })
-                .then(r => r.json())
-                .then(result => {
-                    if (result.success) {
-                        bootstrap.Modal.getInstance(document.getElementById('modalDepartamento')).hide();
-                        mostrarToast(result.message || 'Guardado exitosamente', 'success');
-                        cargarDepartamentos();
-                    } else {
-                        mostrarToast(result.message || 'Error al guardar', 'error');
-                    }
-                })
-                .finally(() => {
-                    const usarRep = document.getElementById('usarRepresentanteInstitucion');
-                    if (usarRep && usarRep.checked) {
-                        window.setCamposRepresentanteEstado(true);
-                    }
-                });
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalDepartamento')).hide();
+                    mostrarToast(result.message || 'Guardado exitosamente', 'success');
+                    cargarDepartamentos();
+                } else {
+                    mostrarToast(result.message || 'Error al guardar', 'error');
+                }
+            })
+            .finally(() => {
+                const usarRep = document.getElementById('usarRepresentanteInstitucion');
+                if (usarRep && usarRep.checked) {
+                    window.setCamposRepresentanteEstado(true);
+                }
+            });
         });
     }
 
@@ -1229,27 +1323,37 @@ document.addEventListener('DOMContentLoaded', function() {
             const method = document.getElementById('formMethodResponsable')?.value || 'POST';
             const id = document.getElementById('responsableId')?.value || '';
             let url = getUrlBase('responsable');
-            if (method === 'PUT' && id) { url = getUrl('responsable', id); formData.append('_method', 'PUT'); }
+            if (method === 'PUT' && id) {
+                url = getUrl('responsable', id);
+                formData.append('_method', 'PUT');
+            }
 
             const origen = document.getElementById('responsableOrigen')?.value || 'directo';
 
-            fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' } })
-                .then(r => r.json())
-                .then(result => {
-                    if (result.success) {
-                        bootstrap.Modal.getInstance(document.getElementById('modalResponsable')).hide();
-                        mostrarToast(result.message || 'Guardado exitosamente', 'success');
+            fetch(url, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                }
+            })
+            .then(r => r.json())
+            .then(result => {
+                if (result.success) {
+                    bootstrap.Modal.getInstance(document.getElementById('modalResponsable')).hide();
+                    mostrarToast(result.message || 'Guardado exitosamente', 'success');
 
-                        if (origen === 'institucion') {
-                            cargarInstitucionesEnSelect();
-                            cargarResponsables();
-                        } else {
-                            cargarResponsables();
-                        }
+                    if (origen === 'institucion') {
+                        cargarInstitucionesEnSelect();
+                        cargarResponsables();
                     } else {
-                        mostrarToast(result.message || 'Error al guardar', 'error');
+                        cargarResponsables();
                     }
-                });
+                } else {
+                    mostrarToast(result.message || 'Error al guardar', 'error');
+                }
+            });
         });
     }
 
@@ -1281,10 +1385,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const d = result.data;
                     let html = '';
                     if (tipo === 'institucion') {
+                        const ubicacionCompleta = d.ubicacion_completa || 'No especificada';
+
                         html = `<div class="detail-header"><h5>${escapeHtml(d.nombre)}</h5><span class="badge ${d.activo ? 'badge-activo' : 'badge-inactivo'}">${d.activo ? 'Activa' : 'Inactiva'}</span></div>
                             <div class="detail-grid">
                                 <div class="detail-item"><div class="detail-label">Representante</div><div class="detail-value">${escapeHtml(d.representante) || '—'}</div></div>
-                                <div class="detail-item"><div class="detail-label">Ubicación</div><div class="detail-value">${escapeHtml(d.ubicacion) || '—'}</div></div>
+                                <div class="detail-item"><div class="detail-label">Ubicación</div><div class="detail-value">${escapeHtml(ubicacionCompleta)}</div></div>
                                 <div class="detail-item" style="grid-column:1/-1"><div class="detail-label">Información</div><div class="detail-value">${escapeHtml(d.informacion) || 'Sin información'}</div></div>
                             </div>
                             <div class="detail-section"><div class="detail-section-title">${iconoDepartamento} Departamentos <span class="badge-count">${d.departamentos_count || 0}</span></div>`;
@@ -1303,7 +1409,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             });
                             html += '</ul>';
                         } else { html += '<div class="detail-empty">Sin responsables</div>'; }
-                        html += `</div><div class="detail-actions-bar"><button class="btn btn-sm btn-outline-primary-dark" onclick="editarDesdeDetalle('institucion',${d.id})">${iconoEditar} Editar</button><button class="btn btn-sm btn-primary-dark" onclick="bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide(); abrirModalDepartamento();">${iconoNuevo} Nuevo Depto.</button><button class="btn btn-sm btn-primary-dark" onclick="bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide(); abrirModalResponsable();">${iconoNuevo} Nuevo Resp.</button></div>`;
+                        html += `</div><div class="detail-actions-bar"><button class="btn btn-sm btn-outline-primary-dark" onclick="editarDesdeDetalle('institucion',${d.id})">${iconoEditar} Editar</button><button style="color:#fff;" class="btn btn-sm btn-primary-dark" onclick="bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide(); abrirModalDepartamento();">${iconoNuevo} Nuevo Depto.</button><button style="color:#fff;" class="btn btn-sm btn-primary-dark" onclick="bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide(); abrirModalResponsable();">${iconoNuevo} Nuevo Resp.</button></div>`;
                     } else if (tipo === 'departamento') {
                         html = `<div class="detail-header"><h5>${escapeHtml(d.nombre)}</h5><span class="badge ${d.activo ? 'badge-activo' : 'badge-inactivo'}">${d.activo ? 'Activo' : 'Inactivo'}</span></div>
                             <div class="detail-grid">
@@ -1320,7 +1426,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             });
                             html += '</ul>';
                         } else { html += '<div class="detail-empty">Sin responsables</div>'; }
-                        html += `</div><div class="detail-actions-bar"><button class="btn btn-sm btn-outline-primary-dark" onclick="editarDesdeDetalle('departamento',${d.id})">${iconoEditar} Editar</button><button class="btn btn-sm btn-primary-dark" onclick="bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide(); abrirModalResponsable();">${iconoNuevo} Nuevo Resp.</button></div>`;
+                        html += `</div><div class="detail-actions-bar"><button class="btn btn-sm btn-outline-primary-dark" onclick="editarDesdeDetalle('departamento',${d.id})">${iconoEditar} Editar</button><button style="color:white;" class="btn btn-sm btn-primary-dark" onclick="bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide(); abrirModalResponsable();">${iconoNuevo} Nuevo Resp.</button></div>`;
                     } else if (tipo === 'responsable') {
                         html = `<div class="detail-header"><h5>${escapeHtml(d.nombre)}</h5><span class="badge ${d.activo ? 'badge-activo' : 'badge-inactivo'}">${d.activo ? 'Activo' : 'Inactivo'}</span></div>
                             <div class="detail-grid">
@@ -1396,7 +1502,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const deptosCount = d.departamentos ? d.departamentos.length : 0;
         const respCount = d.responsables ? d.responsables.length : 0;
         const respDirectos = d.responsables ? d.responsables.filter(r => !r.departamento_id) : [];
-        let html = `<div class="arbol-nodo arbol-raiz"><div class="arbol-nodo-header" onclick="toggleNodo(this)"><span class="arbol-toggle">▼</span><span class="arbol-icon">${iconoInstitucion}</span><span class="arbol-nombre">${escapeHtml(d.nombre)}</span><span class="arbol-badge badge-activo">${deptosCount} deptos.</span><span class="arbol-badge badge-activo">${respCount} resp.</span><span class="badge ${d.activo ? 'badge-activo' : 'badge-inactivo'} ms-2">${d.activo ? 'Activa' : 'Inactiva'}</span><div class="arbol-acciones"><button class="btn-item-action" onclick="event.stopPropagation(); verDetalle('institucion',${d.id})" title="Ver">${iconoVerSmall}</button><button class="btn-item-action" onclick="event.stopPropagation(); editarInstitucion(${d.id})" title="Editar">${iconoEditarSmall}</button></div></div><div class="arbol-hijos">`;
+        const ubicacionStr = d.ubicacion_completa || '';
+
+        let html = `<div class="arbol-nodo arbol-raiz"><div class="arbol-nodo-header" onclick="toggleNodo(this)"><span class="arbol-toggle">▼</span><span class="arbol-icon">${iconoInstitucion}</span><span class="arbol-nombre">${escapeHtml(d.nombre)}</span><span class="arbol-sub">${escapeHtml(ubicacionStr)}</span><span class="arbol-badge badge-activo">${deptosCount} deptos.</span><span class="arbol-badge badge-activo">${respCount} resp.</span><span class="badge ${d.activo ? 'badge-activo' : 'badge-inactivo'} ms-2">${d.activo ? 'Activa' : 'Inactiva'}</span><div class="arbol-acciones"><button class="btn-item-action" onclick="event.stopPropagation(); verDetalle('institucion',${d.id})" title="Ver">${iconoVerSmall}</button><button class="btn-item-action" onclick="event.stopPropagation(); editarInstitucion(${d.id})" title="Editar">${iconoEditarSmall}</button></div></div><div class="arbol-hijos">`;
         if (d.departamentos && d.departamentos.length > 0) {
             d.departamentos.forEach(depto => {
                 const respDepto = d.responsables ? d.responsables.filter(r => r.departamento_id === depto.id) : [];
@@ -1436,6 +1544,100 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.arbol-hijos').forEach(h => h.classList.add('collapsed'));
         document.querySelectorAll('.arbol-toggle').forEach(t => t.classList.add('collapsed'));
     };
+
+    // ===========================
+    // Validar paso institución
+    // ===========================
+    function validarPasoInst(paso) {
+        switch(paso) {
+            case 1:
+                const nombre = document.getElementById('inst_nombre');
+                const informacion = document.getElementById('inst_informacion');
+
+                if (!nombre || !nombre.value.trim()) {
+                    mostrarToast('Ingrese el nombre de la institución', 'warning');
+                    if (nombre) nombre.focus();
+                    return false;
+                }
+
+                if (nombre.value.trim().length < 3) {
+                    mostrarToast('El nombre debe tener al menos 3 caracteres', 'warning');
+                    if (nombre) nombre.focus();
+                    return false;
+                }
+
+                if (!informacion || !informacion.value.trim()) {
+                    mostrarToast('Ingrese información de la institución', 'warning');
+                    if (informacion) informacion.focus();
+                    return false;
+                }
+
+                const estadoId = document.getElementById('estado_id')?.value;
+                const municipioId = document.getElementById('municipio_id')?.value;
+                const parroquiaId = document.getElementById('parroquia_id')?.value;
+
+                if (!estadoId) {
+                    mostrarToast('Seleccione un estado', 'warning');
+                    document.getElementById('estado_id')?.focus();
+                    return false;
+                }
+
+                if (!municipioId) {
+                    mostrarToast('Seleccione un municipio', 'warning');
+                    document.getElementById('municipio_id')?.focus();
+                    return false;
+                }
+
+                if (!parroquiaId) {
+                    mostrarToast('Seleccione una parroquia', 'warning');
+                    document.getElementById('parroquia_id')?.focus();
+                    return false;
+                }
+
+                return true;
+
+            case 2:
+                const nombreRep = document.getElementById('inst_representante_nombre');
+                const documento = document.getElementById('inst_representante_documento');
+                const telefono = document.getElementById('inst_representante_telefono');
+                const cargo = document.getElementById('inst_representante_cargo');
+
+                if (!nombreRep || !nombreRep.value.trim()) {
+                    mostrarToast('Ingrese el nombre del representante', 'warning');
+                    if (nombreRep) nombreRep.focus();
+                    return false;
+                }
+
+                if (!documento || !documento.value.trim()) {
+                    mostrarToast('Ingrese el documento del representante', 'warning');
+                    if (documento) documento.focus();
+                    return false;
+                }
+
+                if (documento.value.trim().length < 8) {
+                    mostrarToast('El documento debe tener al menos 8 caracteres', 'warning');
+                    if (documento) documento.focus();
+                    return false;
+                }
+
+                if (!telefono || !telefono.value.trim()) {
+                    mostrarToast('Ingrese el teléfono del representante', 'warning');
+                    if (telefono) telefono.focus();
+                    return false;
+                }
+
+                if (!cargo || !cargo.value.trim()) {
+                    mostrarToast('Ingrese el cargo del representante', 'warning');
+                    if (cargo) cargo.focus();
+                    return false;
+                }
+
+                return true;
+
+            default:
+                return true;
+        }
+    }
 
     // ===========================
     // EVENTOS RESPONSABLE - DEPARTAMENTOS POR INSTITUCIÓN
@@ -1644,7 +1846,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===========================
-    // WIZARD DE 2 PASOS - INSTITUCIÓN (REPRESENTANTE OBLIGATORIO)
+    // WIZARD DE 2 PASOS - INSTITUCIÓN
     // ===========================
 
     let pasoActualInst = 1;
@@ -1670,83 +1872,6 @@ document.addEventListener('DOMContentLoaded', function() {
         actualizarIndicadoresInst();
         actualizarBotonesInst();
     };
-
-    function validarPasoInst(paso) {
-        switch(paso) {
-            case 1:
-                const nombre = document.getElementById('inst_nombre');
-                const ubicacion = document.getElementById('inst_ubicacion');
-                const informacion = document.getElementById('inst_informacion');
-
-                if (!nombre || !nombre.value.trim()) {
-                    mostrarToast('Ingrese el nombre de la institución', 'warning');
-                    if (nombre) nombre.focus();
-                    return false;
-                }
-
-                if (nombre.value.trim().length < 3) {
-                    mostrarToast('El nombre debe tener al menos 3 caracteres', 'warning');
-                    if (nombre) nombre.focus();
-                    return false;
-                }
-
-                if (!ubicacion || !ubicacion.value.trim()) {
-                    mostrarToast('Ingrese la ubicación', 'warning');
-                    if (ubicacion) ubicacion.focus();
-                    return false;
-                }
-
-                if (!informacion || !informacion.value.trim()) {
-                    mostrarToast('Ingrese información de la institución', 'warning');
-                    if (informacion) informacion.focus();
-                    return false;
-                }
-
-                return true;
-
-            case 2:
-                // VALIDAR REPRESENTANTE - OBLIGATORIO
-                const nombreRep = document.getElementById('inst_representante_nombre');
-                const documento = document.getElementById('inst_representante_documento');
-                const telefono = document.getElementById('inst_representante_telefono');
-                const cargo = document.getElementById('inst_representante_cargo');
-
-                if (!nombreRep || !nombreRep.value.trim()) {
-                    mostrarToast('Ingrese el nombre del representante', 'warning');
-                    if (nombreRep) nombreRep.focus();
-                    return false;
-                }
-
-                if (!documento || !documento.value.trim()) {
-                    mostrarToast('Ingrese el documento del representante', 'warning');
-                    if (documento) documento.focus();
-                    return false;
-                }
-
-                if (documento.value.trim().length < 8) {
-                    mostrarToast('El documento debe tener al menos 8 caracteres', 'warning');
-                    if (documento) documento.focus();
-                    return false;
-                }
-
-                if (!telefono || !telefono.value.trim()) {
-                    mostrarToast('Ingrese el teléfono del representante', 'warning');
-                    if (telefono) telefono.focus();
-                    return false;
-                }
-
-                if (!cargo || !cargo.value.trim()) {
-                    mostrarToast('Ingrese el cargo del representante', 'warning');
-                    if (cargo) cargo.focus();
-                    return false;
-                }
-
-                return true;
-
-            default:
-                return true;
-        }
-    }
 
     function actualizarIndicadoresInst() {
         for (let i = 1; i <= totalPasosInst; i++) {
@@ -1867,20 +1992,112 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===========================
     // INICIALIZACIÓN
     // ===========================
-    initWizardEvents();
+    function init() {
+        console.log('Inicializando módulo de entidades...');
 
-    const modalDepartamento = document.getElementById('modalDepartamento');
-    if (modalDepartamento) {
-        modalDepartamento.addEventListener('shown.bs.modal', function() {
-            window.limpiarFormDepartamento();
-        });
-    }
+        // Inicializar wizard events
+        initWizardEvents();
 
-    const modalInstitucion = document.getElementById('modalInstitucion');
-    if (modalInstitucion) {
-        modalInstitucion.addEventListener('shown.bs.modal', function() {
-            window.limpiarFormInstitucion();
+        // Inicializar selects de ubicación
+        initUbicacionSelects();
+
+        // Cargar instituciones al inicio
+        cargarInstituciones();
+
+        // Cargar departamentos al inicio
+        cargarDepartamentos();
+
+        // Cargar responsables al inicio
+        cargarResponsables();
+
+        // Cargar instituciones en selects
+        cargarInstitucionesEnSelect();
+
+        // Cargar árbol
+        cargarArbol();
+
+        // ============================================
+        // FILTROS EN TIEMPO REAL
+        // ============================================
+
+        // Event listeners para búsqueda y filtros de instituciones
+        const buscarInstituciones = document.getElementById('buscarInstituciones');
+        if (buscarInstituciones) {
+            buscarInstituciones.addEventListener('input', debounce(cargarInstituciones, 300));
+            buscarInstituciones.addEventListener('search', cargarInstituciones);
+        }
+
+        const filtroEstadoInstituciones = document.getElementById('filtroEstadoInstituciones');
+        if (filtroEstadoInstituciones) {
+            filtroEstadoInstituciones.addEventListener('change', cargarInstituciones);
+        }
+
+        // Event listeners para búsqueda y filtros de departamentos
+        const buscarDepartamentos = document.getElementById('buscarDepartamentos');
+        if (buscarDepartamentos) {
+            buscarDepartamentos.addEventListener('input', debounce(cargarDepartamentos, 300));
+            buscarDepartamentos.addEventListener('search', cargarDepartamentos);
+        }
+
+        const filtroInstitucionDepartamentos = document.getElementById('filtroInstitucionDepartamentos');
+        if (filtroInstitucionDepartamentos) {
+            filtroInstitucionDepartamentos.addEventListener('change', cargarDepartamentos);
+        }
+
+        // Event listeners para búsqueda y filtros de responsables
+        const buscarResponsables = document.getElementById('buscarResponsables');
+        if (buscarResponsables) {
+            buscarResponsables.addEventListener('input', debounce(cargarResponsables, 300));
+            buscarResponsables.addEventListener('search', cargarResponsables);
+        }
+
+        const filtroInstitucionResponsables = document.getElementById('filtroInstitucionResponsables');
+        if (filtroInstitucionResponsables) {
+            filtroInstitucionResponsables.addEventListener('change', cargarResponsables);
+        }
+
+        // Event listeners para el árbol
+        const buscarArbol = document.getElementById('buscarArbol');
+        if (buscarArbol) {
+            buscarArbol.addEventListener('input', debounce(cargarArbol, 300));
+            buscarArbol.addEventListener('search', cargarArbol);
+        }
+
+        // ============================================
+        // RECARGAR AL CAMBIAR DE TAB
+        // ============================================
+        document.querySelectorAll('#entidadesTabs .nav-link').forEach(function(tab) {
+            tab.addEventListener('shown.bs.tab', function(e) {
+                var target = e.target.getAttribute('data-bs-target');
+                if (target === '#instituciones') {
+                    cargarInstituciones();
+                } else if (target === '#departamentos') {
+                    cargarDepartamentos();
+                } else if (target === '#responsables') {
+                    cargarResponsables();
+                } else if (target === '#arbol') {
+                    cargarArbol();
+                }
+            });
         });
+
+        // Event listeners para los modales
+        const modalDepartamento = document.getElementById('modalDepartamento');
+        if (modalDepartamento) {
+            modalDepartamento.addEventListener('shown.bs.modal', function() {
+                window.limpiarFormDepartamento();
+            });
+        }
+
+        const modalInstitucion = document.getElementById('modalInstitucion');
+        if (modalInstitucion) {
+            modalInstitucion.addEventListener('shown.bs.modal', function() {
+                window.limpiarFormInstitucion();
+                setTimeout(() => {
+                    cargarEstados('estado_id');
+                }, 300);
+            });
+        }
     }
 
     // ===========================
@@ -1895,4 +2112,19 @@ document.addEventListener('DOMContentLoaded', function() {
     window.validarPasoInst = validarPasoInst;
     window.actualizarIndicadoresInst = actualizarIndicadoresInst;
     window.actualizarBotonesInst = actualizarBotonesInst;
+
+    // Exponer funciones de ubicación globalmente
+    window.cargarEstados = cargarEstados;
+    window.cargarMunicipios = cargarMunicipios;
+    window.cargarParroquias = cargarParroquias;
+    window.cargarUbicacionEdicion = cargarUbicacionEdicion;
+
+    // Exponer funciones de carga de tablas globalmente
+    window.cargarInstituciones = cargarInstituciones;
+    window.cargarDepartamentos = cargarDepartamentos;
+    window.cargarResponsables = cargarResponsables;
+    window.cargarArbol = cargarArbol;
+
+    // Ejecutar inicialización
+    init();
 });

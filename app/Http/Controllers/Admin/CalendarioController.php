@@ -111,7 +111,7 @@ class CalendarioController extends Controller
         foreach ($prestamos as $prestamo) {
             $color = '#1e3c72';
             $textColor = '#ffffff';
-            
+
             if ($prestamo->esta_vencido) {
                 $color = '#dc3545';
             } elseif ($prestamo->estado === 'extendido') {

@@ -48,16 +48,23 @@ class EquipoController extends Controller
 
         try {
             $query = Marca::withCount('modelos');
+            
             if ($request->filled('buscar')) {
-                $query->where('nombre', 'like', "%{$request->buscar}%");
+                $buscar = $request->buscar;
+                $query->where(function($q) use ($buscar) {
+                    $q->where('nombre', 'ILIKE', "%{$buscar}%")
+                      ->orWhere('descripcion', 'ILIKE', "%{$buscar}%");
+                });
             }
+            
             if ($request->filled('estado')) {
                 $query->where('activo', $request->estado === 'activo');
             }
+            
             $marcas = $query->orderBy('nombre')->get();
             return response()->json(['success' => true, 'data' => $marcas]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al cargar marcas'], 500);
+            return response()->json(['success' => false, 'message' => 'Error al cargar marcas: ' . $e->getMessage()], 500);
         }
     }
 
@@ -171,7 +178,11 @@ class EquipoController extends Controller
             $query = Categoria::withCount('modelos');
 
             if ($request->filled('buscar')) {
-                $query->where('nombre', 'like', "%{$request->buscar}%");
+                $buscar = $request->buscar;
+                $query->where(function($q) use ($buscar) {
+                    $q->where('nombre', 'ILIKE', "%{$buscar}%")
+                      ->orWhere('descripcion', 'ILIKE', "%{$buscar}%");
+                });
             }
 
             if ($request->filled('estado')) {
@@ -182,7 +193,7 @@ class EquipoController extends Controller
 
             return response()->json(['success' => true, 'data' => $categorias]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al cargar categorías'], 500);
+            return response()->json(['success' => false, 'message' => 'Error al cargar categorías: ' . $e->getMessage()], 500);
         }
     }
 
@@ -296,9 +307,16 @@ class EquipoController extends Controller
             $query = Modelo::with(['marca', 'categoria']);
 
             if ($request->filled('buscar')) {
-                $query->where(function($q) use ($request) {
-                    $q->where('nombre', 'like', "%{$request->buscar}%")
-                      ->orWhereHas('marca', fn($q2) => $q2->where('nombre', 'like', "%{$request->buscar}%"));
+                $buscar = $request->buscar;
+                $query->where(function($q) use ($buscar) {
+                    $q->where('nombre', 'ILIKE', "%{$buscar}%")
+                      ->orWhere('descripcion', 'ILIKE', "%{$buscar}%")
+                      ->orWhereHas('marca', function($q2) use ($buscar) {
+                          $q2->where('nombre', 'ILIKE', "%{$buscar}%");
+                      })
+                      ->orWhereHas('categoria', function($q2) use ($buscar) {
+                          $q2->where('nombre', 'ILIKE', "%{$buscar}%");
+                      });
                 });
             }
 
@@ -318,7 +336,7 @@ class EquipoController extends Controller
 
             return response()->json(['success' => true, 'data' => $modelos]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al cargar modelos'], 500);
+            return response()->json(['success' => false, 'message' => 'Error al cargar modelos: ' . $e->getMessage()], 500);
         }
     }
 

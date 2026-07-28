@@ -1,5 +1,5 @@
 // resources/js/admin-solicitudes.js
-// ✅ VERSIÓN COMPLETA CORREGIDA - Solo se agregaron validaciones
+// ✅ VERSIÓN COMPLETA CON UBICACIÓN
 
 let solicitudesData = [];
 let currentPage = 1;
@@ -80,6 +80,235 @@ function actualizarEstadisticas() {
     if (elPendientes) elPendientes.textContent = pendientes;
     if (elAprobadas) elAprobadas.textContent = aprobadas;
     if (elRechazadas) elRechazadas.textContent = rechazadas;
+}
+
+// ==================== FUNCIONES DE UBICACIÓN ====================
+function cargarUbicacionSolicitud() {
+    const estadoSelect = document.getElementById('solicitud_estado_id');
+    const municipioSelect = document.getElementById('solicitud_municipio_id');
+    const parroquiaSelect = document.getElementById('solicitud_parroquia_id');
+
+    if (!estadoSelect) return;
+
+    // Cargar estados
+    fetch('/admin/ubicaciones/estados', {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            estadoSelect.innerHTML = '<option value="">Seleccionar estado...</option>';
+            data.data.forEach(estado => {
+                estadoSelect.innerHTML += `<option value="${estado.id}">${escapeHtml(estado.nombre)}</option>`;
+            });
+            estadoSelect.disabled = false;
+        }
+    })
+    .catch(error => console.error('Error cargando estados:', error));
+
+    // Evento: cambio de estado
+    estadoSelect.addEventListener('change', function() {
+        const estadoId = this.value;
+        municipioSelect.innerHTML = '<option value="">Seleccionar estado primero</option>';
+        municipioSelect.disabled = true;
+        parroquiaSelect.innerHTML = '<option value="">Seleccionar municipio primero</option>';
+        parroquiaSelect.disabled = true;
+
+        if (!estadoId) return;
+
+        fetch(`/admin/ubicaciones/estados/${estadoId}/municipios`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                municipioSelect.innerHTML = '<option value="">Seleccionar municipio...</option>';
+                data.data.forEach(municipio => {
+                    municipioSelect.innerHTML += `<option value="${municipio.id}">${escapeHtml(municipio.nombre)}</option>`;
+                });
+                municipioSelect.disabled = false;
+            }
+        })
+        .catch(error => console.error('Error cargando municipios:', error));
+    });
+
+    // Evento: cambio de municipio
+    municipioSelect.addEventListener('change', function() {
+        const municipioId = this.value;
+        parroquiaSelect.innerHTML = '<option value="">Seleccionar municipio primero</option>';
+        parroquiaSelect.disabled = true;
+
+        if (!municipioId) return;
+
+        fetch(`/admin/ubicaciones/municipios/${municipioId}/parroquias`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                parroquiaSelect.innerHTML = '<option value="">Seleccionar parroquia...</option>';
+                data.data.forEach(parroquia => {
+                    parroquiaSelect.innerHTML += `<option value="${parroquia.id}">${escapeHtml(parroquia.nombre)}</option>`;
+                });
+                parroquiaSelect.disabled = false;
+            }
+        })
+        .catch(error => console.error('Error cargando parroquias:', error));
+    });
+}
+
+function cargarUbicacionEditarSolicitud(estadoId, municipioId, parroquiaId) {
+    const estadoSelect = document.getElementById('edit_solicitud_estado_id');
+    const municipioSelect = document.getElementById('edit_solicitud_municipio_id');
+    const parroquiaSelect = document.getElementById('edit_solicitud_parroquia_id');
+
+    if (!estadoSelect) return;
+
+    // Cargar estados
+    fetch('/admin/ubicaciones/estados', {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            estadoSelect.innerHTML = '<option value="">Seleccionar estado...</option>';
+            data.data.forEach(estado => {
+                estadoSelect.innerHTML += `<option value="${estado.id}">${escapeHtml(estado.nombre)}</option>`;
+            });
+            if (estadoId) {
+                estadoSelect.value = estadoId;
+                // Cargar municipios
+                cargarMunicipiosEditar(estadoId, municipioId, parroquiaId);
+            }
+            estadoSelect.disabled = false;
+        }
+    })
+    .catch(error => console.error('Error cargando estados:', error));
+
+    // Evento: cambio de estado
+    estadoSelect.addEventListener('change', function() {
+        const estadoId = this.value;
+        municipioSelect.innerHTML = '<option value="">Seleccionar estado primero</option>';
+        municipioSelect.disabled = true;
+        parroquiaSelect.innerHTML = '<option value="">Seleccionar municipio primero</option>';
+        parroquiaSelect.disabled = true;
+
+        if (!estadoId) return;
+
+        fetch(`/admin/ubicaciones/estados/${estadoId}/municipios`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                municipioSelect.innerHTML = '<option value="">Seleccionar municipio...</option>';
+                data.data.forEach(municipio => {
+                    municipioSelect.innerHTML += `<option value="${municipio.id}">${escapeHtml(municipio.nombre)}</option>`;
+                });
+                municipioSelect.disabled = false;
+            }
+        })
+        .catch(error => console.error('Error cargando municipios:', error));
+    });
+
+    // Evento: cambio de municipio
+    municipioSelect.addEventListener('change', function() {
+        const municipioId = this.value;
+        parroquiaSelect.innerHTML = '<option value="">Seleccionar municipio primero</option>';
+        parroquiaSelect.disabled = true;
+
+        if (!municipioId) return;
+
+        fetch(`/admin/ubicaciones/municipios/${municipioId}/parroquias`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                parroquiaSelect.innerHTML = '<option value="">Seleccionar parroquia...</option>';
+                data.data.forEach(parroquia => {
+                    parroquiaSelect.innerHTML += `<option value="${parroquia.id}">${escapeHtml(parroquia.nombre)}</option>`;
+                });
+                parroquiaSelect.disabled = false;
+            }
+        })
+        .catch(error => console.error('Error cargando parroquias:', error));
+    });
+}
+
+function cargarMunicipiosEditar(estadoId, municipioId, parroquiaId) {
+    const municipioSelect = document.getElementById('edit_solicitud_municipio_id');
+    const parroquiaSelect = document.getElementById('edit_solicitud_parroquia_id');
+
+    if (!municipioSelect) return;
+
+    fetch(`/admin/ubicaciones/estados/${estadoId}/municipios`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            municipioSelect.innerHTML = '<option value="">Seleccionar municipio...</option>';
+            data.data.forEach(municipio => {
+                municipioSelect.innerHTML += `<option value="${municipio.id}">${escapeHtml(municipio.nombre)}</option>`;
+            });
+            if (municipioId) {
+                municipioSelect.value = municipioId;
+                // Cargar parroquias
+                cargarParroquiasEditar(municipioId, parroquiaId);
+            }
+            municipioSelect.disabled = false;
+        }
+    })
+    .catch(error => console.error('Error cargando municipios:', error));
+}
+
+function cargarParroquiasEditar(municipioId, parroquiaId) {
+    const parroquiaSelect = document.getElementById('edit_solicitud_parroquia_id');
+
+    if (!parroquiaSelect) return;
+
+    fetch(`/admin/ubicaciones/municipios/${municipioId}/parroquias`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            parroquiaSelect.innerHTML = '<option value="">Seleccionar parroquia...</option>';
+            data.data.forEach(parroquia => {
+                parroquiaSelect.innerHTML += `<option value="${parroquia.id}">${escapeHtml(parroquia.nombre)}</option>`;
+            });
+            if (parroquiaId) {
+                parroquiaSelect.value = parroquiaId;
+            }
+            parroquiaSelect.disabled = false;
+        }
+    })
+    .catch(error => console.error('Error cargando parroquias:', error));
 }
 
 // ==================== RENDERIZAR TABLA ====================
@@ -189,7 +418,7 @@ function aplicarFiltrosConDebounce() {
     timeoutBusqueda = setTimeout(() => aplicarFiltros(), 300);
 }
 
-// ✅ CORREGIDO: abrirModalCrear con validaciones
+// ==================== FUNCIONES DE MODALES ====================
 window.abrirModalCrear = function() {
     const form = document.getElementById('formCrearSolicitud');
     if (form) form.reset();
@@ -212,6 +441,9 @@ window.abrirModalCrear = function() {
 
     const responsableHidden = document.getElementById('responsable_id_hidden');
     if (responsableHidden) responsableHidden.value = '';
+
+    // ✅ Cargar ubicación
+    cargarUbicacionSolicitud();
 
     itemCount = 1;
 
@@ -259,7 +491,58 @@ window.verDetalles = async function(id) {
         let nombreEntidad = 'No especificado';
         if (data.tipo_solicitante === 'interno' && data.departamento) nombreEntidad = data.departamento.nombre;
         else if (data.tipo_solicitante === 'externo' && data.institucion) nombreEntidad = data.institucion.nombre;
-        const html = `<div class="row"><div class="col-md-6 mb-3"><label class="text-muted small">Fecha Solicitud</label><div class="fw-semibold">${fechaSolicitud}</div></div><div class="col-md-6 mb-3"><label class="text-muted small">Tipo Solicitante</label><div class="fw-semibold">${data.tipo_solicitante === 'interno' ? 'Interno' : 'Externo'}</div></div><div class="col-md-6 mb-3"><label class="text-muted small">Prioridad</label><div><span class="badge-prioridad badge-prioridad-${data.prioridad}">${data.prioridad}</span></div></div><div class="col-md-6 mb-3"><label class="text-muted small">Estado</label><div><span class="badge-estado badge-estado-${data.estado_solicitud}">${data.estado_solicitud}</span></div></div><div class="col-md-6 mb-3"><label class="text-muted small">Entidad</label><div class="fw-semibold">${escapeHtml(nombreEntidad)}</div></div><div class="col-md-6 mb-3"><label class="text-muted small">Responsable</label><div class="fw-semibold">${escapeHtml(data.responsable?.nombre || 'No especificado')}</div></div><div class="col-md-6 mb-3"><label class="text-muted small">Fecha Requerida</label><div>${fechaRequerida}</div></div><div class="col-md-6 mb-3"><label class="text-muted small">Fecha Fin Estimada</label><div>${fechaFin}</div></div><div class="col-12 mb-3"><label class="text-muted small">Justificación</label><div class="p-2 bg-light rounded">${escapeHtml(data.justificacion || 'No especificada')}</div></div><div class="col-12"><label class="text-muted small fw-semibold mb-2">Items Solicitados</label>${itemsHtml}</div></div>`;
+
+        // ✅ Obtener ubicación
+        const ubicacionEvento = data.ubicacion_evento || 'No especificada';
+
+        const html = `
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Fecha Solicitud</label>
+                    <div class="fw-semibold">${fechaSolicitud}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Tipo Solicitante</label>
+                    <div class="fw-semibold">${data.tipo_solicitante === 'interno' ? 'Interno' : 'Externo'}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Prioridad</label>
+                    <div><span class="badge-prioridad badge-prioridad-${data.prioridad}">${data.prioridad}</span></div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Estado</label>
+                    <div><span class="badge-estado badge-estado-${data.estado_solicitud}">${data.estado_solicitud}</span></div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Entidad</label>
+                    <div class="fw-semibold">${escapeHtml(nombreEntidad)}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Responsable</label>
+                    <div class="fw-semibold">${escapeHtml(data.responsable?.nombre || 'No especificado')}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Fecha Requerida</label>
+                    <div>${fechaRequerida}</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="text-muted small">Fecha Fin Estimada</label>
+                    <div>${fechaFin}</div>
+                </div>
+                <div class="col-12 mb-3">
+                    <label class="text-muted small">Ubicación del Evento</label>
+                    <div class="fw-semibold">${escapeHtml(ubicacionEvento)}</div>
+                </div>
+                <div class="col-12 mb-3">
+                    <label class="text-muted small">Justificación</label>
+                    <div class="p-2 bg-light rounded">${escapeHtml(data.justificacion || 'No especificada')}</div>
+                </div>
+                <div class="col-12">
+                    <label class="text-muted small fw-semibold mb-2">Items Solicitados</label>
+                    ${itemsHtml}
+                </div>
+            </div>
+        `;
         modalBody.innerHTML = html;
     } catch (error) {
         console.error('Error:', error);
@@ -291,6 +574,12 @@ window.editarSolicitud = async function(id) {
         if (editJustificacion) editJustificacion.value = data.justificacion || '';
         const editObservaciones = document.getElementById('editObservaciones');
         if (editObservaciones) editObservaciones.value = data.observaciones || '';
+
+        // ✅ Cargar ubicación en edición
+        const editLugarEvento = document.getElementById('edit_solicitud_lugar_evento');
+        if (editLugarEvento) editLugarEvento.value = data.lugar_evento || '';
+
+        cargarUbicacionEditarSolicitud(data.estado_id, data.municipio_id, data.parroquia_id);
 
         const editInternoFields = document.getElementById('editInternoFields');
         const editExternoFields = document.getElementById('editExternoFields');
@@ -615,7 +904,6 @@ document.getElementById('formCrearSolicitud')?.addEventListener('submit', async 
     finally { if (submitBtn) { submitBtn.innerHTML = originalText; submitBtn.disabled = false; } }
 });
 
-// ==================== FORMULARIO DE EDICIÓN ====================
 document.getElementById('formEditarSolicitud')?.addEventListener('submit', async function(e) {
     e.preventDefault();
 
@@ -668,11 +956,11 @@ document.getElementById('formEditarSolicitud')?.addEventListener('submit', async
         console.error('Error:', error);
         mostrarNotificacion('error', 'Error de conexión');
     } finally {
-
         if (submitBtn) { submitBtn.innerHTML = originalText; submitBtn.disabled = false; }
     }
 });
 
+// ==================== INICIALIZACIÓN ====================
 function initEventListeners() {
     if (searchInput) searchInput.addEventListener('input', aplicarFiltrosConDebounce);
     if (estadoFilter) estadoFilter.addEventListener('change', aplicarFiltros);
@@ -697,6 +985,7 @@ document.addEventListener('DOMContentLoaded', function() {
     initCrearEventListeners();
     cargarPagina(1);
 });
+
 // ============================================================
 // PAGINACIÓN - EXPONER FUNCIÓN GLOBAL
 // ============================================================

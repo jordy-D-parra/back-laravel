@@ -1,4 +1,5 @@
 <?php
+// database/seeders/EntidadesSeeder.php
 
 namespace Database\Seeders;
 
@@ -6,6 +7,9 @@ use Illuminate\Database\Seeder;
 use App\Models\Institucion;
 use App\Models\Departamento;
 use App\Models\Responsable;
+use App\Models\Estado;
+use App\Models\Municipio;
+use App\Models\Parroquia;
 
 class EntidadesSeeder extends Seeder
 {
@@ -14,13 +18,36 @@ class EntidadesSeeder extends Seeder
         $this->command->info('Creando entidades (instituciones, departamentos y responsables)...');
 
         // ============================================
+        // OBTENER UBICACIÓN DE YARACUY
+        // ============================================
+        $estadoYaracuy = Estado::where('nombre', 'Yaracuy')->first();
+        $municipioSanFelipe = Municipio::where('nombre', 'San Felipe')
+            ->where('estado_id', $estadoYaracuy?->id)
+            ->first();
+        $parroquiaSanFelipe = Parroquia::where('nombre', 'San Felipe')
+            ->where('municipio_id', $municipioSanFelipe?->id)
+            ->first();
+
+        if (!$estadoYaracuy || !$municipioSanFelipe || !$parroquiaSanFelipe) {
+            $this->command->error('❌ No se encontraron los datos de ubicación de Yaracuy. Ejecuta primero los seeders de ubicación.');
+            return;
+        }
+
+        $this->command->info('📍 Ubicación base:');
+        $this->command->info("   Estado: {$estadoYaracuy->nombre}");
+        $this->command->info("   Municipio: {$municipioSanFelipe->nombre}");
+        $this->command->info("   Parroquia: {$parroquiaSanFelipe->nombre}");
+
+        // ============================================
         // 1. GOBERNACIÓN DEL ESTADO YARACUY
         // ============================================
         $gobernacion = Institucion::create([
             'nombre' => 'Gobernación del Estado Yaracuy',
             'informacion' => 'Ente gubernamental del Estado Yaracuy',
             'representante' => 'Gobernador del Estado',
-            'ubicacion' => 'San Felipe, Yaracuy',
+            'estado_id' => $estadoYaracuy->id,
+            'municipio_id' => $municipioSanFelipe->id,
+            'parroquia_id' => $parroquiaSanFelipe->id,
             'activo' => true
         ]);
 
@@ -109,7 +136,9 @@ class EntidadesSeeder extends Seeder
             'nombre' => 'Escuela Bolivariana Simón Bolívar',
             'informacion' => 'Institución educativa de educación primaria',
             'representante' => 'Director',
-            'ubicacion' => 'Cocorote, Yaracuy',
+            'estado_id' => $estadoYaracuy->id,
+            'municipio_id' => $municipioSanFelipe->id,
+            'parroquia_id' => $parroquiaSanFelipe->id,
             'activo' => true
         ]);
 
@@ -166,7 +195,9 @@ class EntidadesSeeder extends Seeder
             'nombre' => 'Hospital Central de San Felipe',
             'informacion' => 'Centro de salud principal del estado',
             'representante' => 'Director Médico',
-            'ubicacion' => 'San Felipe, Yaracuy',
+            'estado_id' => $estadoYaracuy->id,
+            'municipio_id' => $municipioSanFelipe->id,
+            'parroquia_id' => $parroquiaSanFelipe->id,
             'activo' => true
         ]);
 
@@ -245,7 +276,9 @@ class EntidadesSeeder extends Seeder
             'nombre' => 'Alcaldía del Municipio San Felipe',
             'informacion' => 'Ente municipal de San Felipe',
             'representante' => 'Alcalde',
-            'ubicacion' => 'San Felipe, Yaracuy',
+            'estado_id' => $estadoYaracuy->id,
+            'municipio_id' => $municipioSanFelipe->id,
+            'parroquia_id' => $parroquiaSanFelipe->id,
             'activo' => true
         ]);
 
@@ -290,7 +323,9 @@ class EntidadesSeeder extends Seeder
             'nombre' => 'Universidad Nacional Experimental de Yaracuy (UNEY)',
             'informacion' => 'Institución de educación superior',
             'representante' => 'Rector',
-            'ubicacion' => 'San Felipe, Yaracuy',
+            'estado_id' => $estadoYaracuy->id,
+            'municipio_id' => $municipioSanFelipe->id,
+            'parroquia_id' => $parroquiaSanFelipe->id,
             'activo' => true
         ]);
 
@@ -335,7 +370,9 @@ class EntidadesSeeder extends Seeder
             'nombre' => 'Empresa de Servicios Públicos de Yaracuy',
             'informacion' => 'Gestión de servicios de agua, electricidad y aseo',
             'representante' => 'Gerente General',
-            'ubicacion' => 'San Felipe, Yaracuy',
+            'estado_id' => $estadoYaracuy->id,
+            'municipio_id' => $municipioSanFelipe->id,
+            'parroquia_id' => $parroquiaSanFelipe->id,
             'activo' => true
         ]);
 
@@ -380,7 +417,9 @@ class EntidadesSeeder extends Seeder
             'nombre' => 'Policía del Estado Yaracuy',
             'informacion' => 'Cuerpo de seguridad ciudadana del estado',
             'representante' => 'Comisario Jefe',
-            'ubicacion' => 'San Felipe, Yaracuy',
+            'estado_id' => $estadoYaracuy->id,
+            'municipio_id' => $municipioSanFelipe->id,
+            'parroquia_id' => $parroquiaSanFelipe->id,
             'activo' => true
         ]);
 
@@ -425,7 +464,9 @@ class EntidadesSeeder extends Seeder
             'nombre' => 'Defensoría del Pueblo - Yaracuy',
             'informacion' => 'Defensa de los derechos humanos',
             'representante' => 'Defensor del Pueblo',
-            'ubicacion' => 'San Felipe, Yaracuy',
+            'estado_id' => $estadoYaracuy->id,
+            'municipio_id' => $municipioSanFelipe->id,
+            'parroquia_id' => $parroquiaSanFelipe->id,
             'activo' => true
         ]);
 

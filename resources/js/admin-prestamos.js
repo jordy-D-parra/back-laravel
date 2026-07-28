@@ -1,38 +1,38 @@
-document.addEventListener(`DOMContentLoaded`, function() {
+document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
     // VARIABLES GLOBALES
     // ============================================================
-    const csrfToken = document.querySelector(`meta[name="csrf-token"]`)?.getAttribute(`content`) || ``;
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     let items = [];
     let solicitudDetalles = [];
-    let tipoFiltroInventario = `ambos`;
-    let currentTab = `solicitudes`;
+    let tipoFiltroInventario = 'ambos';
+    let currentTab = 'solicitudes';
 
     // ============================================================
     // FUNCIONES UTILITARIAS
     // ============================================================
     function escapeHtml(text) {
-        if (!text) return ``;
-        const div = document.createElement(`div`);
+        if (!text) return '';
+        const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
     function formatDate(date) {
-        if (!date) return `—`;
-        if (date instanceof Date) return date.toLocaleDateString(`es-VE`, { day: `2-digit`, month: `2-digit`, year: `numeric` });
+        if (!date) return '—';
+        if (date instanceof Date) return date.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
         let str = String(date).trim();
-        if (!str) return `—`;
-        let dateStr = str.includes(`T`) ? str : `${str}T00:00:00`;
+        if (!str) return '—';
+        let dateStr = str.includes('T') ? str : `${str}T00:00:00`;
         let d = new Date(dateStr);
-        if (isNaN(d.getTime())) return `—`;
-        return d.toLocaleDateString(`es-VE`, { day: `2-digit`, month: `2-digit`, year: `numeric` });
+        if (isNaN(d.getTime())) return '—';
+        return d.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
-    function showToast(message, type = `success`) {
-        const colors = { success: `#1e7e34`, error: `#c5221f`, warning: `#f6c23e`, info: `#1e3c72` };
-        const icons = { success: `✓`, error: `✕`, warning: `⚠`, info: `ℹ` };
-        const toast = document.createElement(`div`);
+    function showToast(message, type = 'success') {
+        const colors = { success: '#1e7e34', error: '#c5221f', warning: '#f6c23e', info: '#1e3c72' };
+        const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
+        const toast = document.createElement('div');
         toast.style.cssText = `
             position: fixed; top: 20px; right: 20px;
             background: ${colors[type] || colors.success}; color: white;
@@ -42,10 +42,10 @@ document.addEventListener(`DOMContentLoaded`, function() {
             animation: slideInRight 0.3s ease-out; max-width: 400px;
             cursor: pointer;
         `;
-        toast.textContent = `${icons[type] || `✓`} ${message}`;
+        toast.textContent = `${icons[type] || '✓'} ${message}`;
         document.body.appendChild(toast);
         setTimeout(() => {
-            toast.style.animation = `slideOutRight 0.3s ease-in`;
+            toast.style.animation = 'slideOutRight 0.3s ease-in';
             setTimeout(() => toast.remove(), 300);
         }, 3500);
     }
@@ -211,27 +211,27 @@ document.addEventListener(`DOMContentLoaded`, function() {
     // FUNCIONES DE CARGA DE DATOS POR TAB
     // ============================================================
     function cargarSolicitudes() {
-        showLoading(`tablaSolicitudes`);
-        let buscar = document.getElementById(`buscarSolicitudes`)?.value || ``;
+        showLoading('tablaSolicitudes');
+        let buscar = document.getElementById('buscarSolicitudes')?.value || '';
         let url = `/admin/solicitudes/pendientes-prestamo`;
         if (buscar) url += `?buscar=${encodeURIComponent(buscar)}`;
-        fetch(url, { headers: { Accept: `application/json` } })
+        fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
                 renderSolicitudes(data.data || data);
             })
             .catch(error => {
-                console.error(`Error:`, error);
-                document.getElementById(`tablaSolicitudes`).innerHTML =
+                console.error('Error:', error);
+                document.getElementById('tablaSolicitudes').innerHTML =
                     `<p class="text-center py-4 text-danger">Error al cargar solicitudes</p>`;
             });
     }
 
     function cargarPrestamosActivos() {
-        showLoading(`tablaActivos`);
-        let buscar = document.getElementById(`buscarActivos`)?.value || ``;
-        let tipo = document.getElementById(`filtroTipoActivos`)?.value || ``;
-        let estado = document.getElementById(`filtroEstadoActivos`)?.value || ``;
+        showLoading('tablaActivos');
+        let buscar = document.getElementById('buscarActivos')?.value || '';
+        let tipo = document.getElementById('filtroTipoActivos')?.value || '';
+        let estado = document.getElementById('filtroEstadoActivos')?.value || '';
 
         let url = `/admin/prestamos/listar?`;
         if (estado === 'vencido') {
@@ -248,43 +248,43 @@ document.addEventListener(`DOMContentLoaded`, function() {
         if (buscar) url += `&buscar=${encodeURIComponent(buscar)}`;
         if (tipo) url += `&tipo=${tipo}`;
 
-        fetch(url, { headers: { Accept: `application/json` } })
+        fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
-                renderPrestamos(data, `tablaActivos`, `activos`);
+                renderPrestamos(data, 'tablaActivos', 'activos');
             })
             .catch(error => {
-                console.error(`Error:`, error);
-                document.getElementById(`tablaActivos`).innerHTML =
+                console.error('Error:', error);
+                document.getElementById('tablaActivos').innerHTML =
                     `<p class="text-center py-4 text-danger">Error al cargar préstamos</p>`;
             });
     }
 
     function cargarPrestamosFinalizados() {
-        showLoading(`tablaFinalizados`);
-        let buscar = document.getElementById(`buscarFinalizados`)?.value || ``;
-        let estado = document.getElementById(`filtroEstadoFinalizados`)?.value || ``;
-        let fechaDesde = document.getElementById(`filtroFechaDesde`)?.value || ``;
-        let fechaHasta = document.getElementById(`filtroFechaHasta`)?.value || ``;
+        showLoading('tablaFinalizados');
+        let buscar = document.getElementById('buscarFinalizados')?.value || '';
+        let estado = document.getElementById('filtroEstadoFinalizados')?.value || '';
+        let fechaDesde = document.getElementById('filtroFechaDesde')?.value || '';
+        let fechaHasta = document.getElementById('filtroFechaHasta')?.value || '';
         let url = `/admin/prestamos/listar?`;
         if (estado) url += `estado=${estado}&`;
         else url += `estado=devuelto,cancelado&`;
         if (buscar) url += `buscar=${encodeURIComponent(buscar)}&`;
         if (fechaDesde) url += `fecha_desde=${fechaDesde}&`;
         if (fechaHasta) url += `fecha_hasta=${fechaHasta}&`;
-        fetch(url, { headers: { Accept: `application/json` } })
+        fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
-                renderPrestamos(data, `tablaFinalizados`, `finalizados`);
+                renderPrestamos(data, 'tablaFinalizados', 'finalizados');
             })
-            .catch(error => console.error(`Error:`, error));
+            .catch(error => console.error('Error:', error));
     }
 
     // ============================================================
     // FUNCIONES DE RENDERIZADO
     // ============================================================
-    function renderSolicitudes(data, searchTerm = ``) {
-        const table = document.getElementById(`tablaSolicitudes`);
+    function renderSolicitudes(data, searchTerm = '') {
+        const table = document.getElementById('tablaSolicitudes');
         if (!table) return;
         const solicitudes = data || [];
         if (solicitudes.length === 0) {
@@ -314,10 +314,10 @@ document.addEventListener(`DOMContentLoaded`, function() {
         `;
 
         solicitudes.forEach(sol => {
-            const estado = sol.estado_solicitud || `pendiente`;
-            const badgeClass = estado === `aprobada` ? `badge-estado-aprobada` :
-                               estado === `pendiente` ? `badge-estado-pendiente` : `badge-estado-otro`;
-            const puedePrestar = estado === `aprobada` || estado === `pendiente`;
+            const estado = sol.estado_solicitud || 'pendiente';
+            const badgeClass = estado === 'aprobada' ? 'badge-estado-aprobada' :
+                               estado === 'pendiente' ? 'badge-estado-pendiente' : 'badge-estado-otro';
+            const puedePrestar = estado === 'aprobada' || estado === 'pendiente';
             const botonPrestar = puedePrestar ?
                 `<button class="btn-action text-success" onclick="prestarDesdeSolicitud(${sol.id})" title="Realizar préstamo">
                     <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
@@ -345,7 +345,7 @@ document.addEventListener(`DOMContentLoaded`, function() {
 
             html += `
                 <tr>
-                    <td><span class="fw-medium" style="color:#1e3c72">${escapeHtml(sol.codigo || `#${sol.id}`)}</span></td>
+                    <td><span class="fw-medium" style="color:#1e3c72">${escapeHtml(sol.codigo || '#' + sol.id)}</span></td>
                     <td>${escapeHtml(nombreSolicitante)}</td>
                     <td>${escapeHtml(nombreDepto)}</td>
                     <td><span class="badge-estado badge-estado-entregado">${sol.detalles_count ?? sol.detalles?.length ?? 0} items</span></td>
@@ -364,12 +364,12 @@ document.addEventListener(`DOMContentLoaded`, function() {
         const table = document.getElementById(tableId);
         if (!table) return;
         const prestamos = data.data || [];
-        const esFinalizados = tipo === `finalizados`;
+        const esFinalizados = tipo === 'finalizados';
 
         if (prestamos.length === 0) {
             const mensajes = {
-                activos: `No hay préstamos activos`,
-                finalizados: `No hay préstamos finalizados`
+                activos: 'No hay préstamos activos',
+                finalizados: 'No hay préstamos finalizados'
             };
             const columnas = esFinalizados ? 9 : 10;
             table.innerHTML = `
@@ -377,10 +377,10 @@ document.addEventListener(`DOMContentLoaded`, function() {
                     <thead><tr>
                         <th>Código</th><th>Destino</th><th>Solicitud</th><th>Responsable</th>
                         <th>Tipo</th><th>F. Préstamo</th><th>F. Devolución</th><th>Estado</th>
-                        ${esFinalizados ? `<th style="width:60px">Ver</th>` : `<th style="width:140px">Acciones</th>`}
+                        ${esFinalizados ? '<th style="width:60px">Ver</th>' : '<th style="width:140px">Acciones</th>'}
                     </tr></thead>
                     <tbody>
-                        <tr><td colspan="${columnas}" class="text-center py-4 text-muted">${mensajes[tipo] || `No se encontraron préstamos`}</td></tr>
+                        <tr><td colspan="${columnas}" class="text-center py-4 text-muted">${mensajes[tipo] || 'No se encontraron préstamos'}</td></tr>
                     </tbody>
                 </table>
             `;
@@ -392,26 +392,26 @@ document.addEventListener(`DOMContentLoaded`, function() {
                 <thead><tr>
                     <th>Código</th><th>Destino</th><th>Solicitud</th><th>Responsable</th>
                     <th>Tipo</th><th>F. Préstamo</th><th>F. Devolución</th><th>Estado</th>
-                    ${esFinalizados ? `<th style="width:60px">Ver</th>` : `<th style="width:140px">Acciones</th>`}
+                    ${esFinalizados ? '<th style="width:60px">Ver</th>' : '<th style="width:140px">Acciones</th>'}
                 </tr></thead>
                 <tbody>
         `;
 
         prestamos.forEach(prestamo => {
-            const estado = prestamo.estado || `pendiente`;
-            const badgeClass = `badge-estado-${estado}`;
-            const vencido = prestamo.esta_vencido ? `vencido` : ``;
+            const estado = prestamo.estado || 'pendiente';
+            const badgeClass = 'badge-estado-' + estado;
+            const vencido = prestamo.esta_vencido ? 'vencido' : '';
             const solicitudCodigo = prestamo.solicitud_codigo ?
                 `<span class="badge-estado badge-estado-info">${escapeHtml(prestamo.solicitud_codigo)}</span>` :
-                `—`;
-            const destino = prestamo.destino_nombre || `—`;
+                '—';
+            const destino = prestamo.destino_nombre || '—';
 
             html += `
                 <tr class="${vencido}">
                     <td><span class="fw-medium" style="color:#1e3c72">${escapeHtml(prestamo.codigo)}</span></td>
                     <td>${escapeHtml(destino)}</td>
                     <td>${solicitudCodigo}</td>
-                    <td>${escapeHtml(prestamo.responsable_receptor?.nombre || `—`)}</td>
+                    <td>${escapeHtml(prestamo.responsable_receptor?.nombre || '—')}</td>
                     <td>${escapeHtml(prestamo.tipo_prestamo)}</td>
                     <td>${formatDate(prestamo.fecha_prestamo)}</td>
                     <td>${formatDate(prestamo.fecha_devolucion_esperada)}</td>
@@ -424,7 +424,7 @@ document.addEventListener(`DOMContentLoaded`, function() {
             `;
 
             if (!esFinalizados) {
-                if (estado === `pendiente`) {
+                if (estado === 'pendiente') {
                     html += `
                         <button class="btn-action text-success" onclick="abrirModalAprobacion(${prestamo.id})" title="Aprobar">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
@@ -435,7 +435,7 @@ document.addEventListener(`DOMContentLoaded`, function() {
                             Rechazar
                         </button>
                     `;
-                } else if (estado === `aprobado`) {
+                } else if (estado === 'aprobado') {
                     html += `
                         <button class="btn-action text-primary" onclick="abrirModalEntrega(${prestamo.id})" title="Registrar entrega">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -446,7 +446,7 @@ document.addEventListener(`DOMContentLoaded`, function() {
                             Cancelar
                         </button>
                     `;
-                } else if (estado === `entregado` || estado === `extendido`) {
+                } else if (estado === 'entregado' || estado === 'extendido') {
                     html += `
                         <button class="btn-action text-success" onclick="abrirModalDevolucion(${prestamo.id})" title="Devolver">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
@@ -455,6 +455,14 @@ document.addEventListener(`DOMContentLoaded`, function() {
                         <button class="btn-action text-warning" onclick="abrirModalExtension(${prestamo.id})" title="Extender">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             Extender
+                        </button>
+                        <button class="btn-action text-primary" onclick="generarActaPrestamo(${prestamo.id})" title="Acta de Entrega">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px">
+                                <rect x="2" y="3" width="20" height="14" rx="2"/>
+                                <line x1="8" y1="21" x2="16" y2="21"/>
+                                <line x1="12" y1="17" x2="12" y2="21"/>
+                            </svg>
+                            Acta
                         </button>
                     `;
                 }
@@ -475,11 +483,11 @@ document.addEventListener(`DOMContentLoaded`, function() {
     // FUNCIONES DEL MODAL DE PRÉSTAMO
     // ============================================================
     window.prestarDesdeSolicitud = function(id) {
-        fetch(`/admin/solicitudes/${id}/detalles`, { headers: { Accept: `application/json` } })
+        fetch(`/admin/solicitudes/${id}/detalles`, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
                 if (!data.success && !data.id) {
-                    showToast(`Error al cargar la solicitud`, `error`);
+                    showToast('Error al cargar la solicitud', 'error');
                     return;
                 }
 
@@ -487,38 +495,38 @@ document.addEventListener(`DOMContentLoaded`, function() {
                 items = [];
                 solicitudDetalles = [];
 
-                document.getElementById(`modalPrestamoLabel`).textContent = `Nuevo Préstamo (Desde Solicitud)`;
-                document.getElementById(`prestamoId`).value = ``;
-                document.getElementById(`solicitudIdInput`).value = id;
-                document.getElementById(`solicitudCodigo`).value = solicitud.codigo || `SOL-${id}`;
-                document.getElementById(`tipoPrestamo`).value = `mixto`;
-                document.getElementById(`fechaPrestamo`).value = new Date().toISOString().split(`T`)[0];
-                document.getElementById(`fechaDevolucionEsperada`).value = ``;
-                document.getElementById(`observaciones`).value = ``;
-                document.getElementById(`condiciones`).value = ``;
-                document.getElementById(`btnGuardarPrestamo`).disabled = false;
+                document.getElementById('modalPrestamoLabel').textContent = 'Nuevo Préstamo (Desde Solicitud)';
+                document.getElementById('prestamoId').value = '';
+                document.getElementById('solicitudIdInput').value = id;
+                document.getElementById('solicitudCodigo').value = solicitud.codigo || 'SOL-' + id;
+                document.getElementById('tipoPrestamo').value = 'mixto';
+                document.getElementById('fechaPrestamo').value = new Date().toISOString().split('T')[0];
+                document.getElementById('fechaDevolucionEsperada').value = '';
+                document.getElementById('observaciones').value = '';
+                document.getElementById('condiciones').value = '';
+                document.getElementById('btnGuardarPrestamo').disabled = false;
 
-                const tipoDestino = document.getElementById(`tipoDestino`);
+                const tipoDestino = document.getElementById('tipoDestino');
                 if (solicitud.departamento_id) {
-                    tipoDestino.value = `departamento`;
-                    document.getElementById(`departamentoId`).value = solicitud.departamento_id;
-                    document.getElementById(`institucionId`).value = ``;
+                    tipoDestino.value = 'departamento';
+                    document.getElementById('departamentoId').value = solicitud.departamento_id;
+                    document.getElementById('institucionId').value = '';
                 } else if (solicitud.institucion_id) {
-                    tipoDestino.value = `institucion`;
-                    document.getElementById(`institucionId`).value = solicitud.institucion_id;
-                    document.getElementById(`departamentoId`).value = ``;
+                    tipoDestino.value = 'institucion';
+                    document.getElementById('institucionId').value = solicitud.institucion_id;
+                    document.getElementById('departamentoId').value = '';
                 }
                 tipoDestino.disabled = true;
                 cambiarTipoDestino();
 
-                const receptorIdInput = document.getElementById(`responsableReceptorId`);
-                const display = document.getElementById(`responsableReceptorDisplay`);
+                const receptorIdInput = document.getElementById('responsableReceptorId');
+                const display = document.getElementById('responsableReceptorDisplay');
 
                 if (solicitud.responsable_id && solicitud.responsable) {
                     receptorIdInput.value = solicitud.responsable_id;
                     display.innerHTML = `
                         <div class="resp-nombre">${escapeHtml(solicitud.responsable.nombre)}</div>
-                        <div class="resp-info">${escapeHtml(solicitud.responsable.cargo || ``)} · ${escapeHtml(solicitud.responsable.telefono || `Sin tel.`)}</div>
+                        <div class="resp-info">${escapeHtml(solicitud.responsable.cargo || '')} · ${escapeHtml(solicitud.responsable.telefono || 'Sin tel.')}</div>
                     `;
                 } else {
                     cargarResponsableDestino();
@@ -528,55 +536,55 @@ document.addEventListener(`DOMContentLoaded`, function() {
 
                 solicitudDetalles = solicitud.detalles || [];
                 const tipoItems = solicitudDetalles.length > 0 ?
-                    (solicitudDetalles.every(d => d.tipo_item === `activo`) ? `activo` :
-                     solicitudDetalles.every(d => d.tipo_item === `componente`) ? `componente` : `ambos`) :
-                    `ambos`;
+                    (solicitudDetalles.every(d => d.tipo_item === 'activo') ? 'activo' :
+                     solicitudDetalles.every(d => d.tipo_item === 'componente') ? 'componente' : 'ambos') :
+                    'ambos';
                 tipoFiltroInventario = tipoItems;
-                document.getElementById(`buscarItem`).placeholder =
-                    tipoItems === `ambos` ? `Buscar activos o componentes...` :
-                    tipoItems === `activo` ? `Buscar activos...` : `Buscar componentes...`;
-                document.getElementById(`filtroTipoInventario`).value = tipoItems;
+                document.getElementById('buscarItem').placeholder =
+                    tipoItems === 'ambos' ? 'Buscar activos o componentes...' :
+                    tipoItems === 'activo' ? 'Buscar activos...' : 'Buscar componentes...';
+                document.getElementById('filtroTipoInventario').value = tipoItems;
 
-                document.getElementById(`resultadosBusqueda`).style.display = `none`;
-                document.getElementById(`buscarItem`).value = ``;
+                document.getElementById('resultadosBusqueda').style.display = 'none';
+                document.getElementById('buscarItem').value = '';
                 renderItems();
 
-                const modal = new bootstrap.Modal(document.getElementById(`modalPrestamo`));
+                const modal = new bootstrap.Modal(document.getElementById('modalPrestamo'));
                 modal.show();
                 buscarItemsPrestamo();
             })
-            .catch(() => showToast(`Error al cargar la solicitud`, `error`));
+            .catch(() => showToast('Error al cargar la solicitud', 'error'));
     };
 
     function mostrarInfoSolicitud(solicitud) {
-        const section = document.getElementById(`solicitudInfoSection`);
+        const section = document.getElementById('solicitudInfoSection');
         if (!section) return;
-        section.style.display = `block`;
+        section.style.display = 'block';
 
-        document.getElementById(`solicitudTipoSolicitante`).textContent =
-            solicitud.tipo_solicitante === `interno` ? `Interno` : `Externo`;
-        document.getElementById(`solicitudEntidad`).textContent =
-            solicitud.departamento?.nombre || solicitud.institucion?.nombre || `No especificada`;
-        document.getElementById(`solicitudResponsable`).textContent =
-            solicitud.responsable?.nombre || `No asignado`;
-        document.getElementById(`solicitudPrioridad`).textContent =
-            solicitud.prioridad || `—`;
-        document.getElementById(`solicitudFechaRequerida`).textContent =
+        document.getElementById('solicitudTipoSolicitante').textContent =
+            solicitud.tipo_solicitante === 'interno' ? 'Interno' : 'Externo';
+        document.getElementById('solicitudEntidad').textContent =
+            solicitud.departamento?.nombre || solicitud.institucion?.nombre || 'No especificada';
+        document.getElementById('solicitudResponsable').textContent =
+            solicitud.responsable?.nombre || 'No asignado';
+        document.getElementById('solicitudPrioridad').textContent =
+            solicitud.prioridad || '—';
+        document.getElementById('solicitudFechaRequerida').textContent =
             formatDate(solicitud.fecha_requerida);
-        document.getElementById(`solicitudFechaFin`).textContent =
+        document.getElementById('solicitudFechaFin').textContent =
             formatDate(solicitud.fecha_fin_estimada);
-        document.getElementById(`solicitudJustificacion`).textContent =
-            solicitud.justificacion || `—`;
-        document.getElementById(`solicitudObservaciones`).textContent =
-            solicitud.observaciones || `—`;
+        document.getElementById('solicitudJustificacion').textContent =
+            solicitud.justificacion || '—';
+        document.getElementById('solicitudObservaciones').textContent =
+            solicitud.observaciones || '—';
 
-        const container = document.getElementById(`solicitudItemsContainer`);
+        const container = document.getElementById('solicitudItemsContainer');
         if (!container) return;
 
         const detalles = solicitud.detalles || [];
 
         if (detalles.length === 0) {
-            container.innerHTML = `<li class="list-group-item py-2 text-muted">No hay items solicitados</li>`;
+            container.innerHTML = '<li class="list-group-item py-2 text-muted">No hay items solicitados</li>';
             return;
         }
 
@@ -601,33 +609,33 @@ document.addEventListener(`DOMContentLoaded`, function() {
         items = [];
         solicitudDetalles = [];
 
-        document.getElementById(`solicitudInfoSection`).style.display = `none`;
-        document.getElementById(`modalPrestamoLabel`).textContent = `Nuevo Préstamo`;
-        document.getElementById(`prestamoId`).value = ``;
-        document.getElementById(`solicitudIdInput`).value = ``;
-        document.getElementById(`solicitudCodigo`).value = ``;
-        document.getElementById(`tipoPrestamo`).value = `equipo`;
-        document.getElementById(`fechaPrestamo`).value = new Date().toISOString().split(`T`)[0];
-        document.getElementById(`fechaDevolucionEsperada`).value = ``;
-        document.getElementById(`observaciones`).value = ``;
-        document.getElementById(`condiciones`).value = ``;
-        document.getElementById(`btnGuardarPrestamo`).disabled = false;
+        document.getElementById('solicitudInfoSection').style.display = 'none';
+        document.getElementById('modalPrestamoLabel').textContent = 'Nuevo Préstamo';
+        document.getElementById('prestamoId').value = '';
+        document.getElementById('solicitudIdInput').value = '';
+        document.getElementById('solicitudCodigo').value = '';
+        document.getElementById('tipoPrestamo').value = 'equipo';
+        document.getElementById('fechaPrestamo').value = new Date().toISOString().split('T')[0];
+        document.getElementById('fechaDevolucionEsperada').value = '';
+        document.getElementById('observaciones').value = '';
+        document.getElementById('condiciones').value = '';
+        document.getElementById('btnGuardarPrestamo').disabled = false;
 
-        const tipoDestino = document.getElementById(`tipoDestino`);
+        const tipoDestino = document.getElementById('tipoDestino');
         tipoDestino.disabled = false;
-        tipoDestino.value = `departamento`;
+        tipoDestino.value = 'departamento';
         cambiarTipoDestino();
 
-        document.getElementById(`responsableReceptorDisplay`).innerHTML =
-            `<span class="text-muted">Seleccione un destino primero</span>`;
-        document.getElementById(`responsableReceptorId`).value = ``;
+        document.getElementById('responsableReceptorDisplay').innerHTML =
+            '<span class="text-muted">Seleccione un destino primero</span>';
+        document.getElementById('responsableReceptorId').value = '';
 
         renderItems();
-        document.getElementById(`buscarItem`).value = ``;
-        document.getElementById(`resultadosBusqueda`).style.display = `none`;
-        document.getElementById(`filtroTipoInventario`).value = `ambos`;
+        document.getElementById('buscarItem').value = '';
+        document.getElementById('resultadosBusqueda').style.display = 'none';
+        document.getElementById('filtroTipoInventario').value = 'ambos';
 
-        const modal = new bootstrap.Modal(document.getElementById(`modalPrestamo`));
+        const modal = new bootstrap.Modal(document.getElementById('modalPrestamo'));
         modal.show();
         buscarItemsPrestamo();
     };
@@ -636,75 +644,75 @@ document.addEventListener(`DOMContentLoaded`, function() {
     // FUNCIONES DE DESTINO Y RESPONSABLE
     // ============================================================
     window.cambiarTipoDestino = function() {
-        const tipoDestinoEl = document.getElementById(`tipoDestino`);
+        const tipoDestinoEl = document.getElementById('tipoDestino');
         if (!tipoDestinoEl) return;
 
         const e = tipoDestinoEl.value;
-        const contenedorDepto = document.getElementById(`contenedorDepartamento`);
-        const contenedorInst = document.getElementById(`contenedorInstitucion`);
+        const contenedorDepto = document.getElementById('contenedorDepartamento');
+        const contenedorInst = document.getElementById('contenedorInstitucion');
 
         if (contenedorDepto) {
-            contenedorDepto.style.display = e === `departamento` ? `block` : `none`;
+            contenedorDepto.style.display = e === 'departamento' ? 'block' : 'none';
         }
         if (contenedorInst) {
-            contenedorInst.style.display = e === `institucion` ? `block` : `none`;
+            contenedorInst.style.display = e === 'institucion' ? 'block' : 'none';
         }
 
-        const deptoId = document.getElementById(`departamentoId`);
-        const instId = document.getElementById(`institucionId`);
-        if (deptoId && e === `institucion`) deptoId.value = ``;
-        if (instId && e === `departamento`) instId.value = ``;
+        const deptoId = document.getElementById('departamentoId');
+        const instId = document.getElementById('institucionId');
+        if (deptoId && e === 'institucion') deptoId.value = '';
+        if (instId && e === 'departamento') instId.value = '';
 
-        const display = document.getElementById(`responsableReceptorDisplay`);
-        const hidden = document.getElementById(`responsableReceptorId`);
-        if (display) display.innerHTML = `<span class="text-muted">Seleccione un destino primero</span>`;
-        if (hidden) hidden.value = ``;
+        const display = document.getElementById('responsableReceptorDisplay');
+        const hidden = document.getElementById('responsableReceptorId');
+        if (display) display.innerHTML = '<span class="text-muted">Seleccione un destino primero</span>';
+        if (hidden) hidden.value = '';
     };
 
     window.cargarResponsableDestino = function() {
-        const tipoDestinoEl = document.getElementById(`tipoDestino`);
+        const tipoDestinoEl = document.getElementById('tipoDestino');
         if (!tipoDestinoEl) return;
 
         const e = tipoDestinoEl.value;
-        const deptoEl = document.getElementById(`departamentoId`);
-        const instEl = document.getElementById(`institucionId`);
+        const deptoEl = document.getElementById('departamentoId');
+        const instEl = document.getElementById('institucionId');
 
         let id = null;
-        if (e === `departamento` && deptoEl) id = deptoEl.value;
-        else if (e === `institucion` && instEl) id = instEl.value;
+        if (e === 'departamento' && deptoEl) id = deptoEl.value;
+        else if (e === 'institucion' && instEl) id = instEl.value;
 
-        const display = document.getElementById(`responsableReceptorDisplay`);
-        const hidden = document.getElementById(`responsableReceptorId`);
+        const display = document.getElementById('responsableReceptorDisplay');
+        const hidden = document.getElementById('responsableReceptorId');
 
         if (!id) {
-            if (display) display.innerHTML = `<span class="text-muted">Seleccione un destino primero</span>`;
-            if (hidden) hidden.value = ``;
+            if (display) display.innerHTML = '<span class="text-muted">Seleccione un destino primero</span>';
+            if (hidden) hidden.value = '';
             return;
         }
 
-        if (display) display.innerHTML = `<span class="text-muted">Cargando responsable...</span>`;
+        if (display) display.innerHTML = '<span class="text-muted">Cargando responsable...</span>';
 
-        const url = e === `departamento` ?
+        const url = e === 'departamento' ?
             `/admin/api/departamento/${id}/responsable` :
             `/admin/api/institucion/${id}/responsable`;
 
-        fetch(url, { headers: { Accept: `application/json` } })
+        fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
                 if (data.responsable && display) {
                     display.innerHTML = `
                         <div class="resp-nombre">${escapeHtml(data.responsable.nombre)}</div>
-                        <div class="resp-info">${escapeHtml(data.responsable.cargo || ``)} · ${escapeHtml(data.responsable.telefono || `Sin tel.`)}</div>
+                        <div class="resp-info">${escapeHtml(data.responsable.cargo || '')} · ${escapeHtml(data.responsable.telefono || 'Sin tel.')}</div>
                     `;
                     if (hidden) hidden.value = data.responsable.id;
                 } else if (display) {
-                    display.innerHTML = `<span class="text-warning">No se encontró responsable</span>`;
-                    if (hidden) hidden.value = ``;
+                    display.innerHTML = '<span class="text-warning">No se encontró responsable</span>';
+                    if (hidden) hidden.value = '';
                 }
             })
             .catch(() => {
-                if (display) display.innerHTML = `<span class="text-danger">Error al cargar responsable</span>`;
-                if (hidden) hidden.value = ``;
+                if (display) display.innerHTML = '<span class="text-danger">Error al cargar responsable</span>';
+                if (hidden) hidden.value = '';
             });
     };
 
@@ -712,45 +720,45 @@ document.addEventListener(`DOMContentLoaded`, function() {
     // FUNCIONES DE BÚSQUEDA DE ITEMS
     // ============================================================
     window.buscarItemsPrestamo = debounce(function() {
-        const buscar = document.getElementById(`buscarItem`)?.value?.trim() || ``;
-        const tipo = document.getElementById(`filtroTipoInventario`)?.value || `ambos`;
-        const resultados = document.getElementById(`resultadosBusqueda`);
+        const buscar = document.getElementById('buscarItem')?.value?.trim() || '';
+        const tipo = document.getElementById('filtroTipoInventario')?.value || 'ambos';
+        const resultados = document.getElementById('resultadosBusqueda');
 
         if (!resultados) return;
 
         if (buscar.length < 1) {
-            resultados.style.display = `none`;
+            resultados.style.display = 'none';
             return;
         }
 
         const url = `/admin/prestamos/buscar-items?buscar=${encodeURIComponent(buscar)}&tipo=${encodeURIComponent(tipo)}`;
 
-        fetch(url, { headers: { Accept: `application/json` } })
+        fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
                 const itemsList = data.data || [];
                 if (itemsList.length === 0) {
-                    resultados.innerHTML = `<div class="list-group-item text-muted">No se encontraron resultados</div>`;
-                    resultados.style.display = `block`;
+                    resultados.innerHTML = '<div class="list-group-item text-muted">No se encontraron resultados</div>';
+                    resultados.style.display = 'block';
                     return;
                 }
 
-                let html = `<div class="list-group-item text-muted small" style="background:#f8f9fc; font-weight:600;">Resultados (${itemsList.length})</div>`;
+                let html = '<div class="list-group-item text-muted small" style="background:#f8f9fc; font-weight:600;">Resultados (' + itemsList.length + ')</div>';
                 itemsList.forEach(item => {
-                    const tipoLabel = item.tipo === `activo` ? `Activo` : `Componente`;
-                    const badgeClass = item.tipo === `activo` ? `item-badge-activo` : `item-badge-componente`;
-                    const nombre = escapeHtml(item.nombre || `${tipoLabel} sin nombre`);
-                    const marca = escapeHtml(item.marca || `Sin marca`);
-                    const modelo = escapeHtml(item.modelo || `Sin modelo`);
-                    const categoria = escapeHtml(item.categoria || ``);
-                    const serial = escapeHtml(item.serial || `Sin serial`);
+                    const tipoLabel = item.tipo === 'activo' ? 'Activo' : 'Componente';
+                    const badgeClass = item.tipo === 'activo' ? 'item-badge-activo' : 'item-badge-componente';
+                    const nombre = escapeHtml(item.nombre || tipoLabel + ' sin nombre');
+                    const marca = escapeHtml(item.marca || 'Sin marca');
+                    const modelo = escapeHtml(item.modelo || 'Sin modelo');
+                    const categoria = escapeHtml(item.categoria || '');
+                    const serial = escapeHtml(item.serial || 'Sin serial');
 
                     let prestableType = normalizePrestableType(item.prestable_type || '');
 
                     const itemId = item.id;
                     const itemType = prestableType;
-                    const itemName = String(item.nombre || `${tipoLabel} sin nombre`).replace(/"/g, `&quot;`);
-                    const itemCode = String(item.serial || `Sin serial`).replace(/"/g, `&quot;`);
+                    const itemName = String(item.nombre || tipoLabel + ' sin nombre').replace(/"/g, '&quot;');
+                    const itemCode = String(item.serial || 'Sin serial').replace(/"/g, '&quot;');
 
                     let infoAdicional = '';
                     if (marca && marca !== 'Sin marca') infoAdicional += marca;
@@ -771,13 +779,13 @@ document.addEventListener(`DOMContentLoaded`, function() {
                              data-item-name="${itemName}"
                              data-item-code="${itemCode}"
                              onclick="seleccionarItem(${itemId}, '${itemType}', '${itemName}', '${itemCode}')"
-                             style="border-left: 3px solid ${item.tipo === `activo` ? `#1e3c72` : `#0d6efd`}; padding: 0.75rem 0.9rem;">
+                             style="border-left: 3px solid ${item.tipo === 'activo' ? '#1e3c72' : '#0d6efd'}; padding: 0.75rem 0.9rem;">
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>
                                     <div class="fw-semibold">${nombre}</div>
                                     <div class="small text-muted">
                                         ${infoAdicional}
-                                        ${serial !== 'Sin serial' ? ` · <span class="fw-mono">${serial}</span>` : ''}
+                                        ${serial !== 'Sin serial' ? ' · <span class="fw-mono">' + serial + '</span>' : ''}
                                     </div>
                                 </div>
                                 <span class="badge ${badgeClass}" style="font-size:0.72rem; text-transform:capitalize;">${tipoLabel}</span>
@@ -786,12 +794,12 @@ document.addEventListener(`DOMContentLoaded`, function() {
                     `;
                 });
                 resultados.innerHTML = html;
-                resultados.style.display = `block`;
+                resultados.style.display = 'block';
             })
             .catch(error => {
-                console.error(`Error buscando items:`, error);
-                resultados.innerHTML = `<div class="list-group-item text-danger">Error al buscar. Intente de nuevo.</div>`;
-                resultados.style.display = `block`;
+                console.error('Error buscando items:', error);
+                resultados.innerHTML = '<div class="list-group-item text-danger">Error al buscar. Intente de nuevo.</div>';
+                resultados.style.display = 'block';
             });
     }, 300);
 
@@ -800,7 +808,7 @@ document.addEventListener(`DOMContentLoaded`, function() {
         const tipoNormalizado = prestableType.includes('Activo') ? 'activo' : 'componente';
 
         if (items.some(item => String(item.prestable_id) === String(id) && item.tipo_item === tipoNormalizado)) {
-            showToast(`Este item ya está agregado`, `warning`);
+            showToast('Este item ya está agregado', 'warning');
             return;
         }
 
@@ -811,15 +819,15 @@ document.addEventListener(`DOMContentLoaded`, function() {
             codigo: code,
             tipo_item: tipoNormalizado,
             cantidad: 1,
-            estado_entrega: `En buen estado`,
-            observaciones: ``,
+            estado_entrega: 'En buen estado',
+            observaciones: '',
             _highlighted: true
         });
 
-        document.getElementById(`buscarItem`).value = ``;
-        document.getElementById(`resultadosBusqueda`).style.display = `none`;
+        document.getElementById('buscarItem').value = '';
+        document.getElementById('resultadosBusqueda').style.display = 'none';
         renderItems();
-        showToast(`Item agregado al préstamo`, `success`);
+        showToast('Item agregado al préstamo', 'success');
 
         setTimeout(() => {
             const item = items.find(i => String(i.prestable_id) === String(id) && i.tipo_item === tipoNormalizado);
@@ -838,44 +846,44 @@ document.addEventListener(`DOMContentLoaded`, function() {
     };
 
     window.agregarItem = function() {
-        document.getElementById(`buscarItem`)?.focus();
+        document.getElementById('buscarItem')?.focus();
     };
 
     // ============================================================
     // RENDERIZAR ITEMS DEL PRÉSTAMO
     // ============================================================
     function renderItems() {
-        const container = document.getElementById(`itemsContainer`);
+        const container = document.getElementById('itemsContainer');
         if (!container) return;
 
         if (items.length === 0) {
-            container.innerHTML = `<p class="text-muted text-center py-3">No hay items agregados</p>`;
+            container.innerHTML = '<p class="text-muted text-center py-3">No hay items agregados</p>';
             return;
         }
 
-        let html = ``;
+        let html = '';
         items.forEach((item, index) => {
-            const tipoLabel = item.tipo_item === `activo` ? `Activo` : `Componente`;
-            const badgeClass = item.tipo_item === `activo` ? `item-badge-activo` : `item-badge-componente`;
-            const highlightClass = item._highlighted ? ` item-card--added` : ``;
+            const tipoLabel = item.tipo_item === 'activo' ? 'Activo' : 'Componente';
+            const badgeClass = item.tipo_item === 'activo' ? 'item-badge-activo' : 'item-badge-componente';
+            const highlightClass = item._highlighted ? ' item-card--added' : '';
 
             let prestableType = normalizePrestableType(item.prestable_type || '');
 
             html += `
-                <div class="item-card${highlightClass}" style="border:1px solid #e3e8f0; border-left:4px solid ${item.tipo_item === `activo` ? `#1e3c72` : `#0d6efd`}; border-radius:10px; padding:0.8rem 0.9rem; margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:flex-start; gap:0.7rem; background:#fff;">
+                <div class="item-card${highlightClass}" style="border:1px solid #e3e8f0; border-left:4px solid ${item.tipo_item === 'activo' ? '#1e3c72' : '#0d6efd'}; border-radius:10px; padding:0.8rem 0.9rem; margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:flex-start; gap:0.7rem; background:#fff;">
                     <input type="hidden" name="items[${index}][prestable_type]" value="${prestableType}">
                     <input type="hidden" name="items[${index}][prestable_id]" value="${item.prestable_id}">
                     <input type="hidden" name="items[${index}][cantidad]" value="${item.cantidad}">
-                    <input type="hidden" name="items[${index}][estado_entrega]" value="${escapeHtml(item.estado_entrega || `En buen estado`)}">
-                    <input type="hidden" name="items[${index}][observaciones]" value="${escapeHtml(item.observaciones || ``)}">
+                    <input type="hidden" name="items[${index}][estado_entrega]" value="${escapeHtml(item.estado_entrega || 'En buen estado')}">
+                    <input type="hidden" name="items[${index}][observaciones]" value="${escapeHtml(item.observaciones || '')}">
 
                     <div class="item-info">
                         <div class="item-nombre" style="font-weight:600; color:#1e3c72;">
                             <span class="${badgeClass}">${tipoLabel}</span>
-                            ${escapeHtml(item.nombre || `Sin nombre`)}
+                            ${escapeHtml(item.nombre || 'Sin nombre')}
                         </div>
                         <div class="item-detalle" style="font-size:0.82rem; color:#5f6b7a; margin-top:0.25rem;">
-                            ${escapeHtml(item.codigo || `Sin código`)} · Cant: ${item.cantidad}
+                            ${escapeHtml(item.codigo || 'Sin código')} · Cant: ${item.cantidad}
                         </div>
                     </div>
                     <button type="button" class="btn-action text-danger" onclick="eliminarItem(${index})" style="padding:0.35rem 0.45rem;">
@@ -891,7 +899,7 @@ document.addEventListener(`DOMContentLoaded`, function() {
     // ============================================================
     // EVENTOS DEL FORMULARIO DE PRÉSTAMO
     // ============================================================
-    document.getElementById(`formPrestamo`)?.addEventListener(`submit`, function(e) {
+    document.getElementById('formPrestamo')?.addEventListener('submit', function(e) {
         e.preventDefault();
 
         if (!this.checkValidity()) {
@@ -900,44 +908,44 @@ document.addEventListener(`DOMContentLoaded`, function() {
         }
 
         if (items.length === 0) {
-            showToast(`Debe agregar al menos un item`, `warning`);
+            showToast('Debe agregar al menos un item', 'warning');
             return;
         }
 
-        const receptorId = document.getElementById(`responsableReceptorId`)?.value;
+        const receptorId = document.getElementById('responsableReceptorId')?.value;
         if (!receptorId) {
-            showToast(`Debe seleccionar un responsable que recibe`, `warning`);
+            showToast('Debe seleccionar un responsable que recibe', 'warning');
             return;
         }
 
-        const emisorId = document.getElementById(`responsableEmisorId`)?.value;
+        const emisorId = document.getElementById('responsableEmisorId')?.value;
         if (!emisorId) {
-            showToast(`Debe seleccionar un responsable que entrega`, `warning`);
+            showToast('Debe seleccionar un responsable que entrega', 'warning');
             return;
         }
 
-        const submitBtn = document.getElementById(`btnGuardarPrestamo`);
+        const submitBtn = document.getElementById('btnGuardarPrestamo');
         if (submitBtn) {
             submitBtn.disabled = true;
-            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Guardando...`;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...';
         }
 
         const formData = new FormData();
-        formData.append(`_token`, csrfToken);
-        formData.append(`tipo_prestamo`, document.getElementById(`tipoPrestamo`)?.value || `equipo`);
-        formData.append(`departamento_id`, document.getElementById(`departamentoId`)?.value || ``);
-        formData.append(`institucion_id`, document.getElementById(`institucionId`)?.value || ``);
-        formData.append(`responsable_receptor_id`, receptorId);
-        formData.append(`responsable_emisor_id`, emisorId);
-        formData.append(`fecha_prestamo`, document.getElementById(`fechaPrestamo`)?.value || ``);
-        formData.append(`fecha_devolucion_esperada`, document.getElementById(`fechaDevolucionEsperada`)?.value || ``);
-        formData.append(`observaciones`, document.getElementById(`observaciones`)?.value || ``);
-        formData.append(`condiciones`, document.getElementById(`condiciones`)?.value || ``);
+        formData.append('_token', csrfToken);
+        formData.append('tipo_prestamo', document.getElementById('tipoPrestamo')?.value || 'equipo');
+        formData.append('departamento_id', document.getElementById('departamentoId')?.value || '');
+        formData.append('institucion_id', document.getElementById('institucionId')?.value || '');
+        formData.append('responsable_receptor_id', receptorId);
+        formData.append('responsable_emisor_id', emisorId);
+        formData.append('fecha_prestamo', document.getElementById('fechaPrestamo')?.value || '');
+        formData.append('fecha_devolucion_esperada', document.getElementById('fechaDevolucionEsperada')?.value || '');
+        formData.append('observaciones', document.getElementById('observaciones')?.value || '');
+        formData.append('condiciones', document.getElementById('condiciones')?.value || '');
 
-        const solicitudId = document.getElementById(`solicitudIdInput`)?.value;
+        const solicitudId = document.getElementById('solicitudIdInput')?.value;
         if (solicitudId) {
-            formData.append(`solicitud_id`, solicitudId);
-            formData.append(`estado`, `aprobado`);
+            formData.append('solicitud_id', solicitudId);
+            formData.append('estado', 'aprobado');
         }
 
         items.forEach((item, index) => {
@@ -945,38 +953,38 @@ document.addEventListener(`DOMContentLoaded`, function() {
             formData.append(`items[${index}][prestable_type]`, prestableType);
             formData.append(`items[${index}][prestable_id]`, item.prestable_id);
             formData.append(`items[${index}][cantidad]`, item.cantidad);
-            formData.append(`items[${index}][estado_entrega]`, item.estado_entrega || `En buen estado`);
-            formData.append(`items[${index}][observaciones]`, item.observaciones || ``);
+            formData.append(`items[${index}][estado_entrega]`, item.estado_entrega || 'En buen estado');
+            formData.append(`items[${index}][observaciones]`, item.observaciones || '');
         });
 
-        fetch(`/admin/prestamos`, {
-            method: `POST`,
+        fetch('/admin/prestamos', {
+            method: 'POST',
             body: formData,
-            headers: { Accept: `application/json` }
+            headers: { Accept: 'application/json' }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const modal = bootstrap.Modal.getInstance(document.getElementById(`modalPrestamo`));
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalPrestamo'));
                 if (modal) modal.hide();
-                showToast(data.message || `Préstamo creado exitosamente`, `success`);
+                showToast(data.message || 'Préstamo creado exitosamente', 'success');
                 cargarSolicitudes();
                 cargarPrestamosActivos();
                 cargarPrestamosFinalizados();
                 items = [];
             } else {
-                showToast(data.message || `Error al crear el préstamo`, `error`);
+                showToast(data.message || 'Error al crear el préstamo', 'error');
                 console.error('Error detallado:', data);
             }
         })
         .catch(error => {
             console.error('Error de conexión:', error);
-            showToast(`Error de conexión al servidor`, `error`);
+            showToast('Error de conexión al servidor', 'error');
         })
         .finally(() => {
             if (submitBtn) {
                 submitBtn.disabled = false;
-                submitBtn.innerHTML = `Guardar Préstamo`;
+                submitBtn.innerHTML = 'Guardar Préstamo';
             }
         });
     });
@@ -985,16 +993,16 @@ document.addEventListener(`DOMContentLoaded`, function() {
     // FUNCIONES DE ACCIONES DE PRÉSTAMOS (Modales)
     // ============================================================
     window.verDetallePrestamo = function(id) {
-        fetch(`/admin/prestamos/${id}`, { headers: { Accept: `application/json` } })
+        fetch('/admin/prestamos/' + id, { headers: { Accept: 'application/json' } })
             .then(response => {
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    throw new Error('HTTP error! status: ' + response.status);
                 }
                 return response.json();
             })
             .then(data => {
                 if (!data.success) {
-                    showToast(`Error al cargar el detalle: ${data.message || 'Error desconocido'}`, `error`);
+                    showToast('Error al cargar el detalle: ' + (data.message || 'Error desconocido'), 'error');
                     return;
                 }
 
@@ -1025,26 +1033,26 @@ document.addEventListener(`DOMContentLoaded`, function() {
                         <strong>${estadoInfo.icon} ${estadoInfo.descripcion}</strong>
                         ${p.esta_vencido ? ' ⚠️ Préstamo vencido!' : ''}
                         ${p.estado === 'entregado' || p.estado === 'extendido' ?
-                            `<br><small>Días restantes: <strong>${p.dias_restantes}</strong> días</small>` : ''}
+                            '<br><small>Días restantes: <strong>' + p.dias_restantes + '</strong> días</small>' : ''}
                     </div>
 
                     <div class="detalle-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
                         <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Tipo</div><div class="value">${escapeHtml(p.tipo_prestamo)}</div></div>
                         <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Destino</div><div class="value">${escapeHtml(p.destino_nombre)}</div></div>
-                        <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Solicitud</div><div class="value">${escapeHtml(p.solicitud_codigo || `—`)}</div></div>
-                        <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Estado Solicitud</div><div class="value">${escapeHtml(p.solicitud?.estado_solicitud || `—`)}</div></div>
+                        <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Solicitud</div><div class="value">${escapeHtml(p.solicitud_codigo || '—')}</div></div>
+                        <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Estado Solicitud</div><div class="value">${escapeHtml(p.solicitud?.estado_solicitud || '—')}</div></div>
                         <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">F. Préstamo</div><div class="value">${formatDate(p.fecha_prestamo)}</div></div>
                         <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">F. Dev. Esperada</div><div class="value">${formatDate(p.fecha_devolucion_esperada)}</div></div>
                         ${p.fecha_devolucion_real ? `
                         <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">F. Dev. Real</div><div class="value">${formatDate(p.fecha_devolucion_real)}</div></div>
-                        ` : ``}
+                        ` : ''}
                         ${p.total_extensiones > 0 ? `
                         <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Extensiones</div><div class="value">${p.total_extensiones}</div></div>
-                        ` : ``}
+                        ` : ''}
                     </div>
                     <div class="detalle-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-top:1rem;">
-                        <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Recibe</div><div class="value">${escapeHtml(p.responsable_receptor?.nombre || `—`)}</div></div>
-                        <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Entrega</div><div class="value">${escapeHtml(p.responsable_emisor?.nombre || `—`)}</div></div>
+                        <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Recibe</div><div class="value">${escapeHtml(p.responsable_receptor?.nombre || '—')}</div></div>
+                        <div class="detalle-item"><div class="label" style="color:#6c757d;font-size:0.75rem;text-transform:uppercase;">Entrega</div><div class="value">${escapeHtml(p.responsable_emisor?.nombre || '—')}</div></div>
                     </div>
                 `;
 
@@ -1053,7 +1061,7 @@ document.addEventListener(`DOMContentLoaded`, function() {
                         <h6 style="color:#1e3c72;font-weight:600;">Items (${p.detalles.length})</h6>
                         <div class="items-list-container">`;
                     p.detalles.forEach(d => {
-                        const nombreItem = d.nombre_item || d.prestable?.serial || d.prestable?.tipo || `Item`;
+                        const nombreItem = d.nombre_item || d.prestable?.serial || d.prestable?.tipo || 'Item';
                         const estadoEntrega = d.estado_entrega || '—';
                         const estadoDevolucion = d.estado_devolucion || 'Pendiente';
                         const devuelto = d.estado_devolucion && d.estado_devolucion !== 'Pendiente de devolución';
@@ -1114,14 +1122,33 @@ document.addEventListener(`DOMContentLoaded`, function() {
                     html += `</div>`;
                 }
 
-                document.getElementById(`detallePrestamoContenido`).innerHTML = html;
-                const modal = new bootstrap.Modal(document.getElementById(`modalDetallePrestamo`));
+                // ============================================================
+                // MODAL FOOTER CON BOTÓN PARA GENERAR ACTA (SOLO ENTREGADO)
+                // ============================================================
+                html += `
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cerrar</button>
+                        ${p.estado === 'entregado' || p.estado === 'extendido' ? `
+                            <button type="button" class="btn btn-primary-dark" onclick="generarActaPrestamo(${p.id})" style="color:#fff;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" class="me-1">
+                                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                                    <line x1="8" y1="21" x2="16" y2="21"/>
+                                    <line x1="12" y1="17" x2="12" y2="21"/>
+                                </svg>
+                                Generar Acta de Entrega
+                            </button>
+                        ` : ''}
+                    </div>
+                `;
+
+                document.getElementById('detallePrestamoContenido').innerHTML = html;
+                const modal = new bootstrap.Modal(document.getElementById('modalDetallePrestamo'));
                 modal.show();
             })
             .catch(error => {
                 console.error('Error al cargar detalle:', error);
-                showToast(`Error al cargar detalle: ${error.message}`, `error`);
-                document.getElementById(`detallePrestamoContenido`).innerHTML = `
+                showToast('Error al cargar detalle: ' + error.message, 'error');
+                document.getElementById('detallePrestamoContenido').innerHTML = `
                     <div class="text-center py-4 text-danger">
                         <p>Error al cargar los detalles del préstamo</p>
                         <p class="text-muted small">${escapeHtml(error.message)}</p>
@@ -1130,67 +1157,106 @@ document.addEventListener(`DOMContentLoaded`, function() {
             });
     };
 
+    // ============================================================
+    // GENERAR ACTA DE ENTREGA DESDE PRÉSTAMO
+    // ============================================================
+    window.generarActaPrestamo = function(prestamoId) {
+        // Mostrar un loader en el botón
+        const btn = document.querySelector('[onclick="generarActaPrestamo(' + prestamoId + ')"]');
+        const originalText = btn ? btn.innerHTML : 'Generar Acta';
+        if (btn) {
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Generando...';
+            btn.disabled = true;
+        }
+
+        // Abrir una nueva ventana con el acta
+        const url = '/admin/actas/generar?prestamo_id=' + prestamoId;
+        const ventana = window.open(url, '_blank', 'width=900,height=700,scrollbars=yes');
+
+        // Si la ventana no se pudo abrir (pop-up bloqueado)
+        if (!ventana) {
+            showToast('Por favor, permita ventanas emergentes para generar el acta', 'warning');
+            if (btn) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+            return;
+        }
+
+        // Cerrar el modal de detalle
+        const modal = bootstrap.Modal.getInstance(document.getElementById('modalDetallePrestamo'));
+        if (modal) modal.hide();
+
+        // Restaurar el botón después de un tiempo
+        setTimeout(() => {
+            if (btn) {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }, 3000);
+    };
+
     window.abrirModalAprobacion = function(id) {
-        document.getElementById(`aprobacionPrestamoId`).value = id;
-        document.getElementById(`observacionesAprobacion`).value = ``;
-        new bootstrap.Modal(document.getElementById(`modalAprobacion`)).show();
+        document.getElementById('aprobacionPrestamoId').value = id;
+        document.getElementById('observacionesAprobacion').value = '';
+        new bootstrap.Modal(document.getElementById('modalAprobacion')).show();
     };
 
     window.abrirModalRechazo = function(id) {
-        document.getElementById(`rechazoPrestamoId`).value = id;
-        document.getElementById(`motivoRechazo`).value = ``;
-        new bootstrap.Modal(document.getElementById(`modalRechazo`)).show();
+        document.getElementById('rechazoPrestamoId').value = id;
+        document.getElementById('motivoRechazo').value = '';
+        new bootstrap.Modal(document.getElementById('modalRechazo')).show();
     };
 
     window.abrirModalEntrega = function(id) {
-        document.getElementById(`entregaPrestamoId`).value = id;
-        document.getElementById(`observacionesEntrega`).value = ``;
-        document.getElementById(`fechaEntregaPrestamo`).value = new Date().toISOString().split(`T`)[0];
-        document.getElementById(`fechaEntregaDevolucion`).value =
-            new Date(Date.now() + 7 * 86400000).toISOString().split(`T`)[0];
+        document.getElementById('entregaPrestamoId').value = id;
+        document.getElementById('observacionesEntrega').value = '';
+        document.getElementById('fechaEntregaPrestamo').value = new Date().toISOString().split('T')[0];
+        document.getElementById('fechaEntregaDevolucion').value =
+            new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
-        fetch(`/admin/prestamos/${id}`, { headers: { Accept: `application/json` } })
+        fetch('/admin/prestamos/' + id, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
                     const p = data.data;
-                    if (p.fecha_prestamo) document.getElementById(`fechaEntregaPrestamo`).value = p.fecha_prestamo;
-                    if (p.fecha_devolucion_esperada) document.getElementById(`fechaEntregaDevolucion`).value = p.fecha_devolucion_esperada;
+                    if (p.fecha_prestamo) document.getElementById('fechaEntregaPrestamo').value = p.fecha_prestamo;
+                    if (p.fecha_devolucion_esperada) document.getElementById('fechaEntregaDevolucion').value = p.fecha_devolucion_esperada;
                 }
             })
             .catch(() => {})
             .finally(() => {
-                new bootstrap.Modal(document.getElementById(`modalEntrega`)).show();
+                new bootstrap.Modal(document.getElementById('modalEntrega')).show();
             });
     };
 
     window.abrirModalDevolucion = function(id) {
-        document.getElementById(`devolucionPrestamoId`).value = id;
-        document.getElementById(`fechaDevolucionReal`).value = new Date().toISOString().split(`T`)[0];
-        document.getElementById(`observacionesDevolucion`).value = ``;
-        document.getElementById(`itemsDevolucionContainer`).innerHTML =
-            `<div class="text-center py-3 text-muted">Cargando items...</div>`;
+        document.getElementById('devolucionPrestamoId').value = id;
+        document.getElementById('fechaDevolucionReal').value = new Date().toISOString().split('T')[0];
+        document.getElementById('observacionesDevolucion').value = '';
+        document.getElementById('itemsDevolucionContainer').innerHTML =
+            '<div class="text-center py-3 text-muted">Cargando items...</div>';
 
-        fetch(`/admin/prestamos/${id}`, { headers: { Accept: `application/json` } })
+        fetch('/admin/prestamos/' + id, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
                 if (!data.success || !data.data) {
-                    document.getElementById(`itemsDevolucionContainer`).innerHTML =
-                        `<div class="text-danger text-center py-3">No se pudieron cargar los datos del préstamo.</div>`;
+                    document.getElementById('itemsDevolucionContainer').innerHTML =
+                        '<div class="text-danger text-center py-3">No se pudieron cargar los datos del préstamo.</div>';
                     return;
                 }
 
                 const p = data.data;
 
-                document.getElementById(`devolucionCodigo`).textContent = p.codigo;
-                document.getElementById(`devolucionDestino`).textContent = p.destino_nombre || '—';
-                document.getElementById(`devolucionResponsable`).textContent = p.responsable_receptor?.nombre || '—';
+                document.getElementById('devolucionCodigo').textContent = p.codigo;
+                document.getElementById('devolucionDestino').textContent = p.destino_nombre || '—';
+                document.getElementById('devolucionResponsable').textContent = p.responsable_receptor?.nombre || '—';
 
                 const detalles = p.detalles || [];
 
                 if (detalles.length === 0) {
-                    document.getElementById(`itemsDevolucionContainer`).innerHTML =
-                        `<div class="text-center py-3 text-muted">No hay items para devolver.</div>`;
+                    document.getElementById('itemsDevolucionContainer').innerHTML =
+                        '<div class="text-center py-3 text-muted">No hay items para devolver.</div>';
                     return;
                 }
 
@@ -1210,7 +1276,7 @@ document.addEventListener(`DOMContentLoaded`, function() {
                 `;
 
                 detalles.forEach((d, index) => {
-                    const nombreItem = d.nombre_item || d.prestable?.serial || d.prestable?.tipo || `Item ${index + 1}`;
+                    const nombreItem = d.nombre_item || d.prestable?.serial || d.prestable?.tipo || 'Item ' + (index + 1);
                     const checked = d.estado_devolucion && d.estado_devolucion !== 'Pendiente de devolución' ? 'checked' : '';
 
                     html += `
@@ -1245,53 +1311,53 @@ document.addEventListener(`DOMContentLoaded`, function() {
                         </table>
                     </div>
                 `;
-                document.getElementById(`itemsDevolucionContainer`).innerHTML = html;
+                document.getElementById('itemsDevolucionContainer').innerHTML = html;
             })
             .catch(() => {
-                document.getElementById(`itemsDevolucionContainer`).innerHTML =
-                    `<div class="text-danger text-center py-3">Error al cargar los items del préstamo.</div>`;
+                document.getElementById('itemsDevolucionContainer').innerHTML =
+                    '<div class="text-danger text-center py-3">Error al cargar los items del préstamo.</div>';
             })
             .finally(() => {
-                new bootstrap.Modal(document.getElementById(`modalDevolucion`)).show();
+                new bootstrap.Modal(document.getElementById('modalDevolucion')).show();
             });
     };
 
     window.abrirModalExtension = function(id) {
-        document.getElementById(`extensionPrestamoId`).value = id;
-        document.getElementById(`fechaNuevaExtension`).value = ``;
-        document.getElementById(`motivoExtension`).value = ``;
-        document.getElementById(`tipoExtensionCompleta`).checked = true;
-        document.getElementById(`itemsExtensionContainer`).style.display = `none`;
-        document.getElementById(`itemsExtensionList`).innerHTML =
-            `<div class="text-center py-3 text-muted">Seleccione un tipo de extensión.</div>`;
+        document.getElementById('extensionPrestamoId').value = id;
+        document.getElementById('fechaNuevaExtension').value = '';
+        document.getElementById('motivoExtension').value = '';
+        document.getElementById('tipoExtensionCompleta').checked = true;
+        document.getElementById('itemsExtensionContainer').style.display = 'none';
+        document.getElementById('itemsExtensionList').innerHTML =
+            '<div class="text-center py-3 text-muted">Seleccione un tipo de extensión.</div>';
 
-        fetch(`/admin/prestamos/${id}`, { headers: { Accept: `application/json` } })
+        fetch('/admin/prestamos/' + id, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
                 if (!data.success || !data.data) {
-                    document.getElementById(`itemsExtensionList`).innerHTML =
-                        `<div class="text-danger text-center py-3">No se pudieron cargar los datos del préstamo.</div>`;
+                    document.getElementById('itemsExtensionList').innerHTML =
+                        '<div class="text-danger text-center py-3">No se pudieron cargar los datos del préstamo.</div>';
                     return;
                 }
 
                 const p = data.data;
 
-                document.getElementById(`extensionCodigo`).textContent = p.codigo;
-                document.getElementById(`extensionDestino`).textContent = p.destino_nombre || '—';
-                document.getElementById(`extensionFechaActual`).textContent = formatDate(p.fecha_devolucion_esperada);
-                document.getElementById(`extensionEstado`).textContent = p.estado;
-                document.getElementById(`extensionEstado`).className = `badge bg-${p.estado === 'entregado' ? 'success' : 'warning'}`;
+                document.getElementById('extensionCodigo').textContent = p.codigo;
+                document.getElementById('extensionDestino').textContent = p.destino_nombre || '—';
+                document.getElementById('extensionFechaActual').textContent = formatDate(p.fecha_devolucion_esperada);
+                document.getElementById('extensionEstado').textContent = p.estado;
+                document.getElementById('extensionEstado').className = 'badge bg-' + (p.estado === 'entregado' ? 'success' : 'warning');
 
                 const fechaActual = p.fecha_devolucion_esperada || new Date().toISOString().split('T')[0];
                 const fechaMin = new Date(fechaActual);
                 fechaMin.setDate(fechaMin.getDate() + 1);
-                document.getElementById(`fechaNuevaExtension`).min = fechaMin.toISOString().split('T')[0];
+                document.getElementById('fechaNuevaExtension').min = fechaMin.toISOString().split('T')[0];
 
                 const detalles = p.detalles || [];
 
                 if (detalles.length === 0) {
-                    document.getElementById(`itemsExtensionList`).innerHTML =
-                        `<div class="text-center py-3 text-muted">No hay items para extender.</div>`;
+                    document.getElementById('itemsExtensionList').innerHTML =
+                        '<div class="text-center py-3 text-muted">No hay items para extender.</div>';
                     return;
                 }
 
@@ -1310,7 +1376,7 @@ document.addEventListener(`DOMContentLoaded`, function() {
                 `;
 
                 detalles.forEach((d, index) => {
-                    const nombreItem = d.nombre_item || d.prestable?.serial || d.prestable?.tipo || `Item ${index + 1}`;
+                    const nombreItem = d.nombre_item || d.prestable?.serial || d.prestable?.tipo || 'Item ' + (index + 1);
                     const estadoItem = d.estado_devolucion && d.estado_devolucion !== 'Pendiente de devolución' ? 'Devuelto' : 'Pendiente';
 
                     html += `
@@ -1335,141 +1401,141 @@ document.addEventListener(`DOMContentLoaded`, function() {
                         </table>
                     </div>
                 `;
-                document.getElementById(`itemsExtensionList`).innerHTML = html;
+                document.getElementById('itemsExtensionList').innerHTML = html;
             })
             .catch(() => {
-                document.getElementById(`itemsExtensionList`).innerHTML =
-                    `<div class="text-danger text-center py-3">Error al cargar los items del préstamo.</div>`;
+                document.getElementById('itemsExtensionList').innerHTML =
+                    '<div class="text-danger text-center py-3">Error al cargar los items del préstamo.</div>';
             })
             .finally(() => {
-                new bootstrap.Modal(document.getElementById(`modalExtension`)).show();
+                new bootstrap.Modal(document.getElementById('modalExtension')).show();
             });
     };
 
     window.abrirModalCancelar = function(id) {
-        document.getElementById(`cancelarPrestamoId`).value = id;
-        document.getElementById(`motivoCancelacion`).value = ``;
-        new bootstrap.Modal(document.getElementById(`modalCancelar`)).show();
+        document.getElementById('cancelarPrestamoId').value = id;
+        document.getElementById('motivoCancelacion').value = '';
+        new bootstrap.Modal(document.getElementById('modalCancelar')).show();
     };
 
     window.toggleTipoExtension = function() {
-        const tipoCompleta = document.getElementById(`tipoExtensionCompleta`);
-        const container = document.getElementById(`itemsExtensionContainer`);
+        const tipoCompleta = document.getElementById('tipoExtensionCompleta');
+        const container = document.getElementById('itemsExtensionContainer');
         if (container) {
-            container.style.display = tipoCompleta && tipoCompleta.checked ? `none` : `block`;
+            container.style.display = tipoCompleta && tipoCompleta.checked ? 'none' : 'block';
         }
     };
 
     // ============================================================
     // EVENTOS DE FORMULARIOS DE ACCIONES
     // ============================================================
-    document.getElementById(`formAprobacion`)?.addEventListener(`submit`, function(e) {
+    document.getElementById('formAprobacion')?.addEventListener('submit', function(e) {
         e.preventDefault();
         if (!this.checkValidity()) { this.reportValidity(); return; }
-        const id = document.getElementById(`aprobacionPrestamoId`).value;
+        const id = document.getElementById('aprobacionPrestamoId').value;
         const formData = new FormData(this);
-        fetch(`/admin/prestamos/${id}/aprobar`, {
-            method: `POST`,
+        fetch('/admin/prestamos/' + id + '/aprobar', {
+            method: 'POST',
             body: formData,
-            headers: { Accept: `application/json` }
+            headers: { Accept: 'application/json' }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById(`modalAprobacion`)).hide();
-                showToast(data.message || `Préstamo aprobado`, `success`);
+                bootstrap.Modal.getInstance(document.getElementById('modalAprobacion')).hide();
+                showToast(data.message || 'Préstamo aprobado', 'success');
                 cargarSolicitudes();
                 cargarPrestamosActivos();
             } else {
-                showToast(data.message || `Error al aprobar`, `error`);
+                showToast(data.message || 'Error al aprobar', 'error');
             }
         })
-        .catch(() => showToast(`Error de conexión`, `error`));
+        .catch(() => showToast('Error de conexión', 'error'));
     });
 
-    document.getElementById(`formRechazo`)?.addEventListener(`submit`, function(e) {
+    document.getElementById('formRechazo')?.addEventListener('submit', function(e) {
         e.preventDefault();
         if (!this.checkValidity()) { this.reportValidity(); return; }
-        const id = document.getElementById(`rechazoPrestamoId`).value;
+        const id = document.getElementById('rechazoPrestamoId').value;
         const formData = new FormData(this);
-        fetch(`/admin/prestamos/${id}/rechazar`, {
-            method: `POST`,
+        fetch('/admin/prestamos/' + id + '/rechazar', {
+            method: 'POST',
             body: formData,
-            headers: { Accept: `application/json` }
+            headers: { Accept: 'application/json' }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById(`modalRechazo`)).hide();
-                showToast(data.message || `Préstamo rechazado`, `success`);
+                bootstrap.Modal.getInstance(document.getElementById('modalRechazo')).hide();
+                showToast(data.message || 'Préstamo rechazado', 'success');
                 cargarSolicitudes();
                 cargarPrestamosActivos();
             } else {
-                showToast(data.message || `Error al rechazar`, `error`);
+                showToast(data.message || 'Error al rechazar', 'error');
             }
         })
-        .catch(() => showToast(`Error de conexión`, `error`));
+        .catch(() => showToast('Error de conexión', 'error'));
     });
 
-    document.getElementById(`formEntrega`)?.addEventListener(`submit`, function(e) {
+    document.getElementById('formEntrega')?.addEventListener('submit', function(e) {
         e.preventDefault();
         if (!this.checkValidity()) { this.reportValidity(); return; }
-        const id = document.getElementById(`entregaPrestamoId`).value;
+        const id = document.getElementById('entregaPrestamoId').value;
         const formData = new FormData(this);
-        const submitBtn = this.querySelector(`button[type="submit"]`);
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = `Procesando...`; }
-        fetch(`/admin/prestamos/${id}/entregar`, {
-            method: `POST`,
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
+        fetch('/admin/prestamos/' + id + '/entregar', {
+            method: 'POST',
             body: formData,
-            headers: { Accept: `application/json` }
+            headers: { Accept: 'application/json' }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById(`modalEntrega`)).hide();
-                showToast(data.message || `Entrega registrada`, `success`);
+                bootstrap.Modal.getInstance(document.getElementById('modalEntrega')).hide();
+                showToast(data.message || 'Entrega registrada', 'success');
                 cargarSolicitudes();
                 cargarPrestamosActivos();
             } else {
-                showToast(data.message || `Error al registrar entrega`, `error`);
+                showToast(data.message || 'Error al registrar entrega', 'error');
             }
         })
-        .catch(() => showToast(`Error de conexión`, `error`))
+        .catch(() => showToast('Error de conexión', 'error'))
         .finally(() => {
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = `Registrar Entrega`; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Registrar Entrega'; }
         });
     });
 
-    document.getElementById(`formDevolucion`)?.addEventListener(`submit`, function(e) {
+    document.getElementById('formDevolucion')?.addEventListener('submit', function(e) {
         e.preventDefault();
         if (!this.checkValidity()) { this.reportValidity(); return; }
-        const id = document.getElementById(`devolucionPrestamoId`).value;
+        const id = document.getElementById('devolucionPrestamoId').value;
         const formData = new FormData(this);
-        const submitBtn = this.querySelector(`button[type="submit"]`);
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = `Procesando...`; }
-        fetch(`/admin/prestamos/${id}/devolver`, {
-            method: `POST`,
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
+        fetch('/admin/prestamos/' + id + '/devolver', {
+            method: 'POST',
             body: formData,
-            headers: { Accept: `application/json` }
+            headers: { Accept: 'application/json' }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById(`modalDevolucion`)).hide();
-                showToast(data.message || `Devolución registrada`, `success`);
+                bootstrap.Modal.getInstance(document.getElementById('modalDevolucion')).hide();
+                showToast(data.message || 'Devolución registrada', 'success');
                 cargarPrestamosActivos();
                 cargarPrestamosFinalizados();
             } else {
-                showToast(data.message || `Error al registrar devolución`, `error`);
+                showToast(data.message || 'Error al registrar devolución', 'error');
             }
         })
-        .catch(() => showToast(`Error de conexión`, `error`))
+        .catch(() => showToast('Error de conexión', 'error'))
         .finally(() => {
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = `Registrar Devolución`; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Registrar Devolución'; }
         });
     });
 
-    document.getElementById(`formExtension`)?.addEventListener(`submit`, function(e) {
+    document.getElementById('formExtension')?.addEventListener('submit', function(e) {
         e.preventDefault();
         if (!this.checkValidity()) { this.reportValidity(); return; }
 
@@ -1477,62 +1543,62 @@ document.addEventListener(`DOMContentLoaded`, function() {
         if (tipo === 'parcial') {
             const checked = document.querySelectorAll('#itemsExtensionList input[type="checkbox"]:checked');
             if (checked.length === 0) {
-                showToast(`Debe seleccionar al menos un item para extender`, `warning`);
+                showToast('Debe seleccionar al menos un item para extender', 'warning');
                 return;
             }
         }
 
-        const id = document.getElementById(`extensionPrestamoId`).value;
+        const id = document.getElementById('extensionPrestamoId').value;
         const formData = new FormData(this);
-        const submitBtn = this.querySelector(`button[type="submit"]`);
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = `Procesando...`; }
-        fetch(`/admin/prestamos/${id}/extender`, {
-            method: `POST`,
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
+        fetch('/admin/prestamos/' + id + '/extender', {
+            method: 'POST',
             body: formData,
-            headers: { Accept: `application/json` }
+            headers: { Accept: 'application/json' }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById(`modalExtension`)).hide();
-                showToast(data.message || `Préstamo extendido`, `success`);
+                bootstrap.Modal.getInstance(document.getElementById('modalExtension')).hide();
+                showToast(data.message || 'Préstamo extendido', 'success');
                 cargarPrestamosActivos();
             } else {
-                showToast(data.message || `Error al extender`, `error`);
+                showToast(data.message || 'Error al extender', 'error');
             }
         })
-        .catch(() => showToast(`Error de conexión`, `error`))
+        .catch(() => showToast('Error de conexión', 'error'))
         .finally(() => {
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = `Extender Préstamo`; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Extender Préstamo'; }
         });
     });
 
-    document.getElementById(`formCancelar`)?.addEventListener(`submit`, function(e) {
+    document.getElementById('formCancelar')?.addEventListener('submit', function(e) {
         e.preventDefault();
         if (!this.checkValidity()) { this.reportValidity(); return; }
-        const id = document.getElementById(`cancelarPrestamoId`).value;
+        const id = document.getElementById('cancelarPrestamoId').value;
         const formData = new FormData(this);
-        const submitBtn = this.querySelector(`button[type="submit"]`);
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = `Procesando...`; }
-        fetch(`/admin/prestamos/${id}/cancelar`, {
-            method: `POST`,
+        const submitBtn = this.querySelector('button[type="submit"]');
+        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
+        fetch('/admin/prestamos/' + id + '/cancelar', {
+            method: 'POST',
             body: formData,
-            headers: { Accept: `application/json` }
+            headers: { Accept: 'application/json' }
         })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById(`modalCancelar`)).hide();
-                showToast(data.message || `Préstamo cancelado`, `success`);
+                bootstrap.Modal.getInstance(document.getElementById('modalCancelar')).hide();
+                showToast(data.message || 'Préstamo cancelado', 'success');
                 cargarSolicitudes();
                 cargarPrestamosActivos();
             } else {
-                showToast(data.message || `Error al cancelar`, `error`);
+                showToast(data.message || 'Error al cancelar', 'error');
             }
         })
-        .catch(() => showToast(`Error de conexión`, `error`))
+        .catch(() => showToast('Error de conexión', 'error'))
         .finally(() => {
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = `Cancelar Préstamo`; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Cancelar Préstamo'; }
         });
     });
 
@@ -1561,23 +1627,23 @@ document.addEventListener(`DOMContentLoaded`, function() {
     // ============================================================
     // EVENTOS DE FILTROS
     // ============================================================
-    document.getElementById(`buscarSolicitudes`)?.addEventListener(`input`, debounce(cargarSolicitudes, 300));
-    document.getElementById(`buscarActivos`)?.addEventListener(`input`, debounce(cargarPrestamosActivos, 300));
-    document.getElementById(`filtroTipoActivos`)?.addEventListener(`change`, cargarPrestamosActivos);
-    document.getElementById(`filtroEstadoActivos`)?.addEventListener(`change`, cargarPrestamosActivos);
-    document.getElementById(`buscarFinalizados`)?.addEventListener(`input`, debounce(cargarPrestamosFinalizados, 300));
-    document.getElementById(`filtroEstadoFinalizados`)?.addEventListener(`change`, cargarPrestamosFinalizados);
-    document.getElementById(`filtroFechaDesde`)?.addEventListener(`change`, cargarPrestamosFinalizados);
-    document.getElementById(`filtroFechaHasta`)?.addEventListener(`change`, cargarPrestamosFinalizados);
+    document.getElementById('buscarSolicitudes')?.addEventListener('input', debounce(cargarSolicitudes, 300));
+    document.getElementById('buscarActivos')?.addEventListener('input', debounce(cargarPrestamosActivos, 300));
+    document.getElementById('filtroTipoActivos')?.addEventListener('change', cargarPrestamosActivos);
+    document.getElementById('filtroEstadoActivos')?.addEventListener('change', cargarPrestamosActivos);
+    document.getElementById('buscarFinalizados')?.addEventListener('input', debounce(cargarPrestamosFinalizados, 300));
+    document.getElementById('filtroEstadoFinalizados')?.addEventListener('change', cargarPrestamosFinalizados);
+    document.getElementById('filtroFechaDesde')?.addEventListener('change', cargarPrestamosFinalizados);
+    document.getElementById('filtroFechaHasta')?.addEventListener('change', cargarPrestamosFinalizados);
 
     // ============================================================
     // CERRAR RESULTADOS AL HACER CLICK FUERA
     // ============================================================
-    document.addEventListener(`click`, function(e) {
-        const resultados = document.getElementById(`resultadosBusqueda`);
-        const buscar = document.getElementById(`buscarItem`);
+    document.addEventListener('click', function(e) {
+        const resultados = document.getElementById('resultadosBusqueda');
+        const buscar = document.getElementById('buscarItem');
         if (resultados && buscar && !buscar.contains(e.target) && !resultados.contains(e.target)) {
-            resultados.style.display = `none`;
+            resultados.style.display = 'none';
         }
     });
 

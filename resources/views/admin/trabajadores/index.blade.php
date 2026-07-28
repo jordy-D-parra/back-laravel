@@ -12,7 +12,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h3 class="fw-bold" style="color: #1e3c72;">Gestión de Trabajadores</h3>
         @if(auth()->user()->hasPermission('crear-trabajador'))
-        <button class="btn btn-primary-dark" data-bs-toggle="modal" data-bs-target="#modalTrabajador">
+        <button style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border" class="btn btn-primary-dark" data-bs-toggle="modal" data-bs-target="#modalTrabajador">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
@@ -76,17 +76,7 @@
                 <input type="text" class="form-control" name="search" placeholder="Buscar por cédula, nombre, apellido, cargo..." value="{{ request('search') }}">
             </div>
         </div>
-        <select class="form-select" name="departamento" style="min-width: 160px;">
-            <option value="">Todos los departamentos</option>
-            @foreach($listaDepartamentos as $depto)
-                <option value="{{ $depto }}" {{ request('departamento') == $depto ? 'selected' : '' }}>{{ $depto }}</option>
-            @endforeach
-        </select>
-        <select class="form-select" name="tiene_usuario" style="min-width: 150px;">
-            <option value="">Todos</option>
-            <option value="si" {{ request('tiene_usuario') === 'si' ? 'selected' : '' }}>Con usuario</option>
-            <option value="no" {{ request('tiene_usuario') === 'no' ? 'selected' : '' }}>Sin usuario</option>
-        </select>
+
         <button type="submit" class="btn btn-primary-dark">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <circle cx="11" cy="11" r="8"/>

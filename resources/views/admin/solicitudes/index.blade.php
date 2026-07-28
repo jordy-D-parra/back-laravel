@@ -75,7 +75,7 @@
         </div>
     </div>
 
-    <!-- Filtros simplificados (solo 3) -->
+    <!-- Filtros simplificados -->
     <div class="filters-bar">
         <div class="flex-grow-1">
             <input type="text" class="form-control" id="searchInput" placeholder="Buscar...">
@@ -226,10 +226,44 @@
                         <div class="responsable-display" id="responsableDisplay">
                             <span class="text-muted">Seleccione una opción</span>
                         </div>
-<<<<<<< HEAD
                         <input type="hidden" name="responsable_id" id="responsable_id_hidden" value="">
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- UBICACIÓN DEL EVENTO (NUEVO)              -->
+                    <!-- ========================================== -->
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h6 style="color:#1e3c72; font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e9ecef; padding-bottom:0.5rem;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                Ubicación del Evento
+                            </h6>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Estado</label>
+                            <select name="estado_id" id="solicitud_estado_id" class="form-select">
+                                <option value="">Seleccionar estado...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Municipio</label>
+                            <select name="municipio_id" id="solicitud_municipio_id" class="form-select" disabled>
+                                <option value="">Seleccionar estado primero</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Parroquia</label>
+                            <select name="parroquia_id" id="solicitud_parroquia_id" class="form-select" disabled>
+                                <option value="">Seleccionar municipio primero</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Lugar del Evento (Dirección específica)</label>
+                            <input type="text" name="lugar_evento" id="solicitud_lugar_evento" class="form-control" placeholder="Ej: Auditorio Principal, Calle 5 con Avenida 3...">
+                        </div>
                     </div>
 
                     <div class="row">
@@ -354,10 +388,44 @@
                     <div class="mb-3">
                         <label class="form-label">Responsable</label>
                         <div class="responsable-display" id="editResponsableDisplay"></div>
-<<<<<<< HEAD
                         <input type="hidden" name="responsable_id" id="edit_responsable_id_hidden" value="">
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
+                    </div>
+
+                    <!-- ========================================== -->
+                    <!-- UBICACIÓN DEL EVENTO (EDITAR - NUEVO)      -->
+                    <!-- ========================================== -->
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <h6 style="color:#1e3c72; font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e9ecef; padding-bottom:0.5rem;">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                                    <circle cx="12" cy="10" r="3"/>
+                                </svg>
+                                Ubicación del Evento
+                            </h6>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Estado</label>
+                            <select name="estado_id" id="edit_solicitud_estado_id" class="form-select">
+                                <option value="">Seleccionar estado...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Municipio</label>
+                            <select name="municipio_id" id="edit_solicitud_municipio_id" class="form-select" disabled>
+                                <option value="">Seleccionar estado primero</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Parroquia</label>
+                            <select name="parroquia_id" id="edit_solicitud_parroquia_id" class="form-select" disabled>
+                                <option value="">Seleccionar municipio primero</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Lugar del Evento (Dirección específica)</label>
+                            <input type="text" name="lugar_evento" id="edit_solicitud_lugar_evento" class="form-control" placeholder="Ej: Auditorio Principal, Calle 5 con Avenida 3...">
+                        </div>
                     </div>
 
                     <div class="row">

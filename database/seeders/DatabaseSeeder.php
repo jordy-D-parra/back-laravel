@@ -1,4 +1,5 @@
 <?php
+// database/seeders/DatabaseSeeder.php
 
 namespace Database\Seeders;
 
@@ -12,37 +13,37 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Iniciando seeding del sistema...');
         $this->command->info('==============================');
 
-        // ========== 1. PRIMERO: TABLAS BASE (sin dependencias) ==========
+        // ========== 1. TABLAS BASE (sin dependencias) ==========
         $this->call(RolSeeder::class);
         $this->call(PermisoSeeder::class);
-
-        // ========== 2. TRABAJADORES (base para usuarios) ==========
         $this->call(TrabajadorSeeder::class);
-
-        // ========== 3. ESTATUS (base para inventario) ==========
         $this->call(EstatusSeeder::class);
 
-        // ========== 4. ENTIDADES (instituciones, departamentos, responsables) ==========
+        // ========== 2. UBICACIONES GEOGRÁFICAS (¡ANTES DE ENTIDADES!) ==========
+        $this->call(EstadosVenezuelaSeeder::class);
+        $this->call(MunicipiosYaracuySeeder::class);
+        $this->call(ParroquiasYaracuySeeder::class);
+
+        // ========== 3. ENTIDADES (AHORA CON UBICACIÓN) ==========
         $this->call(EntidadesSeeder::class);
 
-        // ========== 5. USUARIO ADMIN (depende de trabajadores y roles) ==========
-      //  $this->call(UsuarioAdminSeeder::class);
-
-        // ========== 6. CATÁLOGO DE EQUIPOS (depende de categorías y marcas) ==========
-        $this->call(EquiposDemoSeeder::class);
-
-        // ========== 7. INVENTARIO (depende de equipos, entidades y estatus) ==========
-        $this->call(InventarioDemoSeeder::class);
-
+        // ========== 4. USUARIO ADMIN ==========
         $this->call(UsuarioAdminSeeder::class);
 
-<<<<<<< HEAD
-=======
+        // ========== 5. CATÁLOGO DE EQUIPOS ==========
+        $this->call(EquiposDemoSeeder::class);
+
+        // ========== 6. INVENTARIO ==========
+        $this->call(InventarioDemoSeeder::class);
+
+        // ========== 7. SOLICITUDES Y PRÉSTAMOS ==========
         $this->call(SolicitudPrestamoDemoSeeder::class);
 
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
+        // ========== 7. SOPORTE TÉCNICO ==========
+$this->call(SoporteTecnicoSeeder::class);
+
         $this->command->info('==============================');
-        $this->command->info('✅ Seeding completado exitosamente');
+        $this->command->info('✅ Seeding completado');
         $this->command->info('==============================');
     }
 }

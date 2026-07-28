@@ -88,10 +88,6 @@ class PermisoSeeder extends Seeder
             ['nombre' => 'editar-componente', 'descripcion' => 'Editar componentes', 'categoria' => 'componentes'],
             ['nombre' => 'eliminar-componente', 'descripcion' => 'Eliminar componentes', 'categoria' => 'componentes'],
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
             // ========== PRÉSTAMOS ==========
             ['nombre' => 'ver-prestamos', 'descripcion' => 'Ver listado de préstamos', 'categoria' => 'prestamos'],
             ['nombre' => 'crear-prestamo', 'descripcion' => 'Crear nuevos préstamos', 'categoria' => 'prestamos'],
@@ -101,11 +97,7 @@ class PermisoSeeder extends Seeder
             ['nombre' => 'cancelar-prestamo', 'descripcion' => 'Cancelar préstamos', 'categoria' => 'prestamos'],
             ['nombre' => 'eliminar-prestamo', 'descripcion' => 'Eliminar préstamos', 'categoria' => 'prestamos'],
 
-<<<<<<< HEAD
-=======
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
-=======
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
+
             // ========== SOLICITUDES ==========
             ['nombre' => 'ver-solicitudes', 'descripcion' => 'Ver listado de solicitudes', 'categoria' => 'solicitudes'],
             ['nombre' => 'crear-solicitud', 'descripcion' => 'Crear nuevas solicitudes', 'categoria' => 'solicitudes'],
@@ -114,27 +106,33 @@ class PermisoSeeder extends Seeder
             ['nombre' => 'aprobar-solicitudes', 'descripcion' => 'Aprobar o rechazar solicitudes', 'categoria' => 'solicitudes'],
 
             // ========== FICHAS DE SOPORTE ==========
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
             ['nombre' => 'ver-fichas-soporte', 'descripcion' => 'Ver listado de fichas de soporte', 'categoria' => 'soporte'],
             ['nombre' => 'crear-ficha-soporte', 'descripcion' => 'Crear nuevas fichas de soporte', 'categoria' => 'soporte'],
             ['nombre' => 'editar-ficha-soporte', 'descripcion' => 'Editar fichas de soporte', 'categoria' => 'soporte'],
             ['nombre' => 'cerrar-ficha-soporte', 'descripcion' => 'Cerrar/finalizar fichas de soporte', 'categoria' => 'soporte'],
             ['nombre' => 'eliminar-ficha-soporte', 'descripcion' => 'Eliminar fichas de soporte', 'categoria' => 'soporte'],
-        ];
-<<<<<<< HEAD
-=======
+
            ['nombre' => 'ver-fichas-soporte', 'descripcion' => 'Ver listado de fichas de soporte', 'categoria' => 'soporte'],
            ['nombre' => 'crear-ficha-soporte', 'descripcion' => 'Crear nuevas fichas de soporte', 'categoria' => 'soporte'],
            ['nombre' => 'editar-ficha-soporte', 'descripcion' => 'Editar fichas de soporte', 'categoria' => 'soporte'],
            ['nombre' => 'cerrar-ficha-soporte', 'descripcion' => 'Cerrar/finalizar fichas de soporte', 'categoria' => 'soporte'],
            ['nombre' => 'eliminar-ficha-soporte', 'descripcion' => 'Eliminar fichas de soporte', 'categoria' => 'soporte'],
+
+           // ========== UBICACIONES ==========
+['nombre' => 'ver-estados', 'descripcion' => 'Ver listado de estados', 'categoria' => 'ubicaciones'],
+['nombre' => 'crear-estado', 'descripcion' => 'Crear nuevos estados', 'categoria' => 'ubicaciones'],
+['nombre' => 'editar-estado', 'descripcion' => 'Editar estados', 'categoria' => 'ubicaciones'],
+['nombre' => 'eliminar-estado', 'descripcion' => 'Eliminar estados', 'categoria' => 'ubicaciones'],
+['nombre' => 'ver-municipios', 'descripcion' => 'Ver listado de municipios', 'categoria' => 'ubicaciones'],
+['nombre' => 'crear-municipio', 'descripcion' => 'Crear nuevos municipios', 'categoria' => 'ubicaciones'],
+['nombre' => 'editar-municipio', 'descripcion' => 'Editar municipios', 'categoria' => 'ubicaciones'],
+['nombre' => 'eliminar-municipio', 'descripcion' => 'Eliminar municipios', 'categoria' => 'ubicaciones'],
+['nombre' => 'ver-parroquias', 'descripcion' => 'Ver listado de parroquias', 'categoria' => 'ubicaciones'],
+['nombre' => 'crear-parroquia', 'descripcion' => 'Crear nuevas parroquias', 'categoria' => 'ubicaciones'],
+['nombre' => 'editar-parroquia', 'descripcion' => 'Editar parroquias', 'categoria' => 'ubicaciones'],
+['nombre' => 'eliminar-parroquia', 'descripcion' => 'Eliminar parroquias', 'categoria' => 'ubicaciones'],
             ];
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
-=======
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
+
 
         foreach ($permisos as $permiso) {
             Permiso::updateOrCreate(
@@ -155,21 +153,11 @@ class PermisoSeeder extends Seeder
         // Mostrar tabla resumen
         $this->command->table(
             ['Categoría', 'Cantidad'],
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
             Permiso::select('categoria', DB::raw('count(*) as total'))
                 ->groupBy('categoria')
                 ->get()
                 ->map(fn($item) => [$item->categoria, $item->total])
                 ->toArray()
-<<<<<<< HEAD
-=======
-            Permiso::select('categoria', DB::raw('count(*) as total'))->groupBy('categoria')->get()->map(fn($item) => [$item->categoria, $item->total])->toArray()
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
-=======
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
         );
     }
 }

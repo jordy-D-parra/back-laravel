@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Admin/InstitucionController.php
 
 namespace App\Http\Controllers\Admin;
 
@@ -10,25 +11,48 @@ use Illuminate\Validation\Rule;
 
 class InstitucionController extends Controller
 {
-    public function index(Request $request)
+        public function index(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-instituciones')) {
             abort(403, 'No tienes permiso para ver instituciones');
         }
 
-        $query = Institucion::withCount(['departamentos', 'responsables']);
+        $query = Institucion::with(['estado', 'municipio', 'parroquia'])
+            ->withCount(['departamentos', 'responsables']);
 
-        if ($request->wantsJson() || $request->has('todos')) {
-            $instituciones = $query->orderBy('nombre')->get();
-            return response()->json(['success' => true, 'data' => $instituciones]);
+        // 📌 SI ES PETICIÓN AJAX (para el frontend)
+        if ($request->wantsJson() || $request->ajax() || $request->has('todos')) {
+            $instituciones = $query
+                ->when($request->buscar, function($query, $buscar) {
+                    return $query->where(function($q) use ($buscar) {
+                        $q->where('nombre', 'LIKE', "%{$buscar}%")
+                          ->orWhere('representante', 'LIKE', "%{$buscar}%")
+                          ->orWhereHas('estado', fn($q2) => $q2->where('nombre', 'LIKE', "%{$buscar}%"))
+                          ->orWhereHas('municipio', fn($q2) => $q2->where('nombre', 'LIKE', "%{$buscar}%"))
+                          ->orWhereHas('parroquia', fn($q2) => $q2->where('nombre', 'LIKE', "%{$buscar}%"));
+                    });
+                })
+                ->when($request->estado, function($query, $estado) {
+                    return $query->where('activo', $estado === 'activo');
+                })
+                ->orderBy('nombre')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $instituciones
+            ]);
         }
 
+        // 📌 PARA LA VISTA (renderizado inicial)
         $instituciones = $query
             ->when($request->buscar, function($query, $buscar) {
                 return $query->where(function($q) use ($buscar) {
-                    $q->where('nombre', 'ILIKE', "%{$buscar}%")
-                      ->orWhere('representante', 'ILIKE', "%{$buscar}%")
-                      ->orWhere('ubicacion', 'ILIKE', "%{$buscar}%");
+                    $q->where('nombre', 'LIKE', "%{$buscar}%")
+                      ->orWhere('representante', 'LIKE', "%{$buscar}%")
+                      ->orWhereHas('estado', fn($q2) => $q2->where('nombre', 'LIKE', "%{$buscar}%"))
+                      ->orWhereHas('municipio', fn($q2) => $q2->where('nombre', 'LIKE', "%{$buscar}%"))
+                      ->orWhereHas('parroquia', fn($q2) => $q2->where('nombre', 'LIKE', "%{$buscar}%"));
                 });
             })
             ->when($request->estado, function($query, $estado) {
@@ -37,7 +61,20 @@ class InstitucionController extends Controller
             ->orderBy('nombre')
             ->get();
 
-        return view('admin.entidades.index', compact('instituciones'));
+        $totalInstituciones = Institucion::count();
+        $totalActivas = Institucion::where('activo', true)->count();
+        $totalInactivas = Institucion::where('activo', false)->count();
+        $totalDepartamentos = \App\Models\Departamento::count();
+        $totalResponsables = \App\Models\Responsable::count();
+
+        return view('admin.entidades.index', compact(
+            'instituciones',
+            'totalInstituciones',
+            'totalActivas',
+            'totalInactivas',
+            'totalDepartamentos',
+            'totalResponsables'
+        ));
     }
 
     public function store(Request $request)
@@ -48,8 +85,10 @@ class InstitucionController extends Controller
 
         $validated = $request->validate([
             'nombre' => 'required|string|max:200|unique:instituciones,nombre',
-            'ubicacion' => 'required|string|max:200',
             'informacion' => 'required|string|max:500',
+            'estado_id' => 'required|exists:estados,id',
+            'municipio_id' => 'required|exists:municipios,id',
+            'parroquia_id' => 'required|exists:parroquias,id',
             'representante_nombre' => 'required|string|max:150',
             'representante_documento' => 'required|string|max:50',
             'representante_telefono' => 'required|string|max:20',
@@ -61,8 +100,10 @@ class InstitucionController extends Controller
         $institucion = Institucion::create([
             'nombre' => $validated['nombre'],
             'representante' => $validated['representante_nombre'],
-            'ubicacion' => $validated['ubicacion'],
             'informacion' => $validated['informacion'],
+            'estado_id' => $validated['estado_id'],
+            'municipio_id' => $validated['municipio_id'],
+            'parroquia_id' => $validated['parroquia_id'],
             'activo' => true,
         ]);
 
@@ -79,6 +120,7 @@ class InstitucionController extends Controller
         ]);
 
         $institucion->loadCount(['departamentos', 'responsables']);
+        $institucion->load(['estado', 'municipio', 'parroquia']);
 
         return response()->json([
             'success' => true,
@@ -95,6 +137,9 @@ class InstitucionController extends Controller
 
         $institucione->loadCount(['departamentos', 'responsables']);
         $institucione->load([
+            'estado',
+            'municipio',
+            'parroquia',
             'departamentos' => function($q) {
                 $q->select('id', 'nombre', 'representante', 'institucion_id', 'activo')
                   ->withCount('responsables')
@@ -121,8 +166,10 @@ class InstitucionController extends Controller
 
         $validated = $request->validate([
             'nombre' => ['required', 'string', 'max:200', Rule::unique('instituciones', 'nombre')->ignore($institucione->id)],
-            'ubicacion' => 'required|string|max:200',
             'informacion' => 'required|string|max:500',
+            'estado_id' => 'required|exists:estados,id',
+            'municipio_id' => 'required|exists:municipios,id',
+            'parroquia_id' => 'required|exists:parroquias,id',
             'representante_nombre' => 'required|string|max:150',
             'representante_documento' => 'required|string|max:50',
             'representante_telefono' => 'required|string|max:20',
@@ -134,8 +181,10 @@ class InstitucionController extends Controller
         $institucione->update([
             'nombre' => $validated['nombre'],
             'representante' => $validated['representante_nombre'],
-            'ubicacion' => $validated['ubicacion'],
             'informacion' => $validated['informacion'],
+            'estado_id' => $validated['estado_id'],
+            'municipio_id' => $validated['municipio_id'],
+            'parroquia_id' => $validated['parroquia_id'],
         ]);
 
         $responsable = Responsable::where('institucion_id', $institucione->id)
@@ -161,6 +210,7 @@ class InstitucionController extends Controller
         }
 
         $institucione->loadCount(['departamentos', 'responsables']);
+        $institucione->load(['estado', 'municipio', 'parroquia']);
 
         return response()->json([
             'success' => true,

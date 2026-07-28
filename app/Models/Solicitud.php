@@ -1,14 +1,14 @@
 <?php
+// app/Models/Solicitud.php
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany; // ✅ Agregar esta línea
 
 class Solicitud extends Model
 {
-    use HasFactory;
-
     protected $table = 'solicitudes';
 
     protected $fillable = [
@@ -21,6 +21,10 @@ class Solicitud extends Model
         'fecha_solicitud',
         'fecha_requerida',
         'fecha_fin_estimada',
+        'estado_id',
+        'municipio_id',
+        'parroquia_id',
+        'lugar_evento',
         'justificacion',
         'prioridad',
         'estado_solicitud',
@@ -36,76 +40,71 @@ class Solicitud extends Model
         'fecha_aprobacion' => 'datetime',
     ];
 
-    // Relaciones
-    public function usuario()
+    // Relaciones de geolocalización
+    public function estado(): BelongsTo
+    {
+        return $this->belongsTo(Estado::class);
+    }
+
+    public function municipio(): BelongsTo
+    {
+        return $this->belongsTo(Municipio::class);
+    }
+
+    public function parroquia(): BelongsTo
+    {
+        return $this->belongsTo(Parroquia::class);
+    }
+
+    // Accesor para ubicación del evento
+    public function getUbicacionEventoAttribute(): string
+    {
+        $partes = [];
+
+        if ($this->lugar_evento) {
+            $partes[] = $this->lugar_evento;
+        }
+        if ($this->parroquia) {
+            $partes[] = $this->parroquia->nombre;
+        }
+        if ($this->municipio) {
+            $partes[] = $this->municipio->nombre;
+        }
+        if ($this->estado) {
+            $partes[] = $this->estado->nombre;
+        }
+
+        return implode(', ', $partes) ?: 'No especificada';
+    }
+
+    // Relaciones existentes
+    public function usuario(): BelongsTo
     {
         return $this->belongsTo(Usuario::class, 'usuario_id');
     }
 
-    public function aprobador()
-    {
-        return $this->belongsTo(Usuario::class, 'aprobado_por');
-    }
-
-    public function institucion()
+    public function institucion(): BelongsTo
     {
         return $this->belongsTo(Institucion::class);
     }
 
-    public function departamento()
+    public function departamento(): BelongsTo
     {
         return $this->belongsTo(Departamento::class);
     }
 
-    public function responsable()
+    public function responsable(): BelongsTo
     {
         return $this->belongsTo(Responsable::class);
     }
 
-    public function detalles()
+    public function detalles(): HasMany
     {
         return $this->hasMany(DetalleSolicitud::class, 'solicitud_id');
     }
 
-    public function prestamos()
+    public function prestamos(): HasMany
     {
         return $this->hasMany(Prestamo::class, 'solicitud_id');
-    }
-
-    // Accesores
-    public function getNombreEntidadAttribute()
-    {
-        if ($this->tipo_solicitante === 'interno' && $this->departamento) {
-            return $this->departamento->nombre;
-        } elseif ($this->tipo_solicitante === 'externo' && $this->institucion) {
-            return $this->institucion->nombre;
-        }
-        return 'No especificado';
-    }
-
-    public function getResponsableEntidadAttribute()
-    {
-        if ($this->tipo_solicitante === 'interno' && $this->departamento) {
-            return $this->departamento->representante;
-        } elseif ($this->tipo_solicitante === 'externo' && $this->institucion) {
-            return $this->institucion->representante;
-        }
-        return null;
-    }
-
-    // Scopes
-    public function scopePendientes($query)
-    {
-        return $query->where('estado_solicitud', 'pendiente');
-    }
-
-    public function scopePorPrioridad($query, $prioridad)
-    {
-        return $query->where('prioridad', $prioridad);
-    }
-
-    public function scopeDelUsuario($query, $usuarioId)
-    {
-        return $query->where('usuario_id', $usuarioId);
     }
 }

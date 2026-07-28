@@ -15,6 +15,7 @@
     --text-muted: #6c757d;
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.12);
     --radius-card: 1rem;
     --radius-table: 0.75rem;
 }
@@ -36,13 +37,32 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    transition: all 0.2s ease;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card-mini::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 80px;
+    height: 80px;
+    background: rgba(30, 60, 114, 0.03);
+    border-radius: 50%;
+    transform: translate(30%, -30%);
 }
 
 .stat-card-mini:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
     border-color: var(--primary-lighter);
+}
+
+.stat-card-mini .stat-info {
+    position: relative;
+    z-index: 1;
 }
 
 .stat-card-mini .stat-info .stat-number {
@@ -69,11 +89,14 @@
     align-items: center;
     justify-content: center;
     background: var(--primary-lighter);
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
 }
 
 .stat-card-mini:hover .stat-icon-circle {
     background: var(--primary-dark);
+    transform: scale(1.05) rotate(-5deg);
 }
 
 .stat-card-mini:hover .stat-icon-circle svg {
@@ -82,22 +105,23 @@
 
 .stat-card-mini .stat-icon-circle svg {
     stroke: var(--primary-dark);
-    transition: stroke 0.2s ease;
+    transition: stroke 0.3s ease;
 }
 
 /* ---------- Tabs Personalizados ---------- */
 .nav-tabs-custom {
     display: flex;
     gap: 0.25rem;
-    border-bottom: 1px solid var(--border-light);
+    border-bottom: 2px solid var(--border-light);
     margin-bottom: 0;
     background: white;
-    padding: 0;
+    padding: 0 0.5rem;
+    border-radius: var(--radius-table) var(--radius-table) 0 0;
 }
 
 .nav-tabs-custom .nav-link {
     border: none;
-    padding: 0.75rem 1.5rem;
+    padding: 0.85rem 1.5rem;
     color: var(--text-muted);
     font-weight: 500;
     font-size: 0.85rem;
@@ -106,7 +130,7 @@
     gap: 8px;
     border-radius: 0;
     background: transparent;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
     position: relative;
 }
 
@@ -124,12 +148,12 @@
 .nav-tabs-custom .nav-link.active::after {
     content: '';
     position: absolute;
-    bottom: -1px;
+    bottom: -2px;
     left: 0;
     right: 0;
-    height: 2px;
-    background: var(--primary-dark);
-    border-radius: 2px 2px 0 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+    border-radius: 3px 3px 0 0;
 }
 
 .nav-tabs-custom .nav-link svg {
@@ -138,17 +162,47 @@
     height: 18px;
 }
 
+.nav-tabs-custom .nav-link .tab-badge {
+    background: var(--primary-lighter);
+    color: var(--primary-dark);
+    padding: 0.1rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.65rem;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+.nav-tabs-custom .nav-link.active .tab-badge {
+    background: var(--primary-dark);
+    color: white;
+}
+
 /* ---------- Barra de cada tab ---------- */
 .tab-header-bar {
     background: white;
     border: 1px solid var(--border-light);
     border-top: none;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 1.25rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 0.75rem;
+}
+
+.tab-header-bar .form-control,
+.tab-header-bar .form-select {
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    padding: 0.4rem 0.75rem;
+    font-size: 0.8rem;
+    transition: all 0.2s ease;
+}
+
+.tab-header-bar .form-control:focus,
+.tab-header-bar .form-select:focus {
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
 }
 
 /* ---------- Contenedor de tabla ---------- */
@@ -175,11 +229,12 @@
     letter-spacing: 0.6px;
     border-bottom: 2px solid var(--primary-dark);
     padding: 0.9rem 0.75rem;
+    white-space: nowrap;
 }
 
 .table tbody td {
     vertical-align: middle;
-    padding: 0.85rem 0.75rem;
+    padding: 0.8rem 0.75rem;
     border-bottom: 1px solid var(--border-light);
 }
 
@@ -190,8 +245,8 @@
 
 /* ---------- Badges ---------- */
 .badge-activo {
-    background: #e8f5e9;
-    color: var(--success);
+    background: #dcfce7;
+    color: #0f172a !important;  /* ✅ Cambiado a negro */
     border: none;
     font-size: 0.7rem;
     font-weight: 500;
@@ -203,8 +258,8 @@
 }
 
 .badge-inactivo {
-    background: #ffebee;
-    color: var(--danger);
+    background: #fee2e2;
+    color: #0f172a !important;  /* ✅ Cambiado a negro */
     border: none;
     font-size: 0.7rem;
     font-weight: 500;
@@ -215,62 +270,106 @@
     gap: 4px;
 }
 
-/* Badges en el árbol - raíz (fondo oscuro) */
-.arbol-raiz > .arbol-nodo-header .badge-activo {
-    background: rgba(255, 255, 255, 0.2);
-    color: white;
+.badge-activo::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    display: inline-block;
 }
 
-.arbol-raiz > .arbol-nodo-header .badge-inactivo {
-    background: rgba(255, 255, 255, 0.2);
-    color: #ffcdd2;
+.badge-inactivo::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ef4444;
+    display: inline-block;
+}
+
+/* Badge de conteo */
+.badge-count {
+    background: var(--primary-dark);
+    color: white;
+    padding: 0.1rem 0.5rem;
+    border-radius: 20px;
+    font-size: 0.6rem;
+    font-weight: 600;
 }
 
 /* ---------- Botones ---------- */
 .btn-primary-dark {
-    background: var(--primary-dark);
-    border-color: var(--primary-dark);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+    border: none;
     color: white;
     font-weight: 500;
-    padding: 0.4rem 1rem;
-    border-radius: 8px;
+    padding: 0.45rem 1.2rem;
+    border-radius: 10px;
     font-size: 0.8rem;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .btn-primary-dark:hover {
-    background: var(--primary-light);
-    border-color: var(--primary-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(30, 60, 114, 0.3);
     color: white;
-    transform: translateY(-1px);
+}
+
+.btn-primary-dark:active {
+    transform: translateY(0);
 }
 
 .btn-outline-primary-dark {
     background: transparent;
-    border: 1px solid var(--primary-dark);
+    border: 1.5px solid var(--primary-dark);
     color: var(--primary-dark);
     font-weight: 500;
     padding: 0.4rem 1rem;
-    border-radius: 8px;
+    border-radius: 10px;
     font-size: 0.8rem;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 
 .btn-outline-primary-dark:hover {
     background: var(--primary-dark);
     color: white;
-    transform: translateY(-1px);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(30, 60, 114, 0.15);
+}
+
+.btn-sm {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.75rem;
+    border-radius: 8px;
 }
 
 .btn-action {
     padding: 0.3rem 0.6rem;
     font-size: 0.7rem;
-    border-radius: 6px;
-    transition: all 0.15s ease;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
 }
 
 .btn-action:hover {
-    transform: scale(1.02);
+    background: var(--primary-lighter);
+    color: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.btn-action.text-danger:hover {
+    background: #fee2e2;
+    color: var(--danger);
 }
 
 /* ---------- Modales ---------- */
@@ -278,13 +377,13 @@
     border-radius: 1rem;
     border: none;
     overflow: hidden;
-    box-shadow: 0 20px 35px -10px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
 }
 
 .modal-header {
-    background: var(--primary-dark);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
     color: white;
-    padding: 1rem 1.5rem;
+    padding: 1.25rem 1.75rem;
     border-bottom: none;
 }
 
@@ -299,39 +398,75 @@
 }
 
 .modal-title {
-    font-weight: 600;
+    font-weight: 700;
     font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.modal-title svg {
+    stroke: white;
 }
 
 .modal-body {
-    padding: 1.5rem;
+    padding: 1.75rem;
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.modal-body::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+    background: var(--gray-bg);
+    border-radius: 3px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+    background: var(--primary-dark);
+    border-radius: 3px;
 }
 
 .modal-footer {
     border-top: 1px solid var(--border-light);
-    padding: 1rem 1.5rem;
+    padding: 1rem 1.75rem;
     background: var(--gray-bg);
+}
+
+.modal-footer .btn {
+    border-radius: 10px;
+    padding: 0.5rem 1.25rem;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.modal-footer .btn:hover {
+    transform: translateY(-1px);
 }
 
 /* ---------- Formularios ---------- */
 .form-label {
-    font-weight: 500;
+    font-weight: 600;
     font-size: 0.8rem;
     color: var(--primary-dark);
     margin-bottom: 0.3rem;
 }
 
-.form-control, .form-select {
-    border-radius: 8px;
+.form-control,
+.form-select {
+    border-radius: 10px;
     border: 1px solid var(--border-light);
-    padding: 0.5rem 0.75rem;
+    padding: 0.55rem 0.85rem;
     font-size: 0.85rem;
     transition: all 0.2s ease;
 }
 
-.form-control:focus, .form-select:focus {
+.form-control:focus,
+.form-select:focus {
     border-color: var(--primary-dark);
-    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.15);
+    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.12);
 }
 
 .form-control.is-valid {
@@ -342,11 +477,6 @@
 .form-control.is-invalid {
     border-color: var(--danger);
     background-image: none;
-}
-
-.valid-feedback, .invalid-feedback {
-    font-size: 0.7rem;
-    margin-top: 0.25rem;
 }
 
 /* ---------- Detalle Enriquecido ---------- */
@@ -364,6 +494,9 @@
     font-size: 1.2rem;
     font-weight: 700;
     color: var(--primary-dark);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
 .detail-grid {
@@ -374,11 +507,19 @@
 }
 
 .detail-item {
-    padding: 0.5rem 0;
+    padding: 0.6rem 0.8rem;
+    background: var(--gray-bg);
+    border-radius: 10px;
+    border: 1px solid var(--border-light);
+    transition: all 0.2s ease;
+}
+
+.detail-item:hover {
+    background: var(--primary-lighter);
 }
 
 .detail-item .detail-label {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     text-transform: uppercase;
     color: var(--text-muted);
     letter-spacing: 0.8px;
@@ -389,6 +530,7 @@
     font-weight: 500;
     color: #1a1a1a;
     font-size: 0.9rem;
+    margin-top: 0.15rem;
 }
 
 .detail-section {
@@ -407,15 +549,6 @@
     gap: 8px;
 }
 
-.detail-section-title .badge-count {
-    background: var(--primary-dark);
-    color: white;
-    border-radius: 20px;
-    padding: 0.15rem 0.5rem;
-    font-size: 0.65rem;
-    font-weight: 600;
-}
-
 .detail-list {
     list-style: none;
     padding: 0;
@@ -430,7 +563,7 @@
     border-radius: 8px;
     margin-bottom: 0.25rem;
     background: var(--gray-bg);
-    transition: background 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .detail-list-item:hover {
@@ -486,47 +619,6 @@
     border-top: 1px solid var(--border-light);
 }
 
-/* ---------- Loading Spinner ---------- */
-.loading-spinner {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem;
-    gap: 8px;
-    color: var(--text-muted);
-    font-size: 0.85rem;
-}
-
-.spinner-icon {
-    animation: spin 0.8s linear infinite;
-    width: 18px;
-    height: 18px;
-}
-
-@keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-}
-
-/* ---------- Highlight de búsqueda ---------- */
-.highlight {
-    background: #fff3cd;
-    padding: 0 2px;
-    border-radius: 3px;
-    font-weight: 600;
-}
-
-/* ---------- Toast Notifications ---------- */
-@keyframes slideInRight {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-}
-
-@keyframes slideOutRight {
-    from { transform: translateX(0); opacity: 1; }
-    to { transform: translateX(100%); opacity: 0; }
-}
-
 /* ---------- Árbol Jerárquico ---------- */
 .arbol-container {
     padding: 0.5rem;
@@ -555,14 +647,14 @@
 
 /* Raíz - Institución */
 .arbol-raiz > .arbol-nodo-header {
-    background: var(--primary-dark);
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
     color: white;
     border: none;
     font-weight: 500;
 }
 
 .arbol-raiz > .arbol-nodo-header:hover {
-    background: var(--primary-light);
+    background: linear-gradient(135deg, #152a50 0%, var(--primary-dark) 100%);
 }
 
 .arbol-raiz > .arbol-nodo-header .arbol-toggle,
@@ -585,7 +677,6 @@
 .arbol-rama-directa > .arbol-nodo-header {
     background: #f5f5f5;
     border: 1px dashed var(--border-light);
-    font-style: normal;
 }
 
 /* Hoja - Responsable */
@@ -664,15 +755,146 @@
     margin-left: 0;
 }
 
-/* ---------- Eliminar Modal ---------- */
-.delete-warning {
-    background: #fff3f3;
-    border: 1px solid #ffcdd2;
-    border-radius: 10px;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
+/* ---------- Loading Spinner ---------- */
+.loading-spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    gap: 8px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.spinner-icon {
+    animation: spin 0.8s linear infinite;
+    width: 18px;
+    height: 18px;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ---------- Highlight de búsqueda ---------- */
+.highlight {
+    background: #fef3c7;
+    padding: 0 2px;
+    border-radius: 3px;
+    font-weight: 600;
+}
+
+/* ---------- Toast Notifications ---------- */
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes slideOutRight {
+    from { transform: translateX(0); opacity: 1; }
+    to { transform: translateX(100%); opacity: 0; }
+}
+
+/* ---------- Wizard de pasos ---------- */
+.step-circle {
+    display: inline-block;
+    width: 30px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--border-light);
+    color: var(--text-muted);
+    font-weight: 700;
     font-size: 0.8rem;
-    color: var(--danger);
+    margin-right: 6px;
+    transition: all 0.3s ease;
+}
+
+.step-circle.active {
+    background: var(--primary-dark);
+    color: white;
+    box-shadow: 0 0 0 4px rgba(30, 60, 114, 0.15);
+}
+
+.step-circle.completed {
+    background: var(--success);
+    color: white;
+}
+
+.step-label {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.step-content {
+    min-height: 280px;
+    animation: fadeInUp 0.4s ease;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.progress {
+    height: 4px;
+    border-radius: 4px;
+    background: var(--border-light);
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+    transition: width 0.5s ease;
+}
+
+/* ---------- Ubicación Selects ---------- */
+.ubicacion-selects {
+    background: var(--gray-bg);
+    border-radius: 12px;
+    padding: 1rem;
+    border: 1px solid var(--border-light);
+    margin-top: 0.5rem;
+}
+
+.ubicacion-selects .form-select:disabled {
+    background-color: var(--border-light);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* ---------- Tarjetas de institución en wizard ---------- */
+.institucion-card {
+    transition: all 0.3s ease;
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid var(--border-light);
+}
+
+.institucion-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+}
+
+.institucion-card.active {
+    border-color: var(--primary-dark) !important;
+    background: var(--primary-lighter) !important;
+}
+
+.institucion-card input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--primary-dark);
 }
 
 /* ---------- Responsive ---------- */
@@ -700,10 +922,30 @@
 
     .tab-header-bar .d-flex {
         justify-content: space-between;
+        flex-wrap: wrap;
     }
 
     .modal-body {
-        padding: 1rem;
+        padding: 1.25rem;
+    }
+
+    .modal-header {
+        padding: 1rem 1.25rem;
+    }
+
+    .step-label {
+        font-size: 0.7rem;
+    }
+
+    .step-circle {
+        width: 24px;
+        height: 24px;
+        line-height: 24px;
+        font-size: 0.7rem;
+    }
+
+    .institucion-card .card-body {
+        padding: 1.25rem;
     }
 }
 
@@ -739,6 +981,8 @@
         display: block;
         border: 1px solid var(--border-light);
         border-radius: 8px;
+        padding: 0.5rem 0;
+        background: white;
     }
 
     .table tbody td:last-child {
@@ -759,117 +1003,9 @@
         opacity: 1;
         margin-left: auto;
     }
-}
 
-/* ============================================
-   WIZARD DE 3 PASOS - ESTILOS ADICIONALES
-   ============================================ */
-
-/* Tarjetas de institución */
-.institucion-card {
-    transition: all 0.3s ease;
-    border-radius: 16px;
-    overflow: hidden;
-}
-
-.institucion-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 8px 25px rgba(30, 60, 114, 0.15);
-}
-
-.institucion-card.active {
-    border-color: #1e3c72 !important;
-    background: #f0f4ff !important;
-}
-
-.institucion-card input[type="radio"] {
-    width: 20px;
-    height: 20px;
-    cursor: pointer;
-}
-
-/* Círculos de paso */
-.step-circle {
-    display: inline-block;
-    width: 28px;
-    height: 28px;
-    line-height: 28px;
-    text-align: center;
-    border-radius: 50%;
-    background: #e9ecef;
-    color: #6c757d;
-    font-weight: 700;
-    font-size: 0.8rem;
-    margin-right: 6px;
-    transition: all 0.3s ease;
-}
-
-.step-circle.active {
-    background: #1e3c72;
-    color: white;
-}
-
-.step-circle.completed {
-    background: #1e7e34;
-    color: white;
-}
-
-.step-label {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-/* Pasos */
-.step-content {
-    min-height: 300px;
-    animation: fadeIn 0.3s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateX(10px); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-/* Barra de progreso */
-.progress {
-    border-radius: 2px;
-}
-
-.progress-bar {
-    transition: width 0.5s ease;
-}
-
-/* Badges de institución en tabla */
-.badge-institucion {
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: 500;
-}
-
-.badge-institucion-primary { background: #1e3c72; color: white; }
-.badge-institucion-success { background: #1e7e34; color: white; }
-.badge-institucion-info { background: #17a2b8; color: white; }
-.badge-institucion-warning { background: #f6c23e; color: #1a1a1a; }
-.badge-institucion-danger { background: #c5221f; color: white; }
-.badge-institucion-secondary { background: #6c757d; color: white; }
-
-/* Responsive */
-@media (max-width: 768px) {
-    .institucion-card {
-        margin-bottom: 1rem;
-    }
-
-    .step-label {
-        font-size: 0.7rem !important;
-    }
-
-    .step-circle {
-        width: 24px;
-        height: 24px;
-        line-height: 24px;
-        font-size: 0.7rem;
+    .detail-grid {
+        grid-template-columns: 1fr;
     }
 
     .modal-footer {

@@ -4,6 +4,35 @@
 
 @section('styles')
     @vite(['resources/css/admin-prestamos.css'])
+    <style>
+        .btn-acta {
+            background: #1e3c72;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-acta:hover {
+            background: #2a5298;
+            color: white;
+            transform: translateY(-1px);
+        }
+        .btn-acta svg {
+            width: 14px;
+            height: 14px;
+            stroke: white;
+        }
+        .btn-acta-small {
+            padding: 0.2rem 0.5rem;
+            font-size: 0.65rem;
+        }
+    </style>
 @endsection
 
 @section('content')
@@ -134,7 +163,24 @@
                 </div>
             </div>
             <div class="table-container" id="tablaActivos">
-                <p class="text-center py-4 text-muted">Cargando...</p>
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Código</th>
+                            <th>Destino</th>
+                            <th>Solicitud</th>
+                            <th>Responsable</th>
+                            <th>Tipo</th>
+                            <th>F. Préstamo</th>
+                            <th>F. Devolución</th>
+                            <th>Estado</th>
+                            <th style="width:180px">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaActivosBody">
+                        <tr><td colspan="9" class="text-center py-4 text-muted">Cargando...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
 

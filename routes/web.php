@@ -21,10 +21,8 @@ use App\Http\Controllers\Admin\InventarioController;
 use App\Http\Controllers\Admin\SolicitudController;
 use App\Http\Controllers\Admin\FichaSoporteController;
 use App\Http\Controllers\Admin\PrestamoController;
-<<<<<<< HEAD
-=======
 use App\Http\Controllers\Admin\CalendarioController;
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
+use App\Http\Controllers\Admin\ActaEntregaController;
 use App\Models\Estatus;
 
 // ==================== RUTA PRINCIPAL ====================
@@ -52,19 +50,17 @@ Route::middleware(['auth'])->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-<<<<<<< HEAD
-=======
-// ========== CALENDARIO ==========
-Route::prefix('calendario')->name('calendario.')->group(function () {
-    Route::get('/', [App\Http\Controllers\Admin\CalendarioController::class, 'index'])->name('index');
-    Route::get('/eventos', [App\Http\Controllers\Admin\CalendarioController::class, 'getEventos'])->name('eventos');
-    Route::get('/evento', [App\Http\Controllers\Admin\CalendarioController::class, 'getEventoDetalle'])->name('evento.detalle');
-    Route::post('/actualizar-estado', [App\Http\Controllers\Admin\CalendarioController::class, 'actualizarEstado'])->name('actualizar-estado');
-});
->>>>>>> c5bda24067ddb46764d35bf0428da17628f9fbad
 
-    // ==================== ADMINISTRACIÓN (solo para rol admin) ====================
-    Route::middleware('role:admin')->prefix('admin')->name('admin.')->group(function () {
+    // ========== CALENDARIO ==========
+    Route::prefix('calendario')->name('calendario.')->group(function () {
+        Route::get('/', [CalendarioController::class, 'index'])->name('index');
+        Route::get('/eventos', [CalendarioController::class, 'getEventos'])->name('eventos');
+        Route::get('/evento', [CalendarioController::class, 'getEventoDetalle'])->name('evento.detalle');
+        Route::post('/actualizar-estado', [CalendarioController::class, 'actualizarEstado'])->name('actualizar-estado');
+    });
+
+    // ==================== ADMINISTRACIÓN ====================
+    Route::prefix('admin')->name('admin.')->group(function () {
 
         // ========== 1. MAESTROS (Catálogos base del sistema) ==========
 
@@ -138,14 +134,14 @@ Route::prefix('calendario')->name('calendario.')->group(function () {
 
         // ========== 2. GESTIÓN DE USUARIOS ==========
 
-       // ========== ROLES Y PERMISOS ==========
-        Route::get('/roles', [App\Http\Controllers\Admin\RoleController::class, 'index'])->name('roles.index');
-        Route::get('/roles/list', [App\Http\Controllers\Admin\RoleController::class, 'getRoles'])->name('roles.list');
-        Route::get('/roles/{id}', [App\Http\Controllers\Admin\RoleController::class, 'show'])->name('roles.show');
-        Route::post('/roles', [App\Http\Controllers\Admin\RoleController::class, 'store'])->name('roles.store');
-        Route::put('/roles/{id}', [App\Http\Controllers\Admin\RoleController::class, 'update'])->name('roles.update');
-        Route::delete('/roles/{id}', [App\Http\Controllers\Admin\RoleController::class, 'destroy'])->name('roles.destroy');
-        Route::get('/permisos/todos', [App\Http\Controllers\Admin\RoleController::class, 'getPermisos'])->name('permisos.todos');
+        // ========== ROLES Y PERMISOS ==========
+        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+        Route::get('/roles/list', [RoleController::class, 'getRoles'])->name('roles.list');
+        Route::get('/roles/{id}', [RoleController::class, 'show'])->name('roles.show');
+        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
+        Route::put('/roles/{id}', [RoleController::class, 'update'])->name('roles.update');
+        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
+        Route::get('/permisos/todos', [RoleController::class, 'getPermisos'])->name('permisos.todos');
 
         // 2.2 Trabajadores
         Route::resource('trabajadores', TrabajadorController::class)->except(['show']);
@@ -184,24 +180,13 @@ Route::prefix('calendario')->name('calendario.')->group(function () {
 
         // ========== 3.2 PRÉSTAMOS ==========
         Route::prefix('prestamos')->name('prestamos.')->group(function () {
-            // Vista principal
             Route::get('/', [PrestamoController::class, 'index'])->name('index');
-
-            // API Listar
             Route::get('/listar', [PrestamoController::class, 'listar'])->name('listar');
-
-            // API Buscar responsable destino
             Route::get('/buscar-responsable', [PrestamoController::class, 'buscarResponsableDestino'])->name('buscar-responsable');
-
-            // API Buscar items (activos/componentes)
             Route::get('/buscar-items', [PrestamoController::class, 'buscarItems'])->name('buscar-items');
-
-            // CRUD
             Route::post('/', [PrestamoController::class, 'store'])->name('store');
             Route::get('/{prestamo}', [PrestamoController::class, 'show'])->name('show');
             Route::put('/{prestamo}', [PrestamoController::class, 'update'])->name('update');
-
-            // Acciones
             Route::post('/{prestamo}/aprobar', [PrestamoController::class, 'aprobar'])->name('aprobar');
             Route::post('/{prestamo}/rechazar', [PrestamoController::class, 'rechazar'])->name('rechazar');
             Route::post('/{prestamo}/entregar', [PrestamoController::class, 'entregar'])->name('entregar');
@@ -210,11 +195,11 @@ Route::prefix('calendario')->name('calendario.')->group(function () {
             Route::post('/{prestamo}/extender', [PrestamoController::class, 'extender'])->name('extender');
         });
 
-        // ========== 4. SOLICITUDES ==========
+        // ========== 3.3 SOLICITUDES ==========
         Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
             Route::get('/', [SolicitudController::class, 'index'])->name('index');
             Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->name('detalles');
-        Route::get('/pendientes-prestamo', [SolicitudController::class, 'paraPrestamo'])->name('pendientes-prestamo');
+            Route::get('/pendientes-prestamo', [SolicitudController::class, 'paraPrestamo'])->name('pendientes-prestamo');
             Route::post('/store', [SolicitudController::class, 'store'])->name('store');
             Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])->name('update');
             Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('cancel');
@@ -222,19 +207,30 @@ Route::prefix('calendario')->name('calendario.')->group(function () {
             Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
         });
 
-        // ========== FICHAS DE SOPORTE ==========
-        Route::resource('soporte', \App\Http\Controllers\Admin\FichaSoporteController::class);
-        Route::get('soporte/{id}/componentes', [\App\Http\Controllers\Admin\FichaSoporteController::class, 'getComponentesDetalle'])->name('soporte.componentes');
-        Route::post('soporte/{id}/close', [\App\Http\Controllers\Admin\FichaSoporteController::class, 'close'])->name('soporte.close');
-        // ✅ RUTA PARA EQUIPO EXTERNO
-        Route::post('soporte/equipo-externo', [\App\Http\Controllers\Admin\FichaSoporteController::class, 'storeEquipoExterno'])->name('soporte.equipo-externo');
-        // ========== 5. UTILIDADES ==========
+        // ========== 3.4 SOPORTE TÉCNICO ==========
+        Route::resource('soporte', FichaSoporteController::class);
+        Route::get('soporte/{id}/componentes', [FichaSoporteController::class, 'getComponentesDetalle'])->name('soporte.componentes');
+        Route::post('soporte/{id}/close', [FichaSoporteController::class, 'close'])->name('soporte.close');
+        Route::post('soporte/equipo-externo', [FichaSoporteController::class, 'storeEquipoExterno'])->name('soporte.equipo-externo');
+
+        // ========== 3.5 ACTAS DE ENTREGA ==========
+        Route::prefix('actas')->name('actas.')->group(function () {
+            Route::get('/generar', [ActaEntregaController::class, 'generarDesdePrestamo'])->name('generar');
+            Route::get('/imprimir/{id}', [ActaEntregaController::class, 'imprimir'])->name('imprimir');
+        });
+
+        // ========== 4. UTILIDADES ==========
         Route::get('/estatus-list', function () {
             $estatus = Estatus::select('id', 'descripcion', 'color_badge')->orderBy('descripcion')->get();
             return response()->json(['success' => true, 'data' => $estatus]);
         });
 
-        // ========== API PARA OBTENER RESPONSABLES (usado por el frontend) ==========
+        // ==================== UBICACIONES ====================
+        Route::get('/ubicaciones/estados', [App\Http\Controllers\Admin\UbicacionController::class, 'getEstados'])->name('ubicaciones.estados');
+        Route::get('/ubicaciones/estados/{estadoId}/municipios', [App\Http\Controllers\Admin\UbicacionController::class, 'getMunicipios'])->name('ubicaciones.municipios');
+        Route::get('/ubicaciones/municipios/{municipioId}/parroquias', [App\Http\Controllers\Admin\UbicacionController::class, 'getParroquias'])->name('ubicaciones.parroquias');
+
+        // ========== API PARA OBTENER RESPONSABLES ==========
 
         // Obtener responsable de un departamento
         Route::get('/api/departamento/{id}/responsable', function ($id) {
@@ -350,42 +346,43 @@ Route::prefix('calendario')->name('calendario.')->group(function () {
             return response()->json(['success' => true, 'responsable' => $responsable]);
         });
     });
-});
-// ==================== API PARA TÉCNICOS (SOPORTE) ====================
-Route::middleware(['auth'])->prefix('admin/api')->group(function () {
-    // Obtener técnicos por búsqueda (cédula, nombre o usuario)
-    Route::get('/tecnicos', function (Request $request) {
-        $search = $request->get('search');
 
-        $query = App\Models\Usuario::whereHas('rol', function($q) {
-            $q->where('nombre', 'tecnico');
-        })->with('trabajador');
+    // ==================== API PARA TÉCNICOS (SOPORTE) ====================
+    Route::prefix('admin/api')->group(function () {
+        // Obtener técnicos por búsqueda (cédula, nombre o usuario)
+        Route::get('/tecnicos', function (Request $request) {
+            $search = $request->get('search');
 
-        if ($search) {
-            $query->where(function($q) use ($search) {
-                $q->where('usuario', 'like', "%{$search}%")
-                  ->orWhereHas('trabajador', function($tq) use ($search) {
-                      $tq->where('cedula', 'like', "%{$search}%")
-                         ->orWhere('nombre', 'like', "%{$search}%")
-                         ->orWhere('apellido', 'like', "%{$search}%");
-                  });
-            });
-        }
+            $query = App\Models\Usuario::whereHas('rol', function($q) {
+                $q->where('nombre', 'tecnico');
+            })->with('trabajador');
 
-        $tecnicos = $query->limit(15)->get();
-        return response()->json($tecnicos);
-    });
+            if ($search) {
+                $query->where(function($q) use ($search) {
+                    $q->where('usuario', 'like', "%{$search}%")
+                      ->orWhereHas('trabajador', function($tq) use ($search) {
+                          $tq->where('cedula', 'like', "%{$search}%")
+                             ->orWhere('nombre', 'like', "%{$search}%")
+                             ->orWhere('apellido', 'like', "%{$search}%");
+                      });
+                });
+            }
 
-    // Obtener un técnico por ID
-    Route::get('/tecnicos/{id}', function ($id) {
-        $tecnico = App\Models\Usuario::whereHas('rol', function($q) {
-            $q->where('nombre', 'tecnico');
-        })->with('trabajador')->find($id);
+            $tecnicos = $query->limit(15)->get();
+            return response()->json($tecnicos);
+        });
 
-        if (!$tecnico) {
-            return response()->json(['success' => false, 'message' => 'Técnico no encontrado'], 404);
-        }
+        // Obtener un técnico por ID
+        Route::get('/tecnicos/{id}', function ($id) {
+            $tecnico = App\Models\Usuario::whereHas('rol', function($q) {
+                $q->where('nombre', 'tecnico');
+            })->with('trabajador')->find($id);
 
-        return response()->json(['success' => true, 'data' => $tecnico]);
+            if (!$tecnico) {
+                return response()->json(['success' => false, 'message' => 'Técnico no encontrado'], 404);
+            }
+
+            return response()->json(['success' => true, 'data' => $tecnico]);
+        });
     });
 });
