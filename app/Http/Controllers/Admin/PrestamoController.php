@@ -806,4 +806,54 @@ class PrestamoController extends Controller
             'data' => $resultados
         ]);
     }
+
+public function paraPrestamo(Request $request)
+{
+    try {
+        $user = auth()->user();
+        if (!$user->hasPermission('ver-prestamos') && !$user->hasPermission('ver-solicitudes')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        $query = Solicitud::with(['departamento', 'institucion', 'responsable', 'usuario'])
+            ->withCount('detalles')
+            ->whereDoesntHave('prestamos'); // Solo solicitudes que NO tienen préstamo asociado
+
+        // BÚSQUEDA en tiempo real
+        if ($request->filled('buscar')) {
+            $buscar = $request->buscar;
+            $query->where(function ($q) use ($buscar) {
+                $q->where('id', 'LIKE', "%{$buscar}%")
+                  ->orWhere('justificacion', 'ILIKE', "%{$buscar}%")
+                  ->orWhereHas('departamento', function($q) use ($buscar) {
+                      $q->where('nombre', 'ILIKE', "%{$buscar}%");
+                  })
+                  ->orWhereHas('institucion', function($q) use ($buscar) {
+                      $q->where('nombre', 'ILIKE', "%{$buscar}%");
+                  })
+                  ->orWhereHas('responsable', function($q) use ($buscar) {
+                      $q->where('nombre', 'ILIKE', "%{$buscar}%");
+                  })
+                  ->orWhereHas('usuario', function($q) use ($buscar) {
+                      $q->where('usuario', 'ILIKE', "%{$buscar}%");
+                  });
+            });
+        }
+
+        // Ordenar por fecha de creación (más recientes primero)
+        $solicitudes = $query->orderBy('created_at', 'desc')->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $solicitudes
+        ]);
+    } catch (\Exception $e) {
+        \Log::error('Error en paraPrestamo: ' . $e->getMessage());
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage(),
+            'data' => []
+        ], 500);
+    }
+}
 }

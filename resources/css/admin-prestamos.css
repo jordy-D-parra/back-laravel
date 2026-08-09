@@ -1550,3 +1550,123 @@ textarea.form-control {
         margin-left: auto;
     }
 }
+
+/* ============================================================
+   ESTILOS UNIFICADOS - AGREGAR AL FINAL DEL ARCHIVO
+   ============================================================ */
+
+/* ---------- HEADER CON GRADIENTE ---------- */
+.page-header {
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-header h4 {
+    color: white;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.page-header h4 svg {
+    stroke: white;
+}
+
+.page-header p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* ---------- TAB HEADER BAR CON BÚSQUEDA ---------- */
+.tab-header-bar .filtro-busqueda {
+    flex: 1;
+    min-width: 200px;
+    max-width: 350px;
+}
+
+.tab-header-bar .filtro-busqueda .input-group-text {
+    background: white;
+    border-right: none;
+    color: var(--text-muted);
+}
+
+.tab-header-bar .filtro-busqueda .form-control {
+    border-left: none;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 0 8px 8px 0;
+}
+
+.tab-header-bar .filtro-busqueda .form-control:focus {
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
+}
+
+.tab-header-bar .btn-accion {
+    flex-shrink: 0;
+}
+
+/* ---------- BOTÓN ACTA ---------- */
+.btn-acta {
+    background: #1e3c72;
+    color: white;
+    border: none;
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-acta:hover {
+    background: #2a5298;
+    color: white;
+    transform: translateY(-1px);
+}
+
+.btn-acta svg {
+    width: 14px;
+    height: 14px;
+    stroke: white;
+}
+
+.btn-acta-small {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+}
+
+/* ---------- RESPONSIVE PARA HEADER ---------- */
+@media (max-width: 768px) {
+    .page-header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .tab-header-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tab-header-bar .filtro-busqueda {
+        max-width: 100%;
+    }
+
+    .tab-header-bar .btn-accion {
+        width: 100%;
+        justify-content: center;
+    }
+}

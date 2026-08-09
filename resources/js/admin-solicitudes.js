@@ -1,5 +1,5 @@
 // resources/js/admin-solicitudes.js
-// ✅ VERSIÓN COMPLETA CON UBICACIÓN
+// ✅ VERSIÓN COMPLETA CON BÚSQUEDA EN TIEMPO REAL
 
 let solicitudesData = [];
 let currentPage = 1;
@@ -12,8 +12,6 @@ let solicitudACancelar = null;
 let itemCount = 1;
 
 const searchInput = document.getElementById('searchInput');
-const estadoFilter = document.getElementById('estadoFilter');
-const prioridadFilter = document.getElementById('prioridadFilter');
 const limpiarBtn = document.getElementById('limpiarFiltros');
 
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
@@ -90,7 +88,6 @@ function cargarUbicacionSolicitud() {
 
     if (!estadoSelect) return;
 
-    // Cargar estados
     fetch('/admin/ubicaciones/estados', {
         headers: {
             'Accept': 'application/json',
@@ -109,7 +106,6 @@ function cargarUbicacionSolicitud() {
     })
     .catch(error => console.error('Error cargando estados:', error));
 
-    // Evento: cambio de estado
     estadoSelect.addEventListener('change', function() {
         const estadoId = this.value;
         municipioSelect.innerHTML = '<option value="">Seleccionar estado primero</option>';
@@ -138,7 +134,6 @@ function cargarUbicacionSolicitud() {
         .catch(error => console.error('Error cargando municipios:', error));
     });
 
-    // Evento: cambio de municipio
     municipioSelect.addEventListener('change', function() {
         const municipioId = this.value;
         parroquiaSelect.innerHTML = '<option value="">Seleccionar municipio primero</option>';
@@ -173,7 +168,6 @@ function cargarUbicacionEditarSolicitud(estadoId, municipioId, parroquiaId) {
 
     if (!estadoSelect) return;
 
-    // Cargar estados
     fetch('/admin/ubicaciones/estados', {
         headers: {
             'Accept': 'application/json',
@@ -189,7 +183,6 @@ function cargarUbicacionEditarSolicitud(estadoId, municipioId, parroquiaId) {
             });
             if (estadoId) {
                 estadoSelect.value = estadoId;
-                // Cargar municipios
                 cargarMunicipiosEditar(estadoId, municipioId, parroquiaId);
             }
             estadoSelect.disabled = false;
@@ -197,7 +190,6 @@ function cargarUbicacionEditarSolicitud(estadoId, municipioId, parroquiaId) {
     })
     .catch(error => console.error('Error cargando estados:', error));
 
-    // Evento: cambio de estado
     estadoSelect.addEventListener('change', function() {
         const estadoId = this.value;
         municipioSelect.innerHTML = '<option value="">Seleccionar estado primero</option>';
@@ -226,7 +218,6 @@ function cargarUbicacionEditarSolicitud(estadoId, municipioId, parroquiaId) {
         .catch(error => console.error('Error cargando municipios:', error));
     });
 
-    // Evento: cambio de municipio
     municipioSelect.addEventListener('change', function() {
         const municipioId = this.value;
         parroquiaSelect.innerHTML = '<option value="">Seleccionar municipio primero</option>';
@@ -275,7 +266,6 @@ function cargarMunicipiosEditar(estadoId, municipioId, parroquiaId) {
             });
             if (municipioId) {
                 municipioSelect.value = municipioId;
-                // Cargar parroquias
                 cargarParroquiasEditar(municipioId, parroquiaId);
             }
             municipioSelect.disabled = false;
@@ -340,14 +330,14 @@ function renderizarTabla() {
             <td class="px-3 py-2"><span class="badge-estado ${estadoClass}">${s.estado_solicitud}</span></td>
             <td class="px-3 py-2 text-center">${s.detalles?.length || 0}</td>
             <td class="px-3 py-2 text-end">
-                <button class="btn-accion btn-ver" onclick="verDetalles(${s.id})" style="background: none; border: none; color: #17a2b8; cursor: pointer;" title="Ver">${SVG_ICONS.ver}</button>
-                ${s.estado_solicitud === 'pendiente' ? `<button class="btn-accion btn-editar" onclick="editarSolicitud(${s.id})" style="background: none; border: none; color: #ffc107; cursor: pointer;" title="Editar">${SVG_ICONS.editar}</button>` : ''}
-                ${s.estado_solicitud === 'pendiente' ? `<button class="btn-accion btn-cancelar" onclick="abrirModalConfirmacionCancelar(${s.id})" style="background: none; border: none; color: #dc3545; cursor: pointer;" title="Cancelar">${SVG_ICONS.cancelar}</button>` : ''}
+                <button class="btn-action btn-ver" onclick="verDetalles(${s.id})" title="Ver">${SVG_ICONS.ver}</button>
+                ${s.estado_solicitud === 'pendiente' ? `<button class="btn-action btn-editar" onclick="editarSolicitud(${s.id})" title="Editar">${SVG_ICONS.editar}</button>` : ''}
+                ${s.estado_solicitud === 'pendiente' ? `<button class="btn-action btn-cancelar" onclick="abrirModalConfirmacionCancelar(${s.id})" title="Cancelar">${SVG_ICONS.cancelar}</button>` : ''}
                 ${authUserHasPermission('aprobar-solicitudes') && s.estado_solicitud === 'pendiente' ? `
-                    <button class="btn-accion btn-aprobar" onclick="aprobarSolicitud(${s.id})" style="background: none; border: none; color: #28a745; cursor: pointer;" title="Aprobar">${SVG_ICONS.aprobar}</button>
-                    <button class="btn-accion btn-rechazar" onclick="rechazarSolicitud(${s.id})" style="background: none; border: none; color: #dc3545; cursor: pointer;" title="Rechazar">${SVG_ICONS.rechazar}</button>
+                    <button class="btn-action btn-aprobar" onclick="aprobarSolicitud(${s.id})" title="Aprobar">${SVG_ICONS.aprobar}</button>
+                    <button class="btn-action btn-rechazar" onclick="rechazarSolicitud(${s.id})" title="Rechazar">${SVG_ICONS.rechazar}</button>
                 ` : ''}
-                ${authUserHasPermission('aprobar-solicitudes') ? `<button class="btn-accion btn-eliminar" onclick="confirmarEliminarSolicitud(${s.id})" style="background: none; border: none; color: #dc3545; cursor: pointer;" title="Eliminar">${SVG_ICONS.eliminar}</button>` : ''}
+                ${authUserHasPermission('aprobar-solicitudes') ? `<button class="btn-action btn-eliminar" onclick="confirmarEliminarSolicitud(${s.id})" title="Eliminar">${SVG_ICONS.eliminar}</button>` : ''}
             </td>
         </tr>`;
     }
@@ -385,8 +375,16 @@ function cambiarPagina(page) {
 async function cargarPagina(page) {
     mostrarSkeleton(true);
     try {
-        const params = new URLSearchParams({ page, per_page: perPage, search: filtros.search, estado: filtros.estado, prioridad: filtros.prioridad });
-        const response = await fetch(`/admin/solicitudes?${params.toString()}`, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+        const params = new URLSearchParams({ 
+            page, 
+            per_page: perPage, 
+            search: filtros.search, 
+            estado: filtros.estado, 
+            prioridad: filtros.prioridad 
+        });
+        const response = await fetch(`/admin/solicitudes?${params.toString()}`, { 
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } 
+        });
         if (!response.ok) throw new Error('Error al cargar datos');
         const data = await response.json();
         solicitudesData = data.data || [];
@@ -408,7 +406,7 @@ async function cargarPagina(page) {
 }
 
 function aplicarFiltros() {
-    filtros = { search: searchInput?.value || '', estado: estadoFilter?.value || '', prioridad: prioridadFilter?.value || '' };
+    filtros = { search: searchInput?.value || '', estado: '', prioridad: '' };
     currentPage = 1;
     cargarPagina(1);
 }
@@ -442,7 +440,6 @@ window.abrirModalCrear = function() {
     const responsableHidden = document.getElementById('responsable_id_hidden');
     if (responsableHidden) responsableHidden.value = '';
 
-    // ✅ Cargar ubicación
     cargarUbicacionSolicitud();
 
     itemCount = 1;
@@ -492,7 +489,6 @@ window.verDetalles = async function(id) {
         if (data.tipo_solicitante === 'interno' && data.departamento) nombreEntidad = data.departamento.nombre;
         else if (data.tipo_solicitante === 'externo' && data.institucion) nombreEntidad = data.institucion.nombre;
 
-        // ✅ Obtener ubicación
         const ubicacionEvento = data.ubicacion_evento || 'No especificada';
 
         const html = `
@@ -575,7 +571,6 @@ window.editarSolicitud = async function(id) {
         const editObservaciones = document.getElementById('editObservaciones');
         if (editObservaciones) editObservaciones.value = data.observaciones || '';
 
-        // ✅ Cargar ubicación en edición
         const editLugarEvento = document.getElementById('edit_solicitud_lugar_evento');
         if (editLugarEvento) editLugarEvento.value = data.lugar_evento || '';
 
@@ -963,13 +958,9 @@ document.getElementById('formEditarSolicitud')?.addEventListener('submit', async
 // ==================== INICIALIZACIÓN ====================
 function initEventListeners() {
     if (searchInput) searchInput.addEventListener('input', aplicarFiltrosConDebounce);
-    if (estadoFilter) estadoFilter.addEventListener('change', aplicarFiltros);
-    if (prioridadFilter) prioridadFilter.addEventListener('change', aplicarFiltros);
     if (limpiarBtn) {
         limpiarBtn.addEventListener('click', () => {
             if (searchInput) searchInput.value = '';
-            if (estadoFilter) estadoFilter.value = '';
-            if (prioridadFilter) prioridadFilter.value = '';
             aplicarFiltros();
         });
     }

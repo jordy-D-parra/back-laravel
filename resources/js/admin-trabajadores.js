@@ -222,3 +222,40 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
 });
+
+// ===========================
+// BÚSQUEDA EN TIEMPO REAL PARA TRABAJADORES
+// ===========================
+document.addEventListener('DOMContentLoaded', function() {
+    const buscarInput = document.getElementById('buscarTrabajador');
+    let timeoutBusqueda = null;
+
+    if (buscarInput) {
+        console.log('✅ Buscador de trabajadores inicializado');
+
+        buscarInput.addEventListener('input', function() {
+            const termino = this.value.trim();
+
+            clearTimeout(timeoutBusqueda);
+
+            timeoutBusqueda = setTimeout(function() {
+                const url = new URL(window.location.href);
+                
+                if (termino === '') {
+                    url.searchParams.delete('search');
+                } else {
+                    url.searchParams.set('search', termino);
+                }
+                
+                window.location.href = url.toString();
+            }, 400);
+        });
+
+        if (buscarInput.value) {
+            buscarInput.focus();
+            buscarInput.setSelectionRange(buscarInput.value.length, buscarInput.value.length);
+        }
+    } else {
+        console.log('⚠️ No se encontró el elemento #buscarTrabajador');
+    }
+});

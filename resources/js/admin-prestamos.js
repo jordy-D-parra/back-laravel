@@ -31,7 +31,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function showToast(message, type = 'success') {
         const colors = { success: '#1e7e34', error: '#c5221f', warning: '#f6c23e', info: '#1e3c72' };
-        const icons = { success: '✓', error: '✕', warning: '⚠', info: 'ℹ' };
         const toast = document.createElement('div');
         toast.style.cssText = `
             position: fixed; top: 20px; right: 20px;
@@ -42,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
             animation: slideInRight 0.3s ease-out; max-width: 400px;
             cursor: pointer;
         `;
-        toast.textContent = `${icons[type] || '✓'} ${message}`;
+        toast.textContent = message;
         document.body.appendChild(toast);
         setTimeout(() => {
             toast.style.animation = 'slideOutRight 0.3s ease-in';
@@ -211,23 +210,39 @@ document.addEventListener('DOMContentLoaded', function() {
     // FUNCIONES DE CARGA DE DATOS POR TAB
     // ============================================================
     function cargarSolicitudes() {
+        const tabla = document.getElementById('tablaSolicitudes');
+        if (!tabla) return;
+        
         showLoading('tablaSolicitudes');
         let buscar = document.getElementById('buscarSolicitudes')?.value || '';
         let url = `/admin/solicitudes/pendientes-prestamo`;
         if (buscar) url += `?buscar=${encodeURIComponent(buscar)}`;
+        
         fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
-                renderSolicitudes(data.data || data);
+                // CORRECCIÓN: Asegurar que data sea un array
+                let solicitudes = [];
+                if (data && data.data) {
+                    solicitudes = data.data;
+                } else if (data && Array.isArray(data)) {
+                    solicitudes = data;
+                } else if (data && typeof data === 'object') {
+                    // Si vino un objeto, intentar obtener los datos
+                    solicitudes = data.data || [];
+                }
+                renderSolicitudes(solicitudes);
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById('tablaSolicitudes').innerHTML =
-                    `<p class="text-center py-4 text-danger">Error al cargar solicitudes</p>`;
+                tabla.innerHTML = `<p class="text-center py-4 text-danger">Error al cargar solicitudes</p>`;
             });
     }
 
     function cargarPrestamosActivos() {
+        const tabla = document.getElementById('tablaActivos');
+        if (!tabla) return;
+        
         showLoading('tablaActivos');
         let buscar = document.getElementById('buscarActivos')?.value || '';
         let tipo = document.getElementById('filtroTipoActivos')?.value || '';
@@ -255,12 +270,14 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error:', error);
-                document.getElementById('tablaActivos').innerHTML =
-                    `<p class="text-center py-4 text-danger">Error al cargar préstamos</p>`;
+                tabla.innerHTML = `<p class="text-center py-4 text-danger">Error al cargar préstamos</p>`;
             });
     }
 
     function cargarPrestamosFinalizados() {
+        const tabla = document.getElementById('tablaFinalizados');
+        if (!tabla) return;
+        
         showLoading('tablaFinalizados');
         let buscar = document.getElementById('buscarFinalizados')?.value || '';
         let estado = document.getElementById('filtroEstadoFinalizados')?.value || '';
@@ -272,34 +289,45 @@ document.addEventListener('DOMContentLoaded', function() {
         if (buscar) url += `buscar=${encodeURIComponent(buscar)}&`;
         if (fechaDesde) url += `fecha_desde=${fechaDesde}&`;
         if (fechaHasta) url += `fecha_hasta=${fechaHasta}&`;
+        
         fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
                 renderPrestamos(data, 'tablaFinalizados', 'finalizados');
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Error:', error);
+                tabla.innerHTML = `<p class="text-center py-4 text-danger">Error al cargar préstamos</p>`;
+            });
     }
 
     // ============================================================
     // FUNCIONES DE RENDERIZADO
     // ============================================================
-    function renderSolicitudes(data, searchTerm = '') {
+    function renderSolicitudes(solicitudes) {
         const table = document.getElementById('tablaSolicitudes');
         if (!table) return;
-        const solicitudes = data || [];
+        
+        // Asegurar que solicitudes es un array
+        if (!Array.isArray(solicitudes)) {
+            console.error('renderSolicitudes: solicitudes no es un array', solicitudes);
+            table.innerHTML = `
+                <div class="text-center py-4 text-muted">
+                    <p>No hay solicitudes pendientes</p>
+                </div>
+            `;
+            return;
+        }
+
         if (solicitudes.length === 0) {
             table.innerHTML = `
-                <table class="table table-hover align-middle mb-0">
-                    <thead><tr>
-                        <th>Código</th><th>Solicitante</th><th>Departamento</th><th>Items</th>
-                        <th>Fecha</th><th>Estado</th><th style="width:180px">Acciones</th>
-                    </tr></thead>
-                    <tbody>
-                        <tr><td colspan="7" class="text-center py-4 text-muted">
-                            No hay solicitudes pendientes ni aprobadas pendientes de préstamo
-                        </td></tr>
-                    </tbody>
-                </table>
+                <div class="text-center py-4 text-muted">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="M22 7l-10 7L2 7"/>
+                    </svg>
+                    <p>No hay solicitudes pendientes ni aprobadas pendientes de préstamo</p>
+                </div>
             `;
             return;
         }
@@ -363,7 +391,17 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderPrestamos(data, tableId, tipo) {
         const table = document.getElementById(tableId);
         if (!table) return;
-        const prestamos = data.data || [];
+        
+        // CORRECCIÓN: Extraer los datos correctamente
+        let prestamos = [];
+        if (data && data.data) {
+            prestamos = data.data;
+        } else if (data && Array.isArray(data)) {
+            prestamos = data;
+        } else {
+            prestamos = [];
+        }
+        
         const esFinalizados = tipo === 'finalizados';
 
         if (prestamos.length === 0) {
@@ -371,18 +409,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 activos: 'No hay préstamos activos',
                 finalizados: 'No hay préstamos finalizados'
             };
-            const columnas = esFinalizados ? 9 : 10;
             table.innerHTML = `
-                <table class="table table-hover align-middle mb-0">
-                    <thead><tr>
-                        <th>Código</th><th>Destino</th><th>Solicitud</th><th>Responsable</th>
-                        <th>Tipo</th><th>F. Préstamo</th><th>F. Devolución</th><th>Estado</th>
-                        ${esFinalizados ? '<th style="width:60px">Ver</th>' : '<th style="width:140px">Acciones</th>'}
-                    </tr></thead>
-                    <tbody>
-                        <tr><td colspan="${columnas}" class="text-center py-4 text-muted">${mensajes[tipo] || 'No se encontraron préstamos'}</td></tr>
-                    </tbody>
-                </table>
+                <div class="text-center py-4 text-muted">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <line x1="8" y1="21" x2="16" y2="21"/>
+                        <line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                    <p>${mensajes[tipo] || 'No se encontraron préstamos'}</p>
+                </div>
             `;
             return;
         }
@@ -392,7 +427,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <thead><tr>
                     <th>Código</th><th>Destino</th><th>Solicitud</th><th>Responsable</th>
                     <th>Tipo</th><th>F. Préstamo</th><th>F. Devolución</th><th>Estado</th>
-                    ${esFinalizados ? '<th style="width:60px">Ver</th>' : '<th style="width:140px">Acciones</th>'}
+                    ${esFinalizados ? '<th style="width:60px">Ver</th>' : '<th style="width:200px">Acciones</th>'}
                 </tr></thead>
                 <tbody>
         `;
@@ -417,7 +452,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>${formatDate(prestamo.fecha_devolucion_esperada)}</td>
                     <td><span class="badge-estado ${badgeClass}">${escapeHtml(estado)}</span></td>
                     <td>
-                        <div class="d-flex gap-1">
+                        <div class="d-flex gap-1 flex-wrap">
                             <button class="btn-action text-info" onclick="verDetallePrestamo(${prestamo.id})" title="Ver detalle">
                                 <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             </button>
@@ -428,36 +463,30 @@ document.addEventListener('DOMContentLoaded', function() {
                     html += `
                         <button class="btn-action text-success" onclick="abrirModalAprobacion(${prestamo.id})" title="Aprobar">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
-                            Aprobar
                         </button>
                         <button class="btn-action text-danger" onclick="abrirModalRechazo(${prestamo.id})" title="Rechazar">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                            Rechazar
                         </button>
                     `;
                 } else if (estado === 'aprobado') {
                     html += `
                         <button class="btn-action text-primary" onclick="abrirModalEntrega(${prestamo.id})" title="Registrar entrega">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-                            Entregar
                         </button>
                         <button class="btn-action text-danger" onclick="abrirModalCancelar(${prestamo.id})" title="Cancelar">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-                            Cancelar
                         </button>
                     `;
                 } else if (estado === 'entregado' || estado === 'extendido') {
                     html += `
                         <button class="btn-action text-success" onclick="abrirModalDevolucion(${prestamo.id})" title="Devolver">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>
-                            Devolver
                         </button>
                         <button class="btn-action text-warning" onclick="abrirModalExtension(${prestamo.id})" title="Extender">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                            Extender
                         </button>
-                        <button class="btn-action text-primary" onclick="generarActaPrestamo(${prestamo.id})" title="Acta de Entrega">
-                            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px">
+                        <button class="btn-acta btn-acta-small" onclick="generarActaPrestamo(${prestamo.id})" title="Acta de Entrega">
+                            <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:12px;height:12px">
                                 <rect x="2" y="3" width="20" height="14" rx="2"/>
                                 <line x1="8" y1="21" x2="16" y2="21"/>
                                 <line x1="12" y1="17" x2="12" y2="21"/>
@@ -726,7 +755,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!resultados) return;
 
-        if (buscar.length < 1) {
+        if (buscar.length < 2) {
             resultados.style.display = 'none';
             return;
         }
@@ -748,45 +777,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     const tipoLabel = item.tipo === 'activo' ? 'Activo' : 'Componente';
                     const badgeClass = item.tipo === 'activo' ? 'item-badge-activo' : 'item-badge-componente';
                     const nombre = escapeHtml(item.nombre || tipoLabel + ' sin nombre');
-                    const marca = escapeHtml(item.marca || 'Sin marca');
-                    const modelo = escapeHtml(item.modelo || 'Sin modelo');
-                    const categoria = escapeHtml(item.categoria || '');
-                    const serial = escapeHtml(item.serial || 'Sin serial');
-
+                    
                     let prestableType = normalizePrestableType(item.prestable_type || '');
-
                     const itemId = item.id;
-                    const itemType = prestableType;
-                    const itemName = String(item.nombre || tipoLabel + ' sin nombre').replace(/"/g, '&quot;');
-                    const itemCode = String(item.serial || 'Sin serial').replace(/"/g, '&quot;');
-
-                    let infoAdicional = '';
-                    if (marca && marca !== 'Sin marca') infoAdicional += marca;
-                    if (modelo && modelo !== 'Sin modelo') {
-                        if (infoAdicional) infoAdicional += ' · ';
-                        infoAdicional += modelo;
-                    }
-                    if (categoria) {
-                        if (infoAdicional) infoAdicional += ' · ';
-                        infoAdicional += categoria;
-                    }
-                    if (!infoAdicional) infoAdicional = serial;
 
                     html += `
                         <div class="result-item list-group-item list-group-item-action"
                              data-item-id="${itemId}"
-                             data-item-type="${itemType}"
-                             data-item-name="${itemName}"
-                             data-item-code="${itemCode}"
-                             onclick="seleccionarItem(${itemId}, '${itemType}', '${itemName}', '${itemCode}')"
-                             style="border-left: 3px solid ${item.tipo === 'activo' ? '#1e3c72' : '#0d6efd'}; padding: 0.75rem 0.9rem;">
+                             data-item-type="${prestableType}"
+                             onclick="seleccionarItem(${itemId}, '${prestableType}')"
+                             style="border-left: 3px solid ${item.tipo === 'activo' ? '#1e3c72' : '#0d6efd'}; padding: 0.75rem 0.9rem; cursor:pointer;">
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>
                                     <div class="fw-semibold">${nombre}</div>
-                                    <div class="small text-muted">
-                                        ${infoAdicional}
-                                        ${serial !== 'Sin serial' ? ' · <span class="fw-mono">' + serial + '</span>' : ''}
-                                    </div>
+                                    <div class="small text-muted">${escapeHtml(item.serial || 'Sin serial')}</div>
                                 </div>
                                 <span class="badge ${badgeClass}" style="font-size:0.72rem; text-transform:capitalize;">${tipoLabel}</span>
                             </div>
@@ -803,7 +807,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }, 300);
 
-    window.seleccionarItem = function(id, type, name, code) {
+    window.seleccionarItem = function(id, type) {
         let prestableType = normalizePrestableType(type);
         const tipoNormalizado = prestableType.includes('Activo') ? 'activo' : 'componente';
 
@@ -812,11 +816,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        // Obtener nombre del item desde el resultado clickeado
+        const resultItem = document.querySelector(`.result-item[data-item-id="${id}"]`);
+        const nombre = resultItem ? resultItem.querySelector('.fw-semibold')?.textContent || 'Item' : 'Item';
+        const codigo = resultItem ? resultItem.querySelector('.small.text-muted')?.textContent || 'Sin código' : 'Sin código';
+
         items.push({
             prestable_type: prestableType,
             prestable_id: Number(id),
-            nombre: name,
-            codigo: code,
+            nombre: nombre,
+            codigo: codigo,
             tipo_item: tipoNormalizado,
             cantidad: 1,
             estado_entrega: 'En buen estado',
@@ -865,12 +874,11 @@ document.addEventListener('DOMContentLoaded', function() {
         items.forEach((item, index) => {
             const tipoLabel = item.tipo_item === 'activo' ? 'Activo' : 'Componente';
             const badgeClass = item.tipo_item === 'activo' ? 'item-badge-activo' : 'item-badge-componente';
-            const highlightClass = item._highlighted ? ' item-card--added' : '';
 
             let prestableType = normalizePrestableType(item.prestable_type || '');
 
             html += `
-                <div class="item-card${highlightClass}" style="border:1px solid #e3e8f0; border-left:4px solid ${item.tipo_item === 'activo' ? '#1e3c72' : '#0d6efd'}; border-radius:10px; padding:0.8rem 0.9rem; margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:flex-start; gap:0.7rem; background:#fff;">
+                <div class="item-card" style="border:1px solid #e3e8f0; border-left:4px solid ${item.tipo_item === 'activo' ? '#1e3c72' : '#0d6efd'}; border-radius:10px; padding:0.8rem 0.9rem; margin-bottom:0.6rem; display:flex; justify-content:space-between; align-items:flex-start; gap:0.7rem; background:#fff;">
                     <input type="hidden" name="items[${index}][prestable_type]" value="${prestableType}">
                     <input type="hidden" name="items[${index}][prestable_id]" value="${item.prestable_id}">
                     <input type="hidden" name="items[${index}][cantidad]" value="${item.cantidad}">
@@ -1122,9 +1130,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     html += `</div>`;
                 }
 
-                // ============================================================
-                // MODAL FOOTER CON BOTÓN PARA GENERAR ACTA (SOLO ENTREGADO)
-                // ============================================================
                 html += `
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cerrar</button>
@@ -1161,59 +1166,40 @@ document.addEventListener('DOMContentLoaded', function() {
     // GENERAR ACTA DE ENTREGA DESDE PRÉSTAMO
     // ============================================================
     window.generarActaPrestamo = function(prestamoId) {
-        // Mostrar un loader en el botón
-        const btn = document.querySelector('[onclick="generarActaPrestamo(' + prestamoId + ')"]');
-        const originalText = btn ? btn.innerHTML : 'Generar Acta';
-        if (btn) {
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Generando...';
-            btn.disabled = true;
-        }
-
-        // Abrir una nueva ventana con el acta
         const url = '/admin/actas/generar?prestamo_id=' + prestamoId;
         const ventana = window.open(url, '_blank', 'width=900,height=700,scrollbars=yes');
-
-        // Si la ventana no se pudo abrir (pop-up bloqueado)
         if (!ventana) {
             showToast('Por favor, permita ventanas emergentes para generar el acta', 'warning');
-            if (btn) {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
             return;
         }
 
-        // Cerrar el modal de detalle
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalDetallePrestamo'));
         if (modal) modal.hide();
-
-        // Restaurar el botón después de un tiempo
-        setTimeout(() => {
-            if (btn) {
-                btn.innerHTML = originalText;
-                btn.disabled = false;
-            }
-        }, 3000);
     };
 
+    // ============================================================
+    // FUNCIONES DE MODALES (Aprobación, Rechazo, Entrega, etc.)
+    // ============================================================
     window.abrirModalAprobacion = function(id) {
-        document.getElementById('aprobacionPrestamoId').value = id;
-        document.getElementById('observacionesAprobacion').value = '';
-        new bootstrap.Modal(document.getElementById('modalAprobacion')).show();
+        const input = document.getElementById('aprobacionPrestamoId');
+        if (input) input.value = id;
+        const modal = new bootstrap.Modal(document.getElementById('modalAprobacion'));
+        modal.show();
     };
 
     window.abrirModalRechazo = function(id) {
-        document.getElementById('rechazoPrestamoId').value = id;
-        document.getElementById('motivoRechazo').value = '';
-        new bootstrap.Modal(document.getElementById('modalRechazo')).show();
+        const input = document.getElementById('rechazoPrestamoId');
+        if (input) input.value = id;
+        const modal = new bootstrap.Modal(document.getElementById('modalRechazo'));
+        modal.show();
     };
 
     window.abrirModalEntrega = function(id) {
-        document.getElementById('entregaPrestamoId').value = id;
-        document.getElementById('observacionesEntrega').value = '';
+        const input = document.getElementById('entregaPrestamoId');
+        if (input) input.value = id;
+        
         document.getElementById('fechaEntregaPrestamo').value = new Date().toISOString().split('T')[0];
-        document.getElementById('fechaEntregaDevolucion').value =
-            new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
+        document.getElementById('fechaEntregaDevolucion').value = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
         fetch('/admin/prestamos/' + id, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
@@ -1224,39 +1210,36 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (p.fecha_devolucion_esperada) document.getElementById('fechaEntregaDevolucion').value = p.fecha_devolucion_esperada;
                 }
             })
-            .catch(() => {})
             .finally(() => {
-                new bootstrap.Modal(document.getElementById('modalEntrega')).show();
+                const modal = new bootstrap.Modal(document.getElementById('modalEntrega'));
+                modal.show();
             });
     };
 
     window.abrirModalDevolucion = function(id) {
-        document.getElementById('devolucionPrestamoId').value = id;
+        const input = document.getElementById('devolucionPrestamoId');
+        if (input) input.value = id;
+        
         document.getElementById('fechaDevolucionReal').value = new Date().toISOString().split('T')[0];
         document.getElementById('observacionesDevolucion').value = '';
-        document.getElementById('itemsDevolucionContainer').innerHTML =
-            '<div class="text-center py-3 text-muted">Cargando items...</div>';
+        document.getElementById('itemsDevolucionContainer').innerHTML = '<div class="text-center py-3 text-muted">Cargando items...</div>';
 
         fetch('/admin/prestamos/' + id, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
                 if (!data.success || !data.data) {
-                    document.getElementById('itemsDevolucionContainer').innerHTML =
-                        '<div class="text-danger text-center py-3">No se pudieron cargar los datos del préstamo.</div>';
+                    document.getElementById('itemsDevolucionContainer').innerHTML = '<div class="text-danger text-center py-3">No se pudieron cargar los datos del préstamo.</div>';
                     return;
                 }
 
                 const p = data.data;
-
                 document.getElementById('devolucionCodigo').textContent = p.codigo;
                 document.getElementById('devolucionDestino').textContent = p.destino_nombre || '—';
                 document.getElementById('devolucionResponsable').textContent = p.responsable_receptor?.nombre || '—';
 
                 const detalles = p.detalles || [];
-
                 if (detalles.length === 0) {
-                    document.getElementById('itemsDevolucionContainer').innerHTML =
-                        '<div class="text-center py-3 text-muted">No hay items para devolver.</div>';
+                    document.getElementById('itemsDevolucionContainer').innerHTML = '<div class="text-center py-3 text-muted">No hay items para devolver.</div>';
                     return;
                 }
 
@@ -1306,42 +1289,34 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                 });
 
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
+                html += `</tbody></table></div>`;
                 document.getElementById('itemsDevolucionContainer').innerHTML = html;
             })
-            .catch(() => {
-                document.getElementById('itemsDevolucionContainer').innerHTML =
-                    '<div class="text-danger text-center py-3">Error al cargar los items del préstamo.</div>';
-            })
             .finally(() => {
-                new bootstrap.Modal(document.getElementById('modalDevolucion')).show();
+                const modal = new bootstrap.Modal(document.getElementById('modalDevolucion'));
+                modal.show();
             });
     };
 
     window.abrirModalExtension = function(id) {
-        document.getElementById('extensionPrestamoId').value = id;
+        const input = document.getElementById('extensionPrestamoId');
+        if (input) input.value = id;
+        
         document.getElementById('fechaNuevaExtension').value = '';
         document.getElementById('motivoExtension').value = '';
         document.getElementById('tipoExtensionCompleta').checked = true;
         document.getElementById('itemsExtensionContainer').style.display = 'none';
-        document.getElementById('itemsExtensionList').innerHTML =
-            '<div class="text-center py-3 text-muted">Seleccione un tipo de extensión.</div>';
+        document.getElementById('itemsExtensionList').innerHTML = '<div class="text-center py-3 text-muted">Seleccione un tipo de extensión.</div>';
 
         fetch('/admin/prestamos/' + id, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
                 if (!data.success || !data.data) {
-                    document.getElementById('itemsExtensionList').innerHTML =
-                        '<div class="text-danger text-center py-3">No se pudieron cargar los datos del préstamo.</div>';
+                    document.getElementById('itemsExtensionList').innerHTML = '<div class="text-danger text-center py-3">No se pudieron cargar los datos del préstamo.</div>';
                     return;
                 }
 
                 const p = data.data;
-
                 document.getElementById('extensionCodigo').textContent = p.codigo;
                 document.getElementById('extensionDestino').textContent = p.destino_nombre || '—';
                 document.getElementById('extensionFechaActual').textContent = formatDate(p.fecha_devolucion_esperada);
@@ -1354,10 +1329,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('fechaNuevaExtension').min = fechaMin.toISOString().split('T')[0];
 
                 const detalles = p.detalles || [];
-
                 if (detalles.length === 0) {
-                    document.getElementById('itemsExtensionList').innerHTML =
-                        '<div class="text-center py-3 text-muted">No hay items para extender.</div>';
+                    document.getElementById('itemsExtensionList').innerHTML = '<div class="text-center py-3 text-muted">No hay items para extender.</div>';
                     return;
                 }
 
@@ -1396,26 +1369,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                 });
 
-                html += `
-                            </tbody>
-                        </table>
-                    </div>
-                `;
+                html += `</tbody></table></div>`;
                 document.getElementById('itemsExtensionList').innerHTML = html;
             })
-            .catch(() => {
-                document.getElementById('itemsExtensionList').innerHTML =
-                    '<div class="text-danger text-center py-3">Error al cargar los items del préstamo.</div>';
-            })
             .finally(() => {
-                new bootstrap.Modal(document.getElementById('modalExtension')).show();
+                const modal = new bootstrap.Modal(document.getElementById('modalExtension'));
+                modal.show();
             });
     };
 
     window.abrirModalCancelar = function(id) {
-        document.getElementById('cancelarPrestamoId').value = id;
+        const input = document.getElementById('cancelarPrestamoId');
+        if (input) input.value = id;
+        
         document.getElementById('motivoCancelacion').value = '';
-        new bootstrap.Modal(document.getElementById('modalCancelar')).show();
+        const modal = new bootstrap.Modal(document.getElementById('modalCancelar'));
+        modal.show();
     };
 
     window.toggleTipoExtension = function() {
@@ -1431,9 +1400,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
     document.getElementById('formAprobacion')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        if (!this.checkValidity()) { this.reportValidity(); return; }
         const id = document.getElementById('aprobacionPrestamoId').value;
         const formData = new FormData(this);
+        
         fetch('/admin/prestamos/' + id + '/aprobar', {
             method: 'POST',
             body: formData,
@@ -1455,9 +1424,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('formRechazo')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        if (!this.checkValidity()) { this.reportValidity(); return; }
         const id = document.getElementById('rechazoPrestamoId').value;
         const formData = new FormData(this);
+        
         fetch('/admin/prestamos/' + id + '/rechazar', {
             method: 'POST',
             body: formData,
@@ -1479,11 +1448,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('formEntrega')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        if (!this.checkValidity()) { this.reportValidity(); return; }
         const id = document.getElementById('entregaPrestamoId').value;
         const formData = new FormData(this);
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
+        
         fetch('/admin/prestamos/' + id + '/entregar', {
             method: 'POST',
             body: formData,
@@ -1508,11 +1477,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('formDevolucion')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        if (!this.checkValidity()) { this.reportValidity(); return; }
         const id = document.getElementById('devolucionPrestamoId').value;
         const formData = new FormData(this);
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
+        
         fetch('/admin/prestamos/' + id + '/devolver', {
             method: 'POST',
             body: formData,
@@ -1537,8 +1506,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('formExtension')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        if (!this.checkValidity()) { this.reportValidity(); return; }
-
         const tipo = document.querySelector('input[name="tipo"]:checked')?.value;
         if (tipo === 'parcial') {
             const checked = document.querySelectorAll('#itemsExtensionList input[type="checkbox"]:checked');
@@ -1552,6 +1519,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(this);
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
+        
         fetch('/admin/prestamos/' + id + '/extender', {
             method: 'POST',
             body: formData,
@@ -1575,11 +1543,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('formCancelar')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        if (!this.checkValidity()) { this.reportValidity(); return; }
         const id = document.getElementById('cancelarPrestamoId').value;
         const formData = new FormData(this);
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
+        
         fetch('/admin/prestamos/' + id + '/cancelar', {
             method: 'POST',
             body: formData,
@@ -1605,17 +1573,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
     // EVENTOS DE TABS
     // ============================================================
-    const tabs = {
+    const tabsConfig = {
         'solicitudes-tab': { tab: 'solicitudes', fn: cargarSolicitudes },
         'activos-tab': { tab: 'activos', fn: cargarPrestamosActivos },
         'finalizados-tab': { tab: 'finalizados', fn: cargarPrestamosFinalizados }
     };
 
-    Object.keys(tabs).forEach(tabId => {
+    Object.keys(tabsConfig).forEach(tabId => {
         const tabEl = document.getElementById(tabId);
         if (tabEl) {
             tabEl.addEventListener('shown.bs.tab', function() {
-                const info = tabs[tabId];
+                const info = tabsConfig[tabId];
                 if (info) {
                     currentTab = info.tab;
                     info.fn();
@@ -1627,14 +1595,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
     // EVENTOS DE FILTROS
     // ============================================================
-    document.getElementById('buscarSolicitudes')?.addEventListener('input', debounce(cargarSolicitudes, 300));
-    document.getElementById('buscarActivos')?.addEventListener('input', debounce(cargarPrestamosActivos, 300));
-    document.getElementById('filtroTipoActivos')?.addEventListener('change', cargarPrestamosActivos);
-    document.getElementById('filtroEstadoActivos')?.addEventListener('change', cargarPrestamosActivos);
-    document.getElementById('buscarFinalizados')?.addEventListener('input', debounce(cargarPrestamosFinalizados, 300));
-    document.getElementById('filtroEstadoFinalizados')?.addEventListener('change', cargarPrestamosFinalizados);
-    document.getElementById('filtroFechaDesde')?.addEventListener('change', cargarPrestamosFinalizados);
-    document.getElementById('filtroFechaHasta')?.addEventListener('change', cargarPrestamosFinalizados);
+    const buscarSolicitudes = document.getElementById('buscarSolicitudes');
+    const buscarActivos = document.getElementById('buscarActivos');
+    const buscarFinalizados = document.getElementById('buscarFinalizados');
+    const filtroTipoActivos = document.getElementById('filtroTipoActivos');
+    const filtroEstadoActivos = document.getElementById('filtroEstadoActivos');
+    const filtroEstadoFinalizados = document.getElementById('filtroEstadoFinalizados');
+    const filtroFechaDesde = document.getElementById('filtroFechaDesde');
+    const filtroFechaHasta = document.getElementById('filtroFechaHasta');
+
+    if (buscarSolicitudes) buscarSolicitudes.addEventListener('input', debounce(cargarSolicitudes, 300));
+    if (buscarActivos) buscarActivos.addEventListener('input', debounce(cargarPrestamosActivos, 300));
+    if (filtroTipoActivos) filtroTipoActivos.addEventListener('change', cargarPrestamosActivos);
+    if (filtroEstadoActivos) filtroEstadoActivos.addEventListener('change', cargarPrestamosActivos);
+    if (buscarFinalizados) buscarFinalizados.addEventListener('input', debounce(cargarPrestamosFinalizados, 300));
+    if (filtroEstadoFinalizados) filtroEstadoFinalizados.addEventListener('change', cargarPrestamosFinalizados);
+    if (filtroFechaDesde) filtroFechaDesde.addEventListener('change', cargarPrestamosFinalizados);
+    if (filtroFechaHasta) filtroFechaHasta.addEventListener('change', cargarPrestamosFinalizados);
 
     // ============================================================
     // CERRAR RESULTADOS AL HACER CLICK FUERA
@@ -1653,4 +1630,6 @@ document.addEventListener('DOMContentLoaded', function() {
     cargarSolicitudes();
     cargarPrestamosActivos();
     cargarPrestamosFinalizados();
+
+    console.log('✅ Módulo de préstamos inicializado correctamente');
 });

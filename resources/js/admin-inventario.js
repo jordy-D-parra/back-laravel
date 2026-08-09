@@ -1519,3 +1519,45 @@ function confirmarEliminacion() {
         elementoAEliminar = null;
     });
 }
+
+// ============================================================
+// BÚSQUEDA EN TIEMPO REAL PARA INVENTARIO
+// ============================================================
+document.addEventListener('DOMContentLoaded', function() {
+    // Búsqueda en tiempo real - Activos
+    const buscarActivos = document.getElementById('buscarActivos');
+    if (buscarActivos) {
+        buscarActivos.addEventListener('input', function() {
+            const termino = this.value.trim();
+            // Usar la función de búsqueda existente
+            if (typeof cargarActivos === 'function') {
+                cargarActivos();
+            }
+        });
+    }
+
+    // Búsqueda en tiempo real - Componentes
+    const buscarComponentes = document.getElementById('buscarComponentes');
+    if (buscarComponentes) {
+        buscarComponentes.addEventListener('input', function() {
+            const termino = this.value.trim();
+            // Usar la función de búsqueda existente
+            if (typeof cargarComponentes === 'function') {
+                cargarComponentes();
+            }
+        });
+    }
+
+    // Evento para cambio de tab - recargar datos
+    const tabs = document.querySelectorAll('#inventarioTabs .nav-link');
+    tabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(e) {
+            const target = e.target.getAttribute('data-bs-target');
+            if (target === '#activos' && typeof cargarActivos === 'function') {
+                cargarActivos();
+            } else if (target === '#componentes' && typeof cargarComponentes === 'function') {
+                cargarComponentes();
+            }
+        });
+    });
+});

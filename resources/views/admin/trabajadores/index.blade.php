@@ -8,12 +8,96 @@
 
 @section('content')
 <div class="container-fluid px-4">
-    <!-- Encabezado -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h3 class="fw-bold" style="color: #1e3c72;">Gestión de Trabajadores</h3>
+
+    <!-- ========== HEADER CON GRADIENTE ========== -->
+    <div class="page-header">
+        <div>
+            <h4>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                </svg>
+                Gestión de Trabajadores
+            </h4>
+            <p>Registro y administración del personal del departamento</p>
+        </div>
+    </div>
+
+    <!-- ========== TARJETAS DE ESTADÍSTICAS ========== -->
+    <div class="stats-row">
+        <div class="stat-card-mini">
+            <div class="stat-info">
+                <div class="stat-number">{{ $totalTrabajadores ?? 0 }}</div>
+                <div class="stat-label">Total Trabajadores</div>
+            </div>
+            <div class="stat-icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card-mini">
+            <div class="stat-info">
+                <div class="stat-number">{{ $conUsuario ?? 0 }}</div>
+                <div class="stat-label">Con Usuario</div>
+            </div>
+            <div class="stat-icon-circle" style="background: rgba(30, 126, 52, 0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1e7e34" stroke-width="1.8">
+                    <path d="M20 6L9 17l-5-5"/>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card-mini">
+            <div class="stat-info">
+                <div class="stat-number">{{ $sinUsuario ?? 0 }}</div>
+                <div class="stat-label">Sin Usuario</div>
+            </div>
+            <div class="stat-icon-circle" style="background: rgba(197, 34, 31, 0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#c5221f" stroke-width="1.8">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="15" y1="9" x2="9" y2="15"/>
+                    <line x1="9" y1="9" x2="15" y2="15"/>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card-mini">
+            <div class="stat-info">
+                <div class="stat-number">{{ $departamentos ?? 0 }}</div>
+                <div class="stat-label">Departamentos</div>
+            </div>
+            <div class="stat-icon-circle" style="background: rgba(23, 162, 184, 0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#17a2b8" stroke-width="1.8">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M8 8h8M8 12h6M8 16h4"/>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========== BARRA DE FILTROS CON SEPARACIÓN ========== -->
+    <div class="filters-bar">
+        <!-- Filtro de búsqueda a la IZQUIERDA -->
+        <div class="filtro-busqueda">
+            <div class="input-group">
+                <span class="input-group-text">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="M21 21l-4.35-4.35"/>
+                    </svg>
+                </span>
+                <input type="text" class="form-control" id="buscarTrabajador"
+                       placeholder="Buscar por nombre, apellido o cédula..."
+                       value="{{ request('search') }}">
+            </div>
+        </div>
+
+        <!-- Botón Nuevo Trabajador a la DERECHA -->
         @if(auth()->user()->hasPermission('crear-trabajador'))
-        <button style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white; border" class="btn btn-primary-dark" data-bs-toggle="modal" data-bs-target="#modalTrabajador">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
+        <button style="color: #fff" class="btn btn-primary-dark btn-accion" data-bs-toggle="modal" data-bs-target="#modalTrabajador">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
             </svg>
@@ -22,127 +106,26 @@
         @endif
     </div>
 
-    <!-- Tarjetas de estadísticas -->
-    <div class="stats-row">
-        <div class="stat-card-mini">
-            <div class="stat-info"><div class="stat-number">{{ $totalTrabajadores }}</div><div class="stat-label">Total Trabajadores</div></div>
-            <div class="stat-icon-circle">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="9" cy="7" r="4"/>
-                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                </svg>
-            </div>
-        </div>
-        <div class="stat-card-mini">
-            <div class="stat-info"><div class="stat-number">{{ $conUsuario }}</div><div class="stat-label">Con Usuario</div></div>
-            <div class="stat-icon-circle">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M20 6L9 17l-5-5"/>
-                </svg>
-            </div>
-        </div>
-        <div class="stat-card-mini">
-            <div class="stat-info"><div class="stat-number">{{ $sinUsuario }}</div><div class="stat-label">Sin Usuario</div></div>
-            <div class="stat-icon-circle">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="15" y1="9" x2="9" y2="15"/>
-                    <line x1="9" y1="9" x2="15" y2="15"/>
-                </svg>
-            </div>
-        </div>
-        <div class="stat-card-mini">
-            <div class="stat-info"><div class="stat-number">{{ $departamentos }}</div><div class="stat-label">Departamentos</div></div>
-            <div class="stat-icon-circle">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <rect x="2" y="4" width="20" height="16" rx="2"/>
-                    <path d="M8 8h8M8 12h6M8 16h4"/>
-                </svg>
-            </div>
-        </div>
-    </div>
-
-    <!-- Barra de búsqueda y filtros -->
-    <form method="GET" action="{{ route('admin.trabajadores.index') }}" class="filters-bar">
-        <div class="flex-grow-1" style="min-width: 200px;">
-            <div class="input-group">
-                <span class="input-group-text bg-white">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="M21 21l-4.35-4.35"/>
-                    </svg>
-                </span>
-                <input type="text" class="form-control" name="search" placeholder="Buscar por cédula, nombre, apellido, cargo..." value="{{ request('search') }}">
-            </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary-dark">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <circle cx="11" cy="11" r="8"/>
-                <path d="M21 21l-4.35-4.35"/>
-            </svg>
-            Filtrar
-        </button>
-        @if(request()->anyFilled(['search', 'departamento', 'tiene_usuario']))
-            <a href="{{ route('admin.trabajadores.index') }}" class="btn btn-outline-primary-dark">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                    <line x1="6" y1="6" x2="18" y2="18"/>
-                </svg>
-                Limpiar
-            </a>
-        @endif
-    </form>
-
-    <!-- Tabla de trabajadores -->
+    <!-- ========== TABLA ========== -->
     <div class="table-container">
         <div class="table-responsive">
-            <table class="table table-hover mb-0">
+            <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
-                        <th>
-                            <a href="{{ route('admin.trabajadores.index', array_merge(request()->except(['sort_by', 'sort_dir']), ['sort_by' => 'cedula', 'sort_dir' => request('sort_by') === 'cedula' && request('sort_dir') === 'asc' ? 'desc' : 'asc'])) }}">
-                                Cédula
-                                @if(request('sort_by') === 'cedula')
-                                    <small>{{ request('sort_dir') === 'asc' ? '&#9650;' : '&#9660;' }}</small>
-                                @endif
-                            </a>
-                        </th>
-                        <th>
-                            <a href="{{ route('admin.trabajadores.index', array_merge(request()->except(['sort_by', 'sort_dir']), ['sort_by' => 'apellido', 'sort_dir' => request('sort_by') === 'apellido' && request('sort_dir') === 'asc' ? 'desc' : 'asc'])) }}">
-                                Nombre
-                                @if(request('sort_by') === 'apellido')
-                                    <small>{{ request('sort_dir') === 'asc' ? '&#9650;' : '&#9660;' }}</small>
-                                @endif
-                            </a>
-                        </th>
-                        <th>
-                            <a href="{{ route('admin.trabajadores.index', array_merge(request()->except(['sort_by', 'sort_dir']), ['sort_by' => 'cargo', 'sort_dir' => request('sort_by') === 'cargo' && request('sort_dir') === 'asc' ? 'desc' : 'asc'])) }}">
-                                Cargo
-                                @if(request('sort_by') === 'cargo')
-                                    <small>{{ request('sort_dir') === 'asc' ? '&#9650;' : '&#9660;' }}</small>
-                                @endif
-                            </a>
-                        </th>
-                        <th>
-                            <a href="{{ route('admin.trabajadores.index', array_merge(request()->except(['sort_by', 'sort_dir']), ['sort_by' => 'departamento', 'sort_dir' => request('sort_by') === 'departamento' && request('sort_dir') === 'asc' ? 'desc' : 'asc'])) }}">
-                                Departamento
-                                @if(request('sort_by') === 'departamento')
-                                    <small>{{ request('sort_dir') === 'asc' ? '&#9650;' : '&#9660;' }}</small>
-                                @endif
-                            </a>
-                        </th>
+                        <th>Cédula</th>
+                        <th>Nombre</th>
+                        <th>Cargo</th>
+                        <th>Departamento</th>
                         <th>Especialidad</th>
                         <th>Usuario</th>
                         <th class="text-end">Acciones</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody id="tablaTrabajadores">
                     @forelse($trabajadores as $trabajador)
                     <tr>
                         <td><small>{{ $trabajador->cedula }}</small></td>
-                        <td><span class="fw-medium">{{ $trabajador->nombre }} {{ $trabajador->apellido }}</span></td>
+                        <td><span class="fw-medium" style="color: var(--primary-dark);">{{ $trabajador->nombre }} {{ $trabajador->apellido }}</span></td>
                         <td>{{ $trabajador->cargo }}</td>
                         <td>{{ $trabajador->departamento }}</td>
                         <td>{{ $trabajador->especialidad ?? '-' }}</td>
@@ -222,16 +205,25 @@
         </div>
     </div>
 
-    <div class="mt-3">{{ $trabajadores->links() }}</div>
+    <!-- ========== PAGINACIÓN ========== -->
+    <div class="mt-3">
+        {{ $trabajadores->links() }}
+    </div>
 </div>
 
-<!-- MODAL: Crear/Editar Trabajador -->
+<!-- ========== MODAL CREAR/EDITAR TRABAJADOR ========== -->
 <div class="modal fade" id="modalTrabajador" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content shadow-lg">
             <div class="modal-header">
-                <h5 class="modal-title" id="modalTrabajadorTitulo">Nuevo Trabajador</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <h5 class="modal-title" id="modalTrabajadorTitulo">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                    </svg>
+                    Nuevo Trabajador
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formTrabajador" method="POST" action="/admin/trabajadores">
                 @csrf
@@ -239,9 +231,9 @@
                 <div class="modal-body px-4">
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label small fw-bold">Cédula</label>
+                            <label class="form-label small fw-bold">Cédula <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="trabajadorCedula" name="cedula" placeholder="V-12345678" required>
-                            <div id="cedulaFeedback" class="cedula-feedback"></div>
+                            <div id="cedulaFeedback" class="cedula-feedback" style="font-size:0.75rem;margin-top:4px;"></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label small fw-bold">Teléfono</label>
@@ -250,21 +242,21 @@
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label small fw-bold">Nombre</label>
+                            <label class="form-label small fw-bold">Nombre <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="trabajadorNombre" name="nombre" required>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label small fw-bold">Apellido</label>
+                            <label class="form-label small fw-bold">Apellido <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="trabajadorApellido" name="apellido" required>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-bold">Departamento</label>
+                        <label class="form-label small fw-bold">Departamento <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="trabajadorDepartamento" name="departamento" value="Informática" required>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
-                            <label class="form-label small fw-bold">Cargo</label>
+                            <label class="form-label small fw-bold">Cargo <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="trabajadorCargo" name="cargo" required>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -274,7 +266,7 @@
                     </div>
                 </div>
                 <div class="modal-footer border-0 px-4 pb-4">
-                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary-dark" id="btnGuardarTrabajador">Guardar Trabajador</button>
                 </div>
             </form>
@@ -282,27 +274,27 @@
     </div>
 </div>
 
-<!-- MODAL: Confirmar Eliminación -->
+<!-- ========== MODAL CONFIRMAR ELIMINACIÓN ========== -->
 <div class="modal fade" id="modalConfirmDelete" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content shadow-lg">
             <div class="modal-header">
                 <h5 class="modal-title">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body px-4">
                 <div id="deleteWarningUsuario" class="delete-warning" style="display:none;">
-                    <p class="mb-1 fw-medium" style="color: #c5221f;">No se puede eliminar.</p>
+                    <p class="mb-1 fw-medium" style="color: var(--danger);">No se puede eliminar.</p>
                     <p class="mb-0 small text-muted">Este trabajador tiene un usuario vinculado. Debe eliminar el usuario primero.</p>
                 </div>
                 <div id="deleteConfirmText">
                     <p class="mb-1">Se eliminará permanentemente al trabajador:</p>
-                    <p class="fw-bold" id="deleteTrabajadorNombre" style="color: #1e3c72;"></p>
+                    <p class="fw-bold" id="deleteTrabajadorNombre" style="color: var(--primary-dark);"></p>
                     <p class="small text-danger mb-0">Esta acción no se puede deshacer.</p>
                 </div>
             </div>
             <div class="modal-footer border-0 px-4 pb-4">
-                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
                 <form id="formDelete" method="POST" action="">
                     @csrf
                     @method('DELETE')
@@ -313,16 +305,16 @@
     </div>
 </div>
 
-<!-- MODAL: Ver Detalle Trabajador -->
+<!-- ========== MODAL DETALLE ========== -->
 <div class="modal fade" id="modalDetail" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg">
             <div class="modal-header">
                 <h5 class="modal-title">Detalle del Trabajador</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body px-4">
-                <h6 style="color: #1e3c72; font-weight: 600; margin-bottom: 1rem;">Datos Personales</h6>
+                <h6 style="color: var(--primary-dark); font-weight: 600; margin-bottom: 1rem;">Datos Personales</h6>
                 <div class="detail-grid">
                     <div class="detail-item"><div class="detail-label">Cédula</div><div class="detail-value" id="dtCedula">-</div></div>
                     <div class="detail-item"><div class="detail-label">Nombre Completo</div><div class="detail-value" id="dtNombre">-</div></div>
@@ -333,7 +325,7 @@
                     <div class="detail-item"><div class="detail-label">Registrado</div><div class="detail-value" id="dtCreado">-</div></div>
                 </div>
                 <hr>
-                <h6 style="color: #1e3c72; font-weight: 600; margin-bottom: 1rem;">Usuario Vinculado</h6>
+                <h6 style="color: var(--primary-dark); font-weight: 600; margin-bottom: 1rem;">Usuario Vinculado</h6>
                 <div id="dtInfoUsuario" class="detail-grid" style="display:none;"></div>
                 <div id="dtSinUsuario" class="text-muted small">Sin usuario vinculado.</div>
                 <button type="button" class="btn btn-primary-dark btn-sm mt-2" id="btnCrearUsuarioDesdeDetalle" style="display:none;">Crear Usuario para este Trabajador</button>
@@ -344,6 +336,7 @@
         </div>
     </div>
 </div>
+
 @endsection
 
 @section('scripts')

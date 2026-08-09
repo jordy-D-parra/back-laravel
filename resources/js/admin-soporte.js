@@ -1,4 +1,5 @@
 // resources/js/admin-soporte.js
+// ✅ VERSIÓN COMPLETA CON BÚSQUEDA EN TIEMPO REAL Y ESTILO UNIFICADO
 
 let fichasData = [];
 let currentPage = 1;
@@ -26,6 +27,10 @@ let filtros = {
     search: '',
     estado: ''
 };
+
+// ============================================================
+// FUNCIONES UTILITARIAS
+// ============================================================
 
 function escapeHtml(text) {
     if (!text) return '';
@@ -63,22 +68,34 @@ style.textContent = `
 `;
 document.head.appendChild(style);
 
+// ============================================================
+// FUNCIONES DE ESTADÍSTICAS
+// ============================================================
+
 function actualizarEstadisticas() {
     const total = fichasData.length;
     const enProceso = fichasData.filter(f => f.estado === 'en_proceso').length;
     const finalizados = fichasData.filter(f => f.estado === 'finalizado').length;
 
-    document.getElementById('statsTotal') && (document.getElementById('statsTotal').textContent = total);
-    document.getElementById('statsEnProceso') && (document.getElementById('statsEnProceso').textContent = enProceso);
-    document.getElementById('statsFinalizados') && (document.getElementById('statsFinalizados').textContent = finalizados);
+    const statsTotal = document.getElementById('statsTotal');
+    if (statsTotal) statsTotal.textContent = total;
 
-    const enReparacion = fichasData.filter(f => f.estado === 'en_proceso').length;
-    document.getElementById('statsEquiposReparacion') && (document.getElementById('statsEquiposReparacion').textContent = enReparacion);
+    const statsEnProceso = document.getElementById('statsEnProceso');
+    if (statsEnProceso) statsEnProceso.textContent = enProceso;
+
+    const statsFinalizados = document.getElementById('statsFinalizados');
+    if (statsFinalizados) statsFinalizados.textContent = finalizados;
+
+    const statsEquiposReparacion = document.getElementById('statsEquiposReparacion');
+    if (statsEquiposReparacion) statsEquiposReparacion.textContent = enProceso;
 
     // Actualizar lista de activos en proceso
     activosEnProceso = fichasData.filter(f => f.estado === 'en_proceso').map(f => f.activo_id);
-    console.log('Activos en proceso:', activosEnProceso);
 }
+
+// ============================================================
+// FUNCIONES DE RENDERIZADO
+// ============================================================
 
 function renderizarTabla() {
     const tbody = document.getElementById('tablaFichas');
@@ -105,7 +122,7 @@ function renderizarTabla() {
             <td class="px-3 py-2">${fechaSalida}</td>
             <td class="px-3 py-2"><span class="${estadoClass}">${estadoText}</span></td>
             <td class="px-3 py-2 text-end">
-                <button type="button" class="btn btn-sm btn-outline-primary-dark" onclick="verDetalle(${f.id})" title="Ver detalle">
+                <button type="button" class="btn-action btn-outline-primary-dark" onclick="verDetalle(${f.id})" title="Ver detalle">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M12 8v4"/>
@@ -115,13 +132,13 @@ function renderizarTabla() {
 
         if (f.estado === 'en_proceso') {
             html += `
-                <button type="button" class="btn btn-sm btn-cerrar-ficha ms-1" onclick="abrirModalCerrarFicha(${f.id})" title="Cerrar ficha">
+                <button type="button" class="btn-cerrar-ficha ms-1" onclick="abrirModalCerrarFicha(${f.id})" title="Cerrar ficha">
                     ✓ Cerrar
                 </button>`;
         }
 
         html += `
-                <button type="button" class="btn btn-sm btn-outline-danger ms-1" onclick="confirmarEliminar(${f.id})" title="Eliminar">
+                <button type="button" class="btn-action text-danger ms-1" onclick="confirmarEliminar(${f.id})" title="Eliminar">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="3 6 5 6 21 6"/>
                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -177,6 +194,10 @@ function cambiarPagina(page) {
     cargarPagina(currentPage);
 }
 
+// ============================================================
+// FUNCIONES DE CARGA DE DATOS
+// ============================================================
+
 async function cargarPagina(page) {
     try {
         const params = new URLSearchParams({
@@ -209,14 +230,20 @@ async function cargarPagina(page) {
     } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('error', 'No se pudieron cargar las fichas');
-        document.getElementById('tablaFichas').innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Error al cargar los datos</td></tr>';
+        const tabla = document.getElementById('tablaFichas');
+        if (tabla) {
+            tabla.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Error al cargar los datos</td></tr>';
+        }
     }
 }
 
 function aplicarFiltros() {
+    const buscarInput = document.getElementById('buscarFichas');
+    const estadoSelect = document.getElementById('filtroEstadoFichas');
+
     filtros = {
-        search: document.getElementById('buscarFichas')?.value || '',
-        estado: document.getElementById('filtroEstadoFichas')?.value || ''
+        search: buscarInput?.value || '',
+        estado: estadoSelect?.value || ''
     };
     currentPage = 1;
     cargarPagina(1);
@@ -229,7 +256,9 @@ function aplicarFiltrosConDebounce() {
     }, 300);
 }
 
-// ==================== BUSCADOR DE ACTIVOS ====================
+// ============================================================
+// BUSCADOR DE ACTIVOS
+// ============================================================
 
 function cargarActivosParaBuscador() {
     fetch('/admin/activos', { headers: { 'Accept': 'application/json' } })
@@ -279,8 +308,6 @@ function buscarActivos() {
 }
 
 window.seleccionarActivo = function(id, serial, modelo, marca, estado) {
-    console.log('Seleccionando activo para reparación - ID:', id);
-
     const activoIdInput = document.getElementById('fichaActivoId');
     const activoBuscarInput = document.getElementById('activoBuscarInput');
     const dropdown = document.getElementById('activoDropdown');
@@ -291,7 +318,6 @@ window.seleccionarActivo = function(id, serial, modelo, marca, estado) {
 
     if (activoIdInput) {
         activoIdInput.value = id;
-        console.log('ID guardado en fichaActivoId:', activoIdInput.value);
     }
 
     if (activoBuscarInput) {
@@ -330,7 +356,9 @@ window.limpiarActivoSeleccionado = function() {
     if (submitBtn) submitBtn.disabled = true;
 }
 
-// ==================== BUSCADOR DE TÉCNICOS (CORREGIDO) ====================
+// ============================================================
+// BUSCADOR DE TÉCNICOS
+// ============================================================
 
 function buscarTecnicoPorCedula(cedula) {
     const url = '/admin/api/tecnicos?search=' + encodeURIComponent(cedula);
@@ -457,7 +485,9 @@ window.limpiarTecnicoSeleccionado = function() {
     tecnicoSeleccionado = null;
 }
 
-// ==================== BUSCADOR DE TÉCNICOS PARA EQUIPO EXTERNO ====================
+// ============================================================
+// BUSCADOR DE TÉCNICOS PARA EQUIPO EXTERNO
+// ============================================================
 
 function buscarExtTecnicoPorCedula(cedula) {
     const url = '/admin/api/tecnicos?search=' + encodeURIComponent(cedula);
@@ -584,7 +614,10 @@ window.limpiarExtTecnicoSeleccionado = function() {
     extTecnicoSeleccionado = null;
 }
 
-// ==================== ABRIR MODAL CREAR FICHA ====================
+// ============================================================
+// ABRIR MODAL CREAR FICHA
+// ============================================================
+
 window.abrirModalCrearFicha = function() {
     const form = document.getElementById('formCrearFicha');
     if (form) form.reset();
@@ -603,7 +636,10 @@ window.abrirModalCrearFicha = function() {
     if (todosActivos.length === 0) cargarActivosParaBuscador();
 };
 
-// ==================== ABRIR MODAL EQUIPO EXTERNO ====================
+// ============================================================
+// ABRIR MODAL EQUIPO EXTERNO
+// ============================================================
+
 window.abrirModalEquipoExterno = function() {
     const form = document.getElementById('formEquipoExterno');
     if (form) form.reset();
@@ -622,7 +658,9 @@ window.abrirModalEquipoExterno = function() {
     new bootstrap.Modal(document.getElementById('modalEquipoExterno')).show();
 };
 
-// ==================== EQUIPO EXTERNO - SELECTS ====================
+// ============================================================
+// EQUIPO EXTERNO - SELECTS
+// ============================================================
 
 function cargarCategoriasExterno() {
     fetch('/admin/equipos/categorias-list', { headers: { 'Accept': 'application/json' } })
@@ -681,16 +719,35 @@ function cargarResponsablesExterno(institucionId) {
     .catch(error => console.error('Error cargando responsables:', error));
 }
 
-// ==================== EVENTOS DOM ====================
+// ============================================================
+// EVENTOS DOM
+// ============================================================
+
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Módulo de fichas de soporte inicializado');
+    console.log('✅ Módulo de fichas de soporte inicializado');
 
-    initEventListeners();
+    // ========== BÚSQUEDA EN TIEMPO REAL ==========
+    const buscarInput = document.getElementById('buscarFichas');
+    const estadoSelect = document.getElementById('filtroEstadoFichas');
+    const limpiarBtn = document.getElementById('limpiarFiltros');
 
-    cargarPagina(1);
-    cargarActivosParaBuscador();
+    if (buscarInput) {
+        buscarInput.addEventListener('input', aplicarFiltrosConDebounce);
+    }
 
-    // Eventos para el buscador de activos
+    if (estadoSelect) {
+        estadoSelect.addEventListener('change', aplicarFiltros);
+    }
+
+    if (limpiarBtn) {
+        limpiarBtn.addEventListener('click', function() {
+            if (buscarInput) buscarInput.value = '';
+            if (estadoSelect) estadoSelect.value = '';
+            aplicarFiltros();
+        });
+    }
+
+    // ========== BUSCADOR DE ACTIVOS ==========
     const activoInput = document.getElementById('activoBuscarInput');
     if (activoInput) {
         activoInput.addEventListener('input', buscarActivos);
@@ -705,7 +762,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Eventos para el buscador de técnicos
+    // ========== BUSCADOR DE TÉCNICOS ==========
     const tecnicoInput = document.getElementById('tecnicoBuscarInput');
     if (tecnicoInput) {
         tecnicoInput.addEventListener('input', function() {
@@ -726,7 +783,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Eventos para el buscador de técnicos en equipo externo
+    // ========== BUSCADOR DE TÉCNICOS PARA EQUIPO EXTERNO ==========
     const extTecnicoInput = document.getElementById('ext_tecnicoBuscarInput');
     if (extTecnicoInput) {
         extTecnicoInput.addEventListener('input', function() {
@@ -747,7 +804,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Evento para cargar responsables al cambiar institución
+    // ========== EVENTO PARA CARGAR RESPONSABLES AL CAMBIAR INSTITUCIÓN ==========
     const instSelect = document.getElementById('ext_institucion_id');
     if (instSelect) {
         instSelect.addEventListener('change', function() {
@@ -755,7 +812,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Evento submit del formulario de ficha
+    // ========== CARGA INICIAL ==========
+    cargarPagina(1);
+    cargarActivosParaBuscador();
+
+    // ========== EVENTO SUBMIT DEL FORMULARIO DE FICHA ==========
     document.getElementById('formCrearFicha')?.addEventListener('submit', async function(e) {
         e.preventDefault();
 
@@ -815,7 +876,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Evento submit del formulario de equipo externo
+    // ========== EVENTO SUBMIT DEL FORMULARIO DE EQUIPO EXTERNO ==========
     document.getElementById('formEquipoExterno')?.addEventListener('submit', async function(e) {
         e.preventDefault();
 
@@ -856,7 +917,10 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// ==================== CERRAR FICHA ====================
+// ============================================================
+// CERRAR FICHA
+// ============================================================
+
 window.abrirModalCerrarFicha = async function(id) {
     try {
         const response = await fetch(`/admin/soporte/${id}/componentes`);
@@ -946,7 +1010,10 @@ document.getElementById('formCerrarFicha')?.addEventListener('submit', async fun
     }
 });
 
-// ==================== VER DETALLE ====================
+// ============================================================
+// VER DETALLE
+// ============================================================
+
 window.verDetalle = async function(id) {
     const modalBody = document.getElementById('detalleContenido');
     modalBody.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando detalles...</p></div>';
@@ -1064,7 +1131,10 @@ window.verDetalle = async function(id) {
     }
 };
 
-// ==================== ELIMINAR ====================
+// ============================================================
+// ELIMINAR
+// ============================================================
+
 window.confirmarEliminar = function(id) {
     fichaAEliminar = id;
     document.getElementById('deleteNombre').textContent = `Ficha #${id}`;
@@ -1100,15 +1170,9 @@ document.getElementById('btnConfirmarEliminar')?.addEventListener('click', async
     }
 });
 
-// ==================== LIMPIAR FILTROS ====================
-document.getElementById('limpiarFiltros')?.addEventListener('click', function() {
-    document.getElementById('buscarFichas').value = '';
-    document.getElementById('filtroEstadoFichas').value = '';
-    aplicarFiltros();
-});
+// ============================================================
+// CARGA INICIAL
+// ============================================================
 
-// ==================== EVENT LISTENERS ====================
-function initEventListeners() {
-    document.getElementById('buscarFichas')?.addEventListener('input', aplicarFiltrosConDebounce);
-    document.getElementById('filtroEstadoFichas')?.addEventListener('change', aplicarFiltros);
-}
+// Ya se ejecuta en el DOMContentLoaded
+console.log('✅ Código de soporte técnico cargado completamente');

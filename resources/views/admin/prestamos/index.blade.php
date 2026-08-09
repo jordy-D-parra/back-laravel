@@ -36,17 +36,24 @@
 @endsection
 
 @section('content')
-<div class="container-fluid p-0">
+<div class="container-fluid px-4">
 
-    <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- ========== HEADER CON GRADIENTE ========== -->
+    <div class="page-header">
         <div>
-            <h4 style="color: #1e3c72; font-weight: 700; margin: 0;">Gestión de Préstamos</h4>
-            <p style="color: #6c757d; font-size: 0.85rem; margin: 0;">Registro, control y seguimiento de préstamos de equipos y componentes</p>
+            <h4>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
+                </svg>
+                Gestión de Préstamos
+            </h4>
+            <p>Registro, control y seguimiento de préstamos de equipos y componentes</p>
         </div>
     </div>
 
-    <!-- Stats Row -->
+    <!-- ========== TARJETAS DE ESTADÍSTICAS ========== -->
     <div class="stats-row">
         <div class="stat-card-mini">
             <div class="stat-info">
@@ -54,8 +61,10 @@
                 <div class="stat-label">Total Préstamos</div>
             </div>
             <div class="stat-icon-circle">
-                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" style="width: 22px; height: 22px;">
-                    <rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <rect x="2" y="3" width="20" height="14" rx="2"/>
+                    <line x1="8" y1="21" x2="16" y2="21"/>
+                    <line x1="12" y1="17" x2="12" y2="21"/>
                 </svg>
             </div>
         </div>
@@ -64,9 +73,10 @@
                 <div class="stat-number">{{ $prestamosActivos }}</div>
                 <div class="stat-label">Activos</div>
             </div>
-            <div class="stat-icon-circle">
-                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" style="width: 22px; height: 22px;">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+            <div class="stat-icon-circle" style="background: rgba(30, 126, 52, 0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1e7e34" stroke-width="1.8">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
                 </svg>
             </div>
         </div>
@@ -76,8 +86,10 @@
                 <div class="stat-label">Vencidos</div>
             </div>
             <div class="stat-icon-circle" style="background: {{ $prestamosVencidos > 0 ? 'rgba(197, 34, 31, 0.1)' : 'rgba(30, 60, 114, 0.1)' }};">
-                <svg viewBox="0 0 24 24" stroke="{{ $prestamosVencidos > 0 ? '#c5221f' : '#1e3c72' }}" stroke-width="1.8" fill="none" style="width: 22px; height: 22px;">
-                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+                <svg viewBox="0 0 24 24" fill="none" stroke="{{ $prestamosVencidos > 0 ? '#c5221f' : '#1e3c72' }}" stroke-width="1.8">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                    <line x1="12" y1="9" x2="12" y2="13"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
                 </svg>
             </div>
         </div>
@@ -86,56 +98,63 @@
                 <div class="stat-number">{{ $prestamosDevueltos }}</div>
                 <div class="stat-label">Finalizados</div>
             </div>
-            <div class="stat-icon-circle">
-                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" style="width: 22px; height: 22px;">
+            <div class="stat-icon-circle" style="background: rgba(23, 162, 184, 0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#17a2b8" stroke-width="1.8">
                     <polyline points="20 6 9 17 4 12"/>
                 </svg>
             </div>
         </div>
     </div>
 
-    <!-- Tabs -->
+    <!-- ========== TABS ========== -->
     <ul class="nav nav-tabs-custom" id="prestamosTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="solicitudes-tab" data-bs-toggle="tab" data-bs-target="#solicitudes" type="button" role="tab">
-                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" style="width: 18px; height: 18px;">
-                    <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 7L2 7"/>
+                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M22 7l-10 7L2 7"/>
                 </svg>
                 Solicitudes
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="activos-tab" data-bs-toggle="tab" data-bs-target="#activos" type="button" role="tab">
-                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" style="width: 18px; height: 18px;">
-                    <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
                 </svg>
                 Préstamos Activos
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="finalizados-tab" data-bs-toggle="tab" data-bs-target="#finalizados" type="button" role="tab">
-                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none" style="width: 18px; height: 18px;">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/>
+                <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                    <line x1="3" y1="9" x2="21" y2="9"/>
+                    <line x1="9" y1="21" x2="9" y2="9"/>
                 </svg>
                 Finalizados
             </button>
         </li>
     </ul>
 
-    <div class="tab-content" id="prestamosTabContent">
+    <div class="tab-content">
 
         <!-- ========== TAB 1: SOLICITUDES ========== -->
         <div class="tab-pane fade show active" id="solicitudes" role="tabpanel">
             <div class="tab-header-bar">
-                <div class="d-flex gap-2">
-                    <input type="text" class="form-control form-control-sm" id="buscarSolicitudes" placeholder="Buscar solicitud..." style="max-width: 300px;">
+                <div class="filtro-busqueda">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </span>
+                        <input type="text" class="form-control" id="buscarSolicitudes" placeholder="Buscar solicitud...">
+                    </div>
                 </div>
-                <button class="btn btn-primary-dark btn-sm" onclick="abrirModalNuevoPrestamo()">
-                    <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width: 16px; height: 16px; margin-right: 4px;">
-                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Nuevo Préstamo
-                </button>
+               
             </div>
             <div class="table-container" id="tablaSolicitudes">
                 <p class="text-center py-4 text-muted">Cargando...</p>
@@ -145,58 +164,39 @@
         <!-- ========== TAB 2: PRÉSTAMOS ACTIVOS ========== -->
         <div class="tab-pane fade" id="activos" role="tabpanel">
             <div class="tab-header-bar">
-                <div class="d-flex gap-2">
-                    <input type="text" class="form-control form-control-sm" id="buscarActivos" placeholder="Buscar préstamo..." style="max-width: 300px;">
-                    <select class="form-select form-select-sm" id="filtroTipoActivos" style="max-width: 160px;">
-                        <option value="">Todos los tipos</option>
-                        <option value="equipo">Equipo</option>
-                        <option value="componente">Componente</option>
-                        <option value="mixto">Mixto</option>
-                    </select>
-                    <select class="form-select form-select-sm" id="filtroEstadoActivos" style="max-width: 160px;">
-                        <option value="">Todos los estados</option>
-                        <option value="aprobado">Aprobado</option>
-                        <option value="entregado">Entregado</option>
-                        <option value="extendido">Extendido</option>
-                        <option value="vencido">Vencido</option>
-                    </select>
+                <div class="filtro-busqueda">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </span>
+                        <input type="text" class="form-control" id="buscarActivos" placeholder="Buscar préstamo...">
+                    </div>
                 </div>
+                
             </div>
             <div class="table-container" id="tablaActivos">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Código</th>
-                            <th>Destino</th>
-                            <th>Solicitud</th>
-                            <th>Responsable</th>
-                            <th>Tipo</th>
-                            <th>F. Préstamo</th>
-                            <th>F. Devolución</th>
-                            <th>Estado</th>
-                            <th style="width:180px">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaActivosBody">
-                        <tr><td colspan="9" class="text-center py-4 text-muted">Cargando...</td></tr>
-                    </tbody>
-                </table>
+                <p class="text-center py-4 text-muted">Cargando...</p>
             </div>
         </div>
 
         <!-- ========== TAB 3: FINALIZADOS ========== -->
         <div class="tab-pane fade" id="finalizados" role="tabpanel">
             <div class="tab-header-bar">
-                <div class="d-flex gap-2">
-                    <input type="text" class="form-control form-control-sm" id="buscarFinalizados" placeholder="Buscar préstamo..." style="max-width: 300px;">
-                    <select class="form-select form-select-sm" id="filtroEstadoFinalizados" style="max-width: 160px;">
-                        <option value="">Todos</option>
-                        <option value="devuelto">Devuelto</option>
-                        <option value="cancelado">Cancelado</option>
-                    </select>
-                    <input type="date" class="form-control form-control-sm" id="filtroFechaDesde" style="max-width: 150px;" title="Desde">
-                    <input type="date" class="form-control form-control-sm" id="filtroFechaHasta" style="max-width: 150px;" title="Hasta">
+                <div class="filtro-busqueda">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </span>
+                        <input type="text" class="form-control" id="buscarFinalizados" placeholder="Buscar préstamo...">
+                    </div>
                 </div>
+                
             </div>
             <div class="table-container" id="tablaFinalizados">
                 <p class="text-center py-4 text-muted">Cargando...</p>
@@ -205,9 +205,7 @@
     </div>
 </div>
 
-<!-- ============================================ -->
-<!-- MODALES -->
-<!-- ============================================ -->
+<!-- ========== MODALES ========== -->
 
 <!-- Modal Nuevo Préstamo -->
 <div class="modal fade" id="modalPrestamo" tabindex="-1" aria-hidden="true">
@@ -217,8 +215,15 @@
                 @csrf
                 <input type="hidden" name="id" id="prestamoId">
                 <input type="hidden" name="solicitud_id" id="solicitudIdInput">
-                <div class="modal-header bg-primary-dark text-white">
-                    <h5 class="modal-title" id="modalPrestamoLabel">Nuevo Préstamo</h5>
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalPrestamoLabel">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <rect x="2" y="3" width="20" height="14" rx="2"/>
+                            <line x1="8" y1="21" x2="16" y2="21"/>
+                            <line x1="12" y1="17" x2="12" y2="21"/>
+                        </svg>
+                        Nuevo Préstamo
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -365,7 +370,8 @@
                                 </h6>
                                 <button type="button" class="btn btn-primary-dark btn-sm" onclick="agregarItem()">
                                     <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px;margin-right:4px;">
-                                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
                                     </svg>
                                     Agregar
                                 </button>
@@ -417,7 +423,7 @@
 <div class="modal fade" id="modalDetallePrestamo" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
-            <div class="modal-header bg-primary-dark text-white">
+            <div class="modal-header">
                 <h5 class="modal-title" id="modalDetalleLabel">Detalle de Préstamo</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
@@ -436,8 +442,13 @@
             <form id="formDevolucion" novalidate>
                 @csrf
                 <input type="hidden" name="prestamo_id" id="devolucionPrestamoId">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">Registrar Devolución</h5>
+                <div class="modal-header bg-success">
+                    <h5 class="modal-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Registrar Devolución
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -487,8 +498,14 @@
             <form id="formExtension" novalidate>
                 @csrf
                 <input type="hidden" name="prestamo_id" id="extensionPrestamoId">
-                <div class="modal-header bg-warning text-dark">
-                    <h5 class="modal-title">Extender Préstamo</h5>
+                <div class="modal-header bg-warning">
+                    <h5 class="modal-title">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        Extender Préstamo
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -561,7 +578,7 @@
             <form id="formCancelar" novalidate>
                 @csrf
                 <input type="hidden" name="prestamo_id" id="cancelarPrestamoId">
-                <div class="modal-header bg-danger text-white">
+                <div class="modal-header bg-danger">
                     <h5 class="modal-title">Cancelar Préstamo</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -588,7 +605,7 @@
             <form id="formAprobacion" novalidate>
                 @csrf
                 <input type="hidden" name="prestamo_id" id="aprobacionPrestamoId">
-                <div class="modal-header bg-success text-white">
+                <div class="modal-header bg-success">
                     <h5 class="modal-title">Aprobar Préstamo</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
@@ -615,7 +632,7 @@
             <form id="formRechazo" novalidate>
                 @csrf
                 <input type="hidden" name="prestamo_id" id="rechazoPrestamoId">
-                <div class="modal-header bg-warning text-dark">
+                <div class="modal-header bg-warning">
                     <h5 class="modal-title">Rechazar Préstamo</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
@@ -642,7 +659,7 @@
             <form id="formEntrega" novalidate>
                 @csrf
                 <input type="hidden" name="prestamo_id" id="entregaPrestamoId">
-                <div class="modal-header bg-primary-dark text-white">
+                <div class="modal-header">
                     <h5 class="modal-title">Registrar Entrega</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>

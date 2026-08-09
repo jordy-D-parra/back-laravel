@@ -4,62 +4,34 @@
 
 @section('styles')
     @vite(['resources/css/admin-inventario.css'])
-    @vite(['resources/css/contrast-system.css'])
-    @vite(['resources/css/smooth-modals.css'])
-    <style>
-        .bg-primary-dark { background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); }
-        .modal-header.bg-primary-dark .btn-close { filter: brightness(0) invert(1); }
-        .badge-en-bodega { background: #6c757d; color: #fff; }
-        .badge-instalado { background: #198754; color: #fff; }
-        .badge-prestado { background: #ffc107; color: #000; }
-        .badge-en-reparacion { background: #0dcaf0; color: #000; }
-        .badge-desechado { background: #dc3545; color: #fff; }
-        .badge-garantia-vencida { background: #dc3545; color: #fff; font-size: 0.7rem; }
-        .badge-garantia-vigente { background: #198754; color: #fff; font-size: 0.7rem; }
-        .modelo-info-badges { display: flex; gap: 0.5rem; margin-top: 0.25rem; flex-wrap: wrap; }
-        .modelo-info-badges .badge { font-size: 0.7rem; }
-        .stat-icon-circle svg { width: 24px; height: 24px; stroke: #1e3c72; stroke-width: 1.8; fill: none; }
-        .stat-card-mini:hover .stat-icon-circle svg { stroke: white; }
-        .btn-cambiar-estado {
-            background: transparent;
-            border: 1px solid #ffc107;
-            color: #856404;
-            transition: all 0.2s ease;
-        }
-        .btn-cambiar-estado:hover {
-            background: #ffc107;
-            color: #1a1a1a;
-            transform: scale(1.02);
-        }
-    </style>
 @endsection
 
 @section('content')
 <div class="container-fluid px-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+
+    <!-- ========== HEADER CON GRADIENTE ========== -->
+    <div class="page-header">
         <div>
-            <h3 class="fw-bold" style="color: #1e3c72;">Inventario</h3>
-            <p class="text-muted mb-0">Gestión de activos y componentes</p>
+            <h4>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:10px;">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
+                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
+                </svg>
+                Inventario
+            </h4>
+            <p>Gestión de activos y componentes tecnológicos</p>
         </div>
-        @if(auth()->user()->hasPermission('crear-activo'))
-        <button class="btn btn-primary-dark" onclick="abrirModalActivo()">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
-                <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-            </svg>
-            Nuevo Activo
-        </button>
-        @endif
     </div>
 
-    <!-- Tarjetas de estadísticas -->
-    <div class="stats-row mb-4">
+    <!-- ========== TARJETAS DE ESTADÍSTICAS ========== -->
+    <div class="stats-row">
         <div class="stat-card-mini">
             <div class="stat-info">
                 <div class="stat-number">{{ $totalActivos }}</div>
                 <div class="stat-label">Total Activos</div>
             </div>
             <div class="stat-icon-circle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
                     <line x1="9" y1="4" x2="9" y2="20"/>
                     <line x1="15" y1="4" x2="15" y2="20"/>
@@ -71,8 +43,8 @@
                 <div class="stat-number">{{ $totalComponentes }}</div>
                 <div class="stat-label">Total Componentes</div>
             </div>
-            <div class="stat-icon-circle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <div class="stat-icon-circle" style="background: rgba(23, 162, 184, 0.1);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17a2b8" stroke-width="1.8">
                     <rect x="2" y="6" width="20" height="12" rx="2" ry="2"/>
                     <line x1="9" y1="6" x2="9" y2="18"/>
                 </svg>
@@ -83,8 +55,8 @@
                 <div class="stat-number">{{ $componentesBodega }}</div>
                 <div class="stat-label">En Bodega</div>
             </div>
-            <div class="stat-icon-circle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <div class="stat-icon-circle" style="background: rgba(108, 117, 125, 0.1);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="1.8">
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/>
                     <polyline points="3 9 12 13 21 9"/>
                     <path d="M12 13v9"/>
@@ -96,8 +68,8 @@
                 <div class="stat-number">{{ $activosPrestados }}</div>
                 <div class="stat-label">Prestados</div>
             </div>
-            <div class="stat-icon-circle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <div class="stat-icon-circle" style="background: rgba(255, 193, 7, 0.1);">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f6c23e" stroke-width="1.8">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                     <circle cx="8.5" cy="7" r="4"/>
                     <path d="M17 11l2.5-2.5M22 9l-2.5 2.5M19 11.5V6"/>
@@ -106,50 +78,63 @@
         </div>
     </div>
 
-    <!-- Tabs -->
-    <ul class="nav nav-tabs nav-tabs-custom mb-3">
-        <li class="nav-item">
-            <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#activos">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+    <!-- ========== BOTONES PARA CAMBIAR ENTRE ACTIVOS Y COMPONENTES ========== -->
+    <div class="mb-3">
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-primary-dark active" id="btnActivos" onclick="mostrarActivos()" >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:4px;">
                     <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
                     <line x1="9" y1="4" x2="9" y2="20"/>
                     <line x1="15" y1="4" x2="15" y2="20"/>
                 </svg>
-                Activos <span class="tab-badge">{{ $totalActivos }}</span>
+                Activos
+                <span class="badge bg-light text-dark ms-1">{{ $totalActivos }}</span>
             </button>
-        </li>
-        <li class="nav-item">
-            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#componentes">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+            <button type="button" class="btn btn-outline-primary-dark" id="btnComponentes" onclick="mostrarComponentes()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:4px;">
                     <rect x="2" y="6" width="20" height="12" rx="2" ry="2"/>
                     <line x1="9" y1="6" x2="9" y2="18"/>
                 </svg>
-                Componentes <span class="tab-badge">{{ $totalComponentes }}</span>
+                Componentes
+                <span class="badge bg-light text-dark ms-1">{{ $totalComponentes }}</span>
             </button>
-        </li>
-    </ul>
+        </div>
+    </div>
 
-    <div class="tab-content mt-3">
-        <!-- ACTIVOS -->
-        <div class="tab-pane fade show active" id="activos">
-            <div class="filters-bar mb-3">
-                <div class="flex-grow-1">
-                    <input type="text" id="buscarActivos" class="form-control" placeholder="Buscar por serial, modelo...">
+    <!-- ========== SECCIÓN DE ACTIVOS ========== -->
+    <div id="seccionActivos">
+        <!-- Barra de filtros para Activos -->
+        <div class="filters-bar">
+            <div class="filtro-busqueda">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </span>
+                    <input type="text" class="form-control" id="buscarActivos"
+                           placeholder="Buscar por serial, modelo...">
                 </div>
-                <select id="filtroEstadoActivos" class="form-select" style="width:160px">
-                    <option value="">Todos los estados</option>
-                </select>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+               
                 @if(auth()->user()->hasPermission('crear-activo'))
-                <button class="btn btn-primary-dark" onclick="abrirModalActivo()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
-                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                <button class="btn btn-primary-dark btn-accion" onclick="abrirModalActivo()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block; margin-right:4px;">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
-                    Nuevo
+                    Nuevo Activo
                 </button>
                 @endif
             </div>
-            <div class="table-container">
-                <table class="table table-hover">
+        </div>
+
+        <!-- Tabla de Activos -->
+        <div class="table-container">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr>
                             <th>Serial</th>
@@ -161,35 +146,47 @@
                         </tr>
                     </thead>
                     <tbody id="tablaActivos">
-                        <tr><td colspan="6" class="text-center py-4 text-muted">Cargando...<\/td></tr>
+                        <tr><td colspan="6" class="text-center py-4 text-muted">Cargando...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
+    </div>
 
-        <!-- COMPONENTES -->
-        <div class="tab-pane fade" id="componentes">
-            <div class="filters-bar mb-3">
-                <div class="flex-grow-1">
-                    <input type="text" id="buscarComponentes" class="form-control" placeholder="Buscar por tipo, marca, serial...">
+    <!-- ========== SECCIÓN DE COMPONENTES ========== -->
+    <div id="seccionComponentes" style="display:none;">
+        <!-- Barra de filtros para Componentes -->
+        <div class="filters-bar">
+            <div class="filtro-busqueda">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </span>
+                    <input type="text" class="form-control" id="buscarComponentes"
+                           placeholder="Buscar por tipo, marca, serial...">
                 </div>
-                <select id="filtroTipoComponentes" class="form-select" style="width:150px">
-                    <option value="">Todos los tipos</option>
-                </select>
-                <select id="filtroEstadoComponentes" class="form-select" style="width:160px">
-                    <option value="">Todos los estados</option>
-                </select>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                
                 @if(auth()->user()->hasPermission('crear-componente'))
-                <button class="btn btn-primary-dark" onclick="abrirModalComponente()">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
-                        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+                <button class="btn btn-primary-dark btn-accion" onclick="abrirModalComponente()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block; margin-right:4px;">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
                     </svg>
-                    Nuevo
+                    Nuevo Componente
                 </button>
                 @endif
             </div>
-            <div class="table-container">
-                <table class="table table-hover">
+        </div>
+
+        <!-- Tabla de Componentes -->
+        <div class="table-container">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr>
                             <th>Tipo</th>
@@ -202,7 +199,7 @@
                         </tr>
                     </thead>
                     <tbody id="tablaComponentes">
-                        <tr><td colspan="7" class="text-center py-4 text-muted">Cargando...<\/td></tr>
+                        <tr><td colspan="7" class="text-center py-4 text-muted">Cargando...</td></tr>
                     </tbody>
                 </table>
             </div>
@@ -210,12 +207,19 @@
     </div>
 </div>
 
-<!-- MODAL ACTIVO -->
+<!-- ========== MODAL ACTIVO ========== -->
 <div class="modal fade" id="modalActivo" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary-dark">
-                <h5 class="modal-title text-white" id="modalActivoLabel">Nuevo Activo</h5>
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalActivoLabel">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:8px;">
+                        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                        <line x1="9" y1="4" x2="9" y2="20"/>
+                        <line x1="15" y1="4" x2="15" y2="20"/>
+                    </svg>
+                    Nuevo Activo
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formActivo">
@@ -226,13 +230,16 @@
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Serial <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="activo_serial" name="serial" required>
+                            <div id="serialFeedback" class="small mt-1"></div>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Modelo <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="activo_modelo_buscar" placeholder="Escriba para buscar modelo..." autocomplete="off" oninput="filtrarModelos()" onfocus="filtrarModelos()">
-                            <input type="hidden" id="activo_modelo_id" name="modelo_id">
-                            <div id="modeloDropdown" class="list-group" style="display:none; position:absolute; z-index:1000; max-height:200px; overflow-y:auto; width:calc(100% - 1.5rem);"></div>
-                            <div id="modeloInfoBadges" class="modelo-info-badges"></div>
+                            <div class="position-relative">
+                                <input type="text" class="form-control" id="activo_modelo_buscar" placeholder="Escriba para buscar modelo..." autocomplete="off" oninput="filtrarModelos()" onfocus="filtrarModelos()">
+                                <input type="hidden" id="activo_modelo_id" name="modelo_id">
+                                <div id="modeloDropdown" class="list-group position-absolute w-100" style="display:none; z-index:1000; max-height:200px; overflow-y:auto; background:white; border:1px solid #dee2e6; border-radius:0 0 8px 8px;"></div>
+                            </div>
+                            <div id="modeloInfoBadges" class="mt-2"></div>
                         </div>
                     </div>
                     <div class="row">
@@ -280,8 +287,8 @@
                         <textarea class="form-control" id="activo_observaciones" name="observaciones" rows="2"></textarea>
                     </div>
                     <hr>
-                    <h6 class="fw-bold mb-3" style="color: #1e3c72;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                    <h6 class="fw-bold mb-3" style="color: var(--primary-dark);">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:6px;">
                             <rect x="2" y="6" width="20" height="12" rx="2" ry="2"/>
                             <line x1="9" y1="6" x2="9" y2="18"/>
                         </svg>
@@ -292,13 +299,13 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary-dark">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:4px;">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                             <polyline points="17 21 17 13 7 13 7 21"/>
                         </svg>
-                        Guardar Activo y Componentes
+                        Guardar Activo
                     </button>
                 </div>
             </form>
@@ -306,12 +313,18 @@
     </div>
 </div>
 
-<!-- MODAL COMPONENTE -->
+<!-- ========== MODAL COMPONENTE ========== -->
 <div class="modal fade" id="modalComponente" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary-dark">
-                <h5 class="modal-title text-white" id="modalComponenteLabel">Nuevo Componente</h5>
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalComponenteLabel">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:8px;">
+                        <rect x="2" y="6" width="20" height="12" rx="2" ry="2"/>
+                        <line x1="9" y1="6" x2="9" y2="18"/>
+                    </svg>
+                    Nuevo Componente
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <form id="formComponente">
@@ -382,13 +395,13 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-primary-dark">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:4px;">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                             <polyline points="17 21 17 13 7 13 7 21"/>
                         </svg>
-                        Guardar
+                        Guardar Componente
                     </button>
                 </div>
             </form>
@@ -396,12 +409,12 @@
     </div>
 </div>
 
-<!-- MODAL DETALLE -->
+<!-- ========== MODAL DETALLE ========== -->
 <div class="modal fade" id="modalDetalle" tabindex="-1">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary-dark">
-                <h5 class="modal-title text-white" id="modalDetalleLabel">Detalle</h5>
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalDetalleLabel">Detalle</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="detalleContenido">Cargando...</div>
@@ -412,33 +425,34 @@
     </div>
 </div>
 
-<!-- MODAL ELIMINAR -->
+<!-- ========== MODAL ELIMINAR ========== -->
 <div class="modal fade" id="modalEliminar" tabindex="-1">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirmar</h5>
+                <h5 class="modal-title">Confirmar Eliminación</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
                 <p>¿Eliminar este registro?</p>
                 <p class="fw-bold text-danger" id="deleteNombre"></p>
+                <p class="small text-muted">Esta acción no se puede deshacer.</p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">Eliminar</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- MODAL CAMBIAR ESTADO - CON SELECTOR -->
+<!-- ========== MODAL CAMBIAR ESTADO ========== -->
 <div class="modal fade" id="modalCambiarEstado" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm">
         <div class="modal-content">
-            <div class="modal-header bg-primary-dark">
-                <h5 class="modal-title text-white">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" class="me-2">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:8px;">
                         <polyline points="1 4 1 10 7 10"/>
                         <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
                     </svg>
@@ -456,7 +470,7 @@
                     </select>
                 </div>
                 <p class="small text-muted mt-2">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2" class="me-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2" style="display:inline-block; margin-right:4px;">
                         <circle cx="12" cy="12" r="10"/>
                         <path d="M12 16v-4M12 8h.01"/>
                     </svg>
@@ -464,9 +478,9 @@
                 </p>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-primary-dark" id="btnConfirmarCambioEstado">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" class="me-1">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:4px;">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
                     Cambiar Estado
@@ -480,14 +494,94 @@
 
 @section('scripts')
     @vite(['resources/js/admin-inventario.js'])
-    @vite(['resources/js/help-panel.js'])
-    @vite(['resources/js/validations.js'])
     <script>
-        // Permisos del usuario desde el backend
         window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
-
         function authUserHasPermission(permiso) {
             return window.userPermissions.includes(permiso);
         }
+
+        // ============================================================
+        // FUNCIONES PARA CAMBIAR ENTRE ACTIVOS Y COMPONENTES
+        // ============================================================
+        function mostrarActivos() {
+            document.getElementById('seccionActivos').style.display = 'block';
+            document.getElementById('seccionComponentes').style.display = 'none';
+
+            document.getElementById('btnActivos').className = 'btn btn-primary-dark active';
+            document.getElementById('btnComponentes').className = 'btn btn-outline-primary-dark';
+
+            if (typeof cargarActivos === 'function') {
+                cargarActivos();
+            }
+        }
+
+        function mostrarComponentes() {
+            document.getElementById('seccionActivos').style.display = 'none';
+            document.getElementById('seccionComponentes').style.display = 'block';
+
+            document.getElementById('btnComponentes').className = 'btn btn-primary-dark active';
+            document.getElementById('btnActivos').className = 'btn btn-outline-primary-dark';
+
+            if (typeof cargarComponentes === 'function') {
+                cargarComponentes();
+            }
+        }
+
+        // ============================================================
+        // INICIALIZACIÓN - Cargar Activos por defecto
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Cargar activos al inicio
+            if (typeof cargarActivos === 'function') {
+                cargarActivos();
+            }
+
+            // Búsqueda en tiempo real
+            const buscarActivos = document.getElementById('buscarActivos');
+            if (buscarActivos) {
+                buscarActivos.addEventListener('input', function() {
+                    if (typeof cargarActivos === 'function') {
+                        cargarActivos();
+                    }
+                });
+            }
+
+            const buscarComponentes = document.getElementById('buscarComponentes');
+            if (buscarComponentes) {
+                buscarComponentes.addEventListener('input', function() {
+                    if (typeof cargarComponentes === 'function') {
+                        cargarComponentes();
+                    }
+                });
+            }
+
+            // Filtros
+            const filtroEstadoActivos = document.getElementById('filtroEstadoActivos');
+            if (filtroEstadoActivos) {
+                filtroEstadoActivos.addEventListener('change', function() {
+                    if (typeof cargarActivos === 'function') {
+                        cargarActivos();
+                    }
+                });
+            }
+
+            const filtroTipoComponentes = document.getElementById('filtroTipoComponentes');
+            if (filtroTipoComponentes) {
+                filtroTipoComponentes.addEventListener('change', function() {
+                    if (typeof cargarComponentes === 'function') {
+                        cargarComponentes();
+                    }
+                });
+            }
+
+            const filtroEstadoComponentes = document.getElementById('filtroEstadoComponentes');
+            if (filtroEstadoComponentes) {
+                filtroEstadoComponentes.addEventListener('change', function() {
+                    if (typeof cargarComponentes === 'function') {
+                        cargarComponentes();
+                    }
+                });
+            }
+        });
     </script>
 @endsection

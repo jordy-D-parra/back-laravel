@@ -10,16 +10,22 @@ use Illuminate\Support\Facades\DB;
 
 class RoleController extends Controller
 {
-    /**
-     * Lista de roles con vista principal
-     */
     public function index(Request $request)
     {
         $roles = Rol::withCount('usuarios')->orderBy('nombre')->get();
         $permisos = Permiso::orderBy('categoria')->orderBy('nombre')->get();
         $permisosAgrupados = $permisos->groupBy('categoria');
 
-        return view('admin.roles.index', compact('roles', 'permisosAgrupados'));
+        // Estadísticas para las tarjetas (sin Usuario)
+        $totalRoles = Rol::count();
+        $totalPermisos = Permiso::count();
+
+        return view('admin.roles.index', compact(
+            'roles',
+            'permisosAgrupados',
+            'totalRoles',
+            'totalPermisos'
+        ));
     }
 
     /**

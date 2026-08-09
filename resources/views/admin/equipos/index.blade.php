@@ -748,15 +748,6 @@
             </h4>
             <p style="color: rgba(255,255,255,0.8); font-size: 0.85rem; margin: 0;">Gestión de marcas, categorías y modelos</p>
         </div>
-        <div>
-            <span class="badge bg-light text-dark px-3 py-2 rounded-pill" style="background: rgba(255,255,255,0.15) !important; color: white !important; font-size: 0.75rem;">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1" style="display:inline;">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                {{ now()->format('d/m/Y H:i') }}
-            </span>
-        </div>
     </div>
 
     <!-- Stats -->
