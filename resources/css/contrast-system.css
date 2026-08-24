@@ -1,0 +1,154 @@
+/* ========================================
+   SISTEMA DE CONTRASTE AUTOMÁTICO
+   ======================================== */
+
+:root {
+    /* Fondos */
+    --bg-dark: #1e3c72;
+    --bg-darker: #152a50;
+    --bg-light: #ffffff;
+    --bg-light-alt: #f8f9fa;
+
+    /* Textos */
+    --text-on-dark: #ffffff;
+    --text-on-light: #1a1a1a;
+    --text-muted-on-dark: rgba(255, 255, 255, 0.7);
+    --text-muted-on-light: #6c757d;
+
+    /* Bordes */
+    --border-on-dark: rgba(255, 255, 255, 0.2);
+    --border-on-light: #dee2e6;
+
+    /* Estados */
+    --success-bg: #d4edda;
+    --success-text: #155724;
+    --danger-bg: #f8d7da;
+    --danger-text: #721c24;
+    --warning-bg: #fff3cd;
+    --warning-text: #856404;
+    --info-bg: #d1ecf1;
+    --info-text: #0c5460;
+}
+
+/* Clases de contraste automático */
+.bg-dark-section {
+    background: var(--bg-dark) !important;
+    color: var(--text-on-dark) !important;
+}
+
+.bg-dark-section .text-muted,
+.bg-dark-section .form-label {
+    color: var(--text-muted-on-dark) !important;
+}
+
+.bg-dark-section .form-control,
+.bg-dark-section .form-select {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--border-on-dark);
+    color: var(--text-on-dark);
+}
+
+.bg-dark-section .form-control::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.bg-dark-section .form-control:focus,
+.bg-dark-section .form-select:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: var(--text-on-dark);
+}
+
+.bg-light-section {
+    background: var(--bg-light) !important;
+    color: var(--text-on-light) !important;
+}
+
+.bg-light-section .text-muted,
+.bg-light-section .form-label {
+    color: var(--text-muted-on-light) !important;
+}
+
+/* Badges con contraste */
+.badge-success {
+    background: var(--success-bg) !important;
+    color: var(--success-text) !important;
+    border: 1px solid var(--success-text);
+}
+
+.badge-danger {
+    background: var(--danger-bg) !important;
+    color: var(--danger-text) !important;
+    border: 1px solid var(--danger-text);
+}
+
+.badge-warning {
+    background: var(--warning-bg) !important;
+    color: var(--warning-text) !important;
+    border: 1px solid var(--warning-text);
+}
+
+.badge-info {
+    background: var(--info-bg) !important;
+    color: var(--info-text) !important;
+    border: 1px solid var(--info-text);
+}
+
+/* Tablas con contraste */
+.table-container {
+    background: var(--bg-light);
+    color: var(--text-on-light);
+}
+
+.table-container thead th {
+    background: var(--bg-light-alt);
+    color: var(--text-on-light);
+    border-bottom: 2px solid var(--border-on-light);
+}
+
+/* Modales */
+.modal-content {
+    background: var(--bg-light);
+    color: var(--text-on-light);
+}
+
+.modal-header.bg-primary-dark {
+    background: linear-gradient(135deg, var(--bg-dark) 0%, #2a5298 100%) !important;
+    color: var(--text-on-dark) !important;
+}
+
+.modal-header.bg-primary-dark .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+.modal-header.bg-danger {
+    background: var(--danger-bg) !important;
+    color: var(--danger-text) !important;
+}
+
+.modal-header.bg-danger .btn-close {
+    filter: none;
+}
+
+/* Tarjetas */
+.stat-card-mini {
+    background: var(--bg-light);
+    color: var(--text-on-light);
+}
+
+.stat-card-mini .stat-number {
+    color: var(--bg-dark);
+}
+
+/* Navegación */
+.nav-tabs-custom .nav-link {
+    color: var(--text-muted-on-light);
+}
+
+.nav-tabs-custom .nav-link:hover {
+    color: var(--bg-dark);
+}
+
+.nav-tabs-custom .nav-link.active {
+    color: var(--bg-dark);
+}
