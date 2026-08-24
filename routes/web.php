@@ -267,12 +267,29 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/ubicaciones/estados/{estadoId}/municipios', [App\Http\Controllers\Admin\UbicacionController::class, 'getMunicipios'])->name('ubicaciones.municipios');
         Route::get('/ubicaciones/municipios/{municipioId}/parroquias', [App\Http\Controllers\Admin\UbicacionController::class, 'getParroquias'])->name('ubicaciones.parroquias');
 
-        // ========== NOTIFICACIONES ==========
+    // ========== NOTIFICACIONES ==========
 Route::prefix('notificaciones')->name('notificaciones.')->group(function () {
     Route::get('/', [App\Http\Controllers\Admin\NotificacionController::class, 'index'])->name('index');
     Route::post('/{id}/leer', [App\Http\Controllers\Admin\NotificacionController::class, 'marcarComoLeida'])->name('leer');
     Route::post('/marcar-todas-leidas', [App\Http\Controllers\Admin\NotificacionController::class, 'marcarTodasComoLeidas'])->name('marcar-todas');
     Route::get('/no-leidas', [App\Http\Controllers\Admin\NotificacionController::class, 'obtenerNoLeidas'])->name('no-leidas');
+    
+    // ========== NUEVA RUTA PARA DETALLE ==========
+    Route::get('/{id}/detalle', function ($id) {
+        $notificacion = App\Models\Notificacion::findOrFail($id);
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $notificacion->id,
+                'titulo' => $notificacion->titulo,
+                'mensaje' => $notificacion->mensaje,
+                'tipo' => $notificacion->tipo,
+                'url' => $notificacion->url,
+                'leida' => $notificacion->leida,
+                'fecha_envio' => $notificacion->fecha_envio->toISOString(),
+            ]
+        ]);
+    })->name('detalle');
 });
 
         // ========== API PARA OBTENER RESPONSABLES ==========
