@@ -1,5 +1,4 @@
 <?php
-// app/Models/Notificacion.php
 
 namespace App\Models;
 
@@ -38,5 +37,10 @@ class Notificacion extends Model
     public function scopePorUsuario($query, $usuarioId)
     {
         return $query->where('usuario_id', $usuarioId);
+    }
+
+    public function scopeExternas($query)
+    {
+        return $query->whereNull('usuario_id');
     }
 }

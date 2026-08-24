@@ -1,5 +1,5 @@
 // resources/js/admin-solicitudes.js
-// ✅ VERSIÓN COMPLETA CON BÚSQUEDA EN TIEMPO REAL
+// ✅ VERSIÓN COMPLETA CON BÚSQUEDA EN TIEMPO REAL Y RESPONSABLE CORREGIDO
 
 let solicitudesData = [];
 let currentPage = 1;
@@ -416,8 +416,181 @@ function aplicarFiltrosConDebounce() {
     timeoutBusqueda = setTimeout(() => aplicarFiltros(), 300);
 }
 
+// ==================== INICIALIZAR EVENTOS DE RESPONSABLE ====================
+function initResponsableEvents() {
+    console.log('🔄 Inicializando eventos de responsable...');
+    
+    // Evento para departamento
+    const deptoSelect = document.getElementById('departamentoSelect');
+    if (deptoSelect) {
+        console.log('✅ Select de departamento encontrado');
+        deptoSelect.addEventListener('change', function() {
+            const id = this.value;
+            console.log('📌 Departamento seleccionado:', id);
+            
+            const display = document.getElementById('responsableDisplay');
+            const hiddenInput = document.getElementById('responsable_id_hidden');
+            
+            if (id && id !== 'otro' && id !== '') {
+                cargarResponsablePorDepartamento(id);
+            } else {
+                if (display) {
+                    display.innerHTML = '<span class="text-muted">Seleccione una opción</span>';
+                }
+                if (hiddenInput) hiddenInput.value = '';
+            }
+        });
+    } else {
+        console.warn('⚠️ Select de departamento no encontrado');
+    }
+    
+    // Evento para institución
+    const instSelect = document.getElementById('institucionSelect');
+    if (instSelect) {
+        console.log('✅ Select de institución encontrado');
+        instSelect.addEventListener('change', function() {
+            const id = this.value;
+            console.log('📌 Institución seleccionada:', id);
+            
+            const display = document.getElementById('responsableDisplay');
+            const hiddenInput = document.getElementById('responsable_id_hidden');
+            
+            if (id && id !== 'otro' && id !== '') {
+                cargarResponsablePorInstitucion(id);
+            } else {
+                if (display) {
+                    display.innerHTML = '<span class="text-muted">Seleccione una opción</span>';
+                }
+                if (hiddenInput) hiddenInput.value = '';
+            }
+        });
+    } else {
+        console.warn('⚠️ Select de institución no encontrado');
+    }
+}
+
+// ==================== FUNCIONES DE RESPONSABLE CORREGIDAS ====================
+
+async function cargarResponsablePorDepartamento(departamentoId) {
+    try {
+        console.log('📌 Cargando responsable para departamento ID:', departamentoId);
+        
+        const response = await fetch(`/admin/api/departamento/${departamentoId}/responsable`);
+        const data = await response.json();
+        
+        console.log('📌 Respuesta del servidor:', data);
+        
+        const display = document.getElementById('responsableDisplay');
+        const hiddenInput = document.getElementById('responsable_id_hidden');
+        
+        if (data.responsable) {
+            const responsable = data.responsable;
+            if (display) {
+                display.innerHTML = `
+                    <div class="d-flex align-items-start gap-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2" class="mt-1 flex-shrink-0">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        <div>
+                            <strong style="color: #1e3c72;">${escapeHtml(responsable.nombre)}</strong>
+                            <br><small class="text-muted">${escapeHtml(responsable.cargo || 'Sin cargo')}</small>
+                            <br><small class="text-muted">📞 ${escapeHtml(responsable.telefono || 'Sin teléfono')}</small>
+                            ${responsable.email ? `<br><small class="text-muted">✉️ ${escapeHtml(responsable.email)}</small>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            if (hiddenInput) {
+                hiddenInput.value = responsable.id;
+                console.log('✅ Responsable ID asignado:', hiddenInput.value);
+            }
+            console.log('✅ Responsable seleccionado:', responsable.nombre, 'ID:', responsable.id);
+        } else {
+            if (display) {
+                display.innerHTML = `
+                    <span class="text-warning">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" style="display:inline;margin-right:4px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 16v-4M12 8h.01"/>
+                        </svg>
+                        No hay responsable asignado a este departamento
+                    </span>
+                `;
+            }
+            if (hiddenInput) hiddenInput.value = '';
+        }
+    } catch (error) { 
+        console.error('❌ Error al cargar responsable:', error);
+        const display = document.getElementById('responsableDisplay');
+        if (display) {
+            display.innerHTML = '<span class="text-danger">Error al cargar responsable</span>';
+        }
+    }
+}
+
+async function cargarResponsablePorInstitucion(institucionId) {
+    try {
+        console.log('📌 Cargando responsable para institución ID:', institucionId);
+        
+        const response = await fetch(`/admin/api/institucion/${institucionId}/responsable`);
+        const data = await response.json();
+        
+        console.log('📌 Respuesta del servidor:', data);
+        
+        const display = document.getElementById('responsableDisplay');
+        const hiddenInput = document.getElementById('responsable_id_hidden');
+        
+        if (data.responsable) {
+            const responsable = data.responsable;
+            if (display) {
+                display.innerHTML = `
+                    <div class="d-flex align-items-start gap-2">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2" class="mt-1 flex-shrink-0">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        <div>
+                            <strong style="color: #1e3c72;">${escapeHtml(responsable.nombre)}</strong>
+                            <br><small class="text-muted">${escapeHtml(responsable.cargo || 'Sin cargo')}</small>
+                            <br><small class="text-muted">📞 ${escapeHtml(responsable.telefono || 'Sin teléfono')}</small>
+                            ${responsable.email ? `<br><small class="text-muted">✉️ ${escapeHtml(responsable.email)}</small>` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            if (hiddenInput) {
+                hiddenInput.value = responsable.id;
+                console.log('✅ Responsable ID asignado:', hiddenInput.value);
+            }
+            console.log('✅ Responsable seleccionado:', responsable.nombre, 'ID:', responsable.id);
+        } else {
+            if (display) {
+                display.innerHTML = `
+                    <span class="text-warning">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" style="display:inline;margin-right:4px;">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 16v-4M12 8h.01"/>
+                        </svg>
+                        No hay responsable asignado a esta institución
+                    </span>
+                `;
+            }
+            if (hiddenInput) hiddenInput.value = '';
+        }
+    } catch (error) { 
+        console.error('❌ Error al cargar responsable:', error);
+        const display = document.getElementById('responsableDisplay');
+        if (display) {
+            display.innerHTML = '<span class="text-danger">Error al cargar responsable</span>';
+        }
+    }
+}
+
 // ==================== FUNCIONES DE MODALES ====================
 window.abrirModalCrear = function() {
+    console.log('🔄 Abriendo modal de crear solicitud...');
+    
     const form = document.getElementById('formCrearSolicitud');
     if (form) form.reset();
 
@@ -429,16 +602,23 @@ window.abrirModalCrear = function() {
     if (internoFields) internoFields.style.display = 'block';
     if (externoFields) externoFields.style.display = 'none';
 
+    // ✅ RESETEAR EL DISPLAY DEL RESPONSABLE
     const responsableDisplay = document.getElementById('responsableDisplay');
-    if (responsableDisplay) responsableDisplay.innerHTML = '<span class="text-muted">Seleccione una opción</span>';
+    if (responsableDisplay) {
+        responsableDisplay.innerHTML = '<span class="text-muted">Seleccione un departamento o institución</span>';
+    }
+    
+    // ✅ RESETEAR EL CAMPO OCULTO DEL RESPONSABLE
+    const responsableHidden = document.getElementById('responsable_id_hidden');
+    if (responsableHidden) {
+        responsableHidden.value = '';
+        console.log('✅ Responsable ID reseteado');
+    }
 
     const deptoNuevo = document.getElementById('departamento-nuevo-field');
     const instNuevo = document.getElementById('institucion-nuevo-field');
     if (deptoNuevo) deptoNuevo.style.display = 'none';
     if (instNuevo) instNuevo.style.display = 'none';
-
-    const responsableHidden = document.getElementById('responsable_id_hidden');
-    if (responsableHidden) responsableHidden.value = '';
 
     cargarUbicacionSolicitud();
 
@@ -449,8 +629,22 @@ window.abrirModalCrear = function() {
         itemsContainer.innerHTML = `<div class="item-card"><div class="row g-2"><div class="col-md-3"><select name="items[0][tipo_item]" class="form-select form-select-sm" required><option value="activo">Activo</option><option value="componente">Componente</option></select></div><div class="col-md-7"><input type="text" name="items[0][item_descripcion]" class="form-control form-control-sm" placeholder="Descripción del item" required></div><div class="col-md-2"><div class="input-group"><input type="number" name="items[0][cantidad]" class="form-control form-control-sm" value="1" min="1" required><button type="button" class="btn btn-sm btn-outline-danger remove-item-modal">×</button></div></div></div></div>`;
     }
 
+    // ✅ Inicializar eventos de responsable después de abrir el modal
+    setTimeout(() => {
+        initResponsableEvents();
+    }, 100);
+
     const modalCrear = document.getElementById('modalCrear');
-    if (modalCrear) new bootstrap.Modal(modalCrear).show();
+    if (modalCrear) {
+        const modal = new bootstrap.Modal(modalCrear);
+        modal.show();
+        
+        // Cuando el modal se muestra completamente, asegurar que los eventos estén activos
+        modalCrear.addEventListener('shown.bs.modal', function() {
+            console.log('✅ Modal de crear mostrado, inicializando eventos...');
+            initResponsableEvents();
+        }, { once: true });
+    }
 };
 
 window.verDetalles = async function(id) {
@@ -728,38 +922,6 @@ window.confirmarCancelar = async function() {
     } catch (error) { console.error('Error:', error); mostrarNotificacion('error', 'Error de conexión'); }
 };
 
-async function cargarResponsablePorDepartamento(departamentoId) {
-    try {
-        const response = await fetch(`/admin/api/departamento/${departamentoId}/responsable`);
-        const data = await response.json();
-        const display = document.getElementById('responsableDisplay');
-        const hiddenInput = document.getElementById('responsable_id_hidden');
-        if (data.responsable) {
-            if (display) display.innerHTML = `<strong>${escapeHtml(data.responsable.nombre)}</strong><br><small>${escapeHtml(data.responsable.cargo || '')} - ${escapeHtml(data.responsable.telefono || '')}</small>`;
-            if (hiddenInput) hiddenInput.value = data.responsable.id;
-        } else {
-            if (display) display.innerHTML = '<span class="text-muted">No hay responsable asignado a este departamento</span>';
-            if (hiddenInput) hiddenInput.value = '';
-        }
-    } catch (error) { console.error('Error:', error); }
-}
-
-async function cargarResponsablePorInstitucion(institucionId) {
-    try {
-        const response = await fetch(`/admin/api/institucion/${institucionId}/responsable`);
-        const data = await response.json();
-        const display = document.getElementById('responsableDisplay');
-        const hiddenInput = document.getElementById('responsable_id_hidden');
-        if (data.responsable) {
-            if (display) display.innerHTML = `<strong>${escapeHtml(data.responsable.nombre)}</strong><br><small>${escapeHtml(data.responsable.cargo || '')} - ${escapeHtml(data.responsable.telefono || '')}</small>`;
-            if (hiddenInput) hiddenInput.value = data.responsable.id;
-        } else {
-            if (display) display.innerHTML = '<span class="text-muted">No hay responsable asignado a esta institución</span>';
-            if (hiddenInput) hiddenInput.value = '';
-        }
-    } catch (error) { console.error('Error:', error); }
-}
-
 function initCrearEventListeners() {
     const tipoSolicitante = document.getElementById('tipoSolicitante');
     if (tipoSolicitante) {
@@ -769,9 +931,19 @@ function initCrearEventListeners() {
             if (this.value === 'interno') {
                 if (internoFields) internoFields.style.display = 'block';
                 if (externoFields) externoFields.style.display = 'none';
+                // ✅ Resetear responsable cuando cambia de tipo
+                const display = document.getElementById('responsableDisplay');
+                const hidden = document.getElementById('responsable_id_hidden');
+                if (display) display.innerHTML = '<span class="text-muted">Seleccione un departamento</span>';
+                if (hidden) hidden.value = '';
             } else {
                 if (internoFields) internoFields.style.display = 'none';
                 if (externoFields) externoFields.style.display = 'block';
+                // ✅ Resetear responsable cuando cambia de tipo
+                const display = document.getElementById('responsableDisplay');
+                const hidden = document.getElementById('responsable_id_hidden');
+                if (display) display.innerHTML = '<span class="text-muted">Seleccione una institución</span>';
+                if (hidden) hidden.value = '';
             }
         });
     }
@@ -788,8 +960,10 @@ function initCrearEventListeners() {
                 if (hiddenInput) hiddenInput.value = '';
             } else {
                 if (nuevoField) nuevoField.style.display = 'none';
-                if (this.value) cargarResponsablePorDepartamento(this.value);
-                else {
+                if (this.value) {
+                    // ✅ Cargar responsable automáticamente
+                    cargarResponsablePorDepartamento(this.value);
+                } else {
                     if (display) display.innerHTML = '<span class="text-muted">Seleccione una opción</span>';
                     if (hiddenInput) hiddenInput.value = '';
                 }
@@ -809,8 +983,10 @@ function initCrearEventListeners() {
                 if (hiddenInput) hiddenInput.value = '';
             } else {
                 if (nuevoField) nuevoField.style.display = 'none';
-                if (this.value) cargarResponsablePorInstitucion(this.value);
-                else {
+                if (this.value) {
+                    // ✅ Cargar responsable automáticamente
+                    cargarResponsablePorInstitucion(this.value);
+                } else {
                     if (display) display.innerHTML = '<span class="text-muted">Seleccione una opción</span>';
                     if (hiddenInput) hiddenInput.value = '';
                 }
@@ -860,6 +1036,9 @@ function initCrearEventListeners() {
             container.appendChild(newCard);
         });
     }
+    
+    // ✅ Inicializar eventos de responsable
+    initResponsableEvents();
 }
 
 // ==================== ENVÍO DE FORMULARIOS ====================
@@ -870,8 +1049,10 @@ document.getElementById('formCrearSolicitud')?.addEventListener('submit', async 
     if (submitBtn) { submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Enviando...'; submitBtn.disabled = true; }
     const formData = new FormData(this);
     
-    // ✅ VERIFICAR RESPONSABLE - SOLO ESTO SE AGREGA
+    // ✅ VERIFICAR RESPONSABLE
     const responsableId = formData.get('responsable_id');
+    console.log('✅ Responsable ID enviado:', responsableId);
+    
     if (!responsableId) {
         mostrarNotificacion('error', '⚠️ Debe seleccionar un responsable antes de enviar');
         if (submitBtn) { 
@@ -893,7 +1074,29 @@ document.getElementById('formCrearSolicitud')?.addEventListener('submit', async 
     try {
         const response = await fetch('/admin/solicitudes/store', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }, body: formData });
         const result = await response.json();
-        if (response.ok && result.success) {
+        
+        // ✅ Mostrar errores detallados
+        if (!response.ok) {
+            console.error('❌ Error de validación:', result);
+            
+            if (result.errors) {
+                let mensajeError = '⚠️ Errores de validación:\n';
+                for (const [campo, errores] of Object.entries(result.errors)) {
+                    mensajeError += `- ${campo}: ${errores.join(', ')}\n`;
+                }
+                mostrarNotificacion('error', mensajeError);
+            } else {
+                mostrarNotificacion('error', result.message || 'Error al crear la solicitud');
+            }
+            
+            if (submitBtn) { 
+                submitBtn.innerHTML = originalText; 
+                submitBtn.disabled = false; 
+            }
+            return;
+        }
+        
+        if (result.success) {
             mostrarNotificacion('success', 'Solicitud creada exitosamente');
             const modal = document.getElementById('modalCrear');
             if (modal) bootstrap.Modal.getInstance(modal)?.hide();
@@ -901,8 +1104,10 @@ document.getElementById('formCrearSolicitud')?.addEventListener('submit', async 
         } else {
             mostrarNotificacion('error', result.message || 'No se pudo crear la solicitud');
         }
-    } catch (error) { console.error('Error:', error); mostrarNotificacion('error', 'Error de conexión'); }
-    finally { if (submitBtn) { submitBtn.innerHTML = originalText; submitBtn.disabled = false; } }
+    } catch (error) { 
+        console.error('❌ Error de conexión:', error); 
+        mostrarNotificacion('error', 'Error de conexión'); 
+    } finally { if (submitBtn) { submitBtn.innerHTML = originalText; submitBtn.disabled = false; } }
 });
 
 document.getElementById('formEditarSolicitud')?.addEventListener('submit', async function(e) {
@@ -919,7 +1124,7 @@ document.getElementById('formEditarSolicitud')?.addEventListener('submit', async
     if (!id) { mostrarNotificacion('error', 'ID de solicitud no encontrado'); return; }
     const formData = new FormData(this);
 
-    // ✅ VERIFICAR RESPONSABLE - SOLO ESTO SE AGREGA
+    // ✅ VERIFICAR RESPONSABLE
     const responsableId = formData.get('responsable_id');
     if (!responsableId) {
         mostrarNotificacion('error', '⚠️ Debe seleccionar un responsable');
@@ -981,10 +1186,15 @@ function initEventListeners() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Módulo de solicitudes inicializado');
+    console.log('🚀 Módulo de solicitudes inicializado');
+    
     initEventListeners();
     initCrearEventListeners();
+    initResponsableEvents();
+    
     cargarPagina(1);
+    
+    console.log('✅ Inicialización completa');
 });
 
 // ============================================================

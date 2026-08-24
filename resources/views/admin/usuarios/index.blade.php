@@ -170,7 +170,6 @@
                                 <button class="btn btn-sm btn-action btn-outline-primary-dark btn-editar-usuario"
                                         data-id="{{ $usuario->id }}"
                                         data-usuario="{{ $usuario->usuario }}"
-                                        data-email="{{ $usuario->email }}"
                                         data-rol-id="{{ $usuario->rol_id }}"
                                         data-status="{{ $usuario->status }}" title="Editar">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -294,12 +293,7 @@
                         </small>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="usuarioEmail" class="form-label small fw-bold">Correo Electrónico <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control" id="usuarioEmail" name="email"
-                               placeholder="correo@ejemplo.com" required>
-                        <small class="text-muted">Este correo se usará para enviar notificaciones del sistema</small>
-                    </div>
+                    <!-- CAMPO EMAIL ELIMINADO - El correo se toma del trabajador -->
 
                     <div class="mb-3">
                         <label for="usuarioRolId" class="form-label small fw-bold">Rol</label>
@@ -384,6 +378,7 @@
                     <div class="detail-item"><div class="detail-label">Cargo</div><div class="detail-value" id="detailCargo">-</div></div>
                     <div class="detail-item"><div class="detail-label">Especialidad</div><div class="detail-value" id="detailEspecialidad">-</div></div>
                     <div class="detail-item"><div class="detail-label">Teléfono</div><div class="detail-value" id="detailTelefono">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Email</div><div class="detail-value" id="detailEmail">-</div></div>
                 </div>
                 <hr>
                 <h6 style="color: var(--primary-dark); font-weight: 600; margin-bottom: 1rem;">Datos de Acceso</h6>

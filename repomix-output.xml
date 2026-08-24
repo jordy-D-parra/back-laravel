@@ -5531,6 +5531,7 @@ class TrabajadorController extends Controller
             'cargo' => ['required', 'string', 'max:100'],
             'especialidad' => ['nullable', 'string', 'max:255'],
             'telefono' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:100'],
         ]);
 
         $trabajador = Trabajador::create($validated);
@@ -5554,6 +5555,7 @@ class TrabajadorController extends Controller
             'cargo' => ['required', 'string', 'max:100'],
             'especialidad' => ['nullable', 'string', 'max:255'],
             'telefono' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:100'],
         ]);
 
         $trabajador->update($validated);
@@ -5613,29 +5615,30 @@ class TrabajadorController extends Controller
         ]);
     }
 
-    public function show(Trabajador $trabajador)
-    {
-        $trabajador->load('usuario.rol');
-        return response()->json([
-            'trabajador' => [
-                'id' => $trabajador->id,
-                'cedula' => $trabajador->cedula,
-                'nombre_completo' => $trabajador->nombre . ' ' . $trabajador->apellido,
-                'departamento' => $trabajador->departamento,
-                'cargo' => $trabajador->cargo,
-                'especialidad' => $trabajador->especialidad ?? 'No asignada',
-                'telefono' => $trabajador->telefono ?? 'No registrado',
-                'created_at' => $trabajador->created_at->format('d/m/Y H:i'),
-                'tiene_usuario' => !is_null($trabajador->usuario),
-                'usuario' => $trabajador->usuario ? [
-                    'nombre' => $trabajador->usuario->usuario,
-                    'rol' => ucfirst($trabajador->usuario->rol->nombre),
-                    'status' => $trabajador->usuario->status === 'activo' ? 'Activo' : 'Inactivo',
-                    'ultimo_login' => $trabajador->usuario->ultimo_login ? $trabajador->usuario->ultimo_login->format('d/m/Y H:i') : 'Nunca',
-                ] : null,
-            ]
-        ]);
-    }
+  public function show(Trabajador $trabajador)
+{
+    $trabajador->load('usuario.rol');
+    return response()->json([
+        'trabajador' => [
+            'id' => $trabajador->id,
+            'cedula' => $trabajador->cedula,
+            'nombre_completo' => $trabajador->nombre . ' ' . $trabajador->apellido,
+            'email' => $trabajador->email ?? 'No registrado',
+            'departamento' => $trabajador->departamento,
+            'cargo' => $trabajador->cargo,
+            'especialidad' => $trabajador->especialidad ?? 'No asignada',
+            'telefono' => $trabajador->telefono ?? 'No registrado',
+            'created_at' => $trabajador->created_at->format('d/m/Y H:i'),
+            'tiene_usuario' => !is_null($trabajador->usuario),
+            'usuario' => $trabajador->usuario ? [
+                'nombre' => $trabajador->usuario->usuario,
+                'rol' => ucfirst($trabajador->usuario->rol->nombre),
+                'status' => $trabajador->usuario->status === 'activo' ? 'Activo' : 'Inactivo',
+                'ultimo_login' => $trabajador->usuario->ultimo_login ? $trabajador->usuario->ultimo_login->format('d/m/Y H:i') : 'Nunca',
+            ] : null,
+        ]
+    ]);
+}
 }
 </file>
 
@@ -5767,7 +5770,6 @@ class UsuarioController extends Controller
             $validated = $request->validate([
                 'trabajador_id' => ['required', 'exists:trabajadores,id', 'unique:usuarios,trabajador_id'],
                 'usuario' => ['required', 'string', 'max:50', 'unique:usuarios,usuario'],
-                'email' => ['required', 'email', 'max:100', 'unique:usuarios,email'],
                 'rol_id' => ['required', 'exists:roles,id'],
             ]);
 
@@ -5775,7 +5777,6 @@ class UsuarioController extends Controller
 
             $usuario = Usuario::create([
                 'usuario' => $validated['usuario'],
-                'email' => $validated['email'],
                 'password' => Hash::make($password),
                 'must_change_password' => true,
                 'status' => 'activo',
@@ -5783,7 +5784,6 @@ class UsuarioController extends Controller
                 'rol_id' => $validated['rol_id'],
             ]);
 
-            // Enviar notificación - SOLO UNA VEZ
             try {
                 $this->enviarNotificacionBienvenida($usuario, $password);
             } catch (\Exception $e) {
@@ -5842,7 +5842,6 @@ class UsuarioController extends Controller
 
             $validated = $request->validate([
                 'usuario' => ['required', 'string', 'max:50', 'unique:usuarios,usuario,' . $id],
-                'email' => ['required', 'email', 'max:100', 'unique:usuarios,email,' . $id],
                 'rol_id' => ['required', 'exists:roles,id'],
                 'status' => ['required', 'in:activo,inactivo'],
             ]);
@@ -6068,6 +6067,7 @@ class UsuarioController extends Controller
                 'cargo' => $usuario->trabajador->cargo,
                 'especialidad' => $usuario->trabajador->especialidad ?? 'No asignada',
                 'telefono' => $usuario->trabajador->telefono ?? 'No registrado',
+                'email' => $usuario->trabajador->email ?? 'No registrado',
             ]
         ]);
     }
@@ -8255,7 +8255,6 @@ class Usuario extends Authenticatable
 
     protected $fillable = [
         'usuario',
-        'email', // ✅ AGREGAR EMAIL
         'password',
         'must_change_password',
         'status',
@@ -10376,11 +10375,7 @@ return new class extends Migration
     {
         Schema::create('usuarios', function (Blueprint $table) {
             $table->id();
-            $table->string('usuario', 50)->unique();
-            
-            // ✅ AGREGAR CAMPO EMAIL
-            $table->string('email', 100)->nullable()->unique();
-            
+            $table->string('usuario', 50)->unique();            
             $table->string('password');
             $table->boolean('must_change_password')->default(true);
             $table->enum('status', ['activo', 'inactivo'])->default('activo');
@@ -10403,7 +10398,6 @@ return new class extends Migration
 
             // Índices
             $table->index('status');
-            $table->index('email');
         });
     }
 
@@ -13624,20 +13618,85 @@ class UsuarioAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        $adminTrabajador = Trabajador::where('cedula', 'V-12345678')->first();
+        // ============================================
+        // 1. TRABAJADOR ADMIN (jordy)
+        // ============================================
+        $adminTrabajador = Trabajador::firstOrCreate(
+            ['cedula' => 'V-12345678'],
+            [
+                'nombre' => 'Administrador',
+                'apellido' => 'Sistema',
+                'departamento' => 'Informática',
+                'cargo' => 'Jefe de Departamento',
+                'especialidad' => 'Gestión de sistemas y redes',
+                'telefono' => '0412-1234567',
+                'email' => 'admin@gobernacion.gob.ve',
+            ]
+        );
+
+        // ============================================
+        // 2. TRABAJADOR MELO (NUEVO)
+        // ============================================
+        $meloTrabajador = Trabajador::firstOrCreate(
+            ['cedula' => 'V-30776710'],
+            [
+                'nombre' => 'Yorhan',
+                'apellido' => 'Melo',
+                'departamento' => 'Informática',
+                'cargo' => 'Ingeniero de Sistemas',
+                'especialidad' => 'Desarrollo y soporte técnico',
+                'telefono' => '0416-7654321',
+                'email' => 'yorhanjose2004@gmail.com',
+            ]
+        );
+
+        // ============================================
+        // 3. OBTENER ROL ADMIN
+        // ============================================
         $adminRol = Rol::where('nombre', 'admin')->first();
 
-        Usuario::create([
-            'usuario' => 'admin',
-            'password' => Hash::make('Admin2025!'),
-            'must_change_password' => true, // Forzará cambio en primer login
-            'usuario' => 'jordy',
-            'password' => Hash::make('Mortadela1$'),
-            'must_change_password' => false, // Forzará cambio en primer login
-            'status' => 'activo',
-            'trabajador_id' => $adminTrabajador->id,
-            'rol_id' => $adminRol->id,
-        ]);
+        // ============================================
+        // 4. CREAR USUARIO ADMIN (jordy) - SIN EMAIL
+        // ============================================
+        Usuario::updateOrCreate(
+            ['usuario' => 'jordy'],
+            [
+                // ❌ ELIMINADO: 'email' => 'jordy@gobernacion.gob.ve',
+                'password' => Hash::make('Mortadela1$'),
+                'must_change_password' => false,
+                'status' => 'activo',
+                'trabajador_id' => $adminTrabajador->id,
+                'rol_id' => $adminRol->id,
+            ]
+        );
+
+        // ============================================
+        // 5. CREAR USUARIO MELO - SIN EMAIL
+        // ============================================
+        Usuario::updateOrCreate(
+            ['usuario' => 'melo'],
+            [
+                // ❌ ELIMINADO: 'email' => 'yorhanjose2004@gmail.com',
+                'password' => Hash::make('Melo2004$'),
+                'must_change_password' => false,
+                'status' => 'activo',
+                'trabajador_id' => $meloTrabajador->id,
+                'rol_id' => $adminRol->id,
+            ]
+        );
+
+        // ============================================
+        // 6. MENSAJE DE CONFIRMACIÓN
+        // ============================================
+        $this->command->info('✅ Usuarios creados (sin email en tabla usuarios):');
+        $this->command->info('   - jordy / Mortadela1$ (Admin)');
+        $this->command->info('   - melo / Melo2004$ (Admin)');
+        $this->command->info('');
+        $this->command->info('📧 Los emails se toman del trabajador asociado:');
+        $this->command->info('   - jordy: ' . $adminTrabajador->email);
+        $this->command->info('   - melo: ' . $meloTrabajador->email);
+        $this->command->info('');
+        $this->command->info('🔑 Ambos usuarios pueden iniciar sesión directamente.');
     }
 }
 </file>
@@ -31421,7 +31480,7 @@ import 'bootstrap';
 document.addEventListener('DOMContentLoaded', function () {
 
     // ===========================
-    // Referencias
+    // REFERENCIAS
     // ===========================
     const modalTrabajador = document.getElementById('modalTrabajador');
     const formTrabajador = document.getElementById('formTrabajador');
@@ -31491,6 +31550,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('trabajadorCedula').value = '';
             document.getElementById('trabajadorNombre').value = '';
             document.getElementById('trabajadorApellido').value = '';
+            document.getElementById('trabajadorEmail').value = '';
             document.getElementById('trabajadorDepartamento').value = 'Informatica';
             document.getElementById('trabajadorCargo').value = '';
             document.getElementById('trabajadorEspecialidad').value = '';
@@ -31504,7 +31564,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===========================
-    // Editar Trabajador
+    // Editar Trabajador (CORREGIDO - ahora recibe el email)
     // ===========================
     document.querySelectorAll('.btn-editar-trabajador').forEach(btn => {
         btn.addEventListener('click', function () {
@@ -31518,6 +31578,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('trabajadorCedula').value = this.dataset.cedula || '';
             document.getElementById('trabajadorNombre').value = this.dataset.nombre || '';
             document.getElementById('trabajadorApellido').value = this.dataset.apellido || '';
+            document.getElementById('trabajadorEmail').value = this.dataset.email || '';
             document.getElementById('trabajadorDepartamento').value = this.dataset.departamento || 'Informatica';
             document.getElementById('trabajadorCargo').value = this.dataset.cargo || '';
             document.getElementById('trabajadorEspecialidad').value = this.dataset.especialidad || '';
@@ -31569,7 +31630,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.btn-crear-usuario').forEach(btn => {
         btn.addEventListener('click', function () {
             const cedula = this.dataset.cedula;
-            // Redirigir a la pagina de usuarios con la cedula como parametro
             window.location.href = '/admin/usuarios?search=' + encodeURIComponent(cedula) + '&crear=1';
         });
     });
@@ -31584,7 +31644,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===========================
-    // Ver Detalle Trabajador
+    // Ver Detalle Trabajador (CORREGIDO - ahora muestra el email)
     // ===========================
     document.querySelectorAll('.btn-ver-trabajador').forEach(btn => {
         btn.addEventListener('click', function () {
@@ -31601,10 +31661,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     setText('dtCedula', t.cedula);
                     setText('dtNombre', t.nombre_completo);
+                    setText('dtEmail', t.email);
+                    setText('dtTelefono', t.telefono);
                     setText('dtDepartamento', t.departamento);
                     setText('dtCargo', t.cargo);
                     setText('dtEspecialidad', t.especialidad);
-                    setText('dtTelefono', t.telefono);
                     setText('dtCreado', t.created_at);
 
                     const infoUsuario = document.getElementById('dtInfoUsuario');
@@ -31895,7 +31956,6 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
             const usuario = this.dataset.usuario;
-            const email = this.dataset.email || '';
             const rolId = this.dataset.rolId;
             const status = this.dataset.status;
 
@@ -31906,7 +31966,6 @@ document.addEventListener('DOMContentLoaded', function () {
             formUsuario.action = '/admin/usuarios/' + id;
 
             document.getElementById('usuarioNombre').value = usuario;
-            document.getElementById('usuarioEmail').value = email;
             document.getElementById('usuarioRolId').value = rolId;
             document.getElementById('usuarioStatus').value = status;
 
@@ -31946,6 +32005,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('detailCargo').textContent = t.cargo || '-';
                     document.getElementById('detailEspecialidad').textContent = t.especialidad || 'No asignada';
                     document.getElementById('detailTelefono').textContent = t.telefono || 'No registrado';
+                    // Agregar email del trabajador en el detalle
+                    document.getElementById('detailEmail').textContent = t.email || 'No registrado';
 
                     const modalDetail = document.getElementById('modalDetail');
                     if (modalDetail) {
@@ -32157,7 +32218,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const id = document.getElementById('usuarioId').value;
             const trabajadorId = document.getElementById('usuarioTrabajadorId').value;
             const nombre = document.getElementById('usuarioNombre').value.trim();
-            const email = document.getElementById('usuarioEmail').value.trim();
             const rolId = document.getElementById('usuarioRolId').value;
 
             let isValid = true;
@@ -32172,13 +32232,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 isValid = false;
             } else {
                 document.getElementById('usuarioNombre').classList.remove('is-invalid');
-            }
-
-            if (!email || !email.includes('@')) {
-                document.getElementById('usuarioEmail').classList.add('is-invalid');
-                isValid = false;
-            } else {
-                document.getElementById('usuarioEmail').classList.remove('is-invalid');
             }
 
             if (!rolId) {
@@ -41727,7 +41780,6 @@ function marcarTodasComoLeidas() {
 
     <!-- ========== BARRA DE FILTROS CON SEPARACIÓN ========== -->
     <div class="filters-bar">
-        <!-- Filtro de búsqueda a la IZQUIERDA -->
         <div class="filtro-busqueda">
             <div class="input-group">
                 <span class="input-group-text">
@@ -41742,7 +41794,6 @@ function marcarTodasComoLeidas() {
             </div>
         </div>
 
-        <!-- Botón Nuevo Trabajador a la DERECHA -->
         @if(auth()->user()->hasPermission('crear-trabajador'))
         <button style="color: #fff" class="btn btn-primary-dark btn-accion" data-bs-toggle="modal" data-bs-target="#modalTrabajador">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -41754,7 +41805,7 @@ function marcarTodasComoLeidas() {
         @endif
     </div>
 
-    <!-- ========== TABLA ========== -->
+    <!-- ========== TABLA (SIN EMAIL) ========== -->
     <div class="table-container">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -41802,6 +41853,7 @@ function marcarTodasComoLeidas() {
                                         data-cedula="{{ $trabajador->cedula }}"
                                         data-nombre="{{ $trabajador->nombre }}"
                                         data-apellido="{{ $trabajador->apellido }}"
+                                        data-email="{{ $trabajador->email }}"
                                         data-departamento="{{ $trabajador->departamento }}"
                                         data-cargo="{{ $trabajador->cargo }}"
                                         data-especialidad="{{ $trabajador->especialidad }}"
@@ -41899,6 +41951,10 @@ function marcarTodasComoLeidas() {
                         </div>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label small fw-bold">Email</label>
+                        <input type="email" class="form-control" id="trabajadorEmail" name="email" placeholder="correo@ejemplo.com">
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label small fw-bold">Departamento <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="trabajadorDepartamento" name="departamento" value="Informática" required>
                     </div>
@@ -41966,10 +42022,11 @@ function marcarTodasComoLeidas() {
                 <div class="detail-grid">
                     <div class="detail-item"><div class="detail-label">Cédula</div><div class="detail-value" id="dtCedula">-</div></div>
                     <div class="detail-item"><div class="detail-label">Nombre Completo</div><div class="detail-value" id="dtNombre">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Email</div><div class="detail-value" id="dtEmail">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Teléfono</div><div class="detail-value" id="dtTelefono">-</div></div>
                     <div class="detail-item"><div class="detail-label">Departamento</div><div class="detail-value" id="dtDepartamento">-</div></div>
                     <div class="detail-item"><div class="detail-label">Cargo</div><div class="detail-value" id="dtCargo">-</div></div>
                     <div class="detail-item"><div class="detail-label">Especialidad</div><div class="detail-value" id="dtEspecialidad">-</div></div>
-                    <div class="detail-item"><div class="detail-label">Teléfono</div><div class="detail-value" id="dtTelefono">-</div></div>
                     <div class="detail-item"><div class="detail-label">Registrado</div><div class="detail-value" id="dtCreado">-</div></div>
                 </div>
                 <hr>
@@ -42165,7 +42222,6 @@ function marcarTodasComoLeidas() {
                                 <button class="btn btn-sm btn-action btn-outline-primary-dark btn-editar-usuario"
                                         data-id="{{ $usuario->id }}"
                                         data-usuario="{{ $usuario->usuario }}"
-                                        data-email="{{ $usuario->email }}"
                                         data-rol-id="{{ $usuario->rol_id }}"
                                         data-status="{{ $usuario->status }}" title="Editar">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -42289,12 +42345,7 @@ function marcarTodasComoLeidas() {
                         </small>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="usuarioEmail" class="form-label small fw-bold">Correo Electrónico <span class="text-danger">*</span></label>
-                        <input type="email" class="form-control" id="usuarioEmail" name="email"
-                               placeholder="correo@ejemplo.com" required>
-                        <small class="text-muted">Este correo se usará para enviar notificaciones del sistema</small>
-                    </div>
+                    <!-- CAMPO EMAIL ELIMINADO - El correo se toma del trabajador -->
 
                     <div class="mb-3">
                         <label for="usuarioRolId" class="form-label small fw-bold">Rol</label>
@@ -42379,6 +42430,7 @@ function marcarTodasComoLeidas() {
                     <div class="detail-item"><div class="detail-label">Cargo</div><div class="detail-value" id="detailCargo">-</div></div>
                     <div class="detail-item"><div class="detail-label">Especialidad</div><div class="detail-value" id="detailEspecialidad">-</div></div>
                     <div class="detail-item"><div class="detail-label">Teléfono</div><div class="detail-value" id="detailTelefono">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Email</div><div class="detail-value" id="detailEmail">-</div></div>
                 </div>
                 <hr>
                 <h6 style="color: var(--primary-dark); font-weight: 600; margin-bottom: 1rem;">Datos de Acceso</h6>

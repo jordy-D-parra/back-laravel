@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 class NotificacionService
 {
     /**
-     * Enviar notificación a un usuario específico
+     * Enviar notificación a un usuario del sistema
      */
     public function enviarAUsuario(
         Usuario $usuario,
@@ -21,7 +21,6 @@ class NotificacionService
         ?string $url = null,
         bool $enviarCorreo = true
     ): Notificacion {
-        // Verificar si ya existe una notificación idéntica para este usuario en los últimos 5 minutos
         $notificacionExistente = Notificacion::where('usuario_id', $usuario->id)
             ->where('titulo', $titulo)
             ->where('mensaje', $mensaje)
@@ -32,7 +31,6 @@ class NotificacionService
             return $notificacionExistente;
         }
 
-        // Crear notificación en base de datos
         $notificacion = Notificacion::create([
             'usuario_id' => $usuario->id,
             'tipo' => $tipo,
@@ -40,19 +38,70 @@ class NotificacionService
             'mensaje' => $mensaje,
             'url' => $url,
             'fecha_envio' => now(),
+            'leida' => false,
         ]);
 
-        // Enviar correo electrónico
         if ($enviarCorreo && $usuario->email) {
             try {
                 $nombre = $usuario->trabajador?->nombre ?? $usuario->usuario;
                 Mail::to($usuario->email)->send(new NotificacionMail($notificacion, $nombre));
             } catch (\Exception $e) {
-                Log::error('Error al enviar correo de notificación: ' . $e->getMessage());
+                Log::error('Error al enviar correo a usuario: ' . $e->getMessage());
             }
         }
 
         return $notificacion;
+    }
+
+    /**
+     * Enviar notificación a un responsable EXTERNO (no usuario del sistema)
+     */
+    public function enviarAResponsable(
+        string $email,
+        string $nombre,
+        string $titulo,
+        string $mensaje,
+        string $tipo = 'solicitud',
+        ?string $url = null
+    ): ?Notificacion {
+        try {
+            $notificacionExistente = Notificacion::whereNull('usuario_id')
+                ->where('titulo', $titulo)
+                ->where('mensaje', $mensaje)
+                ->where('fecha_envio', '>=', now()->subMinutes(5))
+                ->first();
+
+            if ($notificacionExistente) {
+                return $notificacionExistente;
+            }
+
+            $notificacion = Notificacion::create([
+                'usuario_id' => null,
+                'tipo' => $tipo,
+                'titulo' => $titulo,
+                'mensaje' => $mensaje,
+                'url' => $url,
+                'fecha_envio' => now(),
+                'leida' => false,
+            ]);
+
+            Mail::to($email)->send(new NotificacionMail($notificacion, $nombre));
+
+            Log::info('Correo enviado a responsable externo', [
+                'email' => $email,
+                'nombre' => $nombre,
+                'titulo' => $titulo
+            ]);
+
+            return $notificacion;
+
+        } catch (\Exception $e) {
+            Log::error('Error al enviar correo a responsable externo: ' . $e->getMessage(), [
+                'email' => $email,
+                'nombre' => $nombre
+            ]);
+            return null;
+        }
     }
 
     /**

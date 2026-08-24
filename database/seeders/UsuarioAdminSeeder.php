@@ -50,14 +50,14 @@ class UsuarioAdminSeeder extends Seeder
         $adminRol = Rol::where('nombre', 'admin')->first();
 
         // ============================================
-        // 4. CREAR USUARIO ADMIN (jordy) - SIN CAMBIO DE CONTRASEÑA
+        // 4. CREAR USUARIO ADMIN (jordy) - SIN EMAIL
         // ============================================
         Usuario::updateOrCreate(
             ['usuario' => 'jordy'],
             [
-                'email' => 'jordy@gobernacion.gob.ve',
+                // ❌ ELIMINADO: 'email' => 'jordy@gobernacion.gob.ve',
                 'password' => Hash::make('Mortadela1$'),
-                'must_change_password' => false, // ✅ NO OBLIGA CAMBIAR
+                'must_change_password' => false,
                 'status' => 'activo',
                 'trabajador_id' => $adminTrabajador->id,
                 'rol_id' => $adminRol->id,
@@ -65,14 +65,14 @@ class UsuarioAdminSeeder extends Seeder
         );
 
         // ============================================
-        // 5. CREAR USUARIO MELO - SIN CAMBIO DE CONTRASEÑA
+        // 5. CREAR USUARIO MELO - SIN EMAIL
         // ============================================
         Usuario::updateOrCreate(
             ['usuario' => 'melo'],
             [
-                'email' => 'yorhanjose2004@gmail.com',
+                // ❌ ELIMINADO: 'email' => 'yorhanjose2004@gmail.com',
                 'password' => Hash::make('Melo2004$'),
-                'must_change_password' => false, // ✅ NO OBLIGA CAMBIAR
+                'must_change_password' => false,
                 'status' => 'activo',
                 'trabajador_id' => $meloTrabajador->id,
                 'rol_id' => $adminRol->id,
@@ -82,9 +82,13 @@ class UsuarioAdminSeeder extends Seeder
         // ============================================
         // 6. MENSAJE DE CONFIRMACIÓN
         // ============================================
-        $this->command->info('✅ Usuarios creados (sin cambio de contraseña obligatorio):');
+        $this->command->info('✅ Usuarios creados (sin email en tabla usuarios):');
         $this->command->info('   - jordy / Mortadela1$ (Admin)');
         $this->command->info('   - melo / Melo2004$ (Admin)');
+        $this->command->info('');
+        $this->command->info('📧 Los emails se toman del trabajador asociado:');
+        $this->command->info('   - jordy: ' . $adminTrabajador->email);
+        $this->command->info('   - melo: ' . $meloTrabajador->email);
         $this->command->info('');
         $this->command->info('🔑 Ambos usuarios pueden iniciar sesión directamente.');
     }

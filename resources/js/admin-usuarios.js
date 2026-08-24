@@ -213,7 +213,6 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
             const usuario = this.dataset.usuario;
-            const email = this.dataset.email || '';
             const rolId = this.dataset.rolId;
             const status = this.dataset.status;
 
@@ -224,7 +223,6 @@ document.addEventListener('DOMContentLoaded', function () {
             formUsuario.action = '/admin/usuarios/' + id;
 
             document.getElementById('usuarioNombre').value = usuario;
-            document.getElementById('usuarioEmail').value = email;
             document.getElementById('usuarioRolId').value = rolId;
             document.getElementById('usuarioStatus').value = status;
 
@@ -264,6 +262,8 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('detailCargo').textContent = t.cargo || '-';
                     document.getElementById('detailEspecialidad').textContent = t.especialidad || 'No asignada';
                     document.getElementById('detailTelefono').textContent = t.telefono || 'No registrado';
+                    // Agregar email del trabajador en el detalle
+                    document.getElementById('detailEmail').textContent = t.email || 'No registrado';
 
                     const modalDetail = document.getElementById('modalDetail');
                     if (modalDetail) {
@@ -475,7 +475,6 @@ document.addEventListener('DOMContentLoaded', function () {
             const id = document.getElementById('usuarioId').value;
             const trabajadorId = document.getElementById('usuarioTrabajadorId').value;
             const nombre = document.getElementById('usuarioNombre').value.trim();
-            const email = document.getElementById('usuarioEmail').value.trim();
             const rolId = document.getElementById('usuarioRolId').value;
 
             let isValid = true;
@@ -490,13 +489,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 isValid = false;
             } else {
                 document.getElementById('usuarioNombre').classList.remove('is-invalid');
-            }
-
-            if (!email || !email.includes('@')) {
-                document.getElementById('usuarioEmail').classList.add('is-invalid');
-                isValid = false;
-            } else {
-                document.getElementById('usuarioEmail').classList.remove('is-invalid');
             }
 
             if (!rolId) {

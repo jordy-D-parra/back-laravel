@@ -3,7 +3,7 @@ import 'bootstrap';
 document.addEventListener('DOMContentLoaded', function () {
 
     // ===========================
-    // Referencias
+    // REFERENCIAS
     // ===========================
     const modalTrabajador = document.getElementById('modalTrabajador');
     const formTrabajador = document.getElementById('formTrabajador');
@@ -73,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('trabajadorCedula').value = '';
             document.getElementById('trabajadorNombre').value = '';
             document.getElementById('trabajadorApellido').value = '';
+            document.getElementById('trabajadorEmail').value = '';
             document.getElementById('trabajadorDepartamento').value = 'Informatica';
             document.getElementById('trabajadorCargo').value = '';
             document.getElementById('trabajadorEspecialidad').value = '';
@@ -86,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===========================
-    // Editar Trabajador
+    // Editar Trabajador (CORREGIDO - ahora recibe el email)
     // ===========================
     document.querySelectorAll('.btn-editar-trabajador').forEach(btn => {
         btn.addEventListener('click', function () {
@@ -100,6 +101,7 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('trabajadorCedula').value = this.dataset.cedula || '';
             document.getElementById('trabajadorNombre').value = this.dataset.nombre || '';
             document.getElementById('trabajadorApellido').value = this.dataset.apellido || '';
+            document.getElementById('trabajadorEmail').value = this.dataset.email || '';
             document.getElementById('trabajadorDepartamento').value = this.dataset.departamento || 'Informatica';
             document.getElementById('trabajadorCargo').value = this.dataset.cargo || '';
             document.getElementById('trabajadorEspecialidad').value = this.dataset.especialidad || '';
@@ -151,7 +153,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.btn-crear-usuario').forEach(btn => {
         btn.addEventListener('click', function () {
             const cedula = this.dataset.cedula;
-            // Redirigir a la pagina de usuarios con la cedula como parametro
             window.location.href = '/admin/usuarios?search=' + encodeURIComponent(cedula) + '&crear=1';
         });
     });
@@ -166,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===========================
-    // Ver Detalle Trabajador
+    // Ver Detalle Trabajador (CORREGIDO - ahora muestra el email)
     // ===========================
     document.querySelectorAll('.btn-ver-trabajador').forEach(btn => {
         btn.addEventListener('click', function () {
@@ -183,10 +184,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     setText('dtCedula', t.cedula);
                     setText('dtNombre', t.nombre_completo);
+                    setText('dtEmail', t.email);
+                    setText('dtTelefono', t.telefono);
                     setText('dtDepartamento', t.departamento);
                     setText('dtCargo', t.cargo);
                     setText('dtEspecialidad', t.especialidad);
-                    setText('dtTelefono', t.telefono);
                     setText('dtCreado', t.created_at);
 
                     const infoUsuario = document.getElementById('dtInfoUsuario');

@@ -79,7 +79,6 @@ class UsuarioController extends Controller
             $validated = $request->validate([
                 'trabajador_id' => ['required', 'exists:trabajadores,id', 'unique:usuarios,trabajador_id'],
                 'usuario' => ['required', 'string', 'max:50', 'unique:usuarios,usuario'],
-                'email' => ['required', 'email', 'max:100', 'unique:usuarios,email'],
                 'rol_id' => ['required', 'exists:roles,id'],
             ]);
 
@@ -87,7 +86,6 @@ class UsuarioController extends Controller
 
             $usuario = Usuario::create([
                 'usuario' => $validated['usuario'],
-                'email' => $validated['email'],
                 'password' => Hash::make($password),
                 'must_change_password' => true,
                 'status' => 'activo',
@@ -95,7 +93,6 @@ class UsuarioController extends Controller
                 'rol_id' => $validated['rol_id'],
             ]);
 
-            // Enviar notificación - SOLO UNA VEZ
             try {
                 $this->enviarNotificacionBienvenida($usuario, $password);
             } catch (\Exception $e) {
@@ -154,7 +151,6 @@ class UsuarioController extends Controller
 
             $validated = $request->validate([
                 'usuario' => ['required', 'string', 'max:50', 'unique:usuarios,usuario,' . $id],
-                'email' => ['required', 'email', 'max:100', 'unique:usuarios,email,' . $id],
                 'rol_id' => ['required', 'exists:roles,id'],
                 'status' => ['required', 'in:activo,inactivo'],
             ]);
@@ -380,6 +376,7 @@ class UsuarioController extends Controller
                 'cargo' => $usuario->trabajador->cargo,
                 'especialidad' => $usuario->trabajador->especialidad ?? 'No asignada',
                 'telefono' => $usuario->trabajador->telefono ?? 'No registrado',
+                'email' => $usuario->trabajador->email ?? 'No registrado',
             ]
         ]);
     }

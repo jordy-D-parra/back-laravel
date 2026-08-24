@@ -17,7 +17,6 @@ class Usuario extends Authenticatable
 
     protected $fillable = [
         'usuario',
-        'email', // ✅ AGREGAR EMAIL
         'password',
         'must_change_password',
         'status',

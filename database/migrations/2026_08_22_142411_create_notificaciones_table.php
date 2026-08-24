@@ -1,5 +1,4 @@
 <?php
-// database/migrations/2026_08_22_000001_create_notificaciones_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
@@ -11,7 +10,10 @@ return new class extends Migration
     {
         Schema::create('notificaciones', function (Blueprint $table) {
             $table->id();
+            
+            // ✅ CAMBIADO: usuario_id ahora es NULLABLE
             $table->foreignId('usuario_id')
+                  ->nullable()  // <--- AGREGADO
                   ->constrained('usuarios')
                   ->onDelete('cascade');
             

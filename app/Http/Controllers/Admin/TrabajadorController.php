@@ -174,27 +174,28 @@ class TrabajadorController extends Controller
         ]);
     }
 
-    public function show(Trabajador $trabajador)
-    {
-        $trabajador->load('usuario.rol');
-        return response()->json([
-            'trabajador' => [
-                'id' => $trabajador->id,
-                'cedula' => $trabajador->cedula,
-                'nombre_completo' => $trabajador->nombre . ' ' . $trabajador->apellido,
-                'departamento' => $trabajador->departamento,
-                'cargo' => $trabajador->cargo,
-                'especialidad' => $trabajador->especialidad ?? 'No asignada',
-                'telefono' => $trabajador->telefono ?? 'No registrado',
-                'created_at' => $trabajador->created_at->format('d/m/Y H:i'),
-                'tiene_usuario' => !is_null($trabajador->usuario),
-                'usuario' => $trabajador->usuario ? [
-                    'nombre' => $trabajador->usuario->usuario,
-                    'rol' => ucfirst($trabajador->usuario->rol->nombre),
-                    'status' => $trabajador->usuario->status === 'activo' ? 'Activo' : 'Inactivo',
-                    'ultimo_login' => $trabajador->usuario->ultimo_login ? $trabajador->usuario->ultimo_login->format('d/m/Y H:i') : 'Nunca',
-                ] : null,
-            ]
-        ]);
-    }
+  public function show(Trabajador $trabajador)
+{
+    $trabajador->load('usuario.rol');
+    return response()->json([
+        'trabajador' => [
+            'id' => $trabajador->id,
+            'cedula' => $trabajador->cedula,
+            'nombre_completo' => $trabajador->nombre . ' ' . $trabajador->apellido,
+            'email' => $trabajador->email ?? 'No registrado',
+            'departamento' => $trabajador->departamento,
+            'cargo' => $trabajador->cargo,
+            'especialidad' => $trabajador->especialidad ?? 'No asignada',
+            'telefono' => $trabajador->telefono ?? 'No registrado',
+            'created_at' => $trabajador->created_at->format('d/m/Y H:i'),
+            'tiene_usuario' => !is_null($trabajador->usuario),
+            'usuario' => $trabajador->usuario ? [
+                'nombre' => $trabajador->usuario->usuario,
+                'rol' => ucfirst($trabajador->usuario->rol->nombre),
+                'status' => $trabajador->usuario->status === 'activo' ? 'Activo' : 'Inactivo',
+                'ultimo_login' => $trabajador->usuario->ultimo_login ? $trabajador->usuario->ultimo_login->format('d/m/Y H:i') : 'Nunca',
+            ] : null,
+        ]
+    ]);
+}
 }

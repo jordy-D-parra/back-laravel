@@ -11,11 +11,7 @@ return new class extends Migration
     {
         Schema::create('usuarios', function (Blueprint $table) {
             $table->id();
-            $table->string('usuario', 50)->unique();
-            
-            // ✅ AGREGAR CAMPO EMAIL
-            $table->string('email', 100)->nullable()->unique();
-            
+            $table->string('usuario', 50)->unique();            
             $table->string('password');
             $table->boolean('must_change_password')->default(true);
             $table->enum('status', ['activo', 'inactivo'])->default('activo');
@@ -38,7 +34,6 @@ return new class extends Migration
 
             // Índices
             $table->index('status');
-            $table->index('email');
         });
     }
 

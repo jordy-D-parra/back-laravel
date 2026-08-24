@@ -79,7 +79,6 @@
 
     <!-- ========== BARRA DE FILTROS CON SEPARACIÓN ========== -->
     <div class="filters-bar">
-        <!-- Filtro de búsqueda a la IZQUIERDA -->
         <div class="filtro-busqueda">
             <div class="input-group">
                 <span class="input-group-text">
@@ -94,7 +93,6 @@
             </div>
         </div>
 
-        <!-- Botón Nuevo Trabajador a la DERECHA -->
         @if(auth()->user()->hasPermission('crear-trabajador'))
         <button style="color: #fff" class="btn btn-primary-dark btn-accion" data-bs-toggle="modal" data-bs-target="#modalTrabajador">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -106,7 +104,7 @@
         @endif
     </div>
 
-    <!-- ========== TABLA ========== -->
+    <!-- ========== TABLA (SIN EMAIL) ========== -->
     <div class="table-container">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -154,6 +152,7 @@
                                         data-cedula="{{ $trabajador->cedula }}"
                                         data-nombre="{{ $trabajador->nombre }}"
                                         data-apellido="{{ $trabajador->apellido }}"
+                                        data-email="{{ $trabajador->email }}"
                                         data-departamento="{{ $trabajador->departamento }}"
                                         data-cargo="{{ $trabajador->cargo }}"
                                         data-especialidad="{{ $trabajador->especialidad }}"
@@ -239,10 +238,6 @@
                             <label class="form-label small fw-bold">Teléfono</label>
                             <input type="text" class="form-control" id="trabajadorTelefono" name="telefono" placeholder="0412-1234567">
                         </div>
-                        <div class="col-md-6 mb-3">
-                <label class="form-label small fw-bold">Email</label>
-                <input type="email" class="form-control" id="trabajadorEmail" name="email" placeholder="correo@ejemplo.com">
-                </div>
                     </div>
                     <div class="row">
                         <div class="col-md-6 mb-3">
@@ -253,6 +248,10 @@
                             <label class="form-label small fw-bold">Apellido <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="trabajadorApellido" name="apellido" required>
                         </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Email</label>
+                        <input type="email" class="form-control" id="trabajadorEmail" name="email" placeholder="correo@ejemplo.com">
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Departamento <span class="text-danger">*</span></label>
@@ -322,10 +321,11 @@
                 <div class="detail-grid">
                     <div class="detail-item"><div class="detail-label">Cédula</div><div class="detail-value" id="dtCedula">-</div></div>
                     <div class="detail-item"><div class="detail-label">Nombre Completo</div><div class="detail-value" id="dtNombre">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Email</div><div class="detail-value" id="dtEmail">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Teléfono</div><div class="detail-value" id="dtTelefono">-</div></div>
                     <div class="detail-item"><div class="detail-label">Departamento</div><div class="detail-value" id="dtDepartamento">-</div></div>
                     <div class="detail-item"><div class="detail-label">Cargo</div><div class="detail-value" id="dtCargo">-</div></div>
                     <div class="detail-item"><div class="detail-label">Especialidad</div><div class="detail-value" id="dtEspecialidad">-</div></div>
-                    <div class="detail-item"><div class="detail-label">Teléfono</div><div class="detail-value" id="dtTelefono">-</div></div>
                     <div class="detail-item"><div class="detail-label">Registrado</div><div class="detail-value" id="dtCreado">-</div></div>
                 </div>
                 <hr>
