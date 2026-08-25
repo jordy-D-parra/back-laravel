@@ -131,6 +131,10 @@ class PermisoSeeder extends Seeder
 ['nombre' => 'crear-parroquia', 'descripcion' => 'Crear nuevas parroquias', 'categoria' => 'ubicaciones'],
 ['nombre' => 'editar-parroquia', 'descripcion' => 'Editar parroquias', 'categoria' => 'ubicaciones'],
 ['nombre' => 'eliminar-parroquia', 'descripcion' => 'Eliminar parroquias', 'categoria' => 'ubicaciones'],
+
+   // ========== AUDITORÍA ==========
+            ['nombre' => 'ver-auditoria', 'descripcion' => 'Ver bitácora de auditoría', 'categoria' => 'auditoria'],
+            ['nombre' => 'administrar-auditoria', 'descripcion' => 'Administrar bitácora de auditoría', 'categoria' => 'auditoria'],
             ];
 
 

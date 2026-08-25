@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
         // Registrar alias para el middleware de roles
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+            'auditoria' => \App\Http\Middleware\AuditoriaMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

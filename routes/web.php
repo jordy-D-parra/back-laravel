@@ -24,6 +24,7 @@ use App\Http\Controllers\Admin\PrestamoController;
 use App\Http\Controllers\Admin\CalendarioController;
 use App\Http\Controllers\Admin\ActaEntregaController;
 use App\Http\Controllers\Admin\NotificacionController;
+use App\Http\Controllers\Admin\AuditoriaController;
 use App\Models\Estatus;
 
 // ==================== RUTA PRINCIPAL ====================
@@ -36,11 +37,11 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Primer registro (solo cuando no hay usuarios)
+// Primer registro
 Route::get('/primer-registro', [PrimerRegistroController::class, 'showForm'])->name('primer.registro');
 Route::post('/primer-registro', [PrimerRegistroController::class, 'register']);
 
-// Cambio de contraseña (usuarios autenticados)
+// Cambio de contraseña
 Route::middleware(['auth'])->group(function () {
     Route::get('/password/change', [CambiarPasswordController::class, 'showChangeForm'])->name('password.change');
     Route::post('/password/change', [CambiarPasswordController::class, 'change']);
@@ -49,7 +50,6 @@ Route::middleware(['auth'])->group(function () {
 // ==================== RUTAS PROTEGIDAS ====================
 Route::middleware(['auth'])->group(function () {
 
-    // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ========== CALENDARIO ==========
@@ -57,18 +57,20 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/', [CalendarioController::class, 'index'])->name('index');
         Route::get('/eventos', [CalendarioController::class, 'getEventos'])->name('eventos');
         Route::get('/evento', [CalendarioController::class, 'getEventoDetalle'])->name('evento.detalle');
-        Route::post('/actualizar-estado', [CalendarioController::class, 'actualizarEstado'])->name('actualizar-estado');
     });
 
     // ==================== ADMINISTRACIÓN ====================
-    Route::prefix('admin')->name('admin.')->group(function () {
+    Route::prefix('admin')->middleware(['auditoria'])->name('admin.')->group(function () { // <--- AÑADIR MIDDLEWARE AQUÍ
 
-        // ========== 1. MAESTROS (Catálogos base del sistema) ==========
+        // ========== AUDITORÍA ==========
+        Route::resource('auditoria', AuditoriaController::class)->only(['index', 'show', 'destroy']);
+        Route::post('auditoria/limpiar', [AuditoriaController::class, 'limpiar'])->name('auditoria.limpiar');
 
-        // 1.1 Entidades (Instituciones, Departamentos, Responsables)
+        // ========== 1. MAESTROS ==========
+
+        // 1.1 Entidades
         Route::get('/entidades', [EntidadController::class, 'index'])->name('entidades.index');
 
-        // API Instituciones
         Route::get('instituciones', [InstitucionController::class, 'index'])->name('instituciones.index');
         Route::post('instituciones', [InstitucionController::class, 'store'])->name('instituciones.store');
         Route::get('instituciones/{institucione}', [InstitucionController::class, 'show'])->name('instituciones.show');
@@ -76,7 +78,6 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('instituciones/{institucione}', [InstitucionController::class, 'destroy'])->name('instituciones.destroy');
         Route::patch('instituciones/{institucione}/toggle-status', [InstitucionController::class, 'toggleStatus'])->name('instituciones.toggle-status');
 
-        // API Departamentos
         Route::get('departamentos', [DepartamentoController::class, 'index'])->name('departamentos.index');
         Route::post('departamentos', [DepartamentoController::class, 'store'])->name('departamentos.store');
         Route::get('departamentos/{departamento}', [DepartamentoController::class, 'show'])->name('departamentos.show');
@@ -85,7 +86,6 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('departamentos/{departamento}/toggle-status', [DepartamentoController::class, 'toggleStatus'])->name('departamentos.toggle-status');
         Route::get('departamentos/por-institucion/{institucionId}', [DepartamentoController::class, 'porInstitucion'])->name('departamentos.por-institucion');
 
-        // API Responsables
         Route::get('responsables', [ResponsableController::class, 'index'])->name('responsables.index');
         Route::post('responsables', [ResponsableController::class, 'store'])->name('responsables.store');
         Route::get('responsables/{responsable}', [ResponsableController::class, 'show'])->name('responsables.show');
@@ -93,11 +93,10 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('responsables/{responsable}', [ResponsableController::class, 'destroy'])->name('responsables.destroy');
         Route::patch('responsables/{responsable}/toggle-status', [ResponsableController::class, 'toggleStatus'])->name('responsables.toggle-status');
 
-        // 1.2 Catálogo de Equipos (Marcas, Categorías, Modelos)
+        // 1.2 Catálogo de Equipos
         Route::get('/equipos', [EquipoController::class, 'index'])->name('equipos.index');
 
         Route::prefix('equipos')->group(function () {
-            // Marcas
             Route::get('/marcas', [EquipoController::class, 'getMarcas']);
             Route::post('/marcas', [EquipoController::class, 'storeMarca']);
             Route::get('/marcas/{id}', [EquipoController::class, 'showMarca']);
@@ -105,7 +104,6 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/marcas/{id}', [EquipoController::class, 'deleteMarca']);
             Route::patch('/marcas/{id}/toggle', [EquipoController::class, 'toggleMarca']);
 
-            // Categorías
             Route::get('/categorias', [EquipoController::class, 'getCategorias']);
             Route::post('/categorias', [EquipoController::class, 'storeCategoria']);
             Route::get('/categorias/{id}', [EquipoController::class, 'showCategoria']);
@@ -113,7 +111,6 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/categorias/{id}', [EquipoController::class, 'deleteCategoria']);
             Route::patch('/categorias/{id}/toggle', [EquipoController::class, 'toggleCategoria']);
 
-            // Modelos
             Route::get('/modelos', [EquipoController::class, 'getModelos']);
             Route::post('/modelos', [EquipoController::class, 'storeModelo']);
             Route::get('/modelos/{id}', [EquipoController::class, 'showModelo']);
@@ -121,21 +118,18 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/modelos/{id}', [EquipoController::class, 'deleteModelo']);
             Route::patch('/modelos/{id}/toggle', [EquipoController::class, 'toggleModelo']);
 
-            // Componentes de modelo
             Route::get('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'index']);
             Route::post('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'store']);
             Route::get('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'show']);
             Route::put('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'update']);
             Route::delete('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'destroy']);
 
-            // Listas para selects
             Route::get('/marcas-list', [EquipoController::class, 'getMarcasList']);
             Route::get('/categorias-list', [EquipoController::class, 'getCategoriasList']);
         });
 
         // ========== 2. GESTIÓN DE USUARIOS ==========
 
-        // ========== ROLES Y PERMISOS ==========
         Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
         Route::get('/roles/list', [RoleController::class, 'getRoles'])->name('roles.list');
         Route::get('/roles/{id}', [RoleController::class, 'show'])->name('roles.show');
@@ -144,12 +138,10 @@ Route::middleware(['auth'])->group(function () {
         Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
         Route::get('/permisos/todos', [RoleController::class, 'getPermisos'])->name('permisos.todos');
 
-        // 2.2 Trabajadores
         Route::resource('trabajadores', TrabajadorController::class)->except(['show']);
         Route::get('/trabajadores/buscar-cedula/{cedula}', [TrabajadorController::class, 'buscarPorCedula'])->name('trabajadores.buscar-cedula');
         Route::get('trabajadores/{trabajador}/detalle', [TrabajadorController::class, 'show'])->name('trabajadores.show');
 
-        // 2.3 Usuarios del Sistema
         Route::resource('usuarios', UsuarioController::class)->except(['show']);
         Route::patch('usuarios/{usuario}/toggle-status', [UsuarioController::class, 'toggleStatus'])->name('usuarios.toggle-status');
         Route::patch('usuarios/{usuario}/reset-password', [UsuarioController::class, 'resetPassword'])->name('usuarios.reset-password');
@@ -157,10 +149,8 @@ Route::middleware(['auth'])->group(function () {
 
         // ========== 3. PROCESOS OPERATIVOS ==========
 
-        // 3.1 Inventario (Activos y Componentes)
         Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario.index');
 
-        // API Activos
         Route::get('/activos', [ActivoController::class, 'index']);
         Route::post('/activos', [ActivoController::class, 'store']);
         Route::get('/activos/{activo}', [ActivoController::class, 'show']);
@@ -169,7 +159,6 @@ Route::middleware(['auth'])->group(function () {
         Route::patch('/activos/{activo}/toggle-status', [ActivoController::class, 'toggleStatus']);
         Route::get('/activos/por-modelo/{modeloId}', [ActivoController::class, 'porModelo']);
 
-        // API Componentes
         Route::get('/componentes', [ComponenteController::class, 'index']);
         Route::post('/componentes', [ComponenteController::class, 'store']);
         Route::get('/componentes/{componente}', [ComponenteController::class, 'show']);
@@ -179,12 +168,13 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/componentes/por-tipo/{tipo}', [ComponenteController::class, 'porTipo']);
         Route::get('/componentes/en-bodega', [ComponenteController::class, 'enBodega']);
 
-        // ========== 3.2 PRÉSTAMOS ==========
+        // 3.2 Préstamos
         Route::prefix('prestamos')->name('prestamos.')->group(function () {
             Route::get('/', [PrestamoController::class, 'index'])->name('index');
             Route::get('/listar', [PrestamoController::class, 'listar'])->name('listar');
             Route::get('/buscar-responsable', [PrestamoController::class, 'buscarResponsableDestino'])->name('buscar-responsable');
             Route::get('/buscar-items', [PrestamoController::class, 'buscarItems'])->name('buscar-items');
+            Route::get('/para-prestamo', [PrestamoController::class, 'paraPrestamo'])->name('para-prestamo');
             Route::post('/', [PrestamoController::class, 'store'])->name('store');
             Route::get('/{prestamo}', [PrestamoController::class, 'show'])->name('show');
             Route::put('/{prestamo}', [PrestamoController::class, 'update'])->name('update');
@@ -196,7 +186,7 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{prestamo}/extender', [PrestamoController::class, 'extender'])->name('extender');
         });
 
-        // ========== 3.3 SOLICITUDES ==========
+        // 3.3 Solicitudes
         Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
             Route::get('/', [SolicitudController::class, 'index'])->name('index');
             Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->name('detalles');
@@ -208,49 +198,13 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
         });
 
-        Route::post('/test-email', function () {
-    $usuario = auth()->user();
-    
-    if (!$usuario || !$usuario->email) {
-        return back()->with('error', 'No tienes email registrado');
-    }
-    
-    $service = app(\App\Services\NotificacionService::class);
-    
-    try {
-        $service->enviarAUsuario(
-            $usuario,
-            '📧 Prueba de correo electrónico',
-            "Este es un correo de prueba.\n\n" .
-            "👤 Usuario: {$usuario->usuario}\n" .
-            "📧 Email: {$usuario->email}\n" .
-            "📅 Fecha: " . now()->format('d/m/Y H:i:s') . "\n\n" .
-            "✅ Si recibes esto, el sistema funciona correctamente.",
-            'sistema',
-            route('dashboard'),
-            true
-        );
-        
-        return view('test-email', [
-            'success' => true,
-            'email' => $usuario->email,
-            'usuario' => $usuario
-        ]);
-    } catch (\Exception $e) {
-        return view('test-email', [
-            'error' => 'Error: ' . $e->getMessage(),
-            'usuario' => $usuario
-        ]);
-    }
-})->name('test.email.post');
-
-        // ========== 3.4 SOPORTE TÉCNICO ==========
+        // 3.4 Soporte Técnico
         Route::resource('soporte', FichaSoporteController::class);
         Route::get('soporte/{id}/componentes', [FichaSoporteController::class, 'getComponentesDetalle'])->name('soporte.componentes');
         Route::post('soporte/{id}/close', [FichaSoporteController::class, 'close'])->name('soporte.close');
         Route::post('soporte/equipo-externo', [FichaSoporteController::class, 'storeEquipoExterno'])->name('soporte.equipo-externo');
 
-        // ========== 3.5 ACTAS DE ENTREGA ==========
+        // 3.5 Actas de Entrega
         Route::prefix('actas')->name('actas.')->group(function () {
             Route::get('/generar', [ActaEntregaController::class, 'generarDesdePrestamo'])->name('generar');
             Route::get('/imprimir/{id}', [ActaEntregaController::class, 'imprimir'])->name('imprimir');
@@ -267,34 +221,30 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/ubicaciones/estados/{estadoId}/municipios', [App\Http\Controllers\Admin\UbicacionController::class, 'getMunicipios'])->name('ubicaciones.municipios');
         Route::get('/ubicaciones/municipios/{municipioId}/parroquias', [App\Http\Controllers\Admin\UbicacionController::class, 'getParroquias'])->name('ubicaciones.parroquias');
 
-    // ========== NOTIFICACIONES ==========
-Route::prefix('notificaciones')->name('notificaciones.')->group(function () {
-    Route::get('/', [App\Http\Controllers\Admin\NotificacionController::class, 'index'])->name('index');
-    Route::post('/{id}/leer', [App\Http\Controllers\Admin\NotificacionController::class, 'marcarComoLeida'])->name('leer');
-    Route::post('/marcar-todas-leidas', [App\Http\Controllers\Admin\NotificacionController::class, 'marcarTodasComoLeidas'])->name('marcar-todas');
-    Route::get('/no-leidas', [App\Http\Controllers\Admin\NotificacionController::class, 'obtenerNoLeidas'])->name('no-leidas');
-    
-    // ========== NUEVA RUTA PARA DETALLE ==========
-    Route::get('/{id}/detalle', function ($id) {
-        $notificacion = App\Models\Notificacion::findOrFail($id);
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $notificacion->id,
-                'titulo' => $notificacion->titulo,
-                'mensaje' => $notificacion->mensaje,
-                'tipo' => $notificacion->tipo,
-                'url' => $notificacion->url,
-                'leida' => $notificacion->leida,
-                'fecha_envio' => $notificacion->fecha_envio->toISOString(),
-            ]
-        ]);
-    })->name('detalle');
-});
+        // ========== NOTIFICACIONES ==========
+        Route::prefix('notificaciones')->name('notificaciones.')->group(function () {
+            Route::get('/', [App\Http\Controllers\Admin\NotificacionController::class, 'index'])->name('index');
+            Route::post('/{id}/leer', [App\Http\Controllers\Admin\NotificacionController::class, 'marcarComoLeida'])->name('leer');
+            Route::post('/marcar-todas-leidas', [App\Http\Controllers\Admin\NotificacionController::class, 'marcarTodasComoLeidas'])->name('marcar-todas');
+            Route::get('/no-leidas', [App\Http\Controllers\Admin\NotificacionController::class, 'obtenerNoLeidas'])->name('no-leidas');
+            Route::get('/{id}/detalle', function ($id) {
+                $notificacion = App\Models\Notificacion::findOrFail($id);
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'id' => $notificacion->id,
+                        'titulo' => $notificacion->titulo,
+                        'mensaje' => $notificacion->mensaje,
+                        'tipo' => $notificacion->tipo,
+                        'url' => $notificacion->url,
+                        'leida' => $notificacion->leida,
+                        'fecha_envio' => $notificacion->fecha_envio->toISOString(),
+                    ]
+                ]);
+            })->name('detalle');
+        });
 
         // ========== API PARA OBTENER RESPONSABLES ==========
-
-        // Obtener responsable de un departamento
         Route::get('/api/departamento/{id}/responsable', function ($id) {
             $departamento = App\Models\Departamento::with('responsables')->find($id);
             $responsable = $departamento ? $departamento->responsables->first() : null;
@@ -311,7 +261,6 @@ Route::prefix('notificaciones')->name('notificaciones.')->group(function () {
             ]);
         });
 
-        // Obtener responsable de una institución
         Route::get('/api/institucion/{id}/responsable', function ($id) {
             $institucion = App\Models\Institucion::with('responsablesDirectos')->find($id);
             $responsable = $institucion ? $institucion->responsablesDirectos->first() : null;
@@ -328,7 +277,6 @@ Route::prefix('notificaciones')->name('notificaciones.')->group(function () {
             ]);
         });
 
-        // Crear/actualizar responsable de un departamento
         Route::post('/api/departamento/{id}/responsable', function (Request $request, $id) {
             $departamento = App\Models\Departamento::findOrFail($id);
             $data = $request->validate([
@@ -368,7 +316,6 @@ Route::prefix('notificaciones')->name('notificaciones.')->group(function () {
             return response()->json(['success' => true, 'responsable' => $responsable]);
         });
 
-        // Crear/actualizar responsable de una institución
         Route::post('/api/institucion/{id}/responsable', function (Request $request, $id) {
             $institucion = App\Models\Institucion::findOrFail($id);
             $data = $request->validate([
@@ -411,7 +358,6 @@ Route::prefix('notificaciones')->name('notificaciones.')->group(function () {
 
     // ==================== API PARA TÉCNICOS (SOPORTE) ====================
     Route::prefix('admin/api')->group(function () {
-        // Obtener técnicos por búsqueda (cédula, nombre o usuario)
         Route::get('/tecnicos', function (Request $request) {
             $search = $request->get('search');
 
@@ -434,7 +380,6 @@ Route::prefix('notificaciones')->name('notificaciones.')->group(function () {
             return response()->json($tecnicos);
         });
 
-        // Obtener un técnico por ID
         Route::get('/tecnicos/{id}', function ($id) {
             $tecnico = App\Models\Usuario::whereHas('rol', function($q) {
                 $q->where('nombre', 'tecnico');
