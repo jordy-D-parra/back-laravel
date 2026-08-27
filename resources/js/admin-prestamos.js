@@ -221,14 +221,12 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
-                // CORRECCIÓN: Asegurar que data sea un array
                 let solicitudes = [];
                 if (data && data.data) {
                     solicitudes = data.data;
                 } else if (data && Array.isArray(data)) {
                     solicitudes = data;
                 } else if (data && typeof data === 'object') {
-                    // Si vino un objeto, intentar obtener los datos
                     solicitudes = data.data || [];
                 }
                 renderSolicitudes(solicitudes);
@@ -308,7 +306,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const table = document.getElementById('tablaSolicitudes');
         if (!table) return;
         
-        // Asegurar que solicitudes es un array
         if (!Array.isArray(solicitudes)) {
             console.error('renderSolicitudes: solicitudes no es un array', solicitudes);
             table.innerHTML = `
@@ -392,7 +389,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const table = document.getElementById(tableId);
         if (!table) return;
         
-        // CORRECCIÓN: Extraer los datos correctamente
         let prestamos = [];
         if (data && data.data) {
             prestamos = data.data;
@@ -746,7 +742,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ============================================================
-    // FUNCIONES DE BÚSQUEDA DE ITEMS
+    // FUNCIONES DE BÚSQUEDA DE ITEMS (CON INDICADOR DE RESERVA)
     // ============================================================
     window.buscarItemsPrestamo = debounce(function() {
         const buscar = document.getElementById('buscarItem')?.value?.trim() || '';
@@ -778,22 +774,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     const badgeClass = item.tipo === 'activo' ? 'item-badge-activo' : 'item-badge-componente';
                     const nombre = escapeHtml(item.nombre || tipoLabel + ' sin nombre');
                     
+                    const estaReservado = item.esta_reservado || false;
+                    const estadoBadge = estaReservado 
+                        ? '<span class="badge bg-warning text-dark ms-2">🔒 Reservado</span>' 
+                        : '';
+                    
                     let prestableType = normalizePrestableType(item.prestable_type || '');
                     const itemId = item.id;
 
                     html += `
-                        <div class="result-item list-group-item list-group-item-action"
+                        <div class="result-item list-group-item list-group-item-action ${estaReservado ? 'disabled' : ''}"
                              data-item-id="${itemId}"
                              data-item-type="${prestableType}"
-                             onclick="seleccionarItem(${itemId}, '${prestableType}')"
-                             style="border-left: 3px solid ${item.tipo === 'activo' ? '#1e3c72' : '#0d6efd'}; padding: 0.75rem 0.9rem; cursor:pointer;">
+                             onclick="${estaReservado ? '' : `seleccionarItem(${itemId}, '${prestableType}')`}"
+                             style="border-left: 3px solid ${item.tipo === 'activo' ? '#1e3c72' : '#0d6efd'}; padding: 0.75rem 0.9rem; ${estaReservado ? 'cursor:not-allowed; opacity:0.6;' : 'cursor:pointer;'}">
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>
-                                    <div class="fw-semibold">${nombre}</div>
+                                    <div class="fw-semibold">
+                                        ${nombre}
+                                        ${estadoBadge}
+                                    </div>
                                     <div class="small text-muted">${escapeHtml(item.serial || 'Sin serial')}</div>
                                 </div>
                                 <span class="badge ${badgeClass}" style="font-size:0.72rem; text-transform:capitalize;">${tipoLabel}</span>
                             </div>
+                            ${estaReservado ? '<div class="small text-warning mt-1">⚠️ Este item está reservado en otro préstamo</div>' : ''}
                         </div>
                     `;
                 });
@@ -816,7 +821,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Obtener nombre del item desde el resultado clickeado
         const resultItem = document.querySelector(`.result-item[data-item-id="${id}"]`);
         const nombre = resultItem ? resultItem.querySelector('.fw-semibold')?.textContent || 'Item' : 'Item';
         const codigo = resultItem ? resultItem.querySelector('.small.text-muted')?.textContent || 'Sin código' : 'Sin código';
@@ -975,7 +979,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalPrestamo'));
                 if (modal) modal.hide();
-                showToast(data.message || 'Préstamo creado exitosamente', 'success');
+                
+                let mensaje = data.message || 'Préstamo creado exitosamente';
+                const estadoSeleccionado = document.getElementById('estadoPrestamo')?.value || 'aprobado';
+                if (estadoSeleccionado === 'pendiente') {
+                    mensaje += ' ⚠️ Los items han sido reservados. Deben ser aprobados para continuar.';
+                }
+                showToast(mensaje, 'success');
+                
                 cargarSolicitudes();
                 cargarPrestamosActivos();
                 cargarPrestamosFinalizados();
@@ -1073,12 +1084,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         const estadoEntrega = d.estado_entrega || '—';
                         const estadoDevolucion = d.estado_devolucion || 'Pendiente';
                         const devuelto = d.estado_devolucion && d.estado_devolucion !== 'Pendiente de devolución';
+                        
+                        const estaReservado = p.estado === 'pendiente';
+                        const estadoItemBadge = estaReservado 
+                            ? '<span class="badge bg-warning text-dark ms-2">🔒 Reservado</span>'
+                            : '';
 
                         html += `
                             <div class="item-checkbox">
                                 <span>${devuelto ? '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><polyline points="20 6 9 17 4 12"/></svg>' : '<svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>'}</span>
                                 <div class="item-info">
-                                    <div class="item-name">${escapeHtml(nombreItem)}</div>
+                                    <div class="item-name">
+                                        ${escapeHtml(nombreItem)}
+                                        ${estadoItemBadge}
+                                    </div>
                                     <div class="item-detail">
                                         Cant: ${d.cantidad} ·
                                         Estado entrega: ${escapeHtml(estadoEntrega)} ·
@@ -1143,6 +1162,14 @@ document.addEventListener('DOMContentLoaded', function() {
                                 Generar Acta de Entrega
                             </button>
                         ` : ''}
+                        ${p.estado === 'devuelto' ? `
+                            <button type="button" class="btn btn-success" onclick="window.generarActaDevolucion(${p.id})" style="color:#fff;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" class="me-1">
+                                    <polyline points="20 6 9 17 4 12"/>
+                                </svg>
+                                Generar Acta de Devolución
+                            </button>
+                        ` : ''}
                     </div>
                 `;
 
@@ -1175,6 +1202,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const modal = bootstrap.Modal.getInstance(document.getElementById('modalDetallePrestamo'));
         if (modal) modal.hide();
+    };
+
+    // ============================================================
+    // 🆕 GENERAR ACTA DE DEVOLUCIÓN
+    // ============================================================
+    window.generarActaDevolucion = function(prestamoId) {
+        const url = '/admin/actas/devolucion/generar?prestamo_id=' + prestamoId;
+        const ventana = window.open(url, '_blank', 'width=900,height=700,scrollbars=yes');
+        if (!ventana) {
+            showToast('Por favor, permita ventanas emergentes para generar el acta', 'warning');
+            return;
+        }
     };
 
     // ============================================================
@@ -1216,6 +1255,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     };
 
+    // ============================================================
+    // 🆕 ABRIR MODAL DE DEVOLUCIÓN (CON VALIDACIÓN DE DUPLICADOS)
+    // ============================================================
     window.abrirModalDevolucion = function(id) {
         const input = document.getElementById('devolucionPrestamoId');
         if (input) input.value = id;
@@ -1260,16 +1302,21 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 detalles.forEach((d, index) => {
                     const nombreItem = d.nombre_item || d.prestable?.serial || d.prestable?.tipo || 'Item ' + (index + 1);
-                    const checked = d.estado_devolucion && d.estado_devolucion !== 'Pendiente de devolución' ? 'checked' : '';
+                    
+                    // ========== VERIFICAR SI YA FUE DEVUELTO ==========
+                    const yaDevuelto = d.estado_devolucion && d.estado_devolucion !== 'Pendiente de devolución';
+                    const checked = yaDevuelto ? 'checked' : '';
+                    const disabled = yaDevuelto ? 'disabled' : '';
 
                     html += `
                         <tr>
                             <td>
                                 <input class="form-check-input" type="checkbox" id="dev-${d.id}"
-                                       name="items[${d.id}][devuelto]" value="1" ${checked}>
+                                       name="items[${d.id}][devuelto]" value="1" ${checked} ${disabled}>
+                                ${yaDevuelto ? `<span class="badge bg-secondary ms-1" style="font-size:0.6rem;">Devuelto</span>` : ''}
                             </td>
                             <td>
-                                <label class="form-check-label fw-medium" for="dev-${d.id}">
+                                <label class="form-check-label fw-medium" for="dev-${d.id}" style="${yaDevuelto ? 'opacity:0.6;' : ''}">
                                     ${escapeHtml(nombreItem)}
                                 </label>
                                 <input type="hidden" name="items[${d.id}][id]" value="${d.id}">
@@ -1277,13 +1324,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td>${d.cantidad}</td>
                             <td><span class="badge bg-info">${escapeHtml(d.estado_entrega || '—')}</span></td>
                             <td>
-                                <select class="form-select form-select-sm" name="items[${d.id}][estado_devolucion]">
+                                <select class="form-select form-select-sm" name="items[${d.id}][estado_devolucion]" ${disabled}>
                                     <option value="Devuelto en buen estado" ${checked ? 'selected' : ''}>Devuelto en buen estado</option>
                                     <option value="Devuelto con daños">Devuelto con daños</option>
                                     <option value="No devuelto">No devuelto</option>
                                     <option value="Reemplazado">Reemplazado</option>
                                     <option value="Pendiente de devolución">Pendiente</option>
                                 </select>
+                                ${yaDevuelto ? `<small class="text-muted d-block" style="font-size:0.6rem;">Ya devuelto el ${formatDate(d.updated_at)}</small>` : ''}
                             </td>
                         </tr>
                     `;
@@ -1396,6 +1444,79 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ============================================================
+    // 🆕 EVENTO: FORMULARIO DE DEVOLUCIÓN CON CONFIRMACIÓN DE ACTA
+    // ============================================================
+    document.getElementById('formDevolucion')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const id = document.getElementById('devolucionPrestamoId').value;
+        const formData = new FormData(this);
+        const submitBtn = this.querySelector('button[type="submit"]');
+        const originalText = submitBtn ? submitBtn.innerHTML : 'Registrar Devolución';
+        
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Procesando...';
+        }
+        
+        fetch('/admin/prestamos/' + id + '/devolver', {
+            method: 'POST',
+            body: formData,
+            headers: { Accept: 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Cerrar modal de devolución
+                bootstrap.Modal.getInstance(document.getElementById('modalDevolucion')).hide();
+                
+                // Mostrar notificación
+                showToast(data.message || 'Devolución registrada', 'success');
+                
+                // Recargar tablas
+                cargarPrestamosActivos();
+                cargarPrestamosFinalizados();
+                
+                // ========== MOSTRAR MODAL PARA GENERAR ACTA ==========
+                const btnActa = document.getElementById('btnGenerarActaDevolucion');
+                if (btnActa) {
+                    btnActa.dataset.prestamoId = id;
+                }
+                
+                const modalActa = new bootstrap.Modal(document.getElementById('modalConfirmarActaDevolucion'));
+                modalActa.show();
+                
+            } else {
+                showToast(data.message || 'Error al registrar devolución', 'error');
+            }
+        })
+        .catch(() => showToast('Error de conexión', 'error'))
+        .finally(() => {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        });
+    });
+
+    // ============================================================
+    // 🆕 GENERAR ACTA DE DEVOLUCIÓN DESDE MODAL DE CONFIRMACIÓN
+    // ============================================================
+    document.getElementById('btnGenerarActaDevolucion')?.addEventListener('click', function() {
+        const prestamoId = this.dataset.prestamoId;
+        if (!prestamoId) {
+            showToast('No se encontró el préstamo', 'error');
+            return;
+        }
+        
+        // Cerrar el modal de confirmación
+        bootstrap.Modal.getInstance(document.getElementById('modalConfirmarActaDevolucion')).hide();
+        
+        // Abrir el acta en una nueva ventana
+        window.generarActaDevolucion(prestamoId);
+    });
+
+    // ============================================================
     // EVENTOS DE FORMULARIOS DE ACCIONES
     // ============================================================
     document.getElementById('formAprobacion')?.addEventListener('submit', function(e) {
@@ -1472,35 +1593,6 @@ document.addEventListener('DOMContentLoaded', function() {
         .catch(() => showToast('Error de conexión', 'error'))
         .finally(() => {
             if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Registrar Entrega'; }
-        });
-    });
-
-    document.getElementById('formDevolucion')?.addEventListener('submit', function(e) {
-        e.preventDefault();
-        const id = document.getElementById('devolucionPrestamoId').value;
-        const formData = new FormData(this);
-        const submitBtn = this.querySelector('button[type="submit"]');
-        if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
-        
-        fetch('/admin/prestamos/' + id + '/devolver', {
-            method: 'POST',
-            body: formData,
-            headers: { Accept: 'application/json' }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('modalDevolucion')).hide();
-                showToast(data.message || 'Devolución registrada', 'success');
-                cargarPrestamosActivos();
-                cargarPrestamosFinalizados();
-            } else {
-                showToast(data.message || 'Error al registrar devolución', 'error');
-            }
-        })
-        .catch(() => showToast('Error de conexión', 'error'))
-        .finally(() => {
-            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Registrar Devolución'; }
         });
     });
 

@@ -98,15 +98,7 @@ class Activo extends Model
         return $this->modelo?->marca;
     }
 
-    /**
-     * Scope: Solo activos disponibles para préstamo.
-     */
-    public function scopeDisponibles($query)
-    {
-        return $query->whereHas('estatus', function ($q) {
-            $q->where('permite_prestamo', true);
-        });
-    }
+  
 
     /**
      * Scope: Solo activos prestados.
@@ -161,4 +153,49 @@ class Activo extends Model
     {
         return $this->hasMany(FichaSoporte::class, 'activo_id');
     }
+
+    // Agregar relación
+public function reservadoEnPrestamo()
+{
+    return $this->belongsTo(Prestamo::class, 'reservado_en_prestamo_id');
+}
+
+// Verificar si está reservado
+public function estaReservado(): bool
+{
+    return !is_null($this->reservado_en_prestamo_id);
+}
+
+// Verificar si está disponible (NO reservado Y NO prestado)
+public function estaDisponibleParaPrestamo(): bool
+{
+    return !$this->estaReservado() && $this->estaDisponible();
+}
+
+// Métodos para reservar/liberar
+public function reservar(int $prestamoId): bool
+{
+    return $this->update(['reservado_en_prestamo_id' => $prestamoId]);
+}
+
+public function liberarReserva(): bool
+{
+    return $this->update(['reservado_en_prestamo_id' => null]);
+}
+
+// Modificar el scope disponibles para excluir reservados
+public function scopeDisponibles($query)
+{
+    return $query->whereHas('estatus', function ($q) {
+        $q->where('permite_prestamo', true);
+    })->whereNull('reservado_en_prestamo_id');
+}
+
+// Scope para activos que están en préstamos activos (para búsqueda)
+public function scopeEnPrestamoActivo($query)
+{
+    return $query->whereHas('prestamos', function($q) {
+        $q->whereIn('estado', ['entregado', 'extendido', 'aprobado']);
+    });
+}
 }

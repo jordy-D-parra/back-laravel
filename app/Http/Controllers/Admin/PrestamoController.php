@@ -158,7 +158,7 @@ class PrestamoController extends Controller
             'institucion:id,nombre',
             'responsableReceptor:id,nombre,documento,telefono,email,cargo',
             'responsableEmisor:id,nombre,documento,telefono,email,cargo',
-            'usuarioRegistra:id,usuario', // <--- CORREGIDO
+            'usuarioRegistra:id,usuario',
             'solicitud:id,estado_solicitud',
             'detalles.prestable',
             'extensiones.aprobadoPor:id,nombre,usuario',
@@ -175,7 +175,7 @@ class PrestamoController extends Controller
     }
 
     // ===========================
-    // API: CREAR PRÉSTAMO
+    // API: CREAR PRÉSTAMO (CON RESERVA)
     // ===========================
     public function store(Request $request)
     {
@@ -212,6 +212,7 @@ class PrestamoController extends Controller
 
         $itemsData = collect($validated['items']);
 
+        // ========== VALIDACIÓN MEJORADA: Verificar disponibilidad (incluyendo reserva) ==========
         foreach ($itemsData as $item) {
             if ($item['prestable_type'] === Activo::class) {
                 $activo = Activo::find($item['prestable_id']);
@@ -221,10 +222,11 @@ class PrestamoController extends Controller
                         'message' => 'El activo con ID ' . $item['prestable_id'] . ' no existe',
                     ], 422);
                 }
-                if (!$activo->estaDisponible()) {
+                // Usar el nuevo método que verifica reserva Y disponibilidad
+                if (!$activo->estaDisponibleParaPrestamo()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'El activo ' . ($activo->serial ?? '') . ' no está disponible',
+                        'message' => 'El activo ' . ($activo->serial ?? '') . ' no está disponible (puede estar reservado o prestado)',
                     ], 422);
                 }
             } else {
@@ -235,10 +237,10 @@ class PrestamoController extends Controller
                         'message' => 'El componente con ID ' . $item['prestable_id'] . ' no existe',
                     ], 422);
                 }
-                if (!$componente->estaDisponible()) {
+                if (!$componente->estaDisponibleParaPrestamo()) {
                     return response()->json([
                         'success' => false,
-                        'message' => 'El componente ' . ($componente->serial ?? '') . ' no está disponible',
+                        'message' => 'El componente ' . ($componente->serial ?? '') . ' no está disponible (puede estar reservado o prestado)',
                     ], 422);
                 }
             }
@@ -274,7 +276,22 @@ class PrestamoController extends Controller
                     'observaciones' => $item['observaciones'] ?? null,
                 ]);
 
-                if (in_array($estado, ['entregado', 'aprobado'])) {
+                // ========== NUEVA LÓGICA DE RESERVA ==========
+                if ($estado === 'pendiente') {
+                    // Si está PENDIENTE → RESERVAR
+                    if ($item['prestable_type'] === Activo::class) {
+                        $activo = Activo::find($item['prestable_id']);
+                        if ($activo) {
+                            $activo->reservar($prestamo->id);
+                        }
+                    } else {
+                        $componente = Componente::find($item['prestable_id']);
+                        if ($componente) {
+                            $componente->reservar($prestamo->id);
+                        }
+                    }
+                } elseif (in_array($estado, ['entregado', 'aprobado'])) {
+                    // Si está ENTREGADO o APROBADO → MARCAR COMO PRESTADO
                     if ($item['prestable_type'] === Activo::class) {
                         $activo = Activo::find($item['prestable_id']);
                         if ($activo) {
@@ -289,6 +306,7 @@ class PrestamoController extends Controller
                 }
             }
 
+            // Actualizar solicitud si existe
             if ($request->solicitud_id) {
                 $solicitud = Solicitud::find($request->solicitud_id);
                 if ($solicitud) {
@@ -323,7 +341,7 @@ class PrestamoController extends Controller
     }
 
     // ===========================
-    // API: APROBAR PRÉSTAMO
+    // API: APROBAR PRÉSTAMO (RESERVA → PRESTADO)
     // ===========================
     public function aprobar(Request $request, Prestamo $prestamo)
     {
@@ -342,12 +360,59 @@ class PrestamoController extends Controller
             'observaciones' => 'nullable|string|max:1000',
         ]);
 
-        $observaciones = $prestamo->observaciones ?? '';
-        $nuevaObservacion = trim("Aprobación: " . ($validated['observaciones'] ?? 'Sin observaciones'));
-        $prestamo->update([
-            'estado' => 'aprobado',
-            'observaciones' => $observaciones ? $observaciones . "\n\n" . $nuevaObservacion : $nuevaObservacion,
-        ]);
+        DB::beginTransaction();
+        try {
+            // ========== Convertir RESERVA → PRESTADO ==========
+            foreach ($prestamo->detalles as $detalle) {
+                $prestable = $detalle->prestable;
+                
+                if ($prestable instanceof Activo) {
+                    // Si estaba reservado, liberar reserva y marcar como prestado
+                    if ($prestable->estaReservado()) {
+                        $prestable->liberarReserva();
+                        $prestable->marcarComoPrestado();
+                    } elseif (!$prestable->estaDisponible()) {
+                        // Si ya está prestado, no hacer nada
+                        continue;
+                    } else {
+                        // Si está disponible (caso raro), marcar como prestado
+                        $prestable->marcarComoPrestado();
+                    }
+                } elseif ($prestable instanceof Componente) {
+                    if ($prestable->estaReservado()) {
+                        $prestable->liberarReserva();
+                        $prestable->marcarComoPrestado();
+                    } elseif ($prestable->estado === 'en_bodega') {
+                        $prestable->marcarComoPrestado();
+                    }
+                }
+            }
+
+            // Actualizar observaciones
+            $observaciones = $prestamo->observaciones ?? '';
+            $nuevaObservacion = trim("Aprobación: " . ($validated['observaciones'] ?? 'Sin observaciones'));
+            $prestamo->update([
+                'estado' => 'aprobado',
+                'observaciones' => $observaciones ? $observaciones . "\n\n" . $nuevaObservacion : $nuevaObservacion,
+            ]);
+
+            // Actualizar solicitud si existe
+            if ($prestamo->solicitud_id) {
+                $solicitud = Solicitud::find($prestamo->solicitud_id);
+                if ($solicitud && $solicitud->estado_solicitud !== 'aprobada') {
+                    $solicitud->update(['estado_solicitud' => 'aprobada']);
+                }
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Error al aprobar préstamo: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al aprobar el préstamo: ' . $e->getMessage(),
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,
@@ -357,7 +422,7 @@ class PrestamoController extends Controller
     }
 
     // ===========================
-    // API: RECHAZAR PRÉSTAMO
+    // API: RECHAZAR PRÉSTAMO (LIBERAR RESERVA)
     // ===========================
     public function rechazar(Request $request, Prestamo $prestamo)
     {
@@ -376,12 +441,39 @@ class PrestamoController extends Controller
             'motivo' => 'required|string|max:1000',
         ]);
 
-        $observaciones = $prestamo->observaciones ?? '';
-        $nuevaObservacion = trim("Rechazo: " . $validated['motivo']);
-        $prestamo->update([
-            'estado' => 'rechazado',
-            'observaciones' => $observaciones ? $observaciones . "\n\n" . $nuevaObservacion : $nuevaObservacion,
-        ]);
+        DB::beginTransaction();
+        try {
+            // ========== LIBERAR RESERVA ==========
+            foreach ($prestamo->detalles as $detalle) {
+                $prestable = $detalle->prestable;
+                
+                if ($prestable instanceof Activo) {
+                    if ($prestable->estaReservado()) {
+                        $prestable->liberarReserva();
+                    }
+                } elseif ($prestable instanceof Componente) {
+                    if ($prestable->estaReservado()) {
+                        $prestable->liberarReserva();
+                    }
+                }
+            }
+
+            $observaciones = $prestamo->observaciones ?? '';
+            $nuevaObservacion = trim("Rechazo: " . $validated['motivo']);
+            $prestamo->update([
+                'estado' => 'rechazado',
+                'observaciones' => $observaciones ? $observaciones . "\n\n" . $nuevaObservacion : $nuevaObservacion,
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Error al rechazar préstamo: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al rechazar el préstamo: ' . $e->getMessage(),
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,
@@ -391,7 +483,7 @@ class PrestamoController extends Controller
     }
 
     // ===========================
-    // API: ENTREGAR PRÉSTAMO
+    // API: ENTREGAR PRÉSTAMO (RESERVA → PRESTADO)
     // ===========================
     public function entregar(Request $request, Prestamo $prestamo)
     {
@@ -414,6 +506,32 @@ class PrestamoController extends Controller
 
         DB::beginTransaction();
         try {
+            // ========== Verificar y convertir RESERVA → PRESTADO si es necesario ==========
+            foreach ($prestamo->detalles as $detalle) {
+                $prestable = $detalle->prestable;
+                
+                if ($prestable instanceof Activo) {
+                    // Si aún está reservado, convertirlo a prestado
+                    if ($prestable->estaReservado()) {
+                        $prestable->liberarReserva();
+                        $prestable->marcarComoPrestado();
+                    } elseif (!$prestable->estaDisponible()) {
+                        // Ya está prestado, no hacer nada
+                        continue;
+                    } else {
+                        // Si está disponible, marcar como prestado
+                        $prestable->marcarComoPrestado();
+                    }
+                } elseif ($prestable instanceof Componente) {
+                    if ($prestable->estaReservado()) {
+                        $prestable->liberarReserva();
+                        $prestable->marcarComoPrestado();
+                    } elseif ($prestable->estado === 'en_bodega') {
+                        $prestable->marcarComoPrestado();
+                    }
+                }
+            }
+
             $observaciones = $prestamo->observaciones ?? '';
             $nuevaObservacion = trim("Entrega: " . ($validated['observaciones'] ?? 'Sin observaciones'));
 
@@ -424,12 +542,11 @@ class PrestamoController extends Controller
                 'observaciones' => $observaciones ? $observaciones . "\n\n" . $nuevaObservacion : $nuevaObservacion,
             ]);
 
-            foreach ($prestamo->detalles as $detalle) {
-                $prestable = $detalle->prestable;
-                if ($prestable instanceof Activo) {
-                    $prestable->marcarComoPrestado();
-                } elseif ($prestable instanceof Componente) {
-                    $prestable->marcarComoPrestado();
+            // Actualizar solicitud si existe
+            if ($prestamo->solicitud_id) {
+                $solicitud = Solicitud::find($prestamo->solicitud_id);
+                if ($solicitud && $solicitud->estado_solicitud !== 'entregada') {
+                    $solicitud->update(['estado_solicitud' => 'entregada']);
                 }
             }
 
@@ -475,7 +592,7 @@ class PrestamoController extends Controller
     }
 
     // ===========================
-    // API: REGISTRAR DEVOLUCIÓN
+    // API: REGISTRAR DEVOLUCIÓN (LIBERAR RESERVA Y PRESTADO)
     // ===========================
     public function devolver(Request $request, Prestamo $prestamo)
     {
@@ -542,8 +659,15 @@ class PrestamoController extends Controller
                 if ($devolverAhora) {
                     $prestable = $detalle->prestable;
                     if ($prestable instanceof Activo) {
+                        // Liberar reserva si existe y marcar como disponible
+                        if ($prestable->estaReservado()) {
+                            $prestable->liberarReserva();
+                        }
                         $prestable->marcarComoDisponible();
                     } elseif ($prestable instanceof Componente) {
+                        if ($prestable->estaReservado()) {
+                            $prestable->liberarReserva();
+                        }
                         $prestable->marcarComoDevuelto();
                     }
                 }
@@ -569,7 +693,7 @@ class PrestamoController extends Controller
     }
 
     // ===========================
-    // API: CANCELAR PRÉSTAMO
+    // API: CANCELAR PRÉSTAMO (LIBERAR RESERVA)
     // ===========================
     public function cancelar(Request $request, Prestamo $prestamo)
     {
@@ -588,12 +712,46 @@ class PrestamoController extends Controller
             'motivo' => 'required|string|max:500',
         ]);
 
-        $observaciones = $prestamo->observaciones ?? '';
-        $nuevaObservacion = trim("Cancelación: " . $validated['motivo']);
-        $prestamo->update([
-            'estado' => 'cancelado',
-            'observaciones' => $observaciones ? $observaciones . "\n\n" . $nuevaObservacion : $nuevaObservacion,
-        ]);
+        DB::beginTransaction();
+        try {
+            // ========== LIBERAR RESERVA ==========
+            foreach ($prestamo->detalles as $detalle) {
+                $prestable = $detalle->prestable;
+                
+                if ($prestable instanceof Activo) {
+                    if ($prestable->estaReservado()) {
+                        $prestable->liberarReserva();
+                    }
+                    // Si está prestado y se cancela un préstamo aprobado, también liberar
+                    if (!$prestable->estaDisponible()) {
+                        $prestable->marcarComoDisponible();
+                    }
+                } elseif ($prestable instanceof Componente) {
+                    if ($prestable->estaReservado()) {
+                        $prestable->liberarReserva();
+                    }
+                    if ($prestable->estado === 'prestado') {
+                        $prestable->marcarComoDevuelto();
+                    }
+                }
+            }
+
+            $observaciones = $prestamo->observaciones ?? '';
+            $nuevaObservacion = trim("Cancelación: " . $validated['motivo']);
+            $prestamo->update([
+                'estado' => 'cancelado',
+                'observaciones' => $observaciones ? $observaciones . "\n\n" . $nuevaObservacion : $nuevaObservacion,
+            ]);
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Error al cancelar préstamo: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cancelar el préstamo: ' . $e->getMessage(),
+            ], 500);
+        }
 
         return response()->json([
             'success' => true,
@@ -671,6 +829,59 @@ class PrestamoController extends Controller
     }
 
     // ===========================
+    // API: ELIMINAR PRÉSTAMO (LIBERAR RESERVA)
+    // ===========================
+    public function destroy($id)
+    {
+        if (!auth()->user()->hasPermission('eliminar-prestamo')) {
+            return response()->json(['success' => false, 'message' => 'No tienes permiso para eliminar préstamos'], 403);
+        }
+
+        try {
+            $prestamo = Prestamo::findOrFail($id);
+
+            DB::beginTransaction();
+            
+            // ========== LIBERAR RESERVAS ==========
+            foreach ($prestamo->detalles as $detalle) {
+                $prestable = $detalle->prestable;
+                
+                if ($prestable instanceof Activo) {
+                    if ($prestable->estaReservado()) {
+                        $prestable->liberarReserva();
+                    }
+                    // Si está prestado, marcar como disponible
+                    if (!$prestable->estaDisponible()) {
+                        $prestable->marcarComoDisponible();
+                    }
+                } elseif ($prestable instanceof Componente) {
+                    if ($prestable->estaReservado()) {
+                        $prestable->liberarReserva();
+                    }
+                    if ($prestable->estado === 'prestado') {
+                        $prestable->marcarComoDevuelto();
+                    }
+                }
+            }
+
+            $prestamo->delete();
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Préstamo eliminado y reservas liberadas exitosamente'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al eliminar préstamo: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar el préstamo: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ===========================
     // API: BUSCAR RESPONSABLE DE DEPARTAMENTO/INSTITUCIÓN
     // ===========================
     public function buscarResponsableDestino(Request $request)
@@ -707,7 +918,7 @@ class PrestamoController extends Controller
     }
 
     // ===========================
-    // API: BUSCAR ACTIVOS/COMPONENTES DISPONIBLES
+    // API: BUSCAR ACTIVOS/COMPONENTES DISPONIBLES (EXCLUYE RESERVADOS)
     // ===========================
     public function buscarItems(Request $request)
     {
@@ -736,7 +947,11 @@ class PrestamoController extends Controller
                           });
                     });
                 })
-                ->disponibles()
+                // ========== EXCLUIR RESERVADOS Y NO DISPONIBLES ==========
+                ->whereNull('reservado_en_prestamo_id')
+                ->whereHas('estatus', function($q) {
+                    $q->where('permite_prestamo', true);
+                })
                 ->limit(15)
                 ->get();
 
@@ -764,7 +979,9 @@ class PrestamoController extends Controller
                           ->orWhere('modelo', 'ILIKE', "%{$buscar}%");
                     });
                 })
-                ->enBodega()
+                // ========== EXCLUIR RESERVADOS ==========
+                ->where('estado', 'en_bodega')
+                ->whereNull('reservado_en_prestamo_id')
                 ->limit(15)
                 ->get();
 
@@ -782,6 +999,7 @@ class PrestamoController extends Controller
             }
         }
 
+        // Ordenar resultados
         if ($buscar) {
             $buscarLower = strtolower($buscar);
             usort($resultados, function($a, $b) use ($buscarLower) {
@@ -807,53 +1025,55 @@ class PrestamoController extends Controller
         ]);
     }
 
-public function paraPrestamo(Request $request)
-{
-    try {
-        $user = auth()->user();
-        if (!$user->hasPermission('ver-prestamos') && !$user->hasPermission('ver-solicitudes')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+    // ===========================
+    // API: SOLICITUDES PARA PRÉSTAMO
+    // ===========================
+    public function paraPrestamo(Request $request)
+    {
+        try {
+            $user = auth()->user();
+            if (!$user->hasPermission('ver-prestamos') && !$user->hasPermission('ver-solicitudes')) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
+            $query = Solicitud::with(['departamento', 'institucion', 'responsable', 'usuario'])
+                ->withCount('detalles')
+                ->whereDoesntHave('prestamos')
+                ->whereIn('estado_solicitud', ['pendiente', 'aprobada']);
+
+            if ($request->filled('buscar')) {
+                $buscar = $request->buscar;
+                $query->where(function ($q) use ($buscar) {
+                    $q->where('id', 'LIKE', "%{$buscar}%")
+                      ->orWhere('justificacion', 'ILIKE', "%{$buscar}%")
+                      ->orWhereHas('departamento', function($q) use ($buscar) {
+                          $q->where('nombre', 'ILIKE', "%{$buscar}%");
+                      })
+                      ->orWhereHas('institucion', function($q) use ($buscar) {
+                          $q->where('nombre', 'ILIKE', "%{$buscar}%");
+                      })
+                      ->orWhereHas('responsable', function($q) use ($buscar) {
+                          $q->where('nombre', 'ILIKE', "%{$buscar}%");
+                      })
+                      ->orWhereHas('usuario', function($q) use ($buscar) {
+                          $q->where('usuario', 'ILIKE', "%{$buscar}%");
+                      });
+                });
+            }
+
+            $solicitudes = $query->orderBy('created_at', 'desc')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $solicitudes
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error en paraPrestamo: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => []
+            ], 500);
         }
-
-        $query = Solicitud::with(['departamento', 'institucion', 'responsable', 'usuario'])
-            ->withCount('detalles')
-            ->whereDoesntHave('prestamos'); // Solo solicitudes que NO tienen préstamo asociado
-
-        // BÚSQUEDA en tiempo real
-        if ($request->filled('buscar')) {
-            $buscar = $request->buscar;
-            $query->where(function ($q) use ($buscar) {
-                $q->where('id', 'LIKE', "%{$buscar}%")
-                  ->orWhere('justificacion', 'ILIKE', "%{$buscar}%")
-                  ->orWhereHas('departamento', function($q) use ($buscar) {
-                      $q->where('nombre', 'ILIKE', "%{$buscar}%");
-                  })
-                  ->orWhereHas('institucion', function($q) use ($buscar) {
-                      $q->where('nombre', 'ILIKE', "%{$buscar}%");
-                  })
-                  ->orWhereHas('responsable', function($q) use ($buscar) {
-                      $q->where('nombre', 'ILIKE', "%{$buscar}%");
-                  })
-                  ->orWhereHas('usuario', function($q) use ($buscar) {
-                      $q->where('usuario', 'ILIKE', "%{$buscar}%");
-                  });
-            });
-        }
-
-        // Ordenar por fecha de creación (más recientes primero)
-        $solicitudes = $query->orderBy('created_at', 'desc')->get();
-
-        return response()->json([
-            'success' => true,
-            'data' => $solicitudes
-        ]);
-    } catch (\Exception $e) {
-        \Log::error('Error en paraPrestamo: ' . $e->getMessage());
-        return response()->json([
-            'success' => false,
-            'message' => $e->getMessage(),
-            'data' => []
-        ], 500);
     }
-}
 }

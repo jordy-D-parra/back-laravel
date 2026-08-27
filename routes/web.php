@@ -23,8 +23,10 @@ use App\Http\Controllers\Admin\FichaSoporteController;
 use App\Http\Controllers\Admin\PrestamoController;
 use App\Http\Controllers\Admin\CalendarioController;
 use App\Http\Controllers\Admin\ActaEntregaController;
+use App\Http\Controllers\Admin\ActaDevolucionController;
 use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\AuditoriaController;
+use App\Http\Controllers\Admin\ReporteInventarioController;
 use App\Models\Estatus;
 
 // ==================== RUTA PRINCIPAL ====================
@@ -60,7 +62,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     // ==================== ADMINISTRACIÓN ====================
-    Route::prefix('admin')->middleware(['auditoria'])->name('admin.')->group(function () { // <--- AÑADIR MIDDLEWARE AQUÍ
+    Route::prefix('admin')->middleware(['auditoria'])->name('admin.')->group(function () {
 
         // ========== AUDITORÍA ==========
         Route::resource('auditoria', AuditoriaController::class)->only(['index', 'show', 'destroy']);
@@ -204,13 +206,26 @@ Route::middleware(['auth'])->group(function () {
         Route::post('soporte/{id}/close', [FichaSoporteController::class, 'close'])->name('soporte.close');
         Route::post('soporte/equipo-externo', [FichaSoporteController::class, 'storeEquipoExterno'])->name('soporte.equipo-externo');
 
-        // 3.5 Actas de Entrega
+        // 3.5 Actas
         Route::prefix('actas')->name('actas.')->group(function () {
+            // Acta de Entrega
             Route::get('/generar', [ActaEntregaController::class, 'generarDesdePrestamo'])->name('generar');
             Route::get('/imprimir/{id}', [ActaEntregaController::class, 'imprimir'])->name('imprimir');
+            
+            // Acta de Devolución
+            Route::get('/devolucion/generar', [ActaDevolucionController::class, 'generarDesdePrestamo'])->name('devolucion.generar');
+            Route::get('/devolucion/imprimir/{id}', [ActaDevolucionController::class, 'imprimir'])->name('devolucion.imprimir');
         });
 
-        // ========== 4. UTILIDADES ==========
+        // ========== 4. REPORTES ==========
+        Route::prefix('reportes')->name('reportes.')->group(function () {
+            // Reporte de Inventario
+            Route::get('/inventario', [ReporteInventarioController::class, 'index'])->name('inventario');
+            Route::get('/inventario/exportar-pdf', [ReporteInventarioController::class, 'exportarPdf'])->name('inventario.exportar-pdf');
+            Route::get('/inventario/exportar-excel', [ReporteInventarioController::class, 'exportarExcel'])->name('inventario.exportar-excel');
+        });
+
+        // ========== 5. UTILIDADES ==========
         Route::get('/estatus-list', function () {
             $estatus = Estatus::select('id', 'descripcion', 'color_badge')->orderBy('descripcion')->get();
             return response()->json(['success' => true, 'data' => $estatus]);

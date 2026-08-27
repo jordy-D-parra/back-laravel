@@ -74,13 +74,6 @@ class Componente extends Model
         return $this->belongsTo(Responsable::class);
     }
 
-    /**
-     * Scope: Solo componentes en bodega.
-     */
-    public function scopeEnBodega($query)
-    {
-        return $query->where('estado', 'en_bodega');
-    }
 
     /**
      * Scope: Solo componentes instalados en un activo.
@@ -122,4 +115,48 @@ class Componente extends Model
             'fecha_retiro' => now(),
         ]);
     }
+
+    // Agregar relación
+public function reservadoEnPrestamo()
+{
+    return $this->belongsTo(Prestamo::class, 'reservado_en_prestamo_id');
+}
+
+// Verificar si está reservado
+public function estaReservado(): bool
+{
+    return !is_null($this->reservado_en_prestamo_id);
+}
+
+// Verificar si está disponible (NO reservado Y en bodega)
+public function estaDisponibleParaPrestamo(): bool
+{
+    return !$this->estaReservado() && $this->estado === 'en_bodega';
+}
+
+// Métodos para reservar/liberar
+public function reservar(int $prestamoId): bool
+{
+    return $this->update(['reservado_en_prestamo_id' => $prestamoId]);
+}
+
+public function liberarReserva(): bool
+{
+    return $this->update(['reservado_en_prestamo_id' => null]);
+}
+
+// Modificar el scope en_bodega para excluir reservados
+public function scopeEnBodega($query)
+{
+    return $query->where('estado', 'en_bodega')
+                 ->whereNull('reservado_en_prestamo_id');
+}
+
+// Scope para componentes en préstamos activos
+public function scopeEnPrestamoActivo($query)
+{
+    return $query->whereHas('prestamos', function($q) {
+        $q->whereIn('estado', ['entregado', 'extendido', 'aprobado']);
+    });
+}
 }

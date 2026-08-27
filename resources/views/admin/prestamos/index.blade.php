@@ -32,6 +32,95 @@
             padding: 0.2rem 0.5rem;
             font-size: 0.65rem;
         }
+
+        /* Badge de reserva */
+        .badge-reservado {
+            background: #fef3c7 !important;
+            color: #92400e !important;
+            border: 1px solid #f59e0b;
+            font-weight: 600;
+            font-size: 0.6rem;
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+        }
+        .badge-reservado svg {
+            width: 12px;
+            height: 12px;
+            stroke: #92400e;
+        }
+
+        /* Item deshabilitado en búsqueda */
+        .result-item.disabled {
+            opacity: 0.6;
+            cursor: not-allowed !important;
+            background: #f8f9fa !important;
+        }
+        .result-item.disabled:hover {
+            background: #f8f9fa !important;
+            transform: none !important;
+        }
+
+        /* Estado del préstamo en el timeline */
+        .prestamo-timeline .step.reservado .step-icon {
+            background: #fef3c7;
+            border-color: #f59e0b;
+            color: #92400e;
+        }
+
+        /* Select de estado con colores */
+        #estadoPrestamo option[value="pendiente"] { color: #92400e; }
+        #estadoPrestamo option[value="aprobado"] { color: #155724; }
+        #estadoPrestamo option[value="entregado"] { color: #004085; }
+
+        .estado-help-text {
+            font-size: 0.7rem;
+            color: #6c757d;
+            margin-top: 2px;
+            display: block;
+        }
+        .estado-help-text.pendiente { color: #92400e; }
+        .estado-help-text.aprobado { color: #155724; }
+        .estado-help-text.entregado { color: #004085; }
+
+        /* Estilos para el select de estado */
+        .estado-option-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .estado-option-icon svg {
+            width: 14px;
+            height: 14px;
+            vertical-align: middle;
+        }
+
+        /* Botón acta de devolución */
+        .btn-acta-devolucion {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-acta-devolucion:hover {
+            background: #1e7e34;
+            color: white;
+            transform: translateY(-1px);
+        }
+        .btn-acta-devolucion svg {
+            width: 14px;
+            height: 14px;
+            stroke: white;
+        }
     </style>
 @endsection
 
@@ -235,7 +324,7 @@
                             </h6>
 
                             <div class="row">
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-4 mb-3">
                                     <label class="form-label">Tipo <span class="text-danger">*</span></label>
                                     <select class="form-select" id="tipoPrestamo" name="tipo_prestamo" required>
                                         <option value="equipo">Equipo</option>
@@ -243,7 +332,41 @@
                                         <option value="mixto">Mixto</option>
                                     </select>
                                 </div>
-                                <div class="col-md-6 mb-3">
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Estado Inicial <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="estadoPrestamo" name="estado" onchange="cambiarEstadoPrestamo()">
+                                        <option value="pendiente">
+                                            <span class="estado-option-icon">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+                                                    <line x1="8" y1="21" x2="16" y2="21"/>
+                                                    <line x1="12" y1="17" x2="12" y2="21"/>
+                                                </svg>
+                                                Pendiente (Reservar items)
+                                            </span>
+                                        </option>
+                                        <option value="aprobado" selected>
+                                            <span class="estado-option-icon">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                                    <polyline points="20 6 9 17 4 12"/>
+                                                </svg>
+                                                Aprobado (Prestar items)
+                                            </span>
+                                        </option>
+                                        <option value="entregado">
+                                            <span class="estado-option-icon">
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
+                                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                                    <path d="M2 17l10 5 10-5"/>
+                                                    <path d="M2 12l10 5 10-5"/>
+                                                </svg>
+                                                Entregado (Prestar items)
+                                            </span>
+                                        </option>
+                                    </select>
+                                    <small class="estado-help-text" id="estadoHelpText">Los items se marcarán como prestados inmediatamente</small>
+                                </div>
+                                <div class="col-md-4 mb-3">
                                     <label class="form-label">Solicitud</label>
                                     <input type="text" class="form-control" id="solicitudCodigo" readonly placeholder="Sin solicitud">
                                 </div>
@@ -430,6 +553,7 @@
             <div class="modal-body" id="detallePrestamoContenido"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cerrar</button>
+                <!-- Los botones de actas se agregan dinámicamente desde JavaScript -->
             </div>
         </div>
     </div>
@@ -484,9 +608,51 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success">Registrar Devolución</button>
+                    <button type="submit" class="btn btn-success" id="btnRegistrarDevolucion">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline;margin-right:4px;">
+                            <polyline points="20 6 9 17 4 12"/>
+                        </svg>
+                        Registrar Devolución
+                    </button>
                 </div>
             </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========== 🆕 MODAL CONFIRMAR ACTA DE DEVOLUCIÓN ========== -->
+<div class="modal fade" id="modalConfirmarActaDevolucion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success">
+                <h5 class="modal-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Devolución Registrada
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2" style="margin-bottom: 1rem;">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                    <polyline points="22 4 12 14.01 9 11.01"/>
+                </svg>
+                <h5 class="fw-bold" style="color: #28a745;">¡Devolución registrada!</h5>
+                <p class="text-muted">¿Desea generar el Acta de Devolución?</p>
+                <small class="text-muted d-block">El acta certifica la devolución del equipo en buen estado</small>
+            </div>
+            <div class="modal-footer justify-content-center gap-2">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">No, gracias</button>
+                <button type="button" class="btn btn-success" id="btnGenerarActaDevolucion">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline;margin-right:4px;">
+                        <rect x="2" y="3" width="20" height="14" rx="2"/>
+                        <line x1="8" y1="21" x2="16" y2="21"/>
+                        <line x1="12" y1="17" x2="12" y2="21"/>
+                    </svg>
+                    Generar Acta
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -692,4 +858,29 @@
 
 @section('scripts')
     @vite(['resources/js/admin-prestamos.js'])
+    <script>
+        // ============================================================
+        // FUNCIÓN PARA CAMBIAR EL TEXTO DE AYUDA DEL ESTADO
+        // ============================================================
+        function cambiarEstadoPrestamo() {
+            const select = document.getElementById('estadoPrestamo');
+            const helpText = document.getElementById('estadoHelpText');
+            
+            if (!select || !helpText) return;
+            
+            const opciones = {
+                'pendiente': 'Los items se reservarán y no estarán disponibles para otros préstamos hasta que sean aprobados.',
+                'aprobado': 'Los items se marcarán como prestados inmediatamente.',
+                'entregado': 'Los items se marcarán como prestados inmediatamente.'
+            };
+            
+            helpText.textContent = opciones[select.value] || 'Los items se marcarán como prestados inmediatamente.';
+            helpText.className = 'estado-help-text ' + select.value;
+        }
+        
+        // Ejecutar al cargar la página
+        document.addEventListener('DOMContentLoaded', function() {
+            cambiarEstadoPrestamo();
+        });
+    </script>
 @endsection

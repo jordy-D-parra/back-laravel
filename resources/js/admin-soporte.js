@@ -636,10 +636,7 @@ window.abrirModalCrearFicha = function() {
     if (todosActivos.length === 0) cargarActivosParaBuscador();
 };
 
-// ============================================================
-// ABRIR MODAL EQUIPO EXTERNO
-// ============================================================
-
+// Dentro de la función abrirModalEquipoExterno, agregar:
 window.abrirModalEquipoExterno = function() {
     const form = document.getElementById('formEquipoExterno');
     if (form) form.reset();
@@ -652,12 +649,74 @@ window.abrirModalEquipoExterno = function() {
         fechaInput.value = new Date().toISOString().split('T')[0];
     }
 
+    // ========== 🆕 VALIDACIÓN DE SERIAL EN TIEMPO REAL ==========
+    const serialInput = document.getElementById('ext_serial');
+    if (serialInput) {
+        serialInput.addEventListener('blur', function() {
+            const serial = this.value.trim();
+            const feedback = document.getElementById('ext_serial_feedback');
+            
+            if (!feedback) {
+                const newFeedback = document.createElement('small');
+                newFeedback.id = 'ext_serial_feedback';
+                newFeedback.className = 'text-muted d-block mt-1';
+                newFeedback.style.fontSize = '0.75rem';
+                this.parentNode.appendChild(newFeedback);
+            }
+            
+            const feedbackEl = document.getElementById('ext_serial_feedback');
+            
+            if (serial.length < 3) {
+                if (feedbackEl) {
+                    feedbackEl.textContent = 'Ingrese al menos 3 caracteres para verificar';
+                    feedbackEl.className = 'text-muted d-block mt-1';
+                    feedbackEl.style.fontSize = '0.75rem';
+                }
+                return;
+            }
+            
+            feedbackEl.textContent = 'Verificando serial...';
+            feedbackEl.className = 'text-muted d-block mt-1';
+            feedbackEl.style.fontSize = '0.75rem';
+            
+            // Verificar si el serial existe
+            fetch(`/admin/activos?buscar=${encodeURIComponent(serial)}`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const existe = data.data.some(a => a.serial === serial);
+                    if (existe) {
+                        feedbackEl.textContent = '⚠️ Este serial ya está registrado en el sistema.';
+                        feedbackEl.className = 'text-danger d-block mt-1';
+                        feedbackEl.style.fontSize = '0.75rem';
+                        this.classList.add('is-invalid');
+                        this.classList.remove('is-valid');
+                    } else {
+                        feedbackEl.textContent = '✓ Serial disponible';
+                        feedbackEl.className = 'text-success d-block mt-1';
+                        feedbackEl.style.fontSize = '0.75rem';
+                        this.classList.add('is-valid');
+                        this.classList.remove('is-invalid');
+                    }
+                }
+            })
+            .catch(() => {
+                if (feedbackEl) {
+                    feedbackEl.textContent = 'Error al verificar serial';
+                    feedbackEl.className = 'text-danger d-block mt-1';
+                    feedbackEl.style.fontSize = '0.75rem';
+                }
+            });
+        });
+    }
+
     cargarCategoriasExterno();
     cargarInstitucionesExterno();
 
     new bootstrap.Modal(document.getElementById('modalEquipoExterno')).show();
 };
-
 // ============================================================
 // EQUIPO EXTERNO - SELECTS
 // ============================================================

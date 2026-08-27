@@ -635,63 +635,107 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // APPROVE - APROBAR SOLICITUD
-    // ============================================================
-    public function approve($id)
-    {
-        if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
-            if (request()->ajax()) {
-                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-            }
-            abort(403);
+// APPROVE - APROBAR SOLICITUD (CON VALIDACIÓN DE FECHAS)
+// ============================================================
+public function approve(Request $request, $id)
+{
+    if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
+        if (request()->ajax()) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
-
-        try {
-            $solicitud = Solicitud::findOrFail($id);
-
-            if ($solicitud->estado_solicitud !== 'pendiente') {
-                return response()->json(['success' => false, 'message' => 'Solo se pueden aprobar solicitudes pendientes'], 422);
-            }
-
-            DB::beginTransaction();
-
-            $solicitud->update([
-                'estado_solicitud' => 'aprobada',
-                'aprobado_por' => auth()->id(),
-                'fecha_aprobacion' => now()
-            ]);
-
-            DB::commit();
-
-            try {
-                $this->enviarNotificacionAprobacion($solicitud);
-            } catch (\Exception $e) {
-                Log::error('Error al enviar notificación de aprobación: ' . $e->getMessage());
-            }
-
-            if (request()->ajax()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Solicitud aprobada exitosamente'
-                ]);
-            }
-
-            return redirect()->route('admin.solicitudes.index')
-                ->with('success', 'Solicitud aprobada exitosamente');
-
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Error en approve: ' . $e->getMessage());
-            if (request()->ajax()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => $e->getMessage()
-                ], 500);
-            }
-            return back()->with('error', $e->getMessage());
-        }
+        abort(403);
     }
 
+    try {
+        $solicitud = Solicitud::findOrFail($id);
+
+        if ($solicitud->estado_solicitud !== 'pendiente') {
+            return response()->json(['success' => false, 'message' => 'Solo se pueden aprobar solicitudes pendientes'], 422);
+        }
+
+        // ========== 🆕 VALIDACIÓN DE FECHAS ==========
+        $validated = $request->validate([
+            'fecha_requerida' => 'required|date',
+            'fecha_fin_estimada' => 'required|date|after_or_equal:fecha_requerida',
+            'observaciones' => 'nullable|string|max:500',
+        ]);
+
+        // Verificar si la fecha requerida ya pasó
+        $fechaRequerida = new \DateTime($validated['fecha_requerida']);
+        $hoy = new \DateTime('today');
+        $fechaPasada = $fechaRequerida < $hoy;
+
+        DB::beginTransaction();
+
+        $solicitud->update([
+            'estado_solicitud' => 'aprobada',
+            'aprobado_por' => auth()->id(),
+            'fecha_aprobacion' => now(),
+            'fecha_requerida' => $validated['fecha_requerida'],
+            'fecha_fin_estimada' => $validated['fecha_fin_estimada'],
+            'observaciones' => $validated['observaciones'] ?? $solicitud->observaciones,
+        ]);
+
+        DB::commit();
+
+        // ========== 🆕 NOTIFICACIÓN CON ADVERTENCIA DE FECHA ==========
+        try {
+            $mensaje = "✅ Tu solicitud #{$solicitud->id} ha sido aprobada.\n\n";
+            $mensaje .= "📅 Fecha requerida: " . date('d/m/Y', strtotime($validated['fecha_requerida'])) . "\n";
+            $mensaje .= "📅 Fecha fin estimada: " . date('d/m/Y', strtotime($validated['fecha_fin_estimada'])) . "\n\n";
+            
+            if ($fechaPasada) {
+                $mensaje .= "⚠️ **IMPORTANTE:** La fecha requerida ya pasó. Por favor, coordina con el departamento de informática para agilizar el proceso.\n\n";
+            }
+            
+            $mensaje .= "Tu solicitud está lista para ser convertida en préstamo.";
+            
+            $this->notificacionService->enviarAUsuario(
+                $solicitud->usuario,
+                '✅ Solicitud aprobada' . ($fechaPasada ? ' - ⚠️ Fecha vencida' : ''),
+                $mensaje,
+                'solicitud',
+                route('admin.prestamos.index')
+            );
+        } catch (\Exception $e) {
+            Log::error('Error al enviar notificación de aprobación: ' . $e->getMessage());
+        }
+
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => $fechaPasada 
+                    ? 'Solicitud aprobada exitosamente. ⚠️ La fecha requerida ya pasó.' 
+                    : 'Solicitud aprobada exitosamente',
+                'fecha_pasada' => $fechaPasada
+            ]);
+        }
+
+        return redirect()->route('admin.solicitudes.index')
+            ->with('success', 'Solicitud aprobada exitosamente');
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        DB::rollBack();
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+        }
+        return back()->with('error', 'Error de validación');
+    } catch (\Exception $e) {
+        DB::rollBack();
+        Log::error('Error en approve: ' . $e->getMessage());
+        if (request()->ajax()) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+        return back()->with('error', $e->getMessage());
+    }
+}
     // ============================================================
     // REJECT - RECHAZAR SOLICITUD
     // ============================================================

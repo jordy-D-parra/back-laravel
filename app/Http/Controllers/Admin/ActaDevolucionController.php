@@ -8,10 +8,10 @@ use App\Models\Activo;
 use App\Models\Componente;
 use Illuminate\Http\Request;
 
-class ActaEntregaController extends Controller
+class ActaDevolucionController extends Controller
 {
     /**
-     * Generar acta de entrega desde un préstamo
+     * Generar acta de devolución desde un préstamo
      */
     public function generarDesdePrestamo(Request $request)
     {
@@ -30,9 +30,9 @@ class ActaEntregaController extends Controller
             'detalles.prestable'
         ])->findOrFail($prestamoId);
 
-        // Verificar que el préstamo esté entregado
-        if (!in_array($prestamo->estado, ['entregado', 'extendido'])) {
-            abort(403, 'Solo se pueden generar actas de préstamos entregados');
+        // Verificar que el préstamo esté devuelto
+        if ($prestamo->estado !== 'devuelto') {
+            abort(403, 'Solo se pueden generar actas de préstamos devueltos');
         }
 
         // Obtener el primer item del préstamo (el equipo principal)
@@ -43,7 +43,7 @@ class ActaEntregaController extends Controller
             $activo = Activo::with(['modelo.marca', 'modelo.categoria'])->find($detalle->prestable_id);
         }
 
-        // ========== 🆕 AGRUPAR ACCESORIOS ==========
+        // Agrupar accesorios
         $accesoriosAgrupados = [];
         foreach ($prestamo->detalles as $d) {
             if ($d->prestable_type === 'App\\Models\\Componente') {
@@ -58,7 +58,7 @@ class ActaEntregaController extends Controller
             }
         }
 
-        // Construir el texto de accesorios con cantidades agrupadas
+        // Construir el texto de accesorios
         $textoAccesorios = '';
         if (count($accesoriosAgrupados) > 0) {
             $lista = [];
@@ -82,38 +82,49 @@ class ActaEntregaController extends Controller
             $textoAccesorios = 'Sin accesorios adicionales';
         }
 
-        // Datos para el acta
+        // Determinar estado de devolución
+        $estadoDevolucion = 'Buen estado';
+        foreach ($prestamo->detalles as $d) {
+            if ($d->estado_devolucion && strpos(strtolower($d->estado_devolucion), 'daño') !== false) {
+                $estadoDevolucion = 'Con daños reportados';
+                break;
+            }
+        }
+
+        // Preparar datos para la vista
         $data = [
             'codigo' => $prestamo->codigo,
-            'numero_acta' => 'ACTA-' . date('Ym') . '-' . str_pad($prestamo->id, 4, '0', STR_PAD_LEFT),
-            'fecha' => $prestamo->fecha_prestamo ? $prestamo->fecha_prestamo->format('d/m/Y') : date('d/m/Y'),
-            'fecha_original' => $prestamo->fecha_prestamo ?? now(),
+            'numero_acta' => 'ACTA-DEV-' . date('Ym') . '-' . str_pad($prestamo->id, 4, '0', STR_PAD_LEFT),
+            'fecha' => $prestamo->fecha_devolucion_real ? $prestamo->fecha_devolucion_real->format('d/m/Y') : date('d/m/Y'),
+            'fecha_prestamo' => $prestamo->fecha_prestamo ? $prestamo->fecha_prestamo->format('d/m/Y') : 'N/A',
+            'fecha_devolucion' => $prestamo->fecha_devolucion_real ? $prestamo->fecha_devolucion_real->format('d/m/Y') : date('d/m/Y'),
             'responsable_entrega' => $prestamo->responsableEmisor ? $prestamo->responsableEmisor->nombre : 'Departamento de Informática',
             'responsable_entrega_cargo' => $prestamo->responsableEmisor ? $prestamo->responsableEmisor->cargo : 'Director de Informática',
-            'responsable_recibe' => $prestamo->responsableReceptor ? $prestamo->responsableReceptor->nombre : 'No especificado',
-            'responsable_recibe_cargo' => $prestamo->responsableReceptor ? $prestamo->responsableReceptor->cargo : '',
+            'responsable_devuelve' => $prestamo->responsableReceptor ? $prestamo->responsableReceptor->nombre : 'No especificado',
+            'responsable_devuelve_cargo' => $prestamo->responsableReceptor ? $prestamo->responsableReceptor->cargo : '',
             'institucion' => $prestamo->destino_nombre ?? 'No especificada',
             'serial' => $activo ? $activo->serial : 'N/A',
             'marca' => $activo && $activo->modelo && $activo->modelo->marca ? $activo->modelo->marca->nombre : 'N/A',
             'modelo' => $activo && $activo->modelo ? $activo->modelo->nombre : 'N/A',
             'accesorios' => $textoAccesorios,
-            'trabajo_realizado' => $prestamo->observaciones ?? 'Se realizó la entrega del equipo en buen estado.',
-            'observaciones' => '',
+            'estado_devolucion' => $estadoDevolucion,
+            'observaciones' => $prestamo->observaciones ?? 'Sin observaciones adicionales.',
             'items' => $prestamo->detalles->map(function($detalle) {
                 return [
                     'nombre' => $detalle->nombre_item ?? 'Item',
                     'cantidad' => $detalle->cantidad ?? 1,
-                    'estado' => $detalle->estado_entrega ?? 'Buen estado'
+                    'estado_entrega' => $detalle->estado_entrega ?? 'Buen estado',
+                    'estado_devolucion' => $detalle->estado_devolucion ?? 'Buen estado'
                 ];
             })
         ];
 
         // Retornar la vista del acta
-        return view('admin.actas.entrega-pdf', compact('data', 'prestamo'));
+        return view('admin.actas.devolucion-pdf', compact('data', 'prestamo'));
     }
 
     /**
-     * Imprimir acta (vista de impresión)
+     * Imprimir acta de devolución
      */
     public function imprimir($id)
     {
@@ -125,10 +136,11 @@ class ActaEntregaController extends Controller
             'detalles.prestable'
         ])->findOrFail($id);
 
-        if (!in_array($prestamo->estado, ['entregado', 'extendido'])) {
-            abort(403, 'Solo se pueden imprimir actas de préstamos entregados');
+        if ($prestamo->estado !== 'devuelto') {
+            abort(403, 'Solo se pueden imprimir actas de préstamos devueltos');
         }
 
+        // Obtener el primer item del préstamo (el equipo principal)
         $detalle = $prestamo->detalles->first();
         $activo = null;
 
@@ -136,7 +148,7 @@ class ActaEntregaController extends Controller
             $activo = Activo::with(['modelo.marca', 'modelo.categoria'])->find($detalle->prestable_id);
         }
 
-        // ========== 🆕 AGRUPAR ACCESORIOS (misma lógica) ==========
+        // Agrupar accesorios
         $accesoriosAgrupados = [];
         foreach ($prestamo->detalles as $d) {
             if ($d->prestable_type === 'App\\Models\\Componente') {
@@ -174,31 +186,41 @@ class ActaEntregaController extends Controller
             $textoAccesorios = 'Sin accesorios adicionales';
         }
 
+        $estadoDevolucion = 'Buen estado';
+        foreach ($prestamo->detalles as $d) {
+            if ($d->estado_devolucion && strpos(strtolower($d->estado_devolucion), 'daño') !== false) {
+                $estadoDevolucion = 'Con daños reportados';
+                break;
+            }
+        }
+
         $data = [
             'codigo' => $prestamo->codigo,
-            'numero_acta' => 'ACTA-' . date('Ym') . '-' . str_pad($prestamo->id, 4, '0', STR_PAD_LEFT),
-            'fecha' => $prestamo->fecha_prestamo ? $prestamo->fecha_prestamo->format('d/m/Y') : date('d/m/Y'),
-            'fecha_original' => $prestamo->fecha_prestamo ?? now(),
+            'numero_acta' => 'ACTA-DEV-' . date('Ym') . '-' . str_pad($prestamo->id, 4, '0', STR_PAD_LEFT),
+            'fecha' => $prestamo->fecha_devolucion_real ? $prestamo->fecha_devolucion_real->format('d/m/Y') : date('d/m/Y'),
+            'fecha_prestamo' => $prestamo->fecha_prestamo ? $prestamo->fecha_prestamo->format('d/m/Y') : 'N/A',
+            'fecha_devolucion' => $prestamo->fecha_devolucion_real ? $prestamo->fecha_devolucion_real->format('d/m/Y') : date('d/m/Y'),
             'responsable_entrega' => $prestamo->responsableEmisor ? $prestamo->responsableEmisor->nombre : 'Departamento de Informática',
             'responsable_entrega_cargo' => $prestamo->responsableEmisor ? $prestamo->responsableEmisor->cargo : 'Director de Informática',
-            'responsable_recibe' => $prestamo->responsableReceptor ? $prestamo->responsableReceptor->nombre : 'No especificado',
-            'responsable_recibe_cargo' => $prestamo->responsableReceptor ? $prestamo->responsableReceptor->cargo : '',
+            'responsable_devuelve' => $prestamo->responsableReceptor ? $prestamo->responsableReceptor->nombre : 'No especificado',
+            'responsable_devuelve_cargo' => $prestamo->responsableReceptor ? $prestamo->responsableReceptor->cargo : '',
             'institucion' => $prestamo->destino_nombre ?? 'No especificada',
             'serial' => $activo ? $activo->serial : 'N/A',
             'marca' => $activo && $activo->modelo && $activo->modelo->marca ? $activo->modelo->marca->nombre : 'N/A',
             'modelo' => $activo && $activo->modelo ? $activo->modelo->nombre : 'N/A',
             'accesorios' => $textoAccesorios,
-            'trabajo_realizado' => $prestamo->observaciones ?? 'Se realizó la entrega del equipo en buen estado.',
-            'observaciones' => '',
+            'estado_devolucion' => $estadoDevolucion,
+            'observaciones' => $prestamo->observaciones ?? 'Sin observaciones adicionales.',
             'items' => $prestamo->detalles->map(function($detalle) {
                 return [
                     'nombre' => $detalle->nombre_item ?? 'Item',
                     'cantidad' => $detalle->cantidad ?? 1,
-                    'estado' => $detalle->estado_entrega ?? 'Buen estado'
+                    'estado_entrega' => $detalle->estado_entrega ?? 'Buen estado',
+                    'estado_devolucion' => $detalle->estado_devolucion ?? 'Buen estado'
                 ];
             })
         ];
 
-        return view('admin.actas.entrega-pdf', compact('data', 'prestamo'));
+        return view('admin.actas.devolucion-pdf', compact('data', 'prestamo'));
     }
 }

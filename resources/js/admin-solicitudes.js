@@ -1,5 +1,5 @@
 // resources/js/admin-solicitudes.js
-// ✅ VERSIÓN COMPLETA CON BÚSQUEDA EN TIEMPO REAL Y RESPONSABLE CORREGIDO
+// ✅ VERSIÓN COMPLETA CON BÚSQUEDA EN TIEMPO REAL, RESPONSABLE CORREGIDO Y APROBACIÓN CON FECHAS
 
 let solicitudesData = [];
 let currentPage = 1;
@@ -334,7 +334,7 @@ function renderizarTabla() {
                 ${s.estado_solicitud === 'pendiente' ? `<button class="btn-action btn-editar" onclick="editarSolicitud(${s.id})" title="Editar">${SVG_ICONS.editar}</button>` : ''}
                 ${s.estado_solicitud === 'pendiente' ? `<button class="btn-action btn-cancelar" onclick="abrirModalConfirmacionCancelar(${s.id})" title="Cancelar">${SVG_ICONS.cancelar}</button>` : ''}
                 ${authUserHasPermission('aprobar-solicitudes') && s.estado_solicitud === 'pendiente' ? `
-                    <button class="btn-action btn-aprobar" onclick="aprobarSolicitud(${s.id})" title="Aprobar">${SVG_ICONS.aprobar}</button>
+                    <button class="btn-action btn-aprobar" onclick="abrirModalAprobarSolicitud(${s.id})" title="Aprobar">${SVG_ICONS.aprobar}</button>
                     <button class="btn-action btn-rechazar" onclick="rechazarSolicitud(${s.id})" title="Rechazar">${SVG_ICONS.rechazar}</button>
                 ` : ''}
                 ${authUserHasPermission('aprobar-solicitudes') ? `<button class="btn-action btn-eliminar" onclick="confirmarEliminarSolicitud(${s.id})" title="Eliminar">${SVG_ICONS.eliminar}</button>` : ''}
@@ -870,25 +870,118 @@ async function eliminarSolicitud() {
     } catch (error) { console.error('Error:', error); mostrarNotificacion('error', 'Error de conexión'); }
 }
 
-window.aprobarSolicitud = async function(id) {
-    if (!confirm('¿Aprobar esta solicitud?')) return;
-    try {
-        const response = await fetch(`/admin/solicitudes/${id}/approve`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
-        const result = await response.json();
-        if (response.ok && result.success) {
-            mostrarNotificacion('success', result.message || 'Solicitud aprobada');
-            window.location.href = '/admin/prestamos';
-        } else {
-            mostrarNotificacion('error', result.message || 'Error al aprobar');
+// ============================================================
+// 🆕 NUEVA FUNCIÓN: ABRIR MODAL DE APROBACIÓN CON FECHAS
+// ============================================================
+window.abrirModalAprobarSolicitud = function(id) {
+    // Resetear el formulario
+    const form = document.getElementById('formAprobarSolicitud');
+    if (form) form.reset();
+    
+    const observaciones = document.getElementById('aprobarObservaciones');
+    if (observaciones) observaciones.value = '';
+    
+    const fechaAdvertencia = document.getElementById('aprobarFechaAdvertencia');
+    if (fechaAdvertencia) fechaAdvertencia.style.display = 'none';
+    
+    const alertaFecha = document.getElementById('aprobarAlertaFecha');
+    if (alertaFecha) alertaFecha.style.display = 'none';
+    
+    // Cargar datos de la solicitud
+    fetch(`/admin/solicitudes/${id}/detalles`, {
+        headers: { Accept: 'application/json' }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success || data.id) {
+            const d = data;
+            
+            // Mostrar información
+            const codigo = document.getElementById('aprobarCodigo');
+            if (codigo) codigo.textContent = d.codigo || '#' + d.id;
+            
+            const prioridad = document.getElementById('aprobarPrioridad');
+            if (prioridad) prioridad.textContent = d.prioridad || 'Normal';
+            
+            const solicitante = document.getElementById('aprobarSolicitante');
+            if (solicitante) solicitante.textContent = d.usuario?.trabajador?.nombre || d.usuario?.usuario || 'No especificado';
+            
+            // Cargar fechas actuales
+            if (d.fecha_requerida) {
+                const fechaRequerida = new Date(d.fecha_requerida);
+                const fechaFormateada = fechaRequerida.toISOString().split('T')[0];
+                const fechaInput = document.getElementById('aprobarFechaRequerida');
+                if (fechaInput) {
+                    fechaInput.value = fechaFormateada;
+                    verificarFechaPasada(fechaFormateada);
+                }
+            }
+            
+            if (d.fecha_fin_estimada) {
+                const fechaFin = new Date(d.fecha_fin_estimada);
+                const fechaInput = document.getElementById('aprobarFechaFin');
+                if (fechaInput) {
+                    fechaInput.value = fechaFin.toISOString().split('T')[0];
+                }
+            }
+            
+            // Guardar el ID en el campo oculto
+            const idInput = document.getElementById('aprobarSolicitudId');
+            if (idInput) idInput.value = d.id;
+            
+            // Mostrar el modal
+            const modalElement = document.getElementById('modalAprobarSolicitud');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+            }
         }
-    } catch (error) { console.error('Error:', error); mostrarNotificacion('error', 'Error de conexión'); }
+    })
+    .catch(error => {
+        console.error('Error al cargar solicitud:', error);
+        mostrarNotificacion('error', 'Error al cargar los datos de la solicitud');
+    });
 };
 
+// ============================================================
+// 🆕 FUNCIÓN: VERIFICAR SI LA FECHA YA PASÓ
+// ============================================================
+function verificarFechaPasada(fecha) {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const fechaSeleccionada = new Date(fecha + 'T00:00:00');
+    
+    const advertencia = document.getElementById('aprobarFechaAdvertencia');
+    const alertaFecha = document.getElementById('aprobarAlertaFecha');
+    const alertaTexto = document.getElementById('aprobarAlertaTexto');
+    
+    if (fechaSeleccionada < hoy) {
+        if (advertencia) advertencia.style.display = 'block';
+        if (alertaFecha) alertaFecha.style.display = 'block';
+        if (alertaTexto) alertaTexto.textContent = 'La fecha requerida ya pasó. Se recomienda actualizarla.';
+    } else {
+        if (advertencia) advertencia.style.display = 'none';
+        if (alertaFecha) alertaFecha.style.display = 'none';
+    }
+}
+
+// ============================================================
+// 🆕 RECHAZAR SOLICITUD (MANTENIDA)
+// ============================================================
 window.rechazarSolicitud = async function(id) {
     const motivo = prompt('Motivo del rechazo:');
     if (!motivo) return;
     try {
-        const response = await fetch(`/admin/solicitudes/${id}/reject`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, body: JSON.stringify({ motivo }) });
+        const response = await fetch(`/admin/solicitudes/${id}/reject`, { 
+            method: 'POST', 
+            headers: { 
+                'X-CSRF-TOKEN': csrfToken, 
+                'Accept': 'application/json', 
+                'Content-Type': 'application/json', 
+                'X-Requested-With': 'XMLHttpRequest' 
+            }, 
+            body: JSON.stringify({ motivo }) 
+        });
         const result = await response.json();
         if (response.ok && result.success) {
             mostrarNotificacion('success', result.message || 'Solicitud rechazada');
@@ -896,9 +989,15 @@ window.rechazarSolicitud = async function(id) {
         } else {
             mostrarNotificacion('error', result.message || 'Error al rechazar');
         }
-    } catch (error) { console.error('Error:', error); mostrarNotificacion('error', 'Error de conexión'); }
+    } catch (error) { 
+        console.error('Error:', error); 
+        mostrarNotificacion('error', 'Error de conexión'); 
+    }
 };
 
+// ============================================================
+// 🆕 CANCELAR SOLICITUD (MANTENIDA)
+// ============================================================
 window.abrirModalConfirmacionCancelar = function(id) {
     solicitudACancelar = id;
     const modal = document.getElementById('modalConfirmacionCancelar');
@@ -908,7 +1007,14 @@ window.abrirModalConfirmacionCancelar = function(id) {
 window.confirmarCancelar = async function() {
     if (!solicitudACancelar) return;
     try {
-        const response = await fetch(`/admin/solicitudes/${solicitudACancelar}/cancel`, { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' } });
+        const response = await fetch(`/admin/solicitudes/${solicitudACancelar}/cancel`, { 
+            method: 'POST', 
+            headers: { 
+                'X-CSRF-TOKEN': csrfToken, 
+                'Accept': 'application/json', 
+                'X-Requested-With': 'XMLHttpRequest' 
+            } 
+        });
         const result = await response.json();
         if (response.ok && result.success) {
             mostrarNotificacion('success', result.message || 'Solicitud cancelada');
@@ -919,9 +1025,13 @@ window.confirmarCancelar = async function() {
             mostrarNotificacion('error', result.message || 'No se pudo cancelar');
         }
         solicitudACancelar = null;
-    } catch (error) { console.error('Error:', error); mostrarNotificacion('error', 'Error de conexión'); }
+    } catch (error) { 
+        console.error('Error:', error); 
+        mostrarNotificacion('error', 'Error de conexión'); 
+    }
 };
 
+// ==================== FUNCIONES DE INICIALIZACIÓN ====================
 function initCrearEventListeners() {
     const tipoSolicitante = document.getElementById('tipoSolicitante');
     if (tipoSolicitante) {
@@ -1170,6 +1280,73 @@ document.getElementById('formEditarSolicitud')?.addEventListener('submit', async
     }
 });
 
+// ============================================================
+// 🆕 ENVÍO DEL FORMULARIO DE APROBACIÓN CON FECHAS
+// ============================================================
+document.getElementById('formAprobarSolicitud')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const id = document.getElementById('aprobarSolicitudId')?.value;
+    if (!id) {
+        mostrarNotificacion('error', 'Error: No se encontró el ID de la solicitud');
+        return;
+    }
+    
+    const submitBtn = document.getElementById('btnAprobarSolicitud');
+    const originalText = submitBtn ? submitBtn.innerHTML : 'Aprobar';
+    if (submitBtn) {
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Procesando...';
+        submitBtn.disabled = true;
+    }
+    
+    const formData = new FormData(this);
+    
+    fetch(`/admin/solicitudes/${id}/approve`, {
+        method: 'POST',
+        headers: {
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalAprobarSolicitud'));
+            if (modal) modal.hide();
+            
+            let mensaje = data.message || 'Solicitud aprobada exitosamente';
+            if (data.fecha_pasada) {
+                mensaje += ' ⚠️ La fecha requerida ya pasó. Se recomienda coordinar con el departamento de informática.';
+            }
+            mostrarNotificacion('success', mensaje);
+            
+            // Recargar la tabla
+            cargarPagina(currentPage || 1);
+        } else {
+            if (data.errors) {
+                let errorMsg = 'Errores de validación:\n';
+                for (const [campo, errores] of Object.entries(data.errors)) {
+                    errorMsg += `- ${campo}: ${errores.join(', ')}\n`;
+                }
+                mostrarNotificacion('error', errorMsg);
+            } else {
+                mostrarNotificacion('error', data.message || 'Error al aprobar la solicitud');
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        mostrarNotificacion('error', 'Error de conexión al servidor');
+    })
+    .finally(() => {
+        if (submitBtn) {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        }
+    });
+});
+
 // ==================== INICIALIZACIÓN ====================
 function initEventListeners() {
     if (searchInput) searchInput.addEventListener('input', aplicarFiltrosConDebounce);
@@ -1183,6 +1360,28 @@ function initEventListeners() {
     if (btnConfirmarCancelar) btnConfirmarCancelar.addEventListener('click', window.confirmarCancelar);
     const btnConfirmarEliminar = document.getElementById('btnConfirmarEliminarSolicitud');
     if (btnConfirmarEliminar) btnConfirmarEliminar.addEventListener('click', eliminarSolicitud);
+    
+    // ============================================================
+    // 🆕 EVENTOS PARA VALIDACIÓN DE FECHAS EN MODAL DE APROBACIÓN
+    // ============================================================
+    const fechaRequeridaInput = document.getElementById('aprobarFechaRequerida');
+    if (fechaRequeridaInput) {
+        fechaRequeridaInput.addEventListener('change', function() {
+            verificarFechaPasada(this.value);
+        });
+    }
+    
+    const fechaFinInput = document.getElementById('aprobarFechaFin');
+    if (fechaFinInput) {
+        fechaFinInput.addEventListener('change', function() {
+            const fechaRequerida = document.getElementById('aprobarFechaRequerida')?.value;
+            if (fechaRequerida && this.value < fechaRequerida) {
+                this.setCustomValidity('La fecha fin debe ser igual o posterior a la fecha requerida');
+            } else {
+                this.setCustomValidity('');
+            }
+        });
+    }
 }
 
 document.addEventListener('DOMContentLoaded', function() {

@@ -4,6 +4,31 @@
 
 @section('styles')
     @vite(['resources/css/admin-soporte.css'])
+    <style>
+        /* Estilos para el feedback del serial */
+        #ext_serial_feedback {
+            font-size: 0.75rem;
+            margin-top: 4px;
+            display: block;
+            transition: all 0.2s ease;
+        }
+        #ext_serial_feedback.text-success {
+            color: #1e7e34 !important;
+        }
+        #ext_serial_feedback.text-danger {
+            color: #c5221f !important;
+        }
+        #ext_serial_feedback.text-muted {
+            color: #6c757d !important;
+        }
+
+        .is-valid {
+            border-color: #1e7e34 !important;
+        }
+        .is-invalid {
+            border-color: #c5221f !important;
+        }
+    </style>
 @endsection
 
 @section('content')
@@ -245,7 +270,7 @@
     </div>
 </div>
 
-<!-- ========== MODAL EQUIPO EXTERNO ========== -->
+<!-- ========== 🆕 MODAL EQUIPO EXTERNO CON FEEDBACK DE SERIAL ========== -->
 <div class="modal fade" id="modalEquipoExterno" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -279,6 +304,10 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Serial <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="ext_serial" name="serial" required>
+                                <!-- ========== 🆕 FEEDBACK DE SERIAL ========== -->
+                                <small id="ext_serial_feedback" class="text-muted">
+                                    Ingrese el número de serie para verificar si ya existe
+                                </small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Modelo <span class="text-danger">*</span></label>
@@ -499,5 +528,64 @@
     <script>
         window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
         function authUserHasPermission(p) { return window.userPermissions.includes(p); }
+
+        // ============================================================
+        // 🆕 VALIDACIÓN DE SERIAL EN TIEMPO REAL (EQUIPO EXTERNO)
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            const serialInput = document.getElementById('ext_serial');
+            const feedback = document.getElementById('ext_serial_feedback');
+            
+            if (serialInput && feedback) {
+                serialInput.addEventListener('blur', function() {
+                    const serial = this.value.trim();
+                    
+                    if (serial.length < 3) {
+                        feedback.textContent = 'Ingrese al menos 3 caracteres para verificar';
+                        feedback.className = 'text-muted';
+                        this.classList.remove('is-valid', 'is-invalid');
+                        return;
+                    }
+                    
+                    feedback.textContent = 'Verificando serial...';
+                    feedback.className = 'text-muted';
+                    
+                    fetch(`/admin/activos?buscar=${encodeURIComponent(serial)}`, {
+                        headers: { 'Accept': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            const existe = data.data.some(a => a.serial === serial);
+                            if (existe) {
+                                feedback.textContent = '⚠️ Este serial ya está registrado en el sistema.';
+                                feedback.className = 'text-danger';
+                                this.classList.add('is-invalid');
+                                this.classList.remove('is-valid');
+                            } else {
+                                feedback.textContent = '✓ Serial disponible';
+                                feedback.className = 'text-success';
+                                this.classList.add('is-valid');
+                                this.classList.remove('is-invalid');
+                            }
+                        }
+                    })
+                    .catch(() => {
+                        feedback.textContent = 'Error al verificar serial';
+                        feedback.className = 'text-danger';
+                    });
+                });
+                
+                // Limpiar validación al escribir
+                serialInput.addEventListener('input', function() {
+                    this.classList.remove('is-valid', 'is-invalid');
+                    const feedback = document.getElementById('ext_serial_feedback');
+                    if (feedback) {
+                        feedback.textContent = 'Ingrese el número de serie para verificar si ya existe';
+                        feedback.className = 'text-muted';
+                    }
+                });
+            }
+        });
     </script>
 @endsection
