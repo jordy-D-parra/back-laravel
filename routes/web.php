@@ -113,6 +113,9 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/categorias/{id}', [EquipoController::class, 'deleteCategoria']);
             Route::patch('/categorias/{id}/toggle', [EquipoController::class, 'toggleCategoria']);
 
+            // 👇 RUTA PARA FILTRAR CATEGORÍAS POR MARCA (WIZARD)
+            Route::get('/categorias-por-marca/{marcaId}', [EquipoController::class, 'getCategoriasPorMarca']);
+
             Route::get('/modelos', [EquipoController::class, 'getModelos']);
             Route::post('/modelos', [EquipoController::class, 'storeModelo']);
             Route::get('/modelos/{id}', [EquipoController::class, 'showModelo']);

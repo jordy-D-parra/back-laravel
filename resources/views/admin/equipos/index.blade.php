@@ -5,6 +5,7 @@
 @section('styles')
     @vite(['resources/css/admin-equipos.css'])
     <style>
+        /* ========== ESTILOS BASE ========== */
         .bg-primary-dark {
             background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         }
@@ -627,6 +628,69 @@
             background: #ef4444;
             display: inline-block;
         }
+
+        /* ========== ESTILOS DEL WIZARD ========== */
+        .step-circle {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            border-radius: 50%;
+            background: #e9ecef;
+            color: #6c757d;
+            font-weight: 700;
+            margin-right: 6px;
+            transition: all 0.3s ease;
+        }
+        .step-circle.active {
+            background: #1e3c72;
+            color: white;
+            box-shadow: 0 0 0 4px rgba(30, 60, 114, 0.15);
+        }
+        .step-circle.completed {
+            background: #1e7e34;
+            color: white;
+        }
+        .step-content {
+            min-height: 280px;
+            animation: fadeInUp 0.4s ease;
+        }
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(15px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .step-label {
+            font-size: 0.8rem;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+        .institucion-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+            border: 2px solid #e9ecef;
+        }
+        .institucion-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .institucion-card.active {
+            border-color: #1e3c72;
+            background: #eef3fc;
+        }
+        .progress {
+            height: 4px;
+            border-radius: 4px;
+            background: #e9ecef;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            border-radius: 4px;
+            background: linear-gradient(90deg, #1e3c72, #2a5298);
+            transition: width 0.5s ease;
+        }
+
         @media (max-width: 992px) {
             .stats-row {
                 grid-template-columns: repeat(2, 1fr);
@@ -748,6 +812,12 @@
             </h4>
             <p style="color: rgba(255,255,255,0.8); font-size: 0.85rem; margin: 0;">Gestión de marcas, categorías y modelos</p>
         </div>
+        <button class="btn btn-light" onclick="abrirWizardEquipo()" style="border-radius: 30px; font-weight: 600;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2.5" class="me-1" style="display:inline;">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            Nuevo Equipo (Wizard)
+        </button>
     </div>
 
     <!-- Stats -->
@@ -843,15 +913,15 @@
                         <input type="text" class="form-control border-start-0" id="buscarMarcas" placeholder="Buscar marca..." oninput="window.buscarMarcas()">
                     </div>
                 </div>
-                @if(auth()->user()->hasPermission('crear-marca'))
-                <button class="btn btn-primary-dark" onclick="abrirModalMarca()" style="color:#fff;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Nueva Marca
-                </button>
-                @endif
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary-dark" onclick="abrirModalMarca()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nueva Marca
+                    </button>
+                </div>
             </div>
             <div class="table-container">
                 <table class="table table-hover">
@@ -885,15 +955,15 @@
                         <input type="text" class="form-control border-start-0" id="buscarCategorias" placeholder="Buscar categoría..." oninput="window.buscarCategorias()">
                     </div>
                 </div>
-                @if(auth()->user()->hasPermission('crear-categoria-equipo'))
-                <button class="btn btn-primary-dark" onclick="abrirModalCategoria()" style="color:#fff;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Nueva Categoría
-                </button>
-                @endif
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary-dark" onclick="abrirModalCategoria()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nueva Categoría
+                    </button>
+                </div>
             </div>
             <div class="table-container">
                 <table class="table table-hover">
@@ -927,15 +997,15 @@
                         <input type="text" class="form-control border-start-0" id="buscarModelos" placeholder="Buscar modelo..." oninput="window.buscarModelos()">
                     </div>
                 </div>
-                @if(auth()->user()->hasPermission('crear-modelo'))
-                <button class="btn btn-primary-dark" onclick="abrirModalModelo()" style="color:#fff;">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Nuevo Modelo
-                </button>
-                @endif
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-primary-dark" onclick="abrirModalModelo()">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nuevo Modelo
+                    </button>
+                </div>
             </div>
             <div class="table-container">
                 <table class="table table-hover">
@@ -959,7 +1029,9 @@
     </div>
 </div>
 
-<!-- MODAL MARCA -->
+<!-- ============================================================
+     MODAL MARCA (MANTENIDO PARA EDICIÓN)
+     ============================================================ -->
 <div class="modal fade" id="modalMarca" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -995,7 +1067,9 @@
     </div>
 </div>
 
-<!-- MODAL CATEGORIA -->
+<!-- ============================================================
+     MODAL CATEGORIA (MANTENIDO PARA EDICIÓN)
+     ============================================================ -->
 <div class="modal fade" id="modalCategoria" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -1018,6 +1092,12 @@
                         <input type="text" class="form-control" id="categoria_nombre" name="nombre" required>
                     </div>
                     <div class="mb-3">
+                        <label class="form-label">Marca <span class="text-danger">*</span></label>
+                        <select class="form-select" id="categoria_marca_id" name="marca_id" required>
+                            <option value="">Seleccionar marca...</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">Descripción</label>
                         <textarea class="form-control" id="categoria_descripcion" name="descripcion" rows="3"></textarea>
                     </div>
@@ -1031,7 +1111,9 @@
     </div>
 </div>
 
-<!-- MODAL MODELO -->
+<!-- ============================================================
+     MODAL MODELO (MANTENIDO PARA EDICIÓN)
+     ============================================================ -->
 <div class="modal fade" id="modalModelo" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-xl">
         <div class="modal-content">
@@ -1199,6 +1281,236 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ============================================================
+     MODAL WIZARD - FLUJO ESCALONADO (MARCA → CATEGORÍA → MODELO)
+     ============================================================ --}}
+<div class="modal fade" id="modalWizardEquipo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 16px; overflow: hidden;">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <svg viewBox="0 0 24 24" stroke="white" stroke-width="2" fill="none" style="width:20px;height:20px;display:inline;margin-right:8px;">
+                        <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+                        <line x1="9" y1="4" x2="9" y2="20"/>
+                        <line x1="15" y1="4" x2="15" y2="20"/>
+                    </svg>
+                    Registrar Equipo (Wizard)
+                </h5>
+                <span class="badge bg-light text-dark" id="wizardStepIndicator">Paso 1 de 3</span>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Barra de progreso -->
+                <div class="px-2 mb-4">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="step-label" id="wizardLabel1" style="color:#1e3c72;">
+                            <span class="step-circle active">1</span> Marca
+                        </span>
+                        <span class="step-label" id="wizardLabel2" style="color:#adb5bd;">
+                            <span class="step-circle">2</span> Categoría
+                        </span>
+                        <span class="step-label" id="wizardLabel3" style="color:#adb5bd;">
+                            <span class="step-circle">3</span> Modelo
+                        </span>
+                    </div>
+                    <div class="progress">
+                        <div class="progress-bar" id="wizardProgressBar" role="progressbar" style="width: 33%;"></div>
+                    </div>
+                </div>
+
+                <!-- ====== PASO 1: MARCA ====== -->
+                <div class="step-content" id="wizardStep1">
+                    <div class="text-center mb-4">
+                        <h6 style="color:#1e3c72; font-weight:600;">Seleccionar o Crear Marca</h6>
+                        <p class="text-muted small">Puedes elegir una marca existente o crear una nueva</p>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card institucion-card h-100 active" id="cardMarcaExistente" onclick="cambiarOpcionWizard('marca', 'existente')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <svg viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="1.8" fill="none" style="width:48px;height:48px;">
+                                            <rect x="4" y="8" width="16" height="12" rx="1"/>
+                                        </svg>
+                                    </div>
+                                    <h5 style="color:#1e3c72; font-weight:600;">Seleccionar Existente</h5>
+                                    <p class="text-muted small">Usar una marca ya registrada</p>
+                                    <div class="mt-2"><input type="radio" name="wizard_marca_tipo" value="existente" checked></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card institucion-card h-100" id="cardMarcaNueva" onclick="cambiarOpcionWizard('marca', 'nueva')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <svg viewBox="0 0 24 24" stroke="#6c757d" stroke-width="1.8" fill="none" style="width:48px;height:48px;">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                    </div>
+                                    <h5 style="color:#495057;">Crear Nueva</h5>
+                                    <p class="text-muted small">Registrar una marca no listada</p>
+                                    <div class="mt-2"><input type="radio" name="wizard_marca_tipo" value="nueva"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3" id="wizardMarcaSelectContainer">
+                        <label class="form-label fw-bold">Seleccionar Marca</label>
+                        <select class="form-select" id="wizardMarcaSelect">
+                            <option value="">Cargando marcas...</option>
+                        </select>
+                    </div>
+                    <div class="mt-3" id="wizardMarcaNuevaContainer" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-12 mb-2">
+                                <label class="form-label fw-bold">Nombre de la Marca <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="wizardMarcaNombre" placeholder="Ej: Dell, HP, Lenovo...">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Descripción</label>
+                                <textarea class="form-control" id="wizardMarcaDescripcion" rows="2" placeholder="Descripción opcional"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 text-end">
+                        <button type="button" class="btn btn-primary-dark" onclick="irPasoWizard(2)">
+                            Siguiente
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="margin-left:4px;">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ====== PASO 2: CATEGORÍA ====== -->
+                <div class="step-content" id="wizardStep2" style="display: none;">
+                    <div class="text-center mb-4">
+                        <h6 style="color:#1e3c72; font-weight:600;">Seleccionar o Crear Categoría</h6>
+                        <p class="text-muted small">Puedes elegir una categoría existente o crear una nueva</p>
+                        <div class="alert alert-info py-2 mt-2" style="font-size:0.85rem;">
+                            <strong>Marca Seleccionada:</strong> <span id="wizardMarcaSeleccionadaLabel">(Ninguna)</span>
+                            <input type="hidden" id="wizardMarcaSeleccionadaId" value="">
+                        </div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="card institucion-card h-100 active" id="cardCategoriaExistente" onclick="cambiarOpcionWizard('categoria', 'existente')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <svg viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="1.8" fill="none" style="width:48px;height:48px;">
+                                            <rect x="2" y="4" width="20" height="16" rx="2"/>
+                                        </svg>
+                                    </div>
+                                    <h5 style="color:#1e3c72; font-weight:600;">Seleccionar Existente</h5>
+                                    <p class="text-muted small">Usar una categoría ya registrada</p>
+                                    <div class="mt-2"><input type="radio" name="wizard_categoria_tipo" value="existente" checked></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card institucion-card h-100" id="cardCategoriaNueva" onclick="cambiarOpcionWizard('categoria', 'nueva')">
+                                <div class="card-body text-center p-4">
+                                    <div class="mb-3">
+                                        <svg viewBox="0 0 24 24" stroke="#6c757d" stroke-width="1.8" fill="none" style="width:48px;height:48px;">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                    </div>
+                                    <h5 style="color:#495057;">Crear Nueva</h5>
+                                    <p class="text-muted small">Registrar una categoría no listada</p>
+                                    <div class="mt-2"><input type="radio" name="wizard_categoria_tipo" value="nueva"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3" id="wizardCategoriaSelectContainer">
+                        <label class="form-label fw-bold">Seleccionar Categoría</label>
+                        <select class="form-select" id="wizardCategoriaSelect">
+                            <option value="">Cargando categorías...</option>
+                        </select>
+                    </div>
+                    <div class="mt-3" id="wizardCategoriaNuevaContainer" style="display: none;">
+                        <div class="row">
+                            <div class="col-md-12 mb-2">
+                                <label class="form-label fw-bold">Nombre de la Categoría <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="wizardCategoriaNombre" placeholder="Ej: Laptop, Impresora, Monitor...">
+                            </div>
+                            <div class="col-md-12">
+                                <label class="form-label fw-bold">Descripción</label>
+                                <textarea class="form-control" id="wizardCategoriaDescripcion" rows="2" placeholder="Descripción opcional"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-primary-dark" onclick="irPasoWizard(1)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
+                                <polyline points="15 18 9 12 15 6"/>
+                            </svg>
+                            Anterior
+                        </button>
+                        <button type="button" class="btn btn-primary-dark" onclick="irPasoWizard(3)">
+                            Siguiente
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="margin-left:4px;">
+                                <polyline points="9 18 15 12 9 6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- ====== PASO 3: MODELO ====== -->
+                <div class="step-content" id="wizardStep3" style="display: none;">
+                    <div class="text-center mb-4">
+                        <h6 style="color:#1e3c72; font-weight:600;">Registrar el Modelo</h6>
+                        <p class="text-muted small">Complete los datos del modelo para finalizar</p>
+                        <div class="alert alert-success py-2 mt-2" style="font-size:0.85rem;">
+                            <strong>Marca:</strong> <span id="wizardMarcaFinalLabel">(Ninguna)</span> &nbsp;|&nbsp;
+                            <strong>Categoría:</strong> <span id="wizardCategoriaFinalLabel">(Ninguna)</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Marca <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="wizardModeloMarca" readonly>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Categoría <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="wizardModeloCategoria" readonly>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Nombre del Modelo <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="wizardModeloNombre" placeholder="Ej: Latitude 5540, EliteBook 840...">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label fw-bold">Descripción</label>
+                            <textarea class="form-control" id="wizardModeloDescripcion" rows="2" placeholder="Descripción del modelo..."></textarea>
+                        </div>
+                    </div>
+                    <div class="mt-3 d-flex justify-content-between">
+                        <button type="button" class="btn btn-outline-primary-dark" onclick="irPasoWizard(2)">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;">
+                                <polyline points="15 18 9 12 15 6"/>
+                            </svg>
+                            Anterior
+                        </button>
+                        <button type="button" class="btn btn-success" id="wizardBtnGuardarModelo">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="margin-right:4px;">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                <polyline points="17 21 17 13 7 13 7 21"/>
+                            </svg>
+                            Guardar Modelo
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1527,6 +1839,7 @@ window.verCategoria = function(id) {
                         <div>
                             <h5 class="mb-0">${d.nombre}</h5>
                             <span class="badge ${d.activo ? 'bg-success' : 'bg-danger'}">${d.activo ? 'Activa' : 'Inactiva'}</span>
+                            <br><small class="text-muted">Marca: ${d.marca ? d.marca.nombre : 'N/A'}</small>
                         </div>
                     </div>
                     <div class="detail-card-body">
@@ -1554,12 +1867,28 @@ window.editarCategoria = function(id) {
     document.getElementById('formMethodCategoria').value = 'PUT';
     document.getElementById('categoriaId').value = id;
 
+    // Cargar marcas para el select
+    fetch('/admin/equipos/marcas-list', { headers: { Accept: 'application/json' } })
+        .then(r => r.json())
+        .then(response => {
+            if (response.success) {
+                const select = document.getElementById('categoria_marca_id');
+                select.innerHTML = '<option value="">Seleccionar marca...</option>';
+                response.data.forEach(marca => {
+                    select.innerHTML += `<option value="${marca.id}">${marca.nombre}</option>`;
+                });
+            }
+        });
+
     fetch('/admin/equipos/categorias/' + id, { headers: { 'Accept': 'application/json' } })
     .then(function(r) { return r.json(); })
     .then(function(response) {
         if (response.success) {
             document.getElementById('categoria_nombre').value = response.data.nombre;
             document.getElementById('categoria_descripcion').value = response.data.descripcion || '';
+            setTimeout(function() {
+                document.getElementById('categoria_marca_id').value = response.data.marca_id;
+            }, 300);
         }
     });
     modal.show();
@@ -1599,6 +1928,7 @@ window.verModelo = function(id) {
                         <div>
                             <h5 class="mb-0">${d.nombre}</h5>
                             <span class="badge ${d.activo ? 'bg-success' : 'bg-danger'}">${d.activo ? 'Activo' : 'Inactivo'}</span>
+                            <br><small class="text-muted">${d.categoria ? d.categoria.nombre : 'N/A'} - ${d.marca ? d.marca.nombre : 'N/A'}</small>
                         </div>
                     </div>
                     <div class="detail-card-body">
@@ -1806,6 +2136,19 @@ function abrirModalCategoria(id) {
     var form = document.getElementById('formCategoria');
     form.reset();
 
+    // Cargar marcas para el select
+    fetch('/admin/equipos/marcas-list', { headers: { Accept: 'application/json' } })
+        .then(r => r.json())
+        .then(response => {
+            if (response.success) {
+                const select = document.getElementById('categoria_marca_id');
+                select.innerHTML = '<option value="">Seleccionar marca...</option>';
+                response.data.forEach(marca => {
+                    select.innerHTML += `<option value="${marca.id}">${marca.nombre}</option>`;
+                });
+            }
+        });
+
     if (id) {
         document.getElementById('modalCategoriaLabel').textContent = 'Editar Categoría';
         document.getElementById('formMethodCategoria').value = 'PUT';
@@ -1817,6 +2160,9 @@ function abrirModalCategoria(id) {
             if (response.success) {
                 document.getElementById('categoria_nombre').value = response.data.nombre;
                 document.getElementById('categoria_descripcion').value = response.data.descripcion || '';
+                setTimeout(function() {
+                    document.getElementById('categoria_marca_id').value = response.data.marca_id;
+                }, 300);
             }
         });
     } else {
@@ -2203,6 +2549,365 @@ window.guardarComponentesModelo = guardarComponentesModelo;
 window.guardarModelo = guardarModelo;
 
 // ============================================================
+// WIZARD DE 3 PASOS - FLUJO ESCALONADO FUNCIONAL
+// ============================================================
+let wizardData = {
+    paso: 1,
+    marcaId: null,
+    marcaNombre: null,
+    categoriaId: null,
+    categoriaNombre: null,
+    marcaEsNueva: false,
+    categoriaEsNueva: false
+};
+
+function irPasoWizard(paso) {
+    if (paso < 1 || paso > 3) return;
+
+    if (paso > wizardData.paso) {
+        if (wizardData.paso === 1 && !validarPasoMarca()) return;
+        if (wizardData.paso === 2 && !validarPasoCategoria()) return;
+    }
+
+    document.getElementById('wizardStep' + wizardData.paso).style.display = 'none';
+    document.getElementById('wizardStep' + paso).style.display = 'block';
+
+    document.querySelectorAll('.step-circle').forEach(el => {
+        el.classList.remove('active', 'completed');
+    });
+    document.querySelectorAll('.step-label').forEach(el => {
+        el.style.color = '#adb5bd';
+    });
+
+    for (let i = 1; i <= 3; i++) {
+        const circle = document.querySelector(`#wizardLabel${i} .step-circle`);
+        const label = document.getElementById(`wizardLabel${i}`);
+        if (i < paso) {
+            circle.classList.add('completed');
+            circle.textContent = '✓';
+            label.style.color = '#1e7e34';
+        } else if (i === paso) {
+            circle.classList.add('active');
+            circle.textContent = i;
+            label.style.color = '#1e3c72';
+        } else {
+            circle.textContent = i;
+            label.style.color = '#adb5bd';
+        }
+    }
+
+    const progress = ((paso - 1) / 2) * 100;
+    document.getElementById('wizardProgressBar').style.width = progress + '%';
+    document.getElementById('wizardStepIndicator').textContent = 'Paso ' + paso + ' de 3';
+
+    wizardData.paso = paso;
+
+    if (paso === 2) {
+        cargarCategoriasWizard();
+        // Mostrar la marca seleccionada
+        if (wizardData.marcaNombre) {
+            document.getElementById('wizardMarcaSeleccionadaLabel').textContent = wizardData.marcaNombre;
+        }
+    }
+    if (paso === 3) actualizarDatosFinales();
+}
+
+function validarPasoMarca() {
+    const tipo = document.querySelector('input[name="wizard_marca_tipo"]:checked').value;
+    if (tipo === 'existente') {
+        const select = document.getElementById('wizardMarcaSelect');
+        if (!select.value) {
+            mostrarToastWizard('Debe seleccionar una marca', 'warning');
+            return false;
+        }
+        wizardData.marcaId = parseInt(select.value);
+        wizardData.marcaNombre = select.options[select.selectedIndex].text;
+        wizardData.marcaEsNueva = false;
+        return true;
+    } else {
+        const nombre = document.getElementById('wizardMarcaNombre').value.trim();
+        if (!nombre) {
+            mostrarToastWizard('Ingrese el nombre de la nueva marca', 'warning');
+            return false;
+        }
+        wizardData.marcaNombre = nombre;
+        wizardData.marcaEsNueva = true;
+        wizardData.marcaId = null;
+        return true;
+    }
+}
+
+function validarPasoCategoria() {
+    const tipo = document.querySelector('input[name="wizard_categoria_tipo"]:checked').value;
+    if (tipo === 'existente') {
+        const select = document.getElementById('wizardCategoriaSelect');
+        if (!select.value) {
+            mostrarToastWizard('Debe seleccionar una categoría', 'warning');
+            return false;
+        }
+        wizardData.categoriaId = parseInt(select.value);
+        wizardData.categoriaNombre = select.options[select.selectedIndex].text;
+        wizardData.categoriaEsNueva = false;
+        return true;
+    } else {
+        const nombre = document.getElementById('wizardCategoriaNombre').value.trim();
+        if (!nombre) {
+            mostrarToastWizard('Ingrese el nombre de la nueva categoría', 'warning');
+            return false;
+        }
+        wizardData.categoriaNombre = nombre;
+        wizardData.categoriaEsNueva = true;
+        wizardData.categoriaId = null;
+        return true;
+    }
+}
+
+function cambiarOpcionWizard(tipo, opcion) {
+    if (tipo === 'marca') {
+        const cardExistente = document.getElementById('cardMarcaExistente');
+        const cardNueva = document.getElementById('cardMarcaNueva');
+        const containerSelect = document.getElementById('wizardMarcaSelectContainer');
+        const containerNueva = document.getElementById('wizardMarcaNuevaContainer');
+
+        if (opcion === 'existente') {
+            cardExistente.classList.add('active');
+            cardNueva.classList.remove('active');
+            cardExistente.style.borderColor = '#1e3c72';
+            cardNueva.style.borderColor = '#e9ecef';
+            containerSelect.style.display = 'block';
+            containerNueva.style.display = 'none';
+            document.querySelector('input[name="wizard_marca_tipo"][value="existente"]').checked = true;
+        } else {
+            cardNueva.classList.add('active');
+            cardExistente.classList.remove('active');
+            cardNueva.style.borderColor = '#1e3c72';
+            cardExistente.style.borderColor = '#e9ecef';
+            containerSelect.style.display = 'none';
+            containerNueva.style.display = 'block';
+            document.querySelector('input[name="wizard_marca_tipo"][value="nueva"]').checked = true;
+            document.getElementById('wizardMarcaNombre').focus();
+        }
+    } else if (tipo === 'categoria') {
+        const cardExistente = document.getElementById('cardCategoriaExistente');
+        const cardNueva = document.getElementById('cardCategoriaNueva');
+        const containerSelect = document.getElementById('wizardCategoriaSelectContainer');
+        const containerNueva = document.getElementById('wizardCategoriaNuevaContainer');
+
+        if (opcion === 'existente') {
+            cardExistente.classList.add('active');
+            cardNueva.classList.remove('active');
+            cardExistente.style.borderColor = '#1e3c72';
+            cardNueva.style.borderColor = '#e9ecef';
+            containerSelect.style.display = 'block';
+            containerNueva.style.display = 'none';
+            document.querySelector('input[name="wizard_categoria_tipo"][value="existente"]').checked = true;
+        } else {
+            cardNueva.classList.add('active');
+            cardExistente.classList.remove('active');
+            cardNueva.style.borderColor = '#1e3c72';
+            cardExistente.style.borderColor = '#e9ecef';
+            containerSelect.style.display = 'none';
+            containerNueva.style.display = 'block';
+            document.querySelector('input[name="wizard_categoria_tipo"][value="nueva"]').checked = true;
+            document.getElementById('wizardCategoriaNombre').focus();
+        }
+    }
+}
+
+function cargarMarcasWizard() {
+    fetch('/admin/equipos/marcas-list', { headers: { Accept: 'application/json' } })
+        .then(r => r.json())
+        .then(response => {
+            const select = document.getElementById('wizardMarcaSelect');
+            if (response.success) {
+                select.innerHTML = '<option value="">Seleccionar marca...</option>';
+                response.data.forEach(marca => {
+                    select.innerHTML += `<option value="${marca.id}">${marca.nombre}</option>`;
+                });
+            }
+        });
+}
+
+function cargarCategoriasWizard() {
+    fetch('/admin/equipos/categorias-list', { headers: { Accept: 'application/json' } })
+        .then(r => r.json())
+        .then(response => {
+            const select = document.getElementById('wizardCategoriaSelect');
+            if (response.success) {
+                select.innerHTML = '<option value="">Seleccionar categoría...</option>';
+                response.data.forEach(cat => {
+                    select.innerHTML += `<option value="${cat.id}">${cat.nombre}</option>`;
+                });
+            }
+        });
+}
+
+function actualizarDatosFinales() {
+    document.getElementById('wizardModeloMarca').value = wizardData.marcaNombre || '(Ninguna)';
+    document.getElementById('wizardModeloCategoria').value = wizardData.categoriaNombre || '(Ninguna)';
+    document.getElementById('wizardMarcaFinalLabel').textContent = wizardData.marcaNombre || '(Ninguna)';
+    document.getElementById('wizardCategoriaFinalLabel').textContent = wizardData.categoriaNombre || '(Ninguna)';
+}
+
+function abrirWizardEquipo() {
+    wizardData = { paso: 1, marcaId: null, marcaNombre: null, categoriaId: null, categoriaNombre: null, marcaEsNueva: false, categoriaEsNueva: false };
+    document.getElementById('wizardStep1').style.display = 'block';
+    document.getElementById('wizardStep2').style.display = 'none';
+    document.getElementById('wizardStep3').style.display = 'none';
+
+    document.getElementById('wizardMarcaNombre').value = '';
+    document.getElementById('wizardMarcaDescripcion').value = '';
+    document.getElementById('wizardCategoriaNombre').value = '';
+    document.getElementById('wizardCategoriaDescripcion').value = '';
+    document.getElementById('wizardModeloNombre').value = '';
+    document.getElementById('wizardModeloDescripcion').value = '';
+
+    document.querySelector('input[name="wizard_marca_tipo"][value="existente"]').checked = true;
+    document.getElementById('cardMarcaExistente').classList.add('active');
+    document.getElementById('cardMarcaNueva').classList.remove('active');
+    document.getElementById('cardMarcaExistente').style.borderColor = '#1e3c72';
+    document.getElementById('cardMarcaNueva').style.borderColor = '#e9ecef';
+    document.getElementById('wizardMarcaSelectContainer').style.display = 'block';
+    document.getElementById('wizardMarcaNuevaContainer').style.display = 'none';
+
+    document.querySelector('input[name="wizard_categoria_tipo"][value="existente"]').checked = true;
+    document.getElementById('cardCategoriaExistente').classList.add('active');
+    document.getElementById('cardCategoriaNueva').classList.remove('active');
+    document.getElementById('cardCategoriaExistente').style.borderColor = '#1e3c72';
+    document.getElementById('cardCategoriaNueva').style.borderColor = '#e9ecef';
+    document.getElementById('wizardCategoriaSelectContainer').style.display = 'block';
+    document.getElementById('wizardCategoriaNuevaContainer').style.display = 'none';
+
+    cargarMarcasWizard();
+
+    const modal = new bootstrap.Modal(document.getElementById('modalWizardEquipo'));
+    modal.show();
+}
+
+document.getElementById('wizardBtnGuardarModelo').addEventListener('click', async function() {
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Guardando...';
+    btn.disabled = true;
+
+    try {
+        let marcaId = wizardData.marcaId;
+        if (wizardData.marcaEsNueva) {
+            const nombre = document.getElementById('wizardMarcaNombre').value.trim();
+            const descripcion = document.getElementById('wizardMarcaDescripcion').value.trim();
+            const response = await fetch('/admin/equipos/marcas', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ nombre, descripcion })
+            });
+            const data = await response.json();
+            if (!data.success) {
+                mostrarToastWizard('Error al crear la marca: ' + data.message, 'error');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            marcaId = data.data.id;
+            wizardData.marcaId = marcaId;
+            wizardData.marcaNombre = nombre;
+        }
+
+        let categoriaId = wizardData.categoriaId;
+        if (wizardData.categoriaEsNueva) {
+            const nombre = document.getElementById('wizardCategoriaNombre').value.trim();
+            const descripcion = document.getElementById('wizardCategoriaDescripcion').value.trim();
+            const response = await fetch('/admin/equipos/categorias', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ nombre, descripcion, marca_id: marcaId })
+            });
+            const data = await response.json();
+            if (!data.success) {
+                mostrarToastWizard('Error al crear la categoría: ' + data.message, 'error');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+            categoriaId = data.data.id;
+            wizardData.categoriaId = categoriaId;
+            wizardData.categoriaNombre = nombre;
+        }
+
+        const modeloNombre = document.getElementById('wizardModeloNombre').value.trim();
+        const modeloDescripcion = document.getElementById('wizardModeloDescripcion').value.trim();
+
+        if (!modeloNombre) {
+            mostrarToastWizard('Ingrese el nombre del modelo', 'warning');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+            return;
+        }
+
+        const response = await fetch('/admin/equipos/modelos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({
+                categoria_id: categoriaId,
+                nombre: modeloNombre,
+                descripcion: modeloDescripcion
+            })
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarToastWizard('✅ Modelo y datos creados exitosamente', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalWizardEquipo')).hide();
+            window.buscarModelos();
+        } else {
+            mostrarToastWizard('Error al crear el modelo: ' + data.message, 'error');
+        }
+    } catch (error) {
+        console.error('Error en wizard:', error);
+        mostrarToastWizard('Error de conexión', 'error');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+
+function mostrarToastWizard(mensaje, tipo = 'success') {
+    const colores = { success: '#1e7e34', error: '#c5221f', warning: '#f6c23e', info: '#1e3c72' };
+    const toast = document.createElement('div');
+    toast.style.cssText = `
+        position: fixed; top: 20px; right: 20px; z-index: 9999;
+        background: ${colores[tipo]}; color: white;
+        padding: 14px 20px; border-radius: 12px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        font-weight: 500; font-size: 0.9rem;
+        animation: slideIn 0.3s ease-out; max-width: 400px;
+        cursor: pointer;
+    `;
+    toast.textContent = mensaje;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => toast.remove(), 300);
+    }, 3500);
+}
+
+// Exponer funciones globalmente
+window.abrirWizardEquipo = abrirWizardEquipo;
+window.irPasoWizard = irPasoWizard;
+window.cambiarOpcionWizard = cambiarOpcionWizard;
+
+// ============================================================
 // CARGA INICIAL
 // ============================================================
 window.buscarMarcas();
@@ -2211,6 +2916,6 @@ window.buscarModelos();
 cargarArbol();
 cargarSelectsModelo();
 
-console.log('✅ Módulo de equipos listo - Búsqueda en tiempo real funcionando');
+console.log('✅ Módulo de equipos listo - Búsqueda en tiempo real y Wizard funcionando');
 </script>
 @endsection

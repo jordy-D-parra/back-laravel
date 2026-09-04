@@ -1,5 +1,7 @@
 <?php
 
+// app/Models/Modelo.php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,59 +28,51 @@ class Modelo extends Model
         'activo' => 'boolean',
     ];
 
-    /**
-     * Marca del modelo (Dell, HP, Lenovo...).
-     */
     public function marca(): BelongsTo
     {
         return $this->belongsTo(Marca::class);
     }
 
-    /**
-     * Categoría del modelo (Laptop, Impresora, Monitor...).
-     */
     public function categoria(): BelongsTo
     {
         return $this->belongsTo(Categoria::class);
     }
 
-    /**
-     * Componentes que DEBE tener este modelo (plantilla teórica).
-     */
+    // 👇 NUEVO: Obtener la marca a través de la categoría
+    public function getMarcaViaCategoriaAttribute()
+    {
+        return $this->categoria?->marca;
+    }
+
+    // 👇 NUEVO: Para compatibilidad con la vista
+    public function getMarcaNombreAttribute()
+    {
+        return $this->categoria?->marca?->nombre ?? 'N/A';
+    }
+
     public function modeloComponentes(): HasMany
     {
         return $this->hasMany(ModeloComponente::class, 'modelo_id');
     }
 
-    /**
-     * Activos físicos registrados de este modelo.
-     */
     public function activos(): HasMany
     {
         return $this->hasMany(Activo::class, 'modelo_id');
     }
 
-    /**
-     * Cantidad de activos registrados de este modelo.
-     */
     public function getActivosCountAttribute(): int
     {
         return $this->activos()->count();
     }
 
-    /**
-     * Cantidad de componentes definidos para este modelo.
-     */
     public function getComponentesCountAttribute(): int
     {
         return $this->modeloComponentes()->count();
     }
 
-    /**
-     * Nombre completo: Marca + Modelo.
-     */
     public function getNombreCompletoAttribute(): string
     {
-        return $this->marca?->nombre . ' ' . $this->nombre;
+        $marca = $this->categoria?->marca;
+        return ($marca ? $marca->nombre . ' ' : '') . $this->nombre;
     }
 }

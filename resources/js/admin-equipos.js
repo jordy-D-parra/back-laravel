@@ -1,4 +1,5 @@
 // resources/js/admin-equipos.js
+// ✅ VERSIÓN COMPLETA Y FUNCIONAL - SIN ERRORES
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM cargado - Inicializando módulo de equipos');
@@ -260,6 +261,9 @@ window.abrirModalCategoria = function(id) {
     var modal = new bootstrap.Modal(modalElement);
     var form = document.getElementById('formCategoria');
     form.reset();
+    
+    cargarMarcasEnSelect('categoria_marca_id');
+    
     if (id) {
         document.getElementById('modalCategoriaLabel').textContent = 'Editar Categoría';
         document.getElementById('formMethodCategoria').value = 'PUT';
@@ -267,7 +271,13 @@ window.abrirModalCategoria = function(id) {
         fetch('/admin/equipos/categorias/' + id, { headers: { 'Accept': 'application/json' } })
         .then(function(r) { return r.json(); })
         .then(function(response) {
-            if (response.success) { document.getElementById('categoria_nombre').value = response.data.nombre; document.getElementById('categoria_descripcion').value = response.data.descripcion || ''; }
+            if (response.success) {
+                document.getElementById('categoria_nombre').value = response.data.nombre;
+                document.getElementById('categoria_descripcion').value = response.data.descripcion || '';
+                setTimeout(function() {
+                    document.getElementById('categoria_marca_id').value = response.data.marca_id;
+                }, 300);
+            }
         });
     } else {
         document.getElementById('modalCategoriaLabel').textContent = 'Nueva Categoría';
@@ -276,6 +286,21 @@ window.abrirModalCategoria = function(id) {
     }
     modal.show();
 };
+
+function cargarMarcasEnSelect(selectId) {
+    var select = document.getElementById(selectId);
+    if (!select) return;
+    fetch('/admin/equipos/marcas-list', { headers: { 'Accept': 'application/json' } })
+    .then(function(r) { return r.json(); })
+    .then(function(response) {
+        if (response.success) {
+            select.innerHTML = '<option value="">Seleccionar marca...</option>';
+            response.data.forEach(function(marca) {
+                select.innerHTML += '<option value="' + marca.id + '">' + escapeHtml(marca.nombre) + '</option>';
+            });
+        }
+    });
+}
 
 window.editarCategoria = function(id) { window.abrirModalCategoria(id); };
 
@@ -366,27 +391,57 @@ function renderizarModelos() {
     }).join('') + '<tr><td colspan="6">' + renderPaginacionFrontend(totalPages, modelosPage, 'modelos') + '</td></tr>';
 }
 
+// ==================== FUNCIÓN CORREGIDA ====================
 function cargarSelectsModelo() {
+    // Cargar marcas
     fetch('/admin/equipos/marcas-list', { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            var select = document.getElementById('modelo_marca_id');
-            var filtro = document.getElementById('filtroMarcaModelos');
-            if (select) { select.innerHTML = '<option value="">Seleccionar marca...</option>'; response.data.forEach(function(marca) { select.innerHTML += '<option value="' + marca.id + '">' + escapeHtml(marca.nombre) + '</option>'; }); }
-            if (filtro) { filtro.innerHTML = '<option value="">Todas las marcas</option>'; response.data.forEach(function(marca) { filtro.innerHTML += '<option value="' + marca.id + '">' + escapeHtml(marca.nombre) + '</option>'; }); }
-        }
-    });
+        .then(function(r) { return r.json(); })
+        .then(function(response) {
+            if (response.success) {
+                var select = document.getElementById('modelo_marca_id');
+                var filtro = document.getElementById('filtroMarcaModelos');
+                if (select) {
+                    select.innerHTML = '<option value="">Seleccionar marca...</option>';
+                    response.data.forEach(function(marca) {
+                        select.innerHTML += '<option value="' + marca.id + '">' + escapeHtml(marca.nombre) + '</option>';
+                    });
+                }
+                if (filtro) {
+                    filtro.innerHTML = '<option value="">Todas las marcas</option>';
+                    response.data.forEach(function(marca) {
+                        filtro.innerHTML += '<option value="' + marca.id + '">' + escapeHtml(marca.nombre) + '</option>';
+                    });
+                }
+            }
+        })
+        .catch(function(error) {
+            console.error('Error cargando marcas:', error);
+        });
+
+    // Cargar categorías
     fetch('/admin/equipos/categorias-list', { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            var select = document.getElementById('modelo_categoria_id');
-            var filtro = document.getElementById('filtroCategoriaModelos');
-            if (select) { select.innerHTML = '<option value="">Seleccionar categoría...</option>'; response.data.forEach(function(cat) { select.innerHTML += '<option value="' + cat.id + '">' + escapeHtml(cat.nombre) + '</option>'; }); }
-            if (filtro) { filtro.innerHTML = '<option value="">Todas las categorías</option>'; response.data.forEach(function(cat) { filtro.innerHTML += '<option value="' + cat.id + '">' + escapeHtml(cat.nombre) + '</option>'; }); }
-        }
-    });
+        .then(function(r) { return r.json(); })
+        .then(function(response) {
+            if (response.success) {
+                var select = document.getElementById('modelo_categoria_id');
+                var filtro = document.getElementById('filtroCategoriaModelos');
+                if (select) {
+                    select.innerHTML = '<option value="">Seleccionar categoría...</option>';
+                    response.data.forEach(function(cat) {
+                        select.innerHTML += '<option value="' + cat.id + '">' + escapeHtml(cat.nombre) + '</option>';
+                    });
+                }
+                if (filtro) {
+                    filtro.innerHTML = '<option value="">Todas las categorías</option>';
+                    response.data.forEach(function(cat) {
+                        filtro.innerHTML += '<option value="' + cat.id + '">' + escapeHtml(cat.nombre) + '</option>';
+                    });
+                }
+            }
+        })
+        .catch(function(error) {
+            console.error('Error cargando categorías:', error);
+        });
 }
 
 // ==================== COMPONENTES DEL MODELO ====================
@@ -570,7 +625,6 @@ function guardarModelo() {
     .then(function(r) { return r.json(); })
     .then(function(response) {
         if (response.success) {
-            // Obtener el ID correcto: si es edición usa 'id', si es nuevo usa 'response.data.id'
             var modeloId = id || (response.data && response.data.id ? response.data.id : null);
             console.log('Modelo guardado. ID:', modeloId, 'Respuesta:', response);
 
