@@ -94,7 +94,6 @@ class NotificacionService
             ]);
 
             return $notificacion;
-
         } catch (\Exception $e) {
             Log::error('Error al enviar correo a responsable externo: ' . $e->getMessage(), [
                 'email' => $email,
@@ -143,7 +142,7 @@ class NotificacionService
         ?string $url = null,
         bool $enviarCorreo = true
     ): array {
-        $usuarios = Usuario::whereHas('rol', function($query) use ($rolNombre) {
+        $usuarios = Usuario::whereHas('rol', function ($query) use ($rolNombre) {
             $query->where('nombre', $rolNombre);
         })->with('trabajador')->get();
 

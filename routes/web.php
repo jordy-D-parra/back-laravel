@@ -191,17 +191,25 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{prestamo}/extender', [PrestamoController::class, 'extender'])->name('extender');
         });
 
-        // 3.3 Solicitudes
-        Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
-            Route::get('/', [SolicitudController::class, 'index'])->name('index');
-            Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->name('detalles');
-            Route::get('/pendientes-prestamo', [SolicitudController::class, 'paraPrestamo'])->name('pendientes-prestamo');
-            Route::post('/store', [SolicitudController::class, 'store'])->name('store');
-            Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])->name('update');
-            Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('cancel');
-            Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('approve');
-            Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
-        });
+    Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
+    Route::get('/', [SolicitudController::class, 'index'])->name('index');
+    
+    // 🔴 ESTAS DEBEN IR ANTES DE /{solicitud} PARA EVITAR CONFLICTOS
+    Route::get('/correos/lista', [SolicitudController::class, 'correosIndex'])->name('correos.index');
+    Route::get('/correos/contador', [SolicitudController::class, 'correosContador'])->name('correos.contador');
+    Route::post('/correos/revisar', [SolicitudController::class, 'correosRevisar'])->name('correos.revisar');
+    Route::get('/correos/{id}', [SolicitudController::class, 'correoShow'])->name('correos.show');
+    Route::delete('/correos/{id}', [SolicitudController::class, 'correoDestroy'])->name('correos.destroy');
+    Route::post('/correos/{id}/convertir', [SolicitudController::class, 'correoConvertir'])->name('correos.convertir');
+    
+    Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->name('detalles');
+    Route::get('/pendientes-prestamo', [SolicitudController::class, 'paraPrestamo'])->name('pendientes-prestamo');
+    Route::post('/store', [SolicitudController::class, 'store'])->name('store');
+    Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])->name('update');
+    Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('cancel');
+    Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('approve');
+    Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
+});
 
         // 3.4 Soporte Técnico
         Route::resource('soporte', FichaSoporteController::class);

@@ -3,467 +3,568 @@
 @section('title', 'Solicitudes de Préstamo')
 
 @section('styles')
-    @vite(['resources/css/admin-solicitudes.css'])
-    <style>
-        /* ============================================================
-           ESTILOS EXCLUSIVOS PARA EL MODAL DE DETALLE
-           ============================================================ */
-        
-        /* Contenedor principal del detalle */
-        .detalle-solicitud-moderno {
-            animation: fadeInUp 0.4s ease forwards;
+@vite(['resources/css/admin-solicitudes.css'])
+<style>
+    /* ============ SOLICITUDES NO LEÍDAS ============ */
+    .solicitud-no-leida {
+        background-color: #fff8e1 !important;
+        border-left: 4px solid #ffc107 !important;
+    }
+    .badge-nueva {
+        background: #dc3545;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 0.65rem;
+        font-weight: 700;
+        margin-left: 6px;
+        animation: pulseBadge 1.5s infinite;
+    }
+    @keyframes pulseBadge {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+    }
+
+    /* ============ CORREOS ============ */
+    .correo-item {
+        background: white;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 10px;
+        border: 1px solid #e9ecef;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border-left: 4px solid transparent;
+    }
+    .correo-item:hover {
+        background: #f8f9fc;
+        transform: translateX(4px);
+        border-left-color: #1e3c72;
+    }
+    .correo-item.no-leido {
+        background: #f0f4ff;
+        border-left-color: #1e3c72;
+    }
+    .correo-item.procesado {
+        opacity: 0.7;
+        background: #f8f9fa;
+    }
+    .tab-correos-badge {
+        background: #dc3545 !important;
+        color: white !important;
+        padding: 2px 8px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        margin-left: 6px;
+    }
+
+    /* ============ WIZARD ============ */
+    .wizard-step { display: none; }
+    .wizard-step.active {
+        display: block;
+        animation: fadeInUp 0.3s ease;
+    }
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .step-circle {
+        display: inline-block;
+        width: 32px; height: 32px;
+        line-height: 32px;
+        text-align: center;
+        border-radius: 50%;
+        background: #e9ecef;
+        color: #6c757d;
+        font-weight: 700;
+        margin-right: 8px;
+        transition: all 0.3s ease;
+    }
+    .step-circle.active {
+        background: #1e3c72;
+        color: white;
+        box-shadow: 0 0 0 4px rgba(30, 60, 114, 0.15);
+    }
+    .step-circle.completed {
+        background: #1e7e34;
+        color: white;
+    }
+
+    /* ============ STOCK ERROR ============ */
+    .lista-faltantes {
+        background: #fff5f5;
+        border-left: 4px solid #dc3545;
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin: 12px 0;
+    }
+    .lista-faltantes .item-faltante {
+        padding: 8px 0;
+        border-bottom: 1px dashed #f5c6cb;
+        font-size: 0.9rem;
+    }
+    .lista-faltantes .item-faltante:last-child {
+        border-bottom: none;
+    }
+    .item-faltante .nombre {
+        font-weight: 600;
+        color: #721c24;
+    }
+    .item-faltante .detalles {
+        font-size: 0.8rem;
+        color: #856404;
+        margin-top: 4px;
+    }
+
+    /* ============ PAGINACIÓN ============ */
+    .pagination .page-link {
+        cursor: pointer;
+        color: #1e3c72;
+        border: 1px solid #dee2e6;
+        padding: 0.375rem 0.75rem;
+        transition: all 0.15s ease;
+    }
+    .pagination .page-link:hover {
+        background-color: #eef2ff;
+        color: #1e3c72;
+        border-color: #1e3c72;
+    }
+    .pagination .page-item.active .page-link {
+        background-color: #1e3c72;
+        border-color: #1e3c72;
+        color: white;
+        font-weight: 600;
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #adb5bd;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    /* ============================================================
+       MODAL DETALLES - DISEÑO PROFESIONAL
+       ============================================================ */
+    .detalle-modal {
+        border: none;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.25);
+    }
+
+    /* HEADER */
+    .detalle-modal-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        padding: 1.5rem 2rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .detalle-modal-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+        border-radius: 50%;
+        pointer-events: none;
+    }
+
+    .detalle-header-left {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    .detalle-icon-circle {
+        width: 52px;
+        height: 52px;
+        min-width: 52px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .detalle-header-title {
+        color: white;
+        font-weight: 700;
+        font-size: 1.15rem;
+        margin: 0;
+        letter-spacing: 0.3px;
+    }
+
+    .detalle-header-subtitle {
+        color: rgba(255, 255, 255, 0.75);
+        font-size: 0.82rem;
+        margin: 0;
+        margin-top: 2px;
+    }
+
+    /* BODY */
+    .detalle-modal-body {
+        padding: 2rem;
+        background: #f7f9fc;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+
+    .detalle-loading {
+        text-align: center;
+        padding: 4rem 1rem;
+    }
+
+    /* SECCIONES */
+    .detalle-section {
+        margin-bottom: 1.5rem;
+    }
+
+    .detalle-section-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #64748b;
+        margin-bottom: 0.85rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .detalle-section-title svg {
+        color: #1e3c72;
+    }
+
+    /* HEADER CARD */
+    .detalle-hero-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .detalle-hero-left {
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+    }
+
+    .detalle-hero-icon {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #1e3c72;
+        font-size: 1.5rem;
+        font-weight: 800;
+    }
+
+    .detalle-hero-info h3 {
+        margin: 0;
+        font-size: 1.35rem;
+        font-weight: 800;
+        color: #1e293b;
+        letter-spacing: -0.3px;
+    }
+
+    .detalle-hero-info p {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #64748b;
+        margin-top: 2px;
+    }
+
+    .detalle-hero-badges {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .detalle-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 14px;
+        border-radius: 10px;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+    }
+
+    .detalle-badge.prioridad-baja    { background: #f1f5f9; color: #475569; }
+    .detalle-badge.prioridad-normal  { background: #dbeafe; color: #1e40af; }
+    .detalle-badge.prioridad-alta    { background: #fef3c7; color: #92400e; }
+    .detalle-badge.prioridad-urgente { background: #fee2e2; color: #991b1b; }
+
+    .detalle-badge.estado-pendiente  { background: #fef3c7; color: #92400e; }
+    .detalle-badge.estado-aprobada   { background: #d1fae5; color: #065f46; }
+    .detalle-badge.estado-rechazada  { background: #fee2e2; color: #991b1b; }
+    .detalle-badge.estado-cancelada  { background: #f1f5f9; color: #475569; }
+
+    /* GRID DE INFO */
+    .detalle-info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 1rem;
+    }
+
+    .detalle-info-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1rem 1.15rem;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+    }
+
+    .detalle-info-card:hover {
+        border-color: #cbd5e1;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .detalle-info-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 6px;
+    }
+
+    .detalle-info-label svg {
+        width: 13px;
+        height: 13px;
+    }
+
+    .detalle-info-value {
+        font-size: 0.92rem;
+        font-weight: 600;
+        color: #1e293b;
+        word-break: break-word;
+        line-height: 1.4;
+    }
+
+    .detalle-info-value.muted {
+        color: #94a3b8;
+        font-weight: 500;
+        font-style: italic;
+    }
+
+    /* JUSTIFICACIÓN */
+    .detalle-justificacion {
+        background: white;
+        border-radius: 12px;
+        padding: 1.25rem 1.5rem;
+        border: 1px solid #e2e8f0;
+        border-left: 4px solid #1e3c72;
+        color: #334155;
+        line-height: 1.65;
+        font-size: 0.92rem;
+        white-space: pre-wrap;
+    }
+
+    /* TIMELINE FECHAS */
+    .detalle-timeline {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .detalle-timeline-item {
+        background: white;
+        border-radius: 12px;
+        padding: 1.15rem;
+        border: 1px solid #e2e8f0;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .detalle-timeline-item::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: #1e3c72;
+    }
+
+    .detalle-timeline-item.fecha-solicitud::before  { background: #64748b; }
+    .detalle-timeline-item.fecha-requerida::before  { background: #f59e0b; }
+    .detalle-timeline-item.fecha-fin::before        { background: #10b981; }
+
+    .detalle-timeline-date {
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin-bottom: 2px;
+    }
+
+    .detalle-timeline-label {
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: #94a3b8;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    /* TABLA DE ITEMS */
+    .detalle-items-table {
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .detalle-items-table thead {
+        background: #f8fafc;
+    }
+
+    .detalle-items-table th {
+        padding: 12px 16px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-align: left;
+        border-bottom: 1px solid #e2e8f0;
+    }
+
+    .detalle-items-table th.text-center { text-align: center; }
+
+    .detalle-items-table td {
+        padding: 14px 16px;
+        font-size: 0.9rem;
+        color: #334155;
+        border-bottom: 1px solid #f1f5f9;
+        vertical-align: middle;
+    }
+
+    .detalle-items-table tr:last-child td { border-bottom: none; }
+
+    .detalle-items-table tr:hover td { background: #f8fafc; }
+
+    .detalle-items-table td.text-center { text-align: center; }
+
+    .detalle-item-tipo {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+
+    .detalle-item-tipo.activo     { background: #dbeafe; color: #1e40af; }
+    .detalle-item-tipo.componente { background: #ede9fe; color: #5b21b6; }
+
+    .detalle-item-cantidad {
+        display: inline-block;
+        min-width: 36px;
+        padding: 5px 12px;
+        border-radius: 8px;
+        background: #1e3c72;
+        color: white;
+        font-weight: 700;
+        font-size: 0.85rem;
+    }
+
+    /* EMPTY STATE */
+    .detalle-empty {
+        text-align: center;
+        padding: 2.5rem 1rem;
+        color: #94a3b8;
+        background: white;
+        border-radius: 12px;
+        border: 1px dashed #e2e8f0;
+    }
+
+    .detalle-empty svg {
+        margin-bottom: 10px;
+        opacity: 0.4;
+    }
+
+    /* FOOTER */
+    .detalle-modal-footer {
+        padding: 1rem 2rem;
+        background: white;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    /* SCROLLBAR PERSONALIZADA */
+    .detalle-modal-body::-webkit-scrollbar {
+        width: 8px;
+    }
+    .detalle-modal-body::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .detalle-modal-body::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 4px;
+    }
+    .detalle-modal-body::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 576px) {
+        .detalle-modal-header {
+            padding: 1.15rem 1.25rem;
         }
-
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(15px); }
-            to { opacity: 1; transform: translateY(0); }
+        .detalle-modal-body {
+            padding: 1.25rem;
         }
-
-        /* Tarjeta de encabezado con estado */
-        .detalle-header-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.25rem 1.5rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid #e9ecef;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
+        .detalle-hero-card {
+            padding: 1.15rem;
         }
-
-        .detalle-header-card .header-left {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
+        .detalle-hero-info h3 {
+            font-size: 1.1rem;
         }
-
-        .detalle-header-card .header-left .badge-id {
-            background: #1e3c72;
-            color: white;
-            padding: 0.25rem 1rem;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.85rem;
+        .detalle-modal-footer {
+            padding: 1rem 1.25rem;
         }
-
-        .detalle-header-card .header-left .badge-prioridad {
-            padding: 0.25rem 1rem;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.8rem;
-        }
-
-        .detalle-header-card .header-left .badge-prioridad.baja { background: #e9ecef; color: #495057; }
-        .detalle-header-card .header-left .badge-prioridad.normal { background: #d4edda; color: #155724; }
-        .detalle-header-card .header-left .badge-prioridad.alta { background: #fff3cd; color: #856404; }
-        .detalle-header-card .header-left .badge-prioridad.urgente { background: #f8d7da; color: #721c24; }
-
-        .detalle-header-card .header-right .badge-estado-detalle {
-            padding: 0.35rem 1.2rem;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 0.8rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .detalle-header-card .header-right .badge-estado-detalle.pendiente { background: #fff3cd; color: #856404; }
-        .detalle-header-card .header-right .badge-estado-detalle.aprobada { background: #d4edda; color: #155724; }
-        .detalle-header-card .header-right .badge-estado-detalle.rechazada { background: #f8d7da; color: #721c24; }
-        .detalle-header-card .header-right .badge-estado-detalle.cancelada { background: #e2e3e5; color: #383d41; }
-
-        .detalle-header-card .header-right .badge-estado-detalle svg {
-            width: 14px;
-            height: 14px;
-        }
-
-        /* Grid de información */
-        .detalle-grid-moderno {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .detalle-grid-moderno .detalle-item-moderno {
-            background: white;
-            border-radius: 12px;
-            padding: 0.85rem 1.2rem;
-            border: 1px solid #e9ecef;
-            transition: all 0.2s ease;
-        }
-
-        .detalle-grid-moderno .detalle-item-moderno:hover {
-            border-color: #1e3c72;
-            box-shadow: 0 2px 12px rgba(30, 60, 114, 0.06);
-        }
-
-        .detalle-grid-moderno .detalle-item-moderno .detalle-label {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            color: #94a3b8;
-            letter-spacing: 0.8px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .detalle-grid-moderno .detalle-item-moderno .detalle-label svg {
-            width: 14px;
-            height: 14px;
-            stroke: #94a3b8;
-        }
-
-        .detalle-grid-moderno .detalle-item-moderno .detalle-value {
-            font-weight: 500;
-            color: #0f172a;
-            font-size: 0.95rem;
-            word-break: break-word;
-        }
-
-        .detalle-grid-moderno .detalle-item-moderno .detalle-value .badge-tipo-solicitante {
-            font-size: 0.7rem;
-            padding: 0.15rem 0.7rem;
-            border-radius: 20px;
-            font-weight: 500;
-        }
-
-        .detalle-grid-moderno .detalle-item-moderno .detalle-value .badge-tipo-solicitante.interno { background: #dbeafe; color: #2563eb; }
-        .detalle-grid-moderno .detalle-item-moderno .detalle-value .badge-tipo-solicitante.externo { background: #fef3c7; color: #d97706; }
-
-        /* Sección de justificación */
-        .detalle-justificacion {
-            background: white;
-            border-radius: 12px;
-            padding: 1.25rem 1.5rem;
-            border: 1px solid #e9ecef;
-            margin-bottom: 1.5rem;
-        }
-
-        .detalle-justificacion .justificacion-label {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            color: #94a3b8;
-            letter-spacing: 0.8px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .detalle-justificacion .justificacion-label svg {
-            width: 14px;
-            height: 14px;
-            stroke: #94a3b8;
-        }
-
-        .detalle-justificacion .justificacion-texto {
-            color: #1a1a1a;
-            font-size: 0.95rem;
-            line-height: 1.7;
-            white-space: pre-line;
-        }
-
-        /* Sección de observaciones */
-        .detalle-observaciones-moderno {
-            background: #fffbf0;
-            border-radius: 12px;
-            padding: 1.25rem 1.5rem;
-            border: 1px solid #fef3c7;
-            margin-bottom: 1.5rem;
-        }
-
-        .detalle-observaciones-moderno .obs-label {
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            color: #94a3b8;
-            letter-spacing: 0.8px;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-            margin-bottom: 0.5rem;
-        }
-
-        .detalle-observaciones-moderno .obs-label svg {
-            width: 14px;
-            height: 14px;
-            stroke: #94a3b8;
-        }
-
-        .detalle-observaciones-moderno .obs-texto {
-            color: #1a1a1a;
-            font-size: 0.95rem;
-            line-height: 1.7;
-            white-space: pre-line;
-        }
-
-        /* Tabla de items */
-        .detalle-items-container {
-            background: white;
-            border-radius: 12px;
-            border: 1px solid #e9ecef;
-            overflow: hidden;
-        }
-
-        .detalle-items-container .items-header {
-            background: #f8fafc;
-            padding: 0.85rem 1.5rem;
-            border-bottom: 1px solid #e9ecef;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .detalle-items-container .items-header .items-title {
-            font-weight: 600;
-            color: #1e3c72;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .detalle-items-container .items-header .items-title .badge-count {
-            background: #1e3c72;
-            color: white;
-            padding: 0.1rem 0.6rem;
-            border-radius: 20px;
-            font-size: 0.7rem;
-        }
-
-        .detalle-items-container .table-items {
-            margin-bottom: 0;
-        }
-
-        .detalle-items-container .table-items thead th {
-            background: #f8fafc;
-            color: #1e3c72;
-            font-weight: 600;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #e9ecef;
-            padding: 0.75rem 1.5rem;
-        }
-
-        .detalle-items-container .table-items tbody td {
-            padding: 0.75rem 1.5rem;
-            vertical-align: middle;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 0.9rem;
-            color: #1a1a1a;
-        }
-
-        .detalle-items-container .table-items tbody tr:hover {
-            background: #f8fafc;
-        }
-
-        .detalle-items-container .table-items tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        .detalle-items-container .table-items .badge-tipo-item {
-            font-size: 0.65rem;
-            padding: 0.15rem 0.6rem;
-            border-radius: 20px;
-            font-weight: 500;
-        }
-
-        .detalle-items-container .table-items .badge-tipo-item.activo { background: #dbeafe; color: #2563eb; }
-        .detalle-items-container .table-items .badge-tipo-item.componente { background: #fef3c7; color: #d97706; }
-
-        /* Ubicación del evento */
-        .detalle-ubicacion {
-            background: white;
-            border-radius: 12px;
-            padding: 1.25rem 1.5rem;
-            border: 1px solid #e9ecef;
-            margin-bottom: 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .detalle-ubicacion .ubicacion-icon {
-            width: 44px;
-            height: 44px;
-            background: rgba(30, 60, 114, 0.08);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .detalle-ubicacion .ubicacion-icon svg {
-            stroke: #1e3c72;
-            width: 22px;
-            height: 22px;
-            fill: none;
-        }
-
-        .detalle-ubicacion .ubicacion-info {
-            flex: 1;
-        }
-
-        .detalle-ubicacion .ubicacion-info .ubicacion-label {
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            color: #94a3b8;
-            letter-spacing: 0.8px;
-            font-weight: 600;
-        }
-
-        .detalle-ubicacion .ubicacion-info .ubicacion-texto {
-            font-weight: 500;
-            color: #0f172a;
-            font-size: 0.95rem;
-        }
-
-        /* ========== 🆕 ESTILOS PARA EL MODAL DE APROBACIÓN ========== */
-        #aprobarFechaAdvertencia {
-            font-size: 0.85rem;
-            padding: 4px 8px;
-            border-radius: 6px;
-            background: #fff5f5;
-            border: 1px solid #f8d7da;
-        }
-
-        #aprobarAlertaFecha {
-            font-size: 0.9rem;
-            border-radius: 8px;
-        }
-
-        #aprobarAlertaFecha svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        .aprobar-info-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 0.75rem;
-        }
-        .aprobar-info-item {
-            padding: 0.4rem 0.6rem;
-            background: #f8f9fc;
-            border-radius: 6px;
-            border: 1px solid #e9ecef;
-        }
-        .aprobar-info-item .label {
-            font-size: 0.6rem;
-            text-transform: uppercase;
-            color: #6c757d;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-        }
-        .aprobar-info-item .value {
-            font-weight: 500;
-            color: #0f172a;
-            font-size: 0.85rem;
-            margin-top: 2px;
-        }
-
-        @media (max-width: 768px) {
-            .aprobar-info-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        /* Responsive */
-        @media (max-width: 992px) {
-            .detalle-grid-moderno {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .detalle-header-card {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .detalle-header-card .header-left {
-                flex-wrap: wrap;
-            }
-
-            .detalle-header-card .header-right {
-                width: 100%;
-            }
-
-            .detalle-items-container .table-items {
-                font-size: 0.8rem;
-            }
-
-            .detalle-items-container .table-items thead th,
-            .detalle-items-container .table-items tbody td {
-                padding: 0.5rem 0.75rem;
-            }
-
-            .modal-body {
-                padding: 1rem !important;
-            }
-
-            .detalle-ubicacion {
-                flex-direction: column;
-                align-items: flex-start;
-                text-align: center;
-            }
-
-            .detalle-ubicacion .ubicacion-icon {
-                align-self: center;
-            }
-        }
-
-        @media (max-width: 576px) {
-            .detalle-header-card .header-left .badge-id {
-                font-size: 0.7rem;
-                padding: 0.15rem 0.7rem;
-            }
-
-            .detalle-header-card .header-left .badge-prioridad {
-                font-size: 0.65rem;
-                padding: 0.15rem 0.7rem;
-            }
-
-            .detalle-grid-moderno .detalle-item-moderno {
-                padding: 0.6rem 0.9rem;
-            }
-
-            .detalle-grid-moderno .detalle-item-moderno .detalle-value {
-                font-size: 0.85rem;
-            }
-
-            .detalle-justificacion {
-                padding: 0.9rem 1rem;
-            }
-
-            .detalle-justificacion .justificacion-texto {
-                font-size: 0.85rem;
-            }
-
-            .detalle-observaciones-moderno {
-                padding: 0.9rem 1rem;
-            }
-        }
-    </style>
+    }
+</style>
 @endsection
 
 @section('content')
 <div class="container-fluid px-4">
 
-    <!-- ========== HEADER CON GRADIENTE ========== -->
+    {{-- ============ HEADER ============ --}}
     <div class="page-header">
         <div>
             <h4>
@@ -473,11 +574,11 @@
                 </svg>
                 Solicitudes de Préstamo
             </h4>
-            <p>Gestión de solicitudes de préstamo de equipos y componentes</p>
+            <p>Gestión de solicitudes y bandeja de correos</p>
         </div>
     </div>
 
-    <!-- ========== TARJETAS DE ESTADÍSTICAS ========== -->
+    {{-- ============ STATS ============ --}}
     <div class="stats-row">
         <div class="stat-card-mini">
             <div class="stat-info">
@@ -485,9 +586,7 @@
                 <div class="stat-label">Total</div>
             </div>
             <div class="stat-icon-circle">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <rect x="4" y="4" width="16" height="16" rx="2"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
             </div>
         </div>
         <div class="stat-card-mini">
@@ -496,10 +595,7 @@
                 <div class="stat-label">Pendientes</div>
             </div>
             <div class="stat-icon-circle" style="background: rgba(246, 194, 62, 0.1);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#f6c23e" stroke-width="1.8">
-                    <circle cx="12" cy="12" r="10"/>
-                    <polyline points="12 6 12 12 16 14"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f6c23e" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
             </div>
         </div>
         <div class="stat-card-mini">
@@ -508,9 +604,7 @@
                 <div class="stat-label">Aprobadas</div>
             </div>
             <div class="stat-icon-circle" style="background: rgba(30, 126, 52, 0.1);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#1e7e34" stroke-width="1.8">
-                    <path d="M20 6L9 17l-5-5"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#1e7e34" stroke-width="1.8"><path d="M20 6L9 17l-5-5"/></svg>
             </div>
         </div>
         <div class="stat-card-mini">
@@ -519,147 +613,150 @@
                 <div class="stat-label">Rechazadas</div>
             </div>
             <div class="stat-icon-circle" style="background: rgba(197, 34, 31, 0.1);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#c5221f" stroke-width="1.8">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="18" y1="6" x2="6" y2="18"/>
-                </svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="#c5221f" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="18" y1="6" x2="6" y2="18"/></svg>
             </div>
         </div>
     </div>
 
-    <!-- ========== BARRA DE FILTROS CON SEPARACIÓN ========== -->
-    <div class="filters-bar">
-        <!-- Filtro de búsqueda a la IZQUIERDA -->
-        <div class="filtro-busqueda">
-            <div class="input-group">
-                <span class="input-group-text">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="M21 21l-4.35-4.35"/>
-                    </svg>
-                </span>
-                <input type="text" class="form-control" id="searchInput"
-                       placeholder="Buscar por entidad, justificación..."
-                       value="{{ request('search') }}">
-            </div>
-        </div>
-
-        <!-- Botones a la DERECHA -->
-        <div class="d-flex gap-2 flex-wrap">
-            
-            @if(auth()->user()->hasPermission('crear-solicitud'))
-            <button class="btn btn-primary-dark btn-accion" onclick="abrirModalCrear()" style="color: #fff">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <line x1="12" y1="5" x2="12" y2="19"/>
-                    <line x1="5" y1="12" x2="19" y2="12"/>
+    {{-- ============ TABS ============ --}}
+    <ul class="nav nav-tabs-custom" id="solicitudesTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-solicitudes" data-bs-toggle="tab" data-bs-target="#panel-solicitudes" type="button" role="tab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:6px;">
+                    <rect x="4" y="4" width="16" height="16" rx="2"/>
                 </svg>
-                Nueva Solicitud
+                Solicitudes
             </button>
-            @endif
-        </div>
-    </div>
+        </li>
+        @if(auth()->user()->hasPermission('aprobar-solicitudes'))
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-correos" data-bs-toggle="tab" data-bs-target="#panel-correos" type="button" role="tab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:6px;">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M22 7l-10 7L2 7"/>
+                </svg>
+                Correo de Solicitudes
+                <span class="tab-correos-badge" id="tabCorreosBadge" style="display:none;">0</span>
+            </button>
+        </li>
+        @endif
+    </ul>
 
-    <!-- ========== TABLA ========== -->
-    <div class="table-container">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>Fecha</th>
-                        <th>Entidad</th>
-                        <th>Responsable</th>
-                        <th>Fecha Requerida</th>
-                        <th>Prioridad</th>
-                        <th>Estado</th>
-                        <th class="text-center">Items</th>
-                        <th class="text-end">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaBody">
-                    <tr><td colspan="9" class="text-center py-4 text-muted">Cargando solicitudes...</td></tr>
-                </tbody>
-            </table>
-            <div id="skeletonLoader" style="display: none;">
-                <div class="skeleton-row"></div>
-                <div class="skeleton-row"></div>
-                <div class="skeleton-row"></div>
-                <div class="skeleton-row"></div>
-                <div class="skeleton-row"></div>
-            </div>
-        </div>
-    </div>
+    <div class="tab-content">
 
-    <!-- ========== PAGINACIÓN ========== -->
-    <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
-        <div class="text-muted small">
-            Mostrando <span id="resultadosCount">0</span> de <span id="totalRegistrosCount">0</span>
-        </div>
-        <nav>
-            <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
-        </nav>
-    </div>
-</div>
+        {{-- ============================================ --}}
+        {{-- PANEL 1: SOLICITUDES --}}
+        {{-- ============================================ --}}
+        <div class="tab-pane fade show active" id="panel-solicitudes" role="tabpanel">
 
-<!-- ========== MODAL VER DETALLES - DISEÑO PROFESIONAL ========== -->
-<!-- (MANTENIDO EXACTAMENTE IGUAL) -->
-<div class="modal fade" id="modalDetalles" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content" style="border: none; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.15);">
-            
-            <!-- HEADER CON GRADIENTE -->
-            <div class="modal-header" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); padding: 1.5rem 2rem; border-bottom: none;">
-                <div class="d-flex align-items-center gap-3">
-                    <div style="width: 44px; height: 44px; background: rgba(255,255,255,0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(10px);">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <rect x="2" y="4" width="20" height="16" rx="2"/>
-                            <path d="M22 7l-10 7L2 7"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h5 class="modal-title" style="color: white; font-weight: 700; font-size: 1.2rem; margin: 0;">
-                            Detalle de la Solicitud
-                        </h5>
-                        <span style="color: rgba(255,255,255,0.7); font-size: 0.8rem; display: block; margin-top: 2px;">
-                            Información completa de la solicitud
+            <div class="filters-bar">
+                <div class="filtro-busqueda">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
                         </span>
+                        <input type="text" class="form-control" id="searchInput" placeholder="Buscar solicitud...">
                     </div>
                 </div>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" style="opacity: 0.8; transition: opacity 0.2s;"></button>
-            </div>
-
-            <!-- BODY -->
-            <div class="modal-body" id="modalDetallesBody" style="padding: 2rem; background: #f8fafc; max-height: 80vh; overflow-y: auto;">
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-                        <span class="visually-hidden">Cargando...</span>
-                    </div>
-                    <p class="mt-3 text-muted">Cargando detalles de la solicitud...</p>
+                <div class="d-flex gap-2 flex-wrap">
+                    @if(auth()->user()->hasPermission('crear-solicitud'))
+                    <button class="btn btn-primary-dark btn-accion" onclick="abrirModalCrear()" style="color: #fff">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Nueva Solicitud
+                    </button>
+                    @endif
                 </div>
             </div>
 
-            <!-- FOOTER -->
-            <div class="modal-footer" style="padding: 1.25rem 2rem; background: white; border-top: 1px solid #e9ecef;">
-                <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal" style="padding: 0.5rem 1.5rem; border-radius: 10px; font-weight: 500;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right: 6px;">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Fecha</th>
+                                <th>Entidad</th>
+                                <th>Responsable</th>
+                                <th>Fecha Requerida</th>
+                                <th>Prioridad</th>
+                                <th>Estado</th>
+                                <th class="text-center">Items</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaBody">
+                            <tr><td colspan="9" class="text-center py-4 text-muted">Cargando solicitudes...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                <div class="text-muted small">
+                    Mostrando <span id="resultadosCount">0</span> de <span id="totalRegistrosCount">0</span>
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
+                </nav>
+            </div>
+        </div>
+
+        {{-- ============================================ --}}
+        {{-- PANEL 2: CORREO DE SOLICITUDES --}}
+        {{-- ============================================ --}}
+        @if(auth()->user()->hasPermission('aprobar-solicitudes'))
+        <div class="tab-pane fade" id="panel-correos" role="tabpanel">
+
+            <div class="filters-bar">
+                <div class="input-group" style="max-width: 400px;">
+                    <span class="input-group-text">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </span>
+                    <input type="text" class="form-control" id="buscarCorreo" placeholder="Buscar por remitente, asunto...">
+                </div>
+                <select class="form-select" id="filtroCorreo" style="max-width: 200px;">
+                    <option value="">Todos</option>
+                    <option value="no_leidos">No leídos</option>
+                    <option value="no_procesados">Sin procesar</option>
+                    <option value="procesados">Procesados</option>
+                </select>
+                <button class="btn btn-primary-dark" onclick="revisarCorreos()" id="btnRevisarCorreos">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:4px;">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                     </svg>
-                    Cerrar
+                    Revisar ahora
                 </button>
             </div>
+
+            <div id="listaCorreos" class="p-3" style="background: white; border-radius: 12px;">
+                <div class="text-center py-5 text-muted">
+                    <p>Cargando correos...</p>
+                </div>
+            </div>
         </div>
+        @endif
     </div>
 </div>
 
-<!-- ========== MODAL CREAR ========== -->
-<!-- (MANTENIDO EXACTAMENTE IGUAL) -->
+{{-- ============================================================ --}}
+{{-- MODAL: CREAR SOLICITUD --}}
+{{-- ============================================================ --}}
 <div class="modal fade" id="modalCrear" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:8px;">
                         <rect x="2" y="4" width="20" height="16" rx="2"/>
                         <path d="M22 7l-10 7L2 7"/>
                     </svg>
@@ -682,7 +779,7 @@
                             <label class="form-label">Prioridad <span class="text-danger">*</span></label>
                             <select name="prioridad" class="form-select" required>
                                 <option value="baja">Baja</option>
-                                <option value="normal">Normal</option>
+                                <option value="normal" selected>Normal</option>
                                 <option value="alta">Alta</option>
                                 <option value="urgente">Urgente</option>
                             </select>
@@ -695,14 +792,10 @@
                             <select name="departamento_id" id="departamentoSelect" class="form-select">
                                 <option value="">Seleccionar</option>
                                 @foreach($departamentos ?? [] as $departamento)
-                                    <option value="{{ $departamento->id }}">{{ $departamento->nombre }}</option>
+                                <option value="{{ $departamento->id }}">{{ $departamento->nombre }}</option>
                                 @endforeach
                                 <option value="otro">+ Otro</option>
                             </select>
-                        </div>
-                        <div id="departamento-nuevo-field" class="mb-3" style="display: none;">
-                            <label class="form-label">Nuevo Departamento</label>
-                            <input type="text" name="nuevo_departamento" class="form-control" placeholder="Nombre del departamento">
                         </div>
                     </div>
 
@@ -712,14 +805,10 @@
                             <select name="institucion_id" id="institucionSelect" class="form-select">
                                 <option value="">Seleccionar</option>
                                 @foreach($instituciones ?? [] as $institucion)
-                                    <option value="{{ $institucion->id }}">{{ $institucion->nombre }}</option>
+                                <option value="{{ $institucion->id }}">{{ $institucion->nombre }}</option>
                                 @endforeach
                                 <option value="otro">+ Otra</option>
                             </select>
-                        </div>
-                        <div id="institucion-nuevo-field" class="mb-3" style="display: none;">
-                            <label class="form-label">Nueva Institución</label>
-                            <input type="text" name="nueva_institucion" class="form-control" placeholder="Nombre de la institución">
                         </div>
                     </div>
 
@@ -731,65 +820,25 @@
                         <input type="hidden" name="responsable_id" id="responsable_id_hidden" value="">
                     </div>
 
-                    <!-- ========== UBICACIÓN DEL EVENTO ========== -->
-                    <div class="row mt-3">
-                        <div class="col-md-12">
-                            <h6 style="color:#1e3c72; font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e9ecef; padding-bottom:0.5rem;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                    <circle cx="12" cy="10" r="3"/>
-                                </svg>
-                                Ubicación del Evento
-                            </h6>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Estado</label>
-                            <select name="estado_id" id="solicitud_estado_id" class="form-select">
-                                <option value="">Seleccionar estado...</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Municipio</label>
-                            <select name="municipio_id" id="solicitud_municipio_id" class="form-select" disabled>
-                                <option value="">Seleccionar estado primero</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Parroquia</label>
-                            <select name="parroquia_id" id="solicitud_parroquia_id" class="form-select" disabled>
-                                <option value="">Seleccionar municipio primero</option>
-                            </select>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Lugar del Evento (Dirección específica)</label>
-                            <input type="text" name="lugar_evento" id="solicitud_lugar_evento" class="form-control" placeholder="Ej: Auditorio Principal, Calle 5 con Avenida 3...">
-                        </div>
-                    </div>
-
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Fecha Requerida <span class="text-danger">*</span></label>
-                            <input type="date" name="fecha_requerida" id="fechaRequeridaInput" class="form-control" required>
+                            <input type="date" name="fecha_requerida" class="form-control" required>
                         </div>
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Fecha Fin Estimada <span class="text-danger">*</span></label>
-                            <input type="date" name="fecha_fin_estimada" id="fechaFinEstimadaInput" class="form-control" required>
+                            <input type="date" name="fecha_fin_estimada" class="form-control" required>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Justificación <span class="text-danger">*</span></label>
-                        <textarea name="justificacion" id="justificacionInput" rows="3" class="form-control" required></textarea>
+                        <textarea name="justificacion" rows="3" class="form-control" required minlength="20"></textarea>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label">Observaciones</label>
                         <textarea name="observaciones" rows="2" class="form-control"></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Adjunto (PDF)</label>
-                        <input type="file" name="oficio_adjunto" accept=".pdf,.doc,.docx" class="form-control">
                     </div>
 
                     <div class="mb-3">
@@ -829,156 +878,64 @@
     </div>
 </div>
 
-<!-- ========== MODAL EDITAR ========== -->
-<!-- (MANTENIDO EXACTAMENTE IGUAL) -->
-<div class="modal fade" id="modalEditar" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                    Editar Solicitud
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+{{-- ============================================================ --}}
+{{-- MODAL: VER DETALLES (REDISEÑADO) --}}
+{{-- ============================================================ --}}
+<div class="modal fade" id="modalDetalles" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content detalle-modal">
+
+            {{-- HEADER --}}
+            <div class="detalle-modal-header">
+                <div class="detalle-header-left">
+                    <div class="detalle-icon-circle">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                            <line x1="16" y1="13" x2="8" y2="13"/>
+                            <line x1="16" y1="17" x2="8" y2="17"/>
+                            <polyline points="10 9 9 9 8 9"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h5 class="detalle-header-title">Detalle de la Solicitud</h5>
+                        <p class="detalle-header-subtitle" id="detalleSubtitulo">Cargando información...</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <form id="formEditarSolicitud">
-                @csrf
-                <input type="hidden" name="_method" value="PUT">
-                <input type="hidden" name="id" id="editId">
-                <div class="modal-body">
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Tipo <span class="text-danger">*</span></label>
-                            <select name="tipo_solicitante" id="editTipoSolicitante" class="form-select" required>
-                                <option value="interno">Interno</option>
-                                <option value="externo">Externo</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Prioridad <span class="text-danger">*</span></label>
-                            <select name="prioridad" id="editPrioridad" class="form-select" required>
-                                <option value="baja">Baja</option>
-                                <option value="normal">Normal</option>
-                                <option value="alta">Alta</option>
-                                <option value="urgente">Urgente</option>
-                            </select>
-                        </div>
-                    </div>
 
-                    <div id="editInternoFields">
-                        <div class="mb-3">
-                            <label class="form-label">Departamento</label>
-                            <select name="departamento_id" id="editDepartamentoId" class="form-select">
-                                <option value="">Seleccionar</option>
-                                @foreach($departamentos ?? [] as $departamento)
-                                    <option value="{{ $departamento->id }}">{{ $departamento->nombre }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <div id="editExternoFields" style="display: none;">
-                        <div class="mb-3">
-                            <label class="form-label">Institución</label>
-                            <select name="institucion_id" id="editInstitucionId" class="form-select">
-                                <option value="">Seleccionar</option>
-                                @foreach($instituciones ?? [] as $institucion)
-                                    <option value="{{ $institucion->id }}">{{ $institucion->nombre }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Responsable</label>
-                        <div class="responsable-display" id="editResponsableDisplay"></div>
-                        <input type="hidden" name="responsable_id" id="edit_responsable_id_hidden" value="">
-                    </div>
-
-                    <!-- ========== UBICACIÓN DEL EVENTO (EDITAR) ========== -->
-                    <div class="row mt-3">
-                        <div class="col-md-12">
-                            <h6 style="color:#1e3c72; font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e9ecef; padding-bottom:0.5rem;">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
-                                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
-                                    <circle cx="12" cy="10" r="3"/>
-                                </svg>
-                                Ubicación del Evento
-                            </h6>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Estado</label>
-                            <select name="estado_id" id="edit_solicitud_estado_id" class="form-select">
-                                <option value="">Seleccionar estado...</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Municipio</label>
-                            <select name="municipio_id" id="edit_solicitud_municipio_id" class="form-select" disabled>
-                                <option value="">Seleccionar estado primero</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label">Parroquia</label>
-                            <select name="parroquia_id" id="edit_solicitud_parroquia_id" class="form-select" disabled>
-                                <option value="">Seleccionar municipio primero</option>
-                            </select>
-                        </div>
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Lugar del Evento (Dirección específica)</label>
-                            <input type="text" name="lugar_evento" id="edit_solicitud_lugar_evento" class="form-control" placeholder="Ej: Auditorio Principal, Calle 5 con Avenida 3...">
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Fecha Requerida <span class="text-danger">*</span></label>
-                            <input type="date" name="fecha_requerida" id="editFechaRequerida" class="form-control" required>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Fecha Fin <span class="text-danger">*</span></label>
-                            <input type="date" name="fecha_fin_estimada" id="editFechaFin" class="form-control" required>
-                        </div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Justificación <span class="text-danger">*</span></label>
-                        <textarea name="justificacion" id="editJustificacion" rows="3" class="form-control" required></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label">Observaciones</label>
-                        <textarea name="observaciones" id="editObservaciones" rows="2" class="form-control"></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <label class="form-label mb-0">Items <span class="text-danger">*</span></label>
-                            <button type="button" id="add-item-editar" class="btn btn-sm btn-outline-primary-dark">+ Agregar</button>
-                        </div>
-                        <div id="items-container-editar"></div>
-                    </div>
+            {{-- BODY --}}
+            <div class="modal-body detalle-modal-body" id="modalDetallesBody">
+                <div class="detalle-loading">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-3 text-muted">Cargando detalles de la solicitud...</p>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary-dark">Actualizar Solicitud</button>
-                </div>
-            </form>
+            </div>
+
+            {{-- FOOTER --}}
+            <div class="detalle-modal-footer">
+                <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:6px;">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                    Cerrar
+                </button>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- ========== 🆕 MODAL APROBAR SOLICITUD CON FECHAS ========== -->
-<!-- ESTE ES EL NUEVO MODAL QUE SE AGREGA -->
+{{-- ============================================================ --}}
+{{-- MODAL: APROBAR SOLICITUD --}}
+{{-- ============================================================ --}}
 <div class="modal fade" id="modalAprobarSolicitud" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header bg-success">
-                <h5 class="modal-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                <h5 class="modal-title text-white">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:8px;">
                         <polyline points="20 6 9 17 4 12"/>
                     </svg>
                     Aprobar Solicitud
@@ -989,36 +946,31 @@
                 @csrf
                 <input type="hidden" name="id" id="aprobarSolicitudId">
                 <div class="modal-body">
-                    <!-- Información de la solicitud -->
-                    <div class="alert alert-info" id="aprobarInfoSolicitud">
-                        <div class="aprobar-info-grid">
-                            <div class="aprobar-info-item">
-                                <div class="label">Solicitud</div>
-                                <div class="value" id="aprobarCodigo">---</div>
+                    <div class="alert alert-info">
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <small class="text-muted">Solicitud</small>
+                                <div class="fw-bold" id="aprobarCodigo">---</div>
                             </div>
-                            <div class="aprobar-info-item">
-                                <div class="label">Prioridad</div>
-                                <div class="value" id="aprobarPrioridad">---</div>
+                            <div class="col-md-4">
+                                <small class="text-muted">Prioridad</small>
+                                <div class="fw-bold" id="aprobarPrioridad">---</div>
                             </div>
-                            <div class="aprobar-info-item">
-                                <div class="label">Solicitante</div>
-                                <div class="value" id="aprobarSolicitante">---</div>
+                            <div class="col-md-4">
+                                <small class="text-muted">Solicitante</small>
+                                <div class="fw-bold" id="aprobarSolicitante">---</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Fechas -->
+                    <div id="aprobarAlertaStock" class="alert alert-danger" style="display:none;"></div>
+
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Fecha Requerida <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" id="aprobarFechaRequerida" name="fecha_requerida" required>
                             <div id="aprobarFechaAdvertencia" class="text-danger small mt-1" style="display:none;">
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:4px;">
-                                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                    <line x1="12" y1="9" x2="12" y2="13"/>
-                                    <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                </svg>
-                                Esta fecha ya pasó. Considere actualizarla.
+                                ⚠️ Esta fecha ya pasó.
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -1027,25 +979,15 @@
                         </div>
                     </div>
 
-                    <!-- Observaciones -->
                     <div class="mb-3">
                         <label class="form-label">Observaciones de aprobación</label>
                         <textarea class="form-control" id="aprobarObservaciones" name="observaciones" rows="3" placeholder="Observaciones adicionales..."></textarea>
-                    </div>
-
-                    <!-- Advertencia de fechas pasadas -->
-                    <div class="alert alert-warning" id="aprobarAlertaFecha" style="display:none;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" style="display:inline;vertical-align:middle;margin-right:6px;">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M12 16v-4M12 8h.01"/>
-                        </svg>
-                        <span id="aprobarAlertaTexto">La fecha requerida ya pasó. Se recomienda actualizarla.</span>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
                     <button type="submit" class="btn btn-success" id="btnAprobarSolicitud">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline;margin-right:4px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:4px;">
                             <polyline points="20 6 9 17 4 12"/>
                         </svg>
                         Aprobar Solicitud
@@ -1056,8 +998,115 @@
     </div>
 </div>
 
-<!-- ========== MODAL CANCELAR ========== -->
-<!-- (MANTENIDO EXACTAMENTE IGUAL) -->
+{{-- ============================================================ --}}
+{{-- MODAL: EDITAR SOLICITUD --}}
+{{-- ============================================================ --}}
+<div class="modal fade" id="modalEditarSolicitud" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);">
+                <h5 class="modal-title text-white">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:8px;">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Editar Solicitud
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formEditarSolicitud">
+                @csrf
+                <input type="hidden" name="id" id="editarSolicitudId">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Prioridad <span class="text-danger">*</span></label>
+                            <select name="prioridad" id="editarPrioridad" class="form-select" required>
+                                <option value="baja">Baja</option>
+                                <option value="normal">Normal</option>
+                                <option value="alta">Alta</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Estado</label>
+                            <select name="estado_solicitud" id="editarEstado" class="form-select">
+                                <option value="pendiente">Pendiente</option>
+                                <option value="aprobada">Aprobada</option>
+                                <option value="rechazada">Rechazada</option>
+                                <option value="cancelada">Cancelada</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha Requerida <span class="text-danger">*</span></label>
+                            <input type="date" name="fecha_requerida" id="editarFechaRequerida" class="form-control" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Fecha Fin Estimada <span class="text-danger">*</span></label>
+                            <input type="date" name="fecha_fin_estimada" id="editarFechaFin" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Justificación <span class="text-danger">*</span></label>
+                        <textarea name="justificacion" id="editarJustificacion" rows="3" class="form-control" required minlength="20"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Observaciones</label>
+                        <textarea name="observaciones" id="editarObservaciones" rows="2" class="form-control"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary-dark" id="btnGuardarEdicion">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:4px;">
+                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                            <polyline points="17 21 17 13 7 13 7 21"/>
+                        </svg>
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{{-- ============================================================ --}}
+{{-- MODAL: ERROR DE STOCK --}}
+{{-- ============================================================ --}}
+<div class="modal fade" id="modalStockError" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:8px;">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    Stock Insuficiente
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="fw-bold text-danger">No se puede aprobar la solicitud porque no hay stock suficiente.</p>
+                <p class="text-muted small">La solicitud será rechazada automáticamente y se notificará al usuario.</p>
+                <div class="lista-faltantes" id="listaFaltantes"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Entendido</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ============================================================ --}}
+{{-- MODAL: CANCELAR SOLICITUD --}}
+{{-- ============================================================ --}}
 <div class="modal fade" id="modalConfirmacionCancelar" tabindex="-1">
     <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content">
@@ -1077,8 +1126,9 @@
     </div>
 </div>
 
-<!-- ========== MODAL ELIMINAR ========== -->
-<!-- (MANTENIDO EXACTAMENTE IGUAL) -->
+{{-- ============================================================ --}}
+{{-- MODAL: ELIMINAR SOLICITUD --}}
+{{-- ============================================================ --}}
 <div class="modal fade" id="modalEliminarSolicitud" tabindex="-1">
     <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content">
@@ -1098,189 +1148,192 @@
     </div>
 </div>
 
-<!-- ========== NOTIFICACIONES ========== -->
+{{-- ============================================================ --}}
+{{-- MODAL: CORREO + WIZARD DE CONVERSIÓN --}}
+{{-- ============================================================ --}}
+<div class="modal fade" id="modalCorreo" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content" style="border: none; border-radius: 20px; overflow: hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white;">
+                <h5 class="modal-title text-white">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:8px;">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="M22 7l-10 7L2 7"/>
+                    </svg>
+                    Correo Recibido
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding: 2rem; max-height: 80vh; overflow-y: auto;">
+
+                <div id="infoCorreo" class="mb-4">
+                    <div class="alert alert-info">
+                        <div class="row g-2">
+                            <div class="col-md-6"><strong>De:</strong> <span id="correoFrom"></span></div>
+                            <div class="col-md-6"><strong>Fecha:</strong> <span id="correoFecha"></span></div>
+                            <div class="col-12 mt-2"><strong>Asunto:</strong> <span id="correoAsunto"></span></div>
+                        </div>
+                    </div>
+                    <div class="p-3 bg-light rounded" style="white-space: pre-wrap; max-height: 200px; overflow-y: auto;" id="correoCuerpo"></div>
+                </div>
+
+                <div id="botonIniciarWizard" class="text-center py-3"></div>
+
+                {{-- WIZARD --}}
+                <div id="wizardContainer" style="display: none;">
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between">
+                            <span><span class="step-circle active" id="step1Circle">1</span> Entidad</span>
+                            <span><span class="step-circle" id="step2Circle">2</span> Fechas y Datos</span>
+                            <span><span class="step-circle" id="step3Circle">3</span> Items</span>
+                        </div>
+                        <div class="progress mt-3" style="height: 4px;">
+                            <div class="progress-bar" id="wizardProgress" style="width: 33%; background: linear-gradient(90deg, #1e3c72, #2a5298);"></div>
+                        </div>
+                    </div>
+
+                    <form id="formWizard">
+                        @csrf
+                        <input type="hidden" id="wizardCorreoId">
+
+                        {{-- PASO 1 --}}
+                        <div class="wizard-step active" id="step1">
+                            <h6 class="fw-bold mb-3" style="color: #1e3c72;">Paso 1: Entidad Solicitante</h6>
+
+                            <div class="mb-3">
+                                <label class="form-label">Tipo Solicitante <span class="text-danger">*</span></label>
+                                <select name="tipo_solicitante" id="wzTipoSolicitante" class="form-select" required>
+                                    <option value="interno">Interno (Departamento)</option>
+                                    <option value="externo">Externo (Institución)</option>
+                                </select>
+                            </div>
+
+                            <div id="wzInternoFields">
+                                <div class="mb-3">
+                                    <label class="form-label">Departamento <span class="text-danger">*</span></label>
+                                    <select name="departamento_id" id="wzDepartamento" class="form-select">
+                                        <option value="">Seleccionar departamento...</option>
+                                        @foreach($departamentos ?? [] as $depto)
+                                            <option value="{{ $depto->id }}">{{ $depto->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div id="wzExternoFields" style="display:none;">
+                                <div class="mb-3">
+                                    <label class="form-label">Institución <span class="text-danger">*</span></label>
+                                    <select name="institucion_id" id="wzInstitucion" class="form-select">
+                                        <option value="">Seleccionar institución...</option>
+                                        @foreach($instituciones ?? [] as $inst)
+                                            <option value="{{ $inst->id }}">{{ $inst->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Responsable <span class="text-danger">*</span></label>
+                                <select name="responsable_id" id="wzResponsable" class="form-select" required>
+                                    <option value="">Seleccionar responsable...</option>
+                                    @foreach($responsables ?? [] as $resp)
+                                        <option value="{{ $resp->id }}">{{ $resp->nombre }} - {{ $resp->cargo }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="text-end mt-4">
+                                <button type="button" class="btn btn-primary-dark" onclick="irPaso(2)">Siguiente →</button>
+                            </div>
+                        </div>
+
+                        {{-- PASO 2 --}}
+                        <div class="wizard-step" id="step2">
+                            <h6 class="fw-bold mb-3" style="color: #1e3c72;">Paso 2: Fechas y Justificación</h6>
+
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Fecha Requerida <span class="text-danger">*</span></label>
+                                    <input type="date" name="fecha_requerida" id="wzFechaRequerida" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Fecha Fin Estimada <span class="text-danger">*</span></label>
+                                    <input type="date" name="fecha_fin_estimada" id="wzFechaFin" class="form-control" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Prioridad <span class="text-danger">*</span></label>
+                                <select name="prioridad" id="wzPrioridad" class="form-select" required>
+                                    <option value="baja">Baja</option>
+                                    <option value="normal">Normal</option>
+                                    <option value="alta">Alta</option>
+                                    <option value="urgente">Urgente</option>
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Justificación <span class="text-danger">*</span></label>
+                                <textarea name="justificacion" id="wzJustificacion" rows="4" class="form-control" required minlength="20"></textarea>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Observaciones</label>
+                                <textarea name="observaciones" id="wzObservaciones" rows="2" class="form-control"></textarea>
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-primary-dark" onclick="irPaso(1)">← Anterior</button>
+                                <button type="button" class="btn btn-primary-dark" onclick="irPaso(3)">Siguiente →</button>
+                            </div>
+                        </div>
+
+                        {{-- PASO 3 --}}
+                        <div class="wizard-step" id="step3">
+                            <h6 class="fw-bold mb-3" style="color: #1e3c72;">Paso 3: Items Solicitados</h6>
+                            <div class="d-flex justify-content-between mb-3">
+                                <p class="text-muted small mb-0">Items detectados automáticamente. Puede editarlos.</p>
+                                <button type="button" class="btn btn-sm btn-outline-primary-dark" onclick="agregarItemWizard()">+ Agregar Item</button>
+                            </div>
+                            <div id="wzItemsContainer"></div>
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-primary-dark" onclick="irPaso(2)">← Anterior</button>
+                                <button type="submit" class="btn btn-success" id="btnGuardarWizard">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:6px;">
+                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                        <polyline points="17 21 17 13 7 13 7 21"/>
+                                    </svg>
+                                    Crear Solicitud
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- Notificaciones --}}
 <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; width: 320px;"></div>
 
 @endsection
 
 @section('scripts')
-    @vite(['resources/js/admin-solicitudes.js'])
-    <script>
-        window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
-        function authUserHasPermission(p) { return window.userPermissions.includes(p); }
-        window.departamentos = @json($departamentos ?? []);
-        window.instituciones = @json($instituciones ?? []);
-
-        // ============================================================
-        // 🆕 FUNCIONES PARA EL MODAL DE APROBACIÓN CON FECHAS
-        // ============================================================
-        
-        function verificarFechaPasada(fecha) {
-            const hoy = new Date();
-            hoy.setHours(0, 0, 0, 0);
-            const fechaSeleccionada = new Date(fecha + 'T00:00:00');
-            
-            const advertencia = document.getElementById('aprobarFechaAdvertencia');
-            const alertaFecha = document.getElementById('aprobarAlertaFecha');
-            const alertaTexto = document.getElementById('aprobarAlertaTexto');
-            
-            if (fechaSeleccionada < hoy) {
-                if (advertencia) advertencia.style.display = 'block';
-                if (alertaFecha) alertaFecha.style.display = 'block';
-                if (alertaTexto) alertaTexto.textContent = 'La fecha requerida ya pasó. Se recomienda actualizarla.';
-            } else {
-                if (advertencia) advertencia.style.display = 'none';
-                if (alertaFecha) alertaFecha.style.display = 'none';
-            }
-        }
-
-        window.abrirModalAprobarSolicitud = function(id) {
-            // Resetear el formulario
-            const form = document.getElementById('formAprobarSolicitud');
-            if (form) form.reset();
-            
-            document.getElementById('aprobarObservaciones').value = '';
-            document.getElementById('aprobarFechaAdvertencia').style.display = 'none';
-            document.getElementById('aprobarAlertaFecha').style.display = 'none';
-            
-            // Cargar datos de la solicitud
-            fetch(`/admin/solicitudes/${id}/detalles`, {
-                headers: { Accept: 'application/json' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success || data.id) {
-                    const d = data;
-                    
-                    // Mostrar información
-                    document.getElementById('aprobarCodigo').textContent = d.codigo || '#' + d.id;
-                    document.getElementById('aprobarPrioridad').textContent = d.prioridad || 'Normal';
-                    document.getElementById('aprobarSolicitante').textContent = d.usuario?.trabajador?.nombre || d.usuario?.usuario || 'No especificado';
-                    
-                    // Cargar fechas actuales
-                    if (d.fecha_requerida) {
-                        const fechaRequerida = new Date(d.fecha_requerida);
-                        const fechaFormateada = fechaRequerida.toISOString().split('T')[0];
-                        document.getElementById('aprobarFechaRequerida').value = fechaFormateada;
-                        verificarFechaPasada(fechaFormateada);
-                    }
-                    
-                    if (d.fecha_fin_estimada) {
-                        const fechaFin = new Date(d.fecha_fin_estimada);
-                        document.getElementById('aprobarFechaFin').value = fechaFin.toISOString().split('T')[0];
-                    }
-                    
-                    // Guardar el ID en el campo oculto
-                    document.getElementById('aprobarSolicitudId').value = d.id;
-                    
-                    // Mostrar el modal
-                    const modal = new bootstrap.Modal(document.getElementById('modalAprobarSolicitud'));
-                    modal.show();
-                }
-            })
-            .catch(error => {
-                console.error('Error al cargar solicitud:', error);
-                if (typeof mostrarNotificacion === 'function') {
-                    mostrarNotificacion('error', 'Error al cargar los datos de la solicitud');
-                }
-            });
-        };
-
-        // Eventos para validación de fechas
-        document.addEventListener('DOMContentLoaded', function() {
-            const fechaRequeridaInput = document.getElementById('aprobarFechaRequerida');
-            if (fechaRequeridaInput) {
-                fechaRequeridaInput.addEventListener('change', function() {
-                    verificarFechaPasada(this.value);
-                });
-            }
-            
-            const fechaFinInput = document.getElementById('aprobarFechaFin');
-            if (fechaFinInput) {
-                fechaFinInput.addEventListener('change', function() {
-                    const fechaRequerida = document.getElementById('aprobarFechaRequerida').value;
-                    if (fechaRequerida && this.value < fechaRequerida) {
-                        this.setCustomValidity('La fecha fin debe ser igual o posterior a la fecha requerida');
-                    } else {
-                        this.setCustomValidity('');
-                    }
-                });
-            }
-        });
-
-        // Envío del formulario de aprobación
-        document.getElementById('formAprobarSolicitud')?.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const id = document.getElementById('aprobarSolicitudId').value;
-            if (!id) {
-                if (typeof mostrarNotificacion === 'function') {
-                    mostrarNotificacion('error', 'Error: No se encontró el ID de la solicitud');
-                }
-                return;
-            }
-            
-            const submitBtn = document.getElementById('btnAprobarSolicitud');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Procesando...';
-            submitBtn.disabled = true;
-            
-            const formData = new FormData(this);
-            
-            fetch(`/admin/solicitudes/${id}/approve`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
-                    'Accept': 'application/json'
-                },
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const modal = bootstrap.Modal.getInstance(document.getElementById('modalAprobarSolicitud'));
-                    if (modal) modal.hide();
-                    
-                    let mensaje = data.message || 'Solicitud aprobada exitosamente';
-                    if (data.fecha_pasada) {
-                        mensaje += ' ⚠️ La fecha requerida ya pasó. Se recomienda coordinar con el departamento de informática.';
-                    }
-                    if (typeof mostrarNotificacion === 'function') {
-                        mostrarNotificacion('success', mensaje);
-                    }
-                    
-                    // Recargar la tabla
-                    if (typeof cargarPagina === 'function') {
-                        cargarPagina(currentPage || 1);
-                    } else {
-                        location.reload();
-                    }
-                } else {
-                    if (data.errors) {
-                        let errorMsg = 'Errores de validación:\n';
-                        for (const [campo, errores] of Object.entries(data.errors)) {
-                            errorMsg += `- ${campo}: ${errores.join(', ')}\n`;
-                        }
-                        if (typeof mostrarNotificacion === 'function') {
-                            mostrarNotificacion('error', errorMsg);
-                        }
-                    } else {
-                        if (typeof mostrarNotificacion === 'function') {
-                            mostrarNotificacion('error', data.message || 'Error al aprobar la solicitud');
-                        }
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                if (typeof mostrarNotificacion === 'function') {
-                    mostrarNotificacion('error', 'Error de conexión al servidor');
-                }
-            })
-            .finally(() => {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            });
-        });
-    </script>
+<script>
+    // ============================================================
+    // PERMISOS Y DATOS INICIALES (deben definirse ANTES del JS externo)
+    // ============================================================
+    window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
+    window.authUserHasPermission = function(p) {
+        return window.userPermissions.includes(p);
+    };
+    window.departamentos = @json($departamentos ?? []);
+    window.instituciones = @json($instituciones ?? []);
+    window.responsables = @json($responsables ?? []);
+</script>
+@vite(['resources/js/admin-solicitudes.js'])
 @endsection

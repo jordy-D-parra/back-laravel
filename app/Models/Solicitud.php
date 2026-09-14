@@ -1,11 +1,10 @@
 <?php
-// app/Models/Solicitud.php
 
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany; // ✅ Agregar esta línea
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Solicitud extends Model
 {
@@ -31,6 +30,7 @@ class Solicitud extends Model
         'observaciones',
         'aprobado_por',
         'fecha_aprobacion',
+        'leida_por_admin',
     ];
 
     protected $casts = [
@@ -38,9 +38,11 @@ class Solicitud extends Model
         'fecha_requerida' => 'date',
         'fecha_fin_estimada' => 'date',
         'fecha_aprobacion' => 'datetime',
+        'leida_por_admin' => 'boolean',
     ];
 
-    // Relaciones de geolocalización
+    // ============ RELACIONES ============
+
     public function estado(): BelongsTo
     {
         return $this->belongsTo(Estado::class);
@@ -56,28 +58,6 @@ class Solicitud extends Model
         return $this->belongsTo(Parroquia::class);
     }
 
-    // Accesor para ubicación del evento
-    public function getUbicacionEventoAttribute(): string
-    {
-        $partes = [];
-
-        if ($this->lugar_evento) {
-            $partes[] = $this->lugar_evento;
-        }
-        if ($this->parroquia) {
-            $partes[] = $this->parroquia->nombre;
-        }
-        if ($this->municipio) {
-            $partes[] = $this->municipio->nombre;
-        }
-        if ($this->estado) {
-            $partes[] = $this->estado->nombre;
-        }
-
-        return implode(', ', $partes) ?: 'No especificada';
-    }
-
-    // Relaciones existentes
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(Usuario::class, 'usuario_id');
@@ -106,5 +86,50 @@ class Solicitud extends Model
     public function prestamos(): HasMany
     {
         return $this->hasMany(Prestamo::class, 'solicitud_id');
+    }
+
+    // ============ ACCESORES ============
+
+    public function getUbicacionEventoAttribute(): string
+    {
+        $partes = [];
+
+        if ($this->lugar_evento) {
+            $partes[] = $this->lugar_evento;
+        }
+        if ($this->parroquia) {
+            $partes[] = $this->parroquia->nombre;
+        }
+        if ($this->municipio) {
+            $partes[] = $this->municipio->nombre;
+        }
+        if ($this->estado) {
+            $partes[] = $this->estado->nombre;
+        }
+
+        return implode(', ', $partes) ?: 'No especificada';
+    }
+
+    public function getNombreEntidadAttribute(): string
+    {
+        if ($this->tipo_solicitante === 'interno' && $this->departamento) {
+            return $this->departamento->nombre;
+        }
+        if ($this->tipo_solicitante === 'externo' && $this->institucion) {
+            return $this->institucion->nombre;
+        }
+        return 'No especificado';
+    }
+
+    // ============ SCOPES ============
+
+    public function scopeNoLeidasPorAdmin($query)
+    {
+        return $query->where('leida_por_admin', false);
+    }
+
+    public function scopePendientes($query)
+    {
+        return $query->where('estado_solicitud', 'pendiente');
     }
 }
