@@ -11,7 +11,9 @@ use Illuminate\Support\Facades\Log;
 class NotificacionService
 {
     /**
-     * Enviar notificación a un usuario del sistema
+     * Enviar notificación a un usuario del sistema.
+     * ✅ SIN LÍMITE DE TIEMPO: cada llamada crea una nueva notificación
+     * y envía un nuevo correo, sin importar cuántas veces se repita.
      */
     public function enviarAUsuario(
         Usuario $usuario,
@@ -21,15 +23,7 @@ class NotificacionService
         ?string $url = null,
         bool $enviarCorreo = true
     ): Notificacion {
-        $notificacionExistente = Notificacion::where('usuario_id', $usuario->id)
-            ->where('titulo', $titulo)
-            ->where('mensaje', $mensaje)
-            ->where('fecha_envio', '>=', now()->subMinutes(5))
-            ->first();
-
-        if ($notificacionExistente) {
-            return $notificacionExistente;
-        }
+        // ✅ Se eliminó por completo la validación de duplicados (5 minutos)
 
         $notificacion = Notificacion::create([
             'usuario_id' => $usuario->id,
@@ -54,7 +48,9 @@ class NotificacionService
     }
 
     /**
-     * Enviar notificación a un responsable EXTERNO (no usuario del sistema)
+     * Enviar notificación a un responsable EXTERNO (no usuario del sistema).
+     * ✅ SIN LÍMITE DE TIEMPO: cada llamada crea una nueva notificación
+     * y envía un nuevo correo, sin importar cuántas veces se repita.
      */
     public function enviarAResponsable(
         string $email,
@@ -65,15 +61,7 @@ class NotificacionService
         ?string $url = null
     ): ?Notificacion {
         try {
-            $notificacionExistente = Notificacion::whereNull('usuario_id')
-                ->where('titulo', $titulo)
-                ->where('mensaje', $mensaje)
-                ->where('fecha_envio', '>=', now()->subMinutes(5))
-                ->first();
-
-            if ($notificacionExistente) {
-                return $notificacionExistente;
-            }
+            // ✅ Se eliminó por completo la validación de duplicados (5 minutos)
 
             $notificacion = Notificacion::create([
                 'usuario_id' => null,
@@ -104,7 +92,7 @@ class NotificacionService
     }
 
     /**
-     * Enviar notificación a múltiples usuarios
+     * Enviar notificación a múltiples usuarios.
      */
     public function enviarAMultiples(
         array $usuarioIds,
@@ -132,7 +120,7 @@ class NotificacionService
     }
 
     /**
-     * Enviar notificación a todos los usuarios con un rol específico
+     * Enviar notificación a todos los usuarios con un rol específico.
      */
     public function enviarARol(
         string $rolNombre,
@@ -157,7 +145,7 @@ class NotificacionService
     }
 
     /**
-     * Obtener notificaciones no leídas de un usuario
+     * Obtener notificaciones no leídas de un usuario.
      */
     public function getNoLeidas(Usuario $usuario): \Illuminate\Database\Eloquent\Collection
     {
@@ -168,7 +156,7 @@ class NotificacionService
     }
 
     /**
-     * Contar notificaciones no leídas de un usuario
+     * Contar notificaciones no leídas de un usuario.
      */
     public function countNoLeidas(Usuario $usuario): int
     {
@@ -178,7 +166,7 @@ class NotificacionService
     }
 
     /**
-     * Marcar notificación como leída
+     * Marcar notificación como leída.
      */
     public function marcarComoLeida(int $notificacionId, Usuario $usuario): bool
     {
@@ -194,7 +182,7 @@ class NotificacionService
     }
 
     /**
-     * Marcar todas las notificaciones de un usuario como leídas
+     * Marcar todas las notificaciones de un usuario como leídas.
      */
     public function marcarTodasComoLeidas(Usuario $usuario): int
     {

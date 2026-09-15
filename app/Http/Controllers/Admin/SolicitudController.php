@@ -55,7 +55,6 @@ class SolicitudController extends Controller
             'parroquia'
         ]);
 
-        // Si NO es admin, solo ve sus propias solicitudes
         if (!$user->hasPermission('aprobar-solicitudes')) {
             $query->where('usuario_id', $user->id);
         }
@@ -304,7 +303,6 @@ class SolicitudController extends Controller
 
             $userId = (int) auth()->user()->id;
 
-            // ✅ Validación FUERA de la transacción
             $validated = $request->validate([
                 'tipo_solicitante' => 'required|in:interno,externo',
                 'fecha_requerida' => 'required|date|after_or_equal:today',
@@ -341,7 +339,6 @@ class SolicitudController extends Controller
                 throw new \Exception('Responsable no encontrado');
             }
 
-            // ✅ DB::transaction() con closure maneja commit/rollback automáticamente
             $solicitud = DB::transaction(function () use ($request, $userId, $institucionId, $departamentoId) {
                 $nuevaSolicitud = Solicitud::create([
                     'usuario_id' => $userId,
@@ -379,6 +376,8 @@ class SolicitudController extends Controller
                 return $nuevaSolicitud;
             });
 
+            $solicitud->load(['usuario.trabajador', 'responsable', 'departamento', 'institucion', 'detalles']);
+
             try {
                 $this->enviarNotificacionesSolicitud($solicitud);
             } catch (\Exception $e) {
@@ -402,9 +401,7 @@ class SolicitudController extends Controller
                 'solicitud_id' => $solicitud->id,
                 'data' => $solicitudCreada
             ]);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // ⚠️ NO DB::rollBack() aquí: la validación ocurre ANTES de cualquier transacción
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',
@@ -420,11 +417,12 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // NOTIFICACIONES DE SOLICITUD
+    // NOTIFICACIONES DE SOLICITUD (AL CREAR)
+    // ✅ CONDICIÓN 1: SOLO se notifica al RESPONSABLE con el mensaje
+    //    de "en proceso de aprobación". NO se notifica al creador.
     // ============================================================
     protected function enviarNotificacionesSolicitud(Solicitud $solicitud): void
     {
-        $usuarioCreador = $solicitud->usuario;
         $responsable = $solicitud->responsable;
 
         $entidadNombre = $solicitud->tipo_solicitante === 'interno'
@@ -440,28 +438,13 @@ class SolicitudController extends Controller
             ?? $solicitud->usuario?->usuario
             ?? 'Usuario del sistema';
 
-        // 1. NOTIFICAR AL CREADOR
-        if ($usuarioCreador && $usuarioCreador->email) {
-            $this->notificacionService->enviarAUsuario(
-                $usuarioCreador,
-                '📝 Solicitud creada exitosamente',
-                "Tu solicitud #{$solicitud->id} ha sido creada y está pendiente de revisión.\n\n" .
-                "📌 Solicitud: #{$solicitud->id}\n" .
-                "🔴 Prioridad: " . ucfirst($solicitud->prioridad) . "\n" .
-                "📅 Fecha requerida: " . ($solicitud->fecha_requerida ? $solicitud->fecha_requerida->format('d/m/Y') : 'No especificada') . "\n" .
-                "📅 Fecha fin estimada: " . ($solicitud->fecha_fin_estimada ? $solicitud->fecha_fin_estimada->format('d/m/Y') : 'No especificada') . "\n\n" .
-                "📝 Justificación:\n" . substr($solicitud->justificacion, 0, 300) . (strlen($solicitud->justificacion) > 300 ? '...' : '') . "\n\n" .
-                "El administrador revisará tu solicitud pronto. Recibirás una notificación cuando sea aprobada o rechazada.",
-                'solicitud',
-                route('admin.solicitudes.index')
-            );
-        }
-
-        // 2. NOTIFICAR AL RESPONSABLE
+        // ✅ 1. NOTIFICAR AL RESPONSABLE (con el mensaje de "en proceso de aprobación")
         if ($responsable && $responsable->email) {
             $mensajeResponsable =
-                "Se ha creado una nueva solicitud de préstamo en la que eres responsable.\n\n" .
-                "📌 Solicitud #{$solicitud->id}\n" .
+                "Hola, la solicitud #{$solicitud->id} ha sido recibida y está en proceso de aprobación.\n\n" .
+                "Por favor, espera un momento mientras nuestro equipo la revisa. " .
+                "Te notificaremos tan pronto como haya una respuesta.\n\n" .
+                "📌 Detalles de la solicitud:\n" .
                 "👤 Solicitante: {$solicitanteNombre}\n" .
                 "🏢 Entidad: {$entidadNombre}\n" .
                 "🔴 Prioridad: " . ucfirst($solicitud->prioridad) . "\n" .
@@ -470,23 +453,21 @@ class SolicitudController extends Controller
                 "📍 Lugar del evento: " . ($solicitud->lugar_evento ?? 'No especificado') . "\n\n" .
                 "📦 Items solicitados:\n" . $itemsLista . "\n" .
                 "📝 Justificación:\n" . substr($solicitud->justificacion, 0, 200) . (strlen($solicitud->justificacion) > 200 ? '...' : '') . "\n\n" .
-                "Como responsable de la entidad, debes estar informado sobre esta solicitud.\n" .
-                "El administrador del sistema revisará y aprobará la solicitud próximamente.";
+                "Gracias por tu paciencia.";
 
             $this->notificacionService->enviarAResponsable(
                 $responsable->email,
                 $responsable->nombre,
-                '📋 Nueva solicitud de préstamo - Responsable',
+                '⏳ Solicitud en Proceso de Aprobación',
                 $mensajeResponsable,
-                'solicitud',
-                route('admin.solicitudes.index')
+                'solicitud'
             );
         }
 
-        // 3. NOTIFICAR A ADMINISTRADORES
+        // ✅ 2. NOTIFICAR A ADMINISTRADORES (para que aprueben/rechacen)
         $administradores = Usuario::whereHas('rol', function ($query) {
             $query->where('nombre', 'admin');
-        })->where('status', 'activo')->get();
+        })->where('status', 'activo')->with('trabajador')->get();
 
         $responsableNombre = $responsable?->nombre ?? 'No especificado';
         $responsableEmail = $responsable?->email ?? 'No registrado';
@@ -531,7 +512,6 @@ class SolicitudController extends Controller
                 return response()->json(['success' => false, 'message' => 'Solo se pueden editar solicitudes pendientes'], 422);
             }
 
-            // ✅ Validación FUERA de la transacción
             $validated = $request->validate([
                 'tipo_solicitante' => 'required|in:interno,externo',
                 'fecha_requerida' => 'required|date',
@@ -548,7 +528,6 @@ class SolicitudController extends Controller
                 'lugar_evento' => 'nullable|string|max:200',
             ]);
 
-            // ✅ DB::transaction() con closure
             DB::transaction(function () use ($solicitud, $validated, $request) {
                 $solicitud->update([
                     'tipo_solicitante' => $validated['tipo_solicitante'],
@@ -599,9 +578,7 @@ class SolicitudController extends Controller
 
             return redirect()->route('admin.solicitudes.index')
                 ->with('success', 'Solicitud actualizada exitosamente');
-
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // ⚠️ NO DB::rollBack() aquí
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',
@@ -631,7 +608,6 @@ class SolicitudController extends Controller
         try {
             $solicitud = Solicitud::findOrFail($id);
 
-            // ✅ DB::transaction() con closure
             DB::transaction(function () use ($solicitud) {
                 $solicitud->detalles()->delete();
                 $solicitud->delete();
@@ -640,6 +616,7 @@ class SolicitudController extends Controller
             if (request()->ajax() || request()->wantsJson()) {
                 return response()->json(['success' => true, 'message' => 'Solicitud eliminada exitosamente']);
             }
+
             return redirect()->route('admin.solicitudes.index')->with('success', 'Solicitud eliminada exitosamente');
         } catch (\Exception $e) {
             Log::error('Error en destroy: ' . $e->getMessage());
@@ -673,7 +650,6 @@ class SolicitudController extends Controller
                 return response()->json(['success' => false, 'message' => 'No se puede cancelar esta solicitud porque ya fue ' . $solicitud->estado_solicitud], 422);
             }
 
-            // ✅ DB::transaction() con closure
             DB::transaction(function () use ($solicitud) {
                 $solicitud->update(['estado_solicitud' => 'cancelada']);
             });
@@ -687,6 +663,7 @@ class SolicitudController extends Controller
             if (request()->ajax() || request()->wantsJson()) {
                 return response()->json(['success' => true, 'message' => 'Solicitud cancelada exitosamente']);
             }
+
             return redirect()->route('admin.solicitudes.index')->with('success', 'Solicitud cancelada');
         } catch (\Exception $e) {
             Log::error('Error en cancel: ' . $e->getMessage());
@@ -698,149 +675,148 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-// APPROVE - APROBAR SOLICITUD (CON VERIFICACIÓN DE STOCK)
-// ============================================================
-public function approve(Request $request, $id)
-{
-    if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
-        if (request()->ajax() || request()->wantsJson()) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-        }
-        abort(403);
-    }
-
-    try {
-        $solicitud = Solicitud::with('detalles')->findOrFail($id);
-
-        if ($solicitud->estado_solicitud !== 'pendiente') {
-            return response()->json([
-                'success' => false,
-                'message' => 'Solo se pueden aprobar solicitudes pendientes. Estado actual: ' . $solicitud->estado_solicitud
-            ], 422);
-        }
-
-        // ✅ Validación FUERA de la transacción
-        $validated = $request->validate([
-            'fecha_requerida' => 'required|date',
-            'fecha_fin_estimada' => 'required|date|after_or_equal:fecha_requerida',
-            'observaciones' => 'nullable|string|max:500',
-        ]);
-
-        // ========== VERIFICACIÓN DE STOCK ==========
-        $faltantes = [];
-        foreach ($solicitud->detalles as $detalle) {
-            $descripcion = $detalle->descripcion_personalizada ?? 'Item';
-            $cantidadSolicitada = $detalle->cantidad_solicitada;
-
-            if ($detalle->tipo_item === 'activo' && $detalle->activo_id) {
-                $activo = Activo::find($detalle->activo_id);
-                if (!$activo || $activo->cantidad < $cantidadSolicitada) {
-                    $faltantes[] = [
-                        'tipo' => 'activo',
-                        'nombre' => $descripcion,
-                        'solicitado' => $cantidadSolicitada,
-                        'disponible' => $activo->cantidad ?? 0,
-                        'serial' => $activo->serial ?? 'N/A'
-                    ];
-                }
-            } elseif ($detalle->tipo_item === 'componente' && $detalle->componente_id) {
-                $componente = Componente::find($detalle->componente_id);
-                if (!$componente || $componente->estado !== 'en_bodega') {
-                    $faltantes[] = [
-                        'tipo' => 'componente',
-                        'nombre' => $descripcion,
-                        'solicitado' => $cantidadSolicitada,
-                        'disponible' => 0,
-                        'serial' => $componente->serial ?? 'N/A'
-                    ];
-                }
-            } else {
-                Log::info("Item de texto libre sin verificación de stock: {$descripcion}");
+    // APPROVE - APROBAR SOLICITUD (CON VERIFICACIÓN DE STOCK)
+    // ============================================================
+    public function approve(Request $request, $id)
+    {
+        if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
             }
+            abort(403);
         }
 
-        // ========== HAY FALTANTES → RECHAZAR AUTOMÁTICAMENTE ==========
-        if (count($faltantes) > 0) {
-            $motivoRechazo = $this->construirMensajeFaltaStock($faltantes);
+        try {
+            $solicitud = Solicitud::with(['detalles', 'usuario.trabajador', 'responsable'])->findOrFail($id);
 
-            DB::transaction(function () use ($solicitud, $motivoRechazo) {
+            if ($solicitud->estado_solicitud !== 'pendiente') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Solo se pueden aprobar solicitudes pendientes. Estado actual: ' . $solicitud->estado_solicitud
+                ], 422);
+            }
+
+            $validated = $request->validate([
+                'fecha_requerida' => 'required|date',
+                'fecha_fin_estimada' => 'required|date|after_or_equal:fecha_requerida',
+                'observaciones' => 'nullable|string|max:500',
+            ]);
+
+            // ========== VERIFICACIÓN DE STOCK ==========
+            $faltantes = [];
+
+            foreach ($solicitud->detalles as $detalle) {
+                $descripcion = $detalle->descripcion_personalizada ?? 'Item';
+                $cantidadSolicitada = $detalle->cantidad_solicitada;
+
+                if ($detalle->tipo_item === 'activo' && $detalle->activo_id) {
+                    $activo = Activo::find($detalle->activo_id);
+                    if (!$activo || $activo->cantidad < $cantidadSolicitada) {
+                        $faltantes[] = [
+                            'tipo' => 'activo',
+                            'nombre' => $descripcion,
+                            'solicitado' => $cantidadSolicitada,
+                            'disponible' => $activo->cantidad ?? 0,
+                            'serial' => $activo->serial ?? 'N/A'
+                        ];
+                    }
+                } elseif ($detalle->tipo_item === 'componente' && $detalle->componente_id) {
+                    $componente = Componente::find($detalle->componente_id);
+                    if (!$componente || $componente->estado !== 'en_bodega') {
+                        $faltantes[] = [
+                            'tipo' => 'componente',
+                            'nombre' => $descripcion,
+                            'solicitado' => $cantidadSolicitada,
+                            'disponible' => 0,
+                            'serial' => $componente->serial ?? 'N/A'
+                        ];
+                    }
+                }
+            }
+
+            // ========== HAY FALTANTES → RECHAZAR AUTOMÁTICAMENTE ==========
+            if (count($faltantes) > 0) {
+                $motivoRechazo = $this->construirMensajeFaltaStock($faltantes);
+
+                DB::transaction(function () use ($solicitud, $motivoRechazo) {
+                    $solicitud->update([
+                        'estado_solicitud' => 'rechazada',
+                        'aprobado_por' => auth()->id(),
+                        'fecha_aprobacion' => now(),
+                        'observaciones' => $motivoRechazo,
+                        'leida_por_admin' => true,
+                    ]);
+                });
+
+                $solicitud->refresh()->load(['usuario.trabajador', 'responsable']);
+
+                try {
+                    $this->enviarNotificacionRechazo($solicitud, $motivoRechazo);
+                } catch (\Exception $e) {
+                    Log::error('Error al enviar notificación de rechazo: ' . $e->getMessage());
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No hay stock suficiente para los siguientes items: ' . $this->formatearFaltantes($faltantes),
+                    'faltantes' => $faltantes,
+                    'auto_rechazada' => true
+                ], 422);
+            }
+
+            // ========== HAY STOCK → APROBAR ==========
+            $fechaRequerida = new \DateTime($validated['fecha_requerida']);
+            $hoy = new \DateTime('today');
+            $fechaPasada = $fechaRequerida < $hoy;
+
+            DB::transaction(function () use ($solicitud, $validated) {
                 $solicitud->update([
-                    'estado_solicitud' => 'rechazada',
+                    'estado_solicitud' => 'aprobada',
                     'aprobado_por' => auth()->id(),
                     'fecha_aprobacion' => now(),
-                    'observaciones' => $motivoRechazo,
+                    'fecha_requerida' => $validated['fecha_requerida'],
+                    'fecha_fin_estimada' => $validated['fecha_fin_estimada'],
+                    'observaciones' => $validated['observaciones'] ?? $solicitud->observaciones,
                     'leida_por_admin' => true,
                 ]);
             });
 
+            $solicitud->refresh()->load(['usuario.trabajador', 'responsable']);
+
             try {
-                $this->enviarNotificacionRechazo($solicitud, $motivoRechazo);
+                $this->enviarNotificacionAprobacion($solicitud, $fechaPasada);
             } catch (\Exception $e) {
-                Log::error('Error al enviar notificación de rechazo: ' . $e->getMessage());
+                Log::error('Error al enviar notificación de aprobación: ' . $e->getMessage());
             }
 
-            return response()->json([
-                'success' => false,
-                'message' => 'No hay stock suficiente para los siguientes items: ' . $this->formatearFaltantes($faltantes),
-                'faltantes' => $faltantes,
-                'auto_rechazada' => true
-            ], 422);
-        }
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $fechaPasada
+                        ? 'Solicitud aprobada exitosamente. ⚠️ La fecha requerida ya pasó.'
+                        : 'Solicitud aprobada exitosamente',
+                    'fecha_pasada' => $fechaPasada
+                ]);
+            }
 
-        // ========== HAY STOCK → APROBAR ==========
-        $fechaRequerida = new \DateTime($validated['fecha_requerida']);
-        $hoy = new \DateTime('today');
-        $fechaPasada = $fechaRequerida < $hoy;
-
-        DB::transaction(function () use ($solicitud, $validated) {
-            $solicitud->update([
-                'estado_solicitud' => 'aprobada',
-                'aprobado_por' => auth()->id(),
-                'fecha_aprobacion' => now(),
-                'fecha_requerida' => $validated['fecha_requerida'],
-                'fecha_fin_estimada' => $validated['fecha_fin_estimada'],
-                'observaciones' => $validated['observaciones'] ?? $solicitud->observaciones,
-                'leida_por_admin' => true,
-            ]);
-        });
-
-        $solicitud->refresh();
-
-        try {
-            $this->enviarNotificacionAprobacion($solicitud, $fechaPasada);
+            return redirect()->route('admin.solicitudes.index')->with('success', 'Solicitud aprobada exitosamente');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => $e->errors()
+                ], 422);
+            }
+            return back()->withErrors($e->errors())->withInput();
         } catch (\Exception $e) {
-            Log::error('Error al enviar notificación de aprobación: ' . $e->getMessage());
+            Log::error('Error en approve: ' . $e->getMessage());
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Error al aprobar la solicitud: ' . $e->getMessage()], 500);
+            }
+            return back()->with('error', $e->getMessage());
         }
-
-        if (request()->ajax() || $request->wantsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => $fechaPasada
-                    ? 'Solicitud aprobada exitosamente. ⚠️ La fecha requerida ya pasó.'
-                    : 'Solicitud aprobada exitosamente',
-                'fecha_pasada' => $fechaPasada
-            ]);
-        }
-
-        return redirect()->route('admin.solicitudes.index')->with('success', 'Solicitud aprobada exitosamente');
-
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        if (request()->ajax() || request()->wantsJson()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $e->errors()
-            ], 422);
-        }
-        return back()->withErrors($e->errors())->withInput();
-    } catch (\Exception $e) {
-        Log::error('Error en approve: ' . $e->getMessage());
-        if (request()->ajax() || request()->wantsJson()) {
-            return response()->json(['success' => false, 'message' => 'Error al aprobar la solicitud: ' . $e->getMessage()], 500);
-        }
-        return back()->with('error', $e->getMessage());
     }
-}
 
     // ============================================================
     // HELPERS DE STOCK
@@ -889,7 +865,7 @@ public function approve(Request $request, $id)
         }
 
         try {
-            $solicitud = Solicitud::findOrFail($id);
+            $solicitud = Solicitud::with(['usuario.trabajador', 'responsable'])->findOrFail($id);
 
             if ($solicitud->estado_solicitud !== 'pendiente') {
                 return response()->json(['success' => false, 'message' => 'Solo se pueden rechazar solicitudes pendientes'], 422);
@@ -897,7 +873,6 @@ public function approve(Request $request, $id)
 
             $motivo = $request->input('motivo', 'Rechazada por el administrador');
 
-            // ✅ DB::transaction() con closure
             DB::transaction(function () use ($solicitud, $motivo) {
                 $solicitud->update([
                     'estado_solicitud' => 'rechazada',
@@ -908,21 +883,22 @@ public function approve(Request $request, $id)
                 ]);
             });
 
+            $solicitud->refresh()->load(['usuario.trabajador', 'responsable']);
+
             try {
                 $this->enviarNotificacionRechazo($solicitud, $motivo);
             } catch (\Exception $e) {
                 Log::error('Error al enviar notificación de rechazo: ' . $e->getMessage());
             }
 
-            if (request()->ajax() || $request->wantsJson()) {
+            if (request()->ajax() || request()->wantsJson()) {
                 return response()->json(['success' => true, 'message' => 'Solicitud rechazada exitosamente']);
             }
 
             return redirect()->route('admin.solicitudes.index')->with('success', 'Solicitud rechazada');
-
         } catch (\Exception $e) {
             Log::error('Error en reject: ' . $e->getMessage());
-            if (request()->ajax() || $request->wantsJson()) {
+            if (request()->ajax() || request()->wantsJson()) {
                 return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
             }
             return back()->with('error', $e->getMessage());
@@ -931,106 +907,93 @@ public function approve(Request $request, $id)
 
     // ============================================================
     // NOTIFICACIÓN DE APROBACIÓN
+    // ✅ CONDICIÓN 2: Se notifica al RESPONSABLE con el mensaje
+    //    de "retirar en Gobernación" y al CREADOR con confirmación.
     // ============================================================
     protected function enviarNotificacionAprobacion(Solicitud $solicitud, bool $fechaPasada = false): void
     {
         $usuarioCreador = $solicitud->usuario;
-        $aprobador = auth()->user();
+        $responsable = $solicitud->responsable;
 
-        $itemsLista = '';
-        foreach ($solicitud->detalles as $detalle) {
-            $itemsLista .= " • " . ucfirst($detalle->tipo_item) . ": " . ($detalle->descripcion_personalizada ?? 'Item') . " (Cant: " . $detalle->cantidad_solicitada . ")\n";
-        }
-
-        if ($usuarioCreador && $usuarioCreador->email) {
-            $mensaje = "✅ Tu solicitud #{$solicitud->id} ha sido APROBADA.\n\n" .
-                "📌 Solicitud: #{$solicitud->id}\n" .
-                "✅ Aprobada por: " . ($aprobador?->trabajador?->nombre ?? $aprobador?->usuario ?? 'Administrador') . "\n" .
-                "📅 Fecha de aprobación: " . now()->format('d/m/Y H:i') . "\n" .
-                "📅 Fecha requerida: " . date('d/m/Y', strtotime($solicitud->fecha_requerida)) . "\n" .
-                "📅 Fecha fin estimada: " . date('d/m/Y', strtotime($solicitud->fecha_fin_estimada)) . "\n" .
-                "🔴 Prioridad: " . ucfirst($solicitud->prioridad) . "\n\n" .
-                "📦 Items aprobados:\n" . $itemsLista . "\n";
+        // ✅ 1. NOTIFICAR AL RESPONSABLE (mensaje de "retirar en Gobernación")
+        if ($responsable && $responsable->email) {
+            $mensajeResponsable = "¡Felicidades! La solicitud #{$solicitud->id} ha sido APROBADA con éxito.\n\n" .
+            "Por favor, retira los equipos en la Gobernación del Estado Yaracuy (Dirección de Informática).\n\n" .
+            "Presenta este mensaje o tu cédula al momento del retiro.\n\n" .
+            "¡Gracias por confiar en nosotros!";
 
             if ($fechaPasada) {
-                $mensaje .= "⚠️ IMPORTANTE: La fecha requerida ya pasó. Por favor, coordina con el departamento de informática para agilizar el proceso.\n\n";
+                $mensajeResponsable .= "\n\n⚠️ Nota: La fecha requerida ya había pasado, pero la solicitud fue aprobada. " .
+                            "Te recomendamos retirar los equipos lo antes posible.";
             }
-
-            $mensaje .= "Tu solicitud está lista para ser convertida en préstamo. Dirígete al módulo de préstamos para continuar con el proceso.";
-
-            $this->notificacionService->enviarAUsuario(
-                $usuarioCreador,
-                '✅ Solicitud aprobada' . ($fechaPasada ? ' - ⚠️ Fecha vencida' : ''),
-                $mensaje,
-                'solicitud',
-                route('admin.prestamos.index')
-            );
-        }
-
-        $responsable = $solicitud->responsable;
-        if ($responsable && $responsable->email) {
-            $mensajeResp =
-                "La solicitud #{$solicitud->id} ha sido APROBADA.\n\n" .
-                "📌 Solicitud: #{$solicitud->id}\n" .
-                "✅ Aprobada por: " . ($aprobador?->trabajador?->nombre ?? $aprobador?->usuario ?? 'Administrador') . "\n" .
-                "📅 Fecha de aprobación: " . now()->format('d/m/Y H:i') . "\n" .
-                "🔴 Prioridad: " . ucfirst($solicitud->prioridad) . "\n" .
-                "📅 Fecha requerida: " . date('d/m/Y', strtotime($solicitud->fecha_requerida)) . "\n\n" .
-                "Como responsable de esta solicitud, debes coordinar la entrega o gestión del préstamo.\n\n" .
-                "La solicitud está lista para ser gestionada como préstamo en el sistema.";
 
             $this->notificacionService->enviarAResponsable(
                 $responsable->email,
                 $responsable->nombre,
-                '✅ Solicitud aprobada - Acción requerida',
-                $mensajeResp,
-                'solicitud',
-                route('admin.prestamos.index')
+                '✅ ¡Solicitud Aprobada! - Retirar en Gobernación',
+                $mensajeResponsable,
+                'solicitud'
+            );
+        }
+
+        // ✅ 2. NOTIFICAR AL CREADOR (confirmación)
+        if ($usuarioCreador && $usuarioCreador->email) {
+            $mensajeCreador = "Tu solicitud #{$solicitud->id} ha sido APROBADA.\n\n" .
+            "El responsable de tu entidad ha sido notificado para que retire los equipos en la Gobernación del Estado Yaracuy (Dirección de Informática).\n\n" .
+            "Si tienes alguna duda, contacta al Departamento de Informática.";
+
+            if ($fechaPasada) {
+                $mensajeCreador .= "\n\n⚠️ Nota: La fecha requerida ya había pasado, pero la solicitud fue aprobada.";
+            }
+
+            $this->notificacionService->enviarAUsuario(
+                $usuarioCreador,
+                '✅ Solicitud Aprobada',
+                $mensajeCreador,
+                'solicitud'
             );
         }
     }
 
     // ============================================================
     // NOTIFICACIÓN DE RECHAZO
+    // ✅ CONDICIÓN 3: Se notifica al RESPONSABLE con el motivo,
+    //    y al CREADOR con el motivo.
     // ============================================================
     protected function enviarNotificacionRechazo(Solicitud $solicitud, string $motivo): void
     {
         $usuarioCreador = $solicitud->usuario;
-        $rechazador = auth()->user();
-
-        if ($usuarioCreador && $usuarioCreador->email) {
-            $mensaje = "❌ Tu solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
-                "📌 Solicitud: #{$solicitud->id}\n" .
-                "❌ Rechazada por: " . ($rechazador?->trabajador?->nombre ?? $rechazador?->usuario ?? 'Administrador') . "\n" .
-                "📅 Fecha de rechazo: " . now()->format('d/m/Y H:i') . "\n\n" .
-                "📝 Motivo del rechazo:\n{$motivo}\n\n" .
-                "Si tienes preguntas o necesitas aclaraciones, contacta al administrador del sistema.\n\n" .
-                "Puedes crear una nueva solicitud con la información corregida si lo deseas.";
-
-            $this->notificacionService->enviarAUsuario(
-                $usuarioCreador,
-                '❌ Solicitud rechazada',
-                $mensaje,
-                'solicitud',
-                route('admin.solicitudes.index')
-            );
-        }
-
         $responsable = $solicitud->responsable;
+
+        // ✅ 1. NOTIFICAR AL RESPONSABLE (con el motivo)
         if ($responsable && $responsable->email) {
-            $mensajeResp = "La solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
-                "Rechazada por: " . ($rechazador?->trabajador?->nombre ?? $rechazador?->usuario ?? 'Administrador') . "\n" .
-                "Fecha de rechazo: " . now()->format('d/m/Y H:i') . "\n\n" .
-                "Motivo: {$motivo}\n\n" .
-                "Como responsable, debes estar informado de esta decisión.";
+            $mensajeResponsable = "Lamentamos informarte que la solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
+            "📝 Motivo del rechazo:\n" .
+            "{$motivo}\n\n" .
+            "Si tienes dudas o crees que es un error, por favor contacta al Departamento de Informática de la Gobernación.";
 
             $this->notificacionService->enviarAResponsable(
                 $responsable->email,
                 $responsable->nombre,
-                '❌ Solicitud rechazada',
-                $mensajeResp,
-                'solicitud',
-                route('admin.solicitudes.index')
+                '❌ Solicitud Rechazada',
+                $mensajeResponsable,
+                'solicitud'
+            );
+        }
+
+        // ✅ 2. NOTIFICAR AL CREADOR (con el motivo)
+        if ($usuarioCreador && $usuarioCreador->email) {
+            $mensajeCreador = "Lamentamos informarte que tu solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
+            "📝 Motivo del rechazo:\n" .
+            "{$motivo}\n\n" .
+            "Si tienes dudas o crees que es un error, por favor contacta al Departamento de Informática de la Gobernación.\n\n" .
+            "Puedes realizar una nueva solicitud con las correcciones necesarias.";
+
+            $this->notificacionService->enviarAUsuario(
+                $usuarioCreador,
+                '❌ Solicitud Rechazada',
+                $mensajeCreador,
+                'solicitud'
             );
         }
     }
@@ -1042,7 +1005,9 @@ public function approve(Request $request, $id)
     {
         $cancelador = auth()->user();
         $usuarioCreador = $solicitud->usuario;
+        $responsable = $solicitud->responsable;
 
+        // Notificar al creador (si no es el mismo que cancela)
         if ($usuarioCreador && $usuarioCreador->email && $usuarioCreador->id !== auth()->id()) {
             $this->notificacionService->enviarAUsuario(
                 $usuarioCreador,
@@ -1057,6 +1022,21 @@ public function approve(Request $request, $id)
             );
         }
 
+        // Notificar al responsable
+        if ($responsable && $responsable->email) {
+            $this->notificacionService->enviarAResponsable(
+                $responsable->email,
+                $responsable->nombre,
+                '🗑️ Solicitud cancelada',
+                "La solicitud #{$solicitud->id} ha sido cancelada.\n\n" .
+                "📌 Solicitud: #{$solicitud->id}\n" .
+                "👤 Cancelada por: " . ($cancelador?->trabajador?->nombre ?? $cancelador?->usuario ?? 'Usuario') . "\n" .
+                "📅 Fecha de cancelación: " . now()->format('d/m/Y H:i'),
+                'solicitud'
+            );
+        }
+
+        // Notificar a administradores
         $administradores = Usuario::whereHas('rol', function ($query) {
             $query->where('nombre', 'admin');
         })->where('status', 'activo')->get();
@@ -1083,14 +1063,9 @@ public function approve(Request $request, $id)
     }
 
     // ============================================================
-    // ============================================================
     // MÉTODOS DE CORREOS (INTEGRADOS EN LA MISMA SECCIÓN)
     // ============================================================
-    // ============================================================
 
-    /**
-     * Listar correos recibidos (bandeja)
-     */
     public function correosIndex(Request $request)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1121,7 +1096,6 @@ public function approve(Request $request, $id)
         }
 
         $correos = $query->paginate(20);
-
         $noLeidos = CorreoRecibido::where('leido', false)->count();
         $noProcesados = CorreoRecibido::where('procesado', false)->count();
 
@@ -1134,9 +1108,6 @@ public function approve(Request $request, $id)
         ]);
     }
 
-    /**
-     * Mostrar detalle de un correo
-     */
     public function correoShow($id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1156,9 +1127,6 @@ public function approve(Request $request, $id)
         }
     }
 
-    /**
-     * Revisar correos manualmente (botón "Revisar ahora")
-     */
     public function correosRevisar()
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1182,9 +1150,6 @@ public function approve(Request $request, $id)
         }
     }
 
-    /**
-     * Contador de correos para badge
-     */
     public function correosContador()
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1201,9 +1166,6 @@ public function approve(Request $request, $id)
         ]);
     }
 
-    /**
-     * Eliminar correo
-     */
     public function correoDestroy($id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1213,15 +1175,13 @@ public function approve(Request $request, $id)
         try {
             $correo = CorreoRecibido::findOrFail($id);
             $correo->delete();
+
             return response()->json(['success' => true, 'message' => 'Correo eliminado']);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Convertir correo en solicitud (Wizard de 3 pasos)
-     */
     public function correoConvertir(Request $request, $id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1238,7 +1198,6 @@ public function approve(Request $request, $id)
                 ], 422);
             }
 
-            // ✅ Validación FUERA de la transacción
             $validated = $request->validate([
                 'tipo_solicitante' => 'required|in:interno,externo',
                 'institucion_id' => 'nullable|exists:instituciones,id',
@@ -1255,7 +1214,6 @@ public function approve(Request $request, $id)
                 'items.*.item_descripcion' => 'required|string|max:255',
             ]);
 
-            // ✅ DB::transaction() con closure
             $solicitud = DB::transaction(function () use ($validated, $correo) {
                 $nuevaSolicitud = Solicitud::create([
                     'usuario_id' => auth()->id(),
@@ -1296,20 +1254,23 @@ public function approve(Request $request, $id)
                 return $nuevaSolicitud;
             });
 
-            // Notificar al responsable
+            $solicitud->load(['responsable', 'departamento', 'institucion', 'detalles', 'usuario.trabajador']);
+
             try {
+                // ✅ Notificar SOLO al responsable (no al creador)
                 if ($solicitud->responsable && $solicitud->responsable->email) {
                     $this->notificacionService->enviarAResponsable(
                         $solicitud->responsable->email,
                         $solicitud->responsable->nombre,
-                        '📋 Nueva solicitud creada desde correo',
-                        "Se ha creado una solicitud desde el correo de {$correo->from_email}.\n\nSolicitud #{$solicitud->id}",
-                        'solicitud',
-                        route('admin.solicitudes.index')
+                        '⏳ Solicitud en Proceso de Aprobación',
+                        "Se ha creado una solicitud desde el correo de {$correo->from_email}.\n\n" .
+                        "La solicitud #{$solicitud->id} está en proceso de aprobación.\n\n" .
+                        "Por favor, espera un momento mientras nuestro equipo la revisa. " .
+                        "Te notificaremos tan pronto como haya una respuesta.",
+                        'solicitud'
                     );
                 }
 
-                // Responder al remitente del correo
                 if ($correo->from_email) {
                     Mail::raw(
                         "Estimado/a {$correo->from_name},\n\n" .
@@ -1321,7 +1282,7 @@ public function approve(Request $request, $id)
                         "Atentamente,\nDepartamento de Informática",
                         function ($message) use ($correo) {
                             $message->to($correo->from_email)
-                                    ->subject('✅ Solicitud recibida - En proceso');
+                                ->subject('✅ Solicitud recibida - En proceso');
                         }
                     );
                 }
@@ -1333,11 +1294,9 @@ public function approve(Request $request, $id)
                 'success' => true,
                 'message' => 'Solicitud creada exitosamente desde el correo',
                 'solicitud_id' => $solicitud->id,
-                'data' => $solicitud->load(['responsable', 'departamento', 'institucion', 'detalles']),
+                'data' => $solicitud,
             ]);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
-            // ⚠️ NO DB::rollBack() aquí
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',

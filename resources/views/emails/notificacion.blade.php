@@ -93,21 +93,6 @@
             font-weight: 600;
             color: #1e3c72;
         }
-        .btn-primary {
-            display: inline-block;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            text-decoration: none;
-            border-radius: 10px;
-            font-weight: 500;
-            margin-top: 12px;
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 16px rgba(30, 60, 114, 0.3);
-        }
         @media (max-width: 600px) {
             .email-body { padding: 24px; }
             .email-header { padding: 20px; }
@@ -137,14 +122,12 @@
                 </div>
             </div>
 
-            @if($notificacion->url)
-                <a href="{{ url($notificacion->url) }}" class="btn-primary">
-                    Ver en el Sistema
-                </a>
-            @endif
+            {{-- 🔴 SE ELIMINÓ EL BOTÓN "Ver en el Sistema" --}}
+            {{-- Ahora el correo es puramente informativo --}}
 
             <p style="margin-top: 20px; color: #6c757d; font-size: 14px;">
                 Este es un mensaje automático del Sistema de Gestión de Inventario.
+                Por favor, no responda a este correo.
             </p>
         </div>
 
