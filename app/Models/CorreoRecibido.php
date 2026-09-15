@@ -14,6 +14,7 @@ class CorreoRecibido extends Model
         'from_email',
         'from_name',
         'subject',
+        'tipo',
         'body_text',
         'body_html',
         'attachments',
@@ -21,7 +22,9 @@ class CorreoRecibido extends Model
         'leido',
         'procesado',
         'solicitud_id',
+        'ficha_soporte_id',
         'datos_extraidos',
+        'fecha_requerida_entrega',
         'usuario_id',
     ];
 
@@ -29,6 +32,7 @@ class CorreoRecibido extends Model
         'attachments' => 'array',
         'datos_extraidos' => 'array',
         'received_at' => 'datetime',
+        'fecha_requerida_entrega' => 'date',
         'leido' => 'boolean',
         'procesado' => 'boolean',
     ];
@@ -38,11 +42,17 @@ class CorreoRecibido extends Model
         return $this->belongsTo(Solicitud::class, 'solicitud_id');
     }
 
+    public function fichaSoporte(): BelongsTo
+    {
+        return $this->belongsTo(FichaSoporte::class, 'ficha_soporte_id');
+    }
+
     public function usuario(): BelongsTo
     {
         return $this->belongsTo(Usuario::class, 'usuario_id');
     }
 
+    // Scopes
     public function scopeNoLeidos($query)
     {
         return $query->where('leido', false);
@@ -51,5 +61,15 @@ class CorreoRecibido extends Model
     public function scopeNoProcesados($query)
     {
         return $query->where('procesado', false);
+    }
+
+    public function scopeSoporte($query)
+    {
+        return $query->where('tipo', 'soporte');
+    }
+
+    public function scopeSolicitud($query)
+    {
+        return $query->where('tipo', 'solicitud');
     }
 }

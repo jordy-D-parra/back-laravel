@@ -1,5 +1,5 @@
 <?php
-// database/migrations/YYYY_MM_DD_add_marca_id_to_categorias_table.php
+// database/migrations/2026_09_04_171639_add_marca_id_to_categorias_table.php
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;

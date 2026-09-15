@@ -8,16 +8,23 @@ use Illuminate\Support\Facades\Log;
 
 class CorreoImapService
 {
+    protected ClasificadorCorreoService $clasificador;
+
+    public function __construct(ClasificadorCorreoService $clasificador)
+    {
+        $this->clasificador = $clasificador;
+    }
+
     public function leerCorreosNuevos(): int
     {
         try {
             $client = Client::account('default');
             $client->connect();
-
             $folder = $client->getFolder('INBOX');
             $messages = $folder->query()->unseen()->get();
 
             $count = 0;
+
             foreach ($messages as $message) {
                 if ($this->procesarMensaje($message)) {
                     $count++;
@@ -26,7 +33,6 @@ class CorreoImapService
 
             $client->disconnect();
             return $count;
-
         } catch (\Exception $e) {
             Log::error('Error al leer correos IMAP: ' . $e->getMessage());
             return 0;
@@ -46,7 +52,6 @@ class CorreoImapService
             $from = $message->getFrom()[0] ?? null;
             $fromEmail = $from ? $from->mail : 'desconocido@dominio.com';
             $fromName = $from ? ($from->personal ?? '') : '';
-
             $subject = $message->getSubject() ?? '(Sin asunto)';
             $bodyText = $message->getTextBody() ?? '';
             $bodyHtml = $message->getHTMLBody() ?? '';
@@ -59,13 +64,25 @@ class CorreoImapService
                 ];
             }
 
-            $datosExtraidos = $this->extraerDatos($bodyText);
+            // ========== CLASIFICACIÓN ==========
+            $tipo = $this->clasificador->clasificar($subject, $bodyText);
+
+            // Extraer datos según el tipo
+            if ($tipo === 'soporte') {
+                $datosExtraidos = $this->clasificador->extraerDatosSoporte($bodyText);
+                $fechaRequerida = $datosExtraidos['fecha_requerida'] ?? null;
+            } else {
+                // Extracción genérica para solicitudes (la que ya tenías)
+                $datosExtraidos = $this->extraerDatosSolicitud($bodyText);
+                $fechaRequerida = null;
+            }
 
             CorreoRecibido::create([
                 'message_id' => $messageId,
                 'from_email' => $fromEmail,
                 'from_name' => $fromName,
                 'subject' => $subject,
+                'tipo' => $tipo,
                 'body_text' => $bodyText,
                 'body_html' => $bodyHtml,
                 'attachments' => $attachments,
@@ -73,20 +90,22 @@ class CorreoImapService
                 'leido' => false,
                 'procesado' => false,
                 'datos_extraidos' => $datosExtraidos,
+                'fecha_requerida_entrega' => $fechaRequerida,
             ]);
 
             $message->setFlag('Seen');
-
-            Log::info("Correo procesado: {$subject} de {$fromEmail}");
+            Log::info("Correo procesado [{$tipo}]: {$subject} de {$fromEmail}");
             return true;
-
         } catch (\Exception $e) {
             Log::error('Error procesando mensaje: ' . $e->getMessage());
             return false;
         }
     }
 
-    private function extraerDatos(string $body): array
+    /**
+     * Extracción para solicitudes de préstamo (tu lógica original)
+     */
+    private function extraerDatosSolicitud(string $body): array
     {
         $datos = [
             'prioridad' => 'normal',
@@ -107,18 +126,10 @@ class CorreoImapService
             $datos['fecha_requerida'] = $this->normalizarFecha($m[1]);
         }
 
-        if (preg_match('/(?:fecha\s+fin|hasta\s+el|finaliza)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i', $body, $m)) {
-            $datos['fecha_fin_estimada'] = $this->normalizarFecha($m[1]);
-        }
-
         if (preg_match('/(?:justificaci[oó]n|motivo|raz[oó]n)[:\s]+(.+?)(?:\n\n|$)/is', $body, $m)) {
             $datos['justificacion'] = trim($m[1]);
         } else {
             $datos['justificacion'] = substr(trim($body), 0, 500);
-        }
-
-        if (preg_match('/(?:entidad|instituci[oó]n|departamento|empresa)[:\s]+(.+?)(?:\n|$)/i', $body, $m)) {
-            $datos['entidad'] = trim($m[1]);
         }
 
         if (preg_match_all('/(\d+)\s+(?:x\s+)?([a-záéíóúñ\s]+?)(?:\n|,|\.|;|$)/iu', $body, $matches)) {

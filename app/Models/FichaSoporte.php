@@ -12,26 +12,35 @@ class FichaSoporte extends Model
 
     protected $fillable = [
         'activo_id',
+        'correo_id',
         'tecnico_id',
         'tecnico_nombre',
         'usuario_reporta_id',
         'usuario_reporta_nombre',
         'fecha_ingreso',
+        'fecha_requerida_entrega',
         'fecha_salida',
         'diagnostico',
         'trabajo_realizado',
         'observaciones',
         'estado',
+        'origen',
     ];
 
     protected $casts = [
         'fecha_ingreso' => 'datetime',
         'fecha_salida' => 'datetime',
+        'fecha_requerida_entrega' => 'date',
     ];
 
     public function activo(): BelongsTo
     {
         return $this->belongsTo(Activo::class);
+    }
+
+    public function correo(): BelongsTo
+    {
+        return $this->belongsTo(CorreoRecibido::class, 'correo_id');
     }
 
     public function tecnico(): BelongsTo
@@ -57,5 +66,21 @@ class FichaSoporte extends Model
     public function scopeFinalizados($query)
     {
         return $query->where('estado', 'finalizado');
+    }
+
+    // Helper: días restantes para la entrega
+    public function getDiasRestantesAttribute(): ?int
+    {
+        if (!$this->fecha_requerida_entrega) return null;
+        if ($this->estado === 'finalizado') return 0;
+        return now()->startOfDay()->diffInDays($this->fecha_requerida_entrega, false);
+    }
+
+    // Helper: ¿está vencida?
+    public function getEstaVencidaAttribute(): bool
+    {
+        if (!$this->fecha_requerida_entrega) return false;
+        if ($this->estado === 'finalizado') return false;
+        return now()->startOfDay()->gt($this->fecha_requerida_entrega);
     }
 }

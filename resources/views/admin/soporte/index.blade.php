@@ -3,38 +3,155 @@
 @section('title', 'Fichas de Soporte Técnico')
 
 @section('styles')
-    @vite(['resources/css/admin-soporte.css'])
-    <style>
-        /* Estilos para el feedback del serial */
-        #ext_serial_feedback {
-            font-size: 0.75rem;
-            margin-top: 4px;
-            display: block;
-            transition: all 0.2s ease;
-        }
-        #ext_serial_feedback.text-success {
-            color: #1e7e34 !important;
-        }
-        #ext_serial_feedback.text-danger {
-            color: #c5221f !important;
-        }
-        #ext_serial_feedback.text-muted {
-            color: #6c757d !important;
-        }
+@vite(['resources/css/admin-soporte.css'])
+<style>
+/* ============ CORREOS ============ */
+.tab-correos-badge {
+    background: #dc3545 !important;
+    color: white !important;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: 6px;
+    animation: pulseBadge 1.5s infinite;
+}
 
-        .is-valid {
-            border-color: #1e7e34 !important;
-        }
-        .is-invalid {
-            border-color: #c5221f !important;
-        }
-    </style>
+@keyframes pulseBadge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+}
+
+.correo-item {
+    background: white;
+    border-radius: 10px;
+    padding: 15px 20px;
+    margin-bottom: 10px;
+    border: 1px solid #e9ecef;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-left: 4px solid transparent;
+}
+
+.correo-item:hover {
+    background: #f8f9fc;
+    transform: translateX(4px);
+    border-left-color: #1e3c72;
+}
+
+.correo-item.no-leido {
+    background: #f0f4ff;
+    border-left-color: #1e3c72;
+}
+
+.correo-item.procesado {
+    opacity: 0.7;
+    background: #f8f9fa;
+}
+
+.badge-nueva {
+    background: #dc3545;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    margin-left: 6px;
+    animation: pulseBadge 1.5s infinite;
+}
+
+/* ============ WIZARD ============ */
+.wizard-step-soporte {
+    display: none;
+}
+
+.wizard-step-soporte.active {
+    display: block;
+    animation: fadeInUp 0.3s ease;
+}
+
+@keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.step-circle {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    border-radius: 50%;
+    background: #e9ecef;
+    color: #6c757d;
+    font-weight: 700;
+    margin-right: 8px;
+    transition: all 0.3s ease;
+}
+
+.step-circle.active {
+    background: #1e3c72;
+    color: white;
+    box-shadow: 0 0 0 4px rgba(30, 60, 114, 0.15);
+}
+
+.step-circle.completed {
+    background: #1e7e34;
+    color: white;
+}
+
+/* ============ BADGES DE FECHA ============ */
+.badge-fecha-entrega {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.badge-fecha-vigente {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-fecha-proxima {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-fecha-vencida {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.badge-fecha-sin {
+    background: #e9ecef;
+    color: #6c757d;
+}
+
+/* Estilos para el feedback del serial */
+#ext_serial_feedback {
+    font-size: 0.75rem;
+    margin-top: 4px;
+    display: block;
+    transition: all 0.2s ease;
+}
+
+#ext_serial_feedback.text-success { color: #1e7e34 !important; }
+#ext_serial_feedback.text-danger { color: #c5221f !important; }
+#ext_serial_feedback.text-muted { color: #6c757d !important; }
+
+.is-valid { border-color: #1e7e34 !important; }
+.is-invalid { border-color: #c5221f !important; }
+</style>
 @endsection
 
 @section('content')
 <div class="container-fluid px-4">
 
-    <!-- ========== HEADER CON GRADIENTE ========== -->
+    {{-- ========== HEADER ========== --}}
     <div class="page-header">
         <div>
             <h4>
@@ -80,11 +197,11 @@
         </div>
     </div>
 
-    <!-- ========== TARJETAS DE ESTADÍSTICAS ========== -->
+    {{-- ========== TARJETAS DE ESTADÍSTICAS ========== --}}
     <div class="stats-row">
         <div class="stat-card-mini">
             <div class="stat-info">
-                <div class="stat-number" id="statsTotal">0</div>
+                <div class="stat-number" id="statsTotal">{{ $totalFichas ?? 0 }}</div>
                 <div class="stat-label">Total Fichas</div>
             </div>
             <div class="stat-icon-circle">
@@ -93,9 +210,10 @@
                 </svg>
             </div>
         </div>
+
         <div class="stat-card-mini">
             <div class="stat-info">
-                <div class="stat-number" id="statsEnProceso">0</div>
+                <div class="stat-number" id="statsEnProceso">{{ $enProceso ?? 0 }}</div>
                 <div class="stat-label">En Proceso</div>
             </div>
             <div class="stat-icon-circle" style="background: rgba(246, 194, 62, 0.1);">
@@ -105,9 +223,10 @@
                 </svg>
             </div>
         </div>
+
         <div class="stat-card-mini">
             <div class="stat-info">
-                <div class="stat-number" id="statsFinalizados">0</div>
+                <div class="stat-number" id="statsFinalizados">{{ $finalizados ?? 0 }}</div>
                 <div class="stat-label">Finalizados</div>
             </div>
             <div class="stat-icon-circle" style="background: rgba(30, 126, 52, 0.1);">
@@ -116,9 +235,10 @@
                 </svg>
             </div>
         </div>
+
         <div class="stat-card-mini">
             <div class="stat-info">
-                <div class="stat-number" id="statsEquiposReparacion">0</div>
+                <div class="stat-number" id="statsEquiposReparacion">{{ $equiposReparacion ?? 0 }}</div>
                 <div class="stat-label">En Reparación</div>
             </div>
             <div class="stat-icon-circle" style="background: rgba(23, 162, 184, 0.1);">
@@ -129,56 +249,236 @@
         </div>
     </div>
 
-    <!-- ========== BARRA DE FILTROS ========== -->
-    <div class="filters-bar">
-        <div class="filtro-busqueda">
-            <div class="input-group">
-                <span class="input-group-text">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="M21 21l-4.35-4.35"/>
-                    </svg>
+    {{-- ========== TABS ========== --}}
+    <ul class="nav nav-tabs-custom mb-3" id="soporteTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="tab-fichas" data-bs-toggle="tab"
+                    data-bs-target="#panel-fichas" type="button" role="tab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:6px;">
+                    <rect x="2" y="6" width="20" height="12" rx="2"/>
+                </svg>
+                Fichas de Soporte
+            </button>
+        </li>
+        @if(auth()->user()->hasPermission('ver-fichas-soporte'))
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-correos" data-bs-toggle="tab"
+                    data-bs-target="#panel-correos" type="button" role="tab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:6px;">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M22 7l-10 7L2 7"/>
+                </svg>
+                Correo de Soporte
+                <span class="tab-correos-badge" id="tabCorreosBadge"
+                      style="{{ ($correosNoProcesados ?? 0) > 0 ? '' : 'display:none;' }}">
+                    {{ $correosNoProcesados ?? 0 }}
                 </span>
-                <input type="text" class="form-control" id="buscarFichas" placeholder="Buscar por activo, técnico, reportante...">
+            </button>
+        </li>
+        @endif
+    </ul>
+
+    <div class="tab-content">
+        {{-- ============================================ --}}
+        {{-- PANEL 1: FICHAS DE SOPORTE --}}
+        {{-- ============================================ --}}
+        <div class="tab-pane fade show active" id="panel-fichas" role="tabpanel">
+
+            {{-- Barra de filtros --}}
+            <div class="filters-bar">
+                <div class="filtro-busqueda">
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </span>
+                        <input type="text" class="form-control" id="buscarFichas"
+                               placeholder="Buscar por activo, técnico, reportante...">
+                    </div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <select class="form-select form-select-sm" id="filtroEstadoFichas" style="width: 160px;">
+                        <option value="">Todos los estados</option>
+                        <option value="en_proceso">En Proceso</option>
+                        <option value="finalizado">Finalizados</option>
+                    </select>
+                    <button class="btn btn-outline-primary-dark btn-sm" id="limpiarFiltros">
+                        Limpiar
+                    </button>
+                </div>
+            </div>
+
+            {{-- Tabla --}}
+            <div class="table-container">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Activo</th>
+                                <th>Técnico</th>
+                                <th>Reporta</th>
+                                <th>Ingreso</th>
+                                <th>F. Requerida</th>
+                                <th>Salida</th>
+                                <th>Estado</th>
+                                <th class="text-end">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaFichas">
+                            @forelse($fichas as $ficha)
+                            <tr>
+                                <td>
+                                    @if($ficha->activo)
+                                        <span class="fw-medium" style="color:#1e3c72;">
+                                            {{ $ficha->activo->serial }}
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ $ficha->activo->modelo?->nombre ?? 'N/A' }}
+                                        </small>
+                                    @else
+                                        <span class="text-muted">Equipo externo</span>
+                                    @endif
+                                </td>
+                                <td>{{ $ficha->tecnico_nombre ?? '---' }}</td>
+                                <td>{{ $ficha->usuario_reporta_nombre ?? '---' }}</td>
+                                <td>
+                                    <small>{{ $ficha->fecha_ingreso?->format('d/m/Y') ?? 'N/A' }}</small>
+                                </td>
+                                <td>
+                                    @if($ficha->fecha_requerida_entrega)
+                                        @php
+                                            $dias = $ficha->dias_restantes;
+                                            $clase = 'badge-fecha-vigente';
+                                            $texto = $ficha->fecha_requerida_entrega->format('d/m/Y');
+                                            if ($ficha->esta_vencida) {
+                                                $clase = 'badge-fecha-vencida';
+                                                $texto .= ' (Vencida)';
+                                            } elseif ($dias !== null && $dias <= 3) {
+                                                $clase = 'badge-fecha-proxima';
+                                                $texto .= " ({$dias} d)";
+                                            }
+                                        @endphp
+                                        <span class="badge-fecha-entrega {{ $clase }}">
+                                            {{ $texto }}
+                                        </span>
+                                    @else
+                                        <span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    <small>{{ $ficha->fecha_salida?->format('d/m/Y') ?? '---' }}</small>
+                                </td>
+                                <td>
+                                    @if($ficha->estado === 'en_proceso')
+                                        <span class="badge-estado-en-proceso">En Proceso</span>
+                                    @else
+                                        <span class="badge-estado-finalizado">Finalizado</span>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    <button type="button" class="btn-action btn-outline-primary-dark"
+                                            onclick="verDetalle({{ $ficha->id }})" title="Ver detalle">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M12 8v4"/>
+                                            <path d="M12 16h.01"/>
+                                        </svg>
+                                    </button>
+                                    @if($ficha->estado === 'en_proceso')
+                                    <button type="button" class="btn-cerrar-ficha ms-1"
+                                            onclick="abrirModalCerrarFicha({{ $ficha->id }})" title="Cerrar ficha">
+                                        ✓ Cerrar
+                                    </button>
+                                    @endif
+                                    @if(auth()->user()->hasPermission('eliminar-ficha-soporte'))
+                                    <button type="button" class="btn-action text-danger ms-1"
+                                            onclick="confirmarEliminar({{ $ficha->id }})" title="Eliminar">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <polyline points="3 6 5 6 21 6"/>
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                        </svg>
+                                    </button>
+                                    @endif
+                                </td>
+                            </tr>
+                            @empty
+                            <tr>
+                                <td colspan="8" class="text-center py-5 text-muted">
+                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
+                                        <rect x="2" y="6" width="20" height="12" rx="2"/>
+                                    </svg>
+                                    <p>No hay fichas de soporte registradas</p>
+                                </td>
+                            </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            {{-- Paginación --}}
+            @if($fichas->hasPages())
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <div class="text-muted small" id="paginationInfo">
+                    Mostrando {{ $fichas->firstItem() }} a {{ $fichas->lastItem() }}
+                    de {{ $fichas->total() }} registros
+                </div>
+                <nav>
+                    {{ $fichas->links() }}
+                </nav>
+            </div>
+            @endif
+        </div>
+
+        {{-- ============================================ --}}
+        {{-- PANEL 2: CORREO DE SOPORTE --}}
+        {{-- ============================================ --}}
+        @if(auth()->user()->hasPermission('ver-fichas-soporte'))
+        <div class="tab-pane fade" id="panel-correos" role="tabpanel">
+
+            <div class="filters-bar">
+                <div class="input-group" style="max-width: 400px;">
+                    <span class="input-group-text">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </span>
+                    <input type="text" class="form-control" id="buscarCorreo"
+                           placeholder="Buscar por remitente, asunto...">
+                </div>
+                <select class="form-select" id="filtroCorreo" style="max-width: 200px;">
+                    <option value="">Todos</option>
+                    <option value="no_leidos">No leídos</option>
+                    <option value="no_procesados">Sin procesar</option>
+                    <option value="procesados">Procesados</option>
+                </select>
+                <button class="btn btn-primary-dark" onclick="revisarCorreos()" id="btnRevisarCorreos">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:4px;">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                    </svg>
+                    Revisar ahora
+                </button>
+            </div>
+
+            <div id="listaCorreos" class="p-3" style="background: white; border-radius: 12px;">
+                <div class="text-center py-5 text-muted">
+                    <div class="spinner-border text-primary" role="status"></div>
+                    <p class="mt-2">Cargando correos...</p>
+                </div>
             </div>
         </div>
-        <div class="d-flex gap-2 flex-wrap">
-         
-        </div>
-    </div>
-
-    <!-- ========== TABLA ========== -->
-    <div class="table-container">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead>
-                    <tr>
-                        <th>Activo</th>
-                        <th>Técnico</th>
-                        <th>Reporta</th>
-                        <th>Ingreso</th>
-                        <th>Salida</th>
-                        <th>Estado</th>
-                        <th class="text-end">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody id="tablaFichas">
-                    <tr><td colspan="7" class="text-center py-4 text-muted">Cargando...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <!-- ========== PAGINACIÓN ========== -->
-    <div class="d-flex justify-content-between align-items-center mt-3">
-        <div class="text-muted small" id="paginationInfo"></div>
-        <nav>
-            <ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul>
-        </nav>
+        @endif
     </div>
 </div>
 
-<!-- ========== MODAL CREAR FICHA ========== -->
+{{-- ============================================================ --}}
+{{-- MODAL: CREAR FICHA MANUAL --}}
+{{-- ============================================================ --}}
 <div class="modal fade" id="modalCrearFicha" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -194,11 +494,12 @@
             <form id="formCrearFicha">
                 @csrf
                 <div class="modal-body">
-                    <!-- Buscador de Activo -->
+                    {{-- Buscador de Activo --}}
                     <div class="mb-3">
                         <label class="form-label">Buscar Activo <span class="text-danger">*</span></label>
                         <div class="activo-buscar-container">
-                            <input type="text" class="form-control" id="activoBuscarInput" placeholder="Escriba el serial, modelo o marca del activo..." autocomplete="off">
+                            <input type="text" class="form-control" id="activoBuscarInput"
+                                   placeholder="Escriba el serial, modelo o marca del activo..." autocomplete="off">
                             <input type="hidden" id="fichaActivoId" name="activo_id" value="">
                             <div class="activo-dropdown" id="activoDropdown"></div>
                         </div>
@@ -210,7 +511,7 @@
                         <small class="text-muted">Solo se muestran activos disponibles</small>
                     </div>
 
-                    <!-- Buscador de Técnico -->
+                    {{-- Buscador de Técnico --}}
                     <div class="mb-3">
                         <label class="form-label">Técnico Responsable</label>
                         <div class="tecnico-search-container">
@@ -243,22 +544,24 @@
                         </div>
                     </div>
 
-                    <!-- Usuario que Reporta -->
+                    {{-- Usuario que Reporta --}}
                     <div class="mb-3">
                         <label class="form-label">Usuario que Reporta <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="fichaUsuarioReporta" name="usuario_reporta_nombre" required>
                     </div>
 
-                    <!-- Diagnóstico -->
+                    {{-- Diagnóstico --}}
                     <div class="mb-3">
                         <label class="form-label">Diagnóstico</label>
-                        <textarea name="diagnostico" id="fichaDiagnostico" rows="3" class="form-control" placeholder="Describa el problema del equipo..."></textarea>
+                        <textarea name="diagnostico" id="fichaDiagnostico" rows="3" class="form-control"
+                                  placeholder="Describa el problema del equipo..."></textarea>
                     </div>
 
-                    <!-- Observaciones -->
+                    {{-- Observaciones --}}
                     <div class="mb-3">
                         <label class="form-label">Observaciones</label>
-                        <textarea name="observaciones" id="fichaObservaciones" rows="2" class="form-control" placeholder="Observaciones adicionales..."></textarea>
+                        <textarea name="observaciones" id="fichaObservaciones" rows="2" class="form-control"
+                                  placeholder="Observaciones adicionales..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -270,7 +573,9 @@
     </div>
 </div>
 
-<!-- ========== 🆕 MODAL EQUIPO EXTERNO CON FEEDBACK DE SERIAL ========== -->
+{{-- ============================================================ --}}
+{{-- MODAL: EQUIPO EXTERNO --}}
+{{-- ============================================================ --}}
 <div class="modal fade" id="modalEquipoExterno" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -288,7 +593,7 @@
             <form id="formEquipoExterno">
                 @csrf
                 <div class="modal-body">
-                    <!-- Datos del Equipo -->
+                    {{-- Datos del Equipo --}}
                     <div class="equipo-externo-card">
                         <div class="card-title">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:8px;">
@@ -304,14 +609,12 @@
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Serial <span class="text-danger">*</span></label>
                                 <input type="text" class="form-control" id="ext_serial" name="serial" required>
-                                <!-- ========== 🆕 FEEDBACK DE SERIAL ========== -->
-                                <small id="ext_serial_feedback" class="text-muted">
-                                    Ingrese el número de serie para verificar si ya existe
-                                </small>
+                                <small id="ext_serial_feedback" class="text-muted">Ingrese el número de serie para verificar si ya existe</small>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Modelo <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="ext_modelo_nombre" name="modelo_nombre" required placeholder="Ej: Dell Latitude 5540">
+                                <input type="text" class="form-control" id="ext_modelo_nombre" name="modelo_nombre"
+                                       required placeholder="Ej: Dell Latitude 5540">
                             </div>
                         </div>
 
@@ -356,11 +659,12 @@
 
                         <div class="mb-3">
                             <label class="form-label">Observaciones</label>
-                            <textarea class="form-control" id="ext_observaciones" name="observaciones" rows="2" placeholder="Observaciones del equipo..."></textarea>
+                            <textarea class="form-control" id="ext_observaciones" name="observaciones" rows="2"
+                                      placeholder="Observaciones del equipo..."></textarea>
                         </div>
                     </div>
 
-                    <!-- Datos de la Ficha de Soporte -->
+                    {{-- Datos de la Ficha --}}
                     <div class="mt-3">
                         <h6 style="color:#1e3c72; font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e9ecef; padding-bottom:0.5rem;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:6px;">
@@ -369,7 +673,6 @@
                             Datos de la Ficha de Soporte
                         </h6>
 
-                        <!-- Buscador de Técnico -->
                         <div class="mb-3">
                             <label class="form-label">Técnico Responsable</label>
                             <div class="tecnico-search-container">
@@ -409,12 +712,14 @@
 
                         <div class="mb-3">
                             <label class="form-label">Diagnóstico</label>
-                            <textarea name="diagnostico" id="ext_diagnostico" rows="3" class="form-control" placeholder="Describa el problema del equipo..."></textarea>
+                            <textarea name="diagnostico" id="ext_diagnostico" rows="3" class="form-control"
+                                      placeholder="Describa el problema del equipo..."></textarea>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label">Observaciones</label>
-                            <textarea name="observaciones_ficha" id="ext_observaciones_ficha" rows="2" class="form-control" placeholder="Observaciones adicionales..."></textarea>
+                            <textarea name="observaciones_ficha" id="ext_observaciones_ficha" rows="2"
+                                      class="form-control" placeholder="Observaciones adicionales..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -434,7 +739,9 @@
     </div>
 </div>
 
-<!-- ========== MODAL CERRAR FICHA ========== -->
+{{-- ============================================================ --}}
+{{-- MODAL: CERRAR FICHA --}}
+{{-- ============================================================ --}}
 <div class="modal fade" id="modalCerrarFicha" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -455,12 +762,16 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Trabajo Realizado</label>
-                        <textarea name="trabajo_realizado" id="cerrarTrabajoRealizado" rows="3" class="form-control" placeholder="Describa el trabajo realizado..."></textarea>
+                        <textarea name="trabajo_realizado" id="cerrarTrabajoRealizado" rows="3"
+                                  class="form-control" placeholder="Describa el trabajo realizado..."></textarea>
                     </div>
+
                     <div class="mb-3">
                         <label class="form-label">Observaciones Finales</label>
-                        <textarea name="observaciones_finales" id="cerrarObservacionesFinales" rows="2" class="form-control" placeholder="Observaciones finales..."></textarea>
+                        <textarea name="observaciones_finales" id="cerrarObservacionesFinales" rows="2"
+                                  class="form-control" placeholder="Observaciones finales..."></textarea>
                     </div>
+
                     <hr>
                     <h6 class="fw-bold mb-3" style="color: #1e3c72;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:6px;">
@@ -479,7 +790,9 @@
     </div>
 </div>
 
-<!-- ========== MODAL DETALLE ========== -->
+{{-- ============================================================ --}}
+{{-- MODAL: DETALLE --}}
+{{-- ============================================================ --}}
 <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -497,7 +810,9 @@
     </div>
 </div>
 
-<!-- ========== MODAL ELIMINAR ========== -->
+{{-- ============================================================ --}}
+{{-- MODAL: ELIMINAR --}}
+{{-- ============================================================ --}}
 <div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -518,74 +833,79 @@
     </div>
 </div>
 
-<!-- ========== NOTIFICACIONES ========== -->
+{{-- ============================================================ --}}
+{{-- MODAL: CORREO + WIZARD DE CONVERSIÓN --}}
+{{-- ============================================================ --}}
+@include('admin.soporte.partials.modal-correo-wizard')
+
+{{-- Notificaciones --}}
 <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 9999; width: 320px;"></div>
 
 @endsection
 
 @section('scripts')
-    @vite(['resources/js/admin-soporte.js'])
-    <script>
-        window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
-        function authUserHasPermission(p) { return window.userPermissions.includes(p); }
+@vite(['resources/js/admin-soporte.js'])
 
-        // ============================================================
-        // 🆕 VALIDACIÓN DE SERIAL EN TIEMPO REAL (EQUIPO EXTERNO)
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            const serialInput = document.getElementById('ext_serial');
-            const feedback = document.getElementById('ext_serial_feedback');
-            
-            if (serialInput && feedback) {
-                serialInput.addEventListener('blur', function() {
-                    const serial = this.value.trim();
-                    
-                    if (serial.length < 3) {
-                        feedback.textContent = 'Ingrese al menos 3 caracteres para verificar';
-                        feedback.className = 'text-muted';
-                        this.classList.remove('is-valid', 'is-invalid');
-                        return;
-                    }
-                    
-                    feedback.textContent = 'Verificando serial...';
-                    feedback.className = 'text-muted';
-                    
-                    fetch(`/admin/activos?buscar=${encodeURIComponent(serial)}`, {
-                        headers: { 'Accept': 'application/json' }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            const existe = data.data.some(a => a.serial === serial);
-                            if (existe) {
-                                feedback.textContent = '⚠️ Este serial ya está registrado en el sistema.';
-                                feedback.className = 'text-danger';
-                                this.classList.add('is-invalid');
-                                this.classList.remove('is-valid');
-                            } else {
-                                feedback.textContent = '✓ Serial disponible';
-                                feedback.className = 'text-success';
-                                this.classList.add('is-valid');
-                                this.classList.remove('is-invalid');
-                            }
-                        }
-                    })
-                    .catch(() => {
-                        feedback.textContent = 'Error al verificar serial';
+<script>
+window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
+function authUserHasPermission(p) { return window.userPermissions.includes(p); }
+
+// ============================================================
+// VALIDACIÓN DE SERIAL EN TIEMPO REAL (EQUIPO EXTERNO)
+// ============================================================
+document.addEventListener('DOMContentLoaded', function () {
+    const serialInput = document.getElementById('ext_serial');
+    const feedback = document.getElementById('ext_serial_feedback');
+
+    if (serialInput && feedback) {
+        serialInput.addEventListener('blur', function () {
+            const serial = this.value.trim();
+
+            if (serial.length < 3) {
+                feedback.textContent = 'Ingrese al menos 3 caracteres para verificar';
+                feedback.className = 'text-muted';
+                this.classList.remove('is-valid', 'is-invalid');
+                return;
+            }
+
+            feedback.textContent = 'Verificando serial...';
+            feedback.className = 'text-muted';
+
+            fetch(`/admin/activos?buscar=${encodeURIComponent(serial)}`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const existe = data.data.some(a => a.serial === serial);
+                    if (existe) {
+                        feedback.textContent = '⚠️ Este serial ya está registrado en el sistema.';
                         feedback.className = 'text-danger';
-                    });
-                });
-                
-                // Limpiar validación al escribir
-                serialInput.addEventListener('input', function() {
-                    this.classList.remove('is-valid', 'is-invalid');
-                    const feedback = document.getElementById('ext_serial_feedback');
-                    if (feedback) {
-                        feedback.textContent = 'Ingrese el número de serie para verificar si ya existe';
-                        feedback.className = 'text-muted';
+                        this.classList.add('is-invalid');
+                        this.classList.remove('is-valid');
+                    } else {
+                        feedback.textContent = '✓ Serial disponible';
+                        feedback.className = 'text-success';
+                        this.classList.add('is-valid');
+                        this.classList.remove('is-invalid');
                     }
-                });
+                }
+            })
+            .catch(() => {
+                feedback.textContent = 'Error al verificar serial';
+                feedback.className = 'text-danger';
+            });
+        });
+
+        serialInput.addEventListener('input', function () {
+            this.classList.remove('is-valid', 'is-invalid');
+            const fb = document.getElementById('ext_serial_feedback');
+            if (fb) {
+                fb.textContent = 'Ingrese el número de serie para verificar si ya existe';
+                fb.className = 'text-muted';
             }
         });
-    </script>
+    }
+});
+</script>
 @endsection

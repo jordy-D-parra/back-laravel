@@ -113,7 +113,7 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/categorias/{id}', [EquipoController::class, 'deleteCategoria']);
             Route::patch('/categorias/{id}/toggle', [EquipoController::class, 'toggleCategoria']);
 
-            // 👇 RUTA PARA FILTRAR CATEGORÍAS POR MARCA (WIZARD)
+            // Filtrar categorías por marca (wizard)
             Route::get('/categorias-por-marca/{marcaId}', [EquipoController::class, 'getCategoriasPorMarca']);
 
             Route::get('/modelos', [EquipoController::class, 'getModelos']);
@@ -123,6 +123,7 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/modelos/{id}', [EquipoController::class, 'deleteModelo']);
             Route::patch('/modelos/{id}/toggle', [EquipoController::class, 'toggleModelo']);
 
+            // Componentes por modelo
             Route::get('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'index']);
             Route::post('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'store']);
             Route::get('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'show']);
@@ -191,38 +192,52 @@ Route::middleware(['auth'])->group(function () {
             Route::post('/{prestamo}/extender', [PrestamoController::class, 'extender'])->name('extender');
         });
 
-    Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
-    Route::get('/', [SolicitudController::class, 'index'])->name('index');
-    
-    // 🔴 ESTAS DEBEN IR ANTES DE /{solicitud} PARA EVITAR CONFLICTOS
-    Route::get('/correos/lista', [SolicitudController::class, 'correosIndex'])->name('correos.index');
-    Route::get('/correos/contador', [SolicitudController::class, 'correosContador'])->name('correos.contador');
-    Route::post('/correos/revisar', [SolicitudController::class, 'correosRevisar'])->name('correos.revisar');
-    Route::get('/correos/{id}', [SolicitudController::class, 'correoShow'])->name('correos.show');
-    Route::delete('/correos/{id}', [SolicitudController::class, 'correoDestroy'])->name('correos.destroy');
-    Route::post('/correos/{id}/convertir', [SolicitudController::class, 'correoConvertir'])->name('correos.convertir');
-    
-    Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->name('detalles');
-    Route::get('/pendientes-prestamo', [SolicitudController::class, 'paraPrestamo'])->name('pendientes-prestamo');
-    Route::post('/store', [SolicitudController::class, 'store'])->name('store');
-    Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])->name('update');
-    Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('cancel');
-    Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('approve');
-    Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
-});
+        // 3.3 Solicitudes
+        Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
+            Route::get('/', [SolicitudController::class, 'index'])->name('index');
+
+            // Rutas de correos (ANTES de /{solicitud} para evitar conflictos)
+            Route::get('/correos/lista', [SolicitudController::class, 'correosIndex'])->name('correos.index');
+            Route::get('/correos/contador', [SolicitudController::class, 'correosContador'])->name('correos.contador');
+            Route::post('/correos/revisar', [SolicitudController::class, 'correosRevisar'])->name('correos.revisar');
+            Route::get('/correos/{id}', [SolicitudController::class, 'correoShow'])->name('correos.show');
+            Route::delete('/correos/{id}', [SolicitudController::class, 'correoDestroy'])->name('correos.destroy');
+            Route::post('/correos/{id}/convertir', [SolicitudController::class, 'correoConvertir'])->name('correos.convertir');
+
+            Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->name('detalles');
+            Route::get('/pendientes-prestamo', [SolicitudController::class, 'paraPrestamo'])->name('pendientes-prestamo');
+            Route::post('/store', [SolicitudController::class, 'store'])->name('store');
+            Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])->name('update');
+            Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->name('cancel');
+            Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->name('approve');
+            Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->name('reject');
+        });
 
         // 3.4 Soporte Técnico
-        Route::resource('soporte', FichaSoporteController::class);
+
+        // 3.4.1 Correos de soporte
+        Route::prefix('soporte/correos')->name('soporte.correos.')->group(function () {
+            Route::get('/lista',    [FichaSoporteController::class, 'correosIndex'])->name('index');
+            Route::get('/contador', [FichaSoporteController::class, 'correosContador'])->name('contador');
+            Route::post('/revisar', [FichaSoporteController::class, 'correosRevisar'])->name('revisar');
+            Route::get('/{id}',     [FichaSoporteController::class, 'correoShow'])->name('show');
+            Route::post('/{id}/convertir', [FichaSoporteController::class, 'correoConvertir'])->name('convertir');
+        });
+
+        // 3.4.2 Rutas específicas (ANTES del resource)
+        Route::post('soporte/equipo-externo', [FichaSoporteController::class, 'storeEquipoExterno'])->name('soporte.equipo-externo');
         Route::get('soporte/{id}/componentes', [FichaSoporteController::class, 'getComponentesDetalle'])->name('soporte.componentes');
         Route::post('soporte/{id}/close', [FichaSoporteController::class, 'close'])->name('soporte.close');
-        Route::post('soporte/equipo-externo', [FichaSoporteController::class, 'storeEquipoExterno'])->name('soporte.equipo-externo');
+
+        // 3.4.3 Resource (AL FINAL)
+        Route::resource('soporte', FichaSoporteController::class);
 
         // 3.5 Actas
         Route::prefix('actas')->name('actas.')->group(function () {
             // Acta de Entrega
             Route::get('/generar', [ActaEntregaController::class, 'generarDesdePrestamo'])->name('generar');
             Route::get('/imprimir/{id}', [ActaEntregaController::class, 'imprimir'])->name('imprimir');
-            
+
             // Acta de Devolución
             Route::get('/devolucion/generar', [ActaDevolucionController::class, 'generarDesdePrestamo'])->name('devolucion.generar');
             Route::get('/devolucion/imprimir/{id}', [ActaDevolucionController::class, 'imprimir'])->name('devolucion.imprimir');
