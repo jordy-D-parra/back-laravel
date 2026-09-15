@@ -7,16 +7,14 @@ use App\Models\Marca;
 use App\Models\Categoria;
 use App\Models\Modelo;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class EquipoController extends Controller
 {
     /**
-     * Vista principal del catálogo de equipos
+     * Vista principal del catálogo de equipos.
      */
     public function index()
     {
-        // Verificar permiso (al menos ver marcas, categorías o modelos)
         if (!auth()->user()->hasPermission('ver-marcas') &&
             !auth()->user()->hasPermission('ver-categorias-equipos') &&
             !auth()->user()->hasPermission('ver-modelos')) {
@@ -48,19 +46,19 @@ class EquipoController extends Controller
 
         try {
             $query = Marca::withCount('modelos');
-            
+
             if ($request->filled('buscar')) {
                 $buscar = $request->buscar;
-                $query->where(function($q) use ($buscar) {
+                $query->where(function ($q) use ($buscar) {
                     $q->where('nombre', 'ILIKE', "%{$buscar}%")
                       ->orWhere('descripcion', 'ILIKE', "%{$buscar}%");
                 });
             }
-            
+
             if ($request->filled('estado')) {
                 $query->where('activo', $request->estado === 'activo');
             }
-            
+
             $marcas = $query->orderBy('nombre')->get();
             return response()->json(['success' => true, 'data' => $marcas]);
         } catch (\Exception $e) {
@@ -77,13 +75,13 @@ class EquipoController extends Controller
         try {
             $validated = $request->validate([
                 'nombre' => 'required|string|max:100|unique:marcas',
-                'descripcion' => 'nullable|string'
+                'descripcion' => 'nullable|string',
             ]);
 
             $marca = Marca::create($validated);
             return response()->json(['success' => true, 'message' => 'Marca creada exitosamente', 'data' => $marca]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => 'Error de validación: ' . $e->getMessage()], 422);
+            return response()->json(['success' => false, 'message' => 'Error de validación', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error al crear la marca: ' . $e->getMessage()], 500);
         }
@@ -96,7 +94,7 @@ class EquipoController extends Controller
         }
 
         try {
-            $marca = Marca::with(['modelos' => function($q) {
+            $marca = Marca::with(['modelos' => function ($q) {
                 $q->with('categoria');
             }])->withCount('modelos')->findOrFail($id);
 
@@ -117,13 +115,13 @@ class EquipoController extends Controller
 
             $validated = $request->validate([
                 'nombre' => 'required|string|max:100|unique:marcas,nombre,' . $id,
-                'descripcion' => 'nullable|string'
+                'descripcion' => 'nullable|string',
             ]);
 
             $marca->update($validated);
             return response()->json(['success' => true, 'message' => 'Marca actualizada exitosamente']);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => 'Error de validación: ' . $e->getMessage()], 422);
+            return response()->json(['success' => false, 'message' => 'Error de validación', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error al actualizar la marca'], 500);
         }
@@ -166,7 +164,7 @@ class EquipoController extends Controller
         }
     }
 
-    // ==================== CATEGORÍAS ====================
+    // ==================== CATEGORÍAS (GLOBALES) ====================
 
     public function getCategorias(Request $request)
     {
@@ -175,25 +173,18 @@ class EquipoController extends Controller
         }
 
         try {
-            $query = Categoria::with(['marca'])->withCount('modelos');
+            $query = Categoria::withCount('modelos');
 
             if ($request->filled('buscar')) {
                 $buscar = $request->buscar;
-                $query->where(function($q) use ($buscar) {
+                $query->where(function ($q) use ($buscar) {
                     $q->where('nombre', 'ILIKE', "%{$buscar}%")
-                      ->orWhere('descripcion', 'ILIKE', "%{$buscar}%")
-                      ->orWhereHas('marca', function($q2) use ($buscar) {
-                          $q2->where('nombre', 'ILIKE', "%{$buscar}%");
-                      });
+                      ->orWhere('descripcion', 'ILIKE', "%{$buscar}%");
                 });
             }
 
             if ($request->filled('estado')) {
                 $query->where('activo', $request->estado === 'activo');
-            }
-
-            if ($request->filled('marca_id')) {
-                $query->where('marca_id', $request->marca_id);
             }
 
             $categorias = $query->orderBy('nombre')->get();
@@ -211,20 +202,24 @@ class EquipoController extends Controller
         }
 
         try {
+            // ✅ Unicidad global: solo nombre
             $validated = $request->validate([
-                'nombre' => 'required|string|max:100|unique:categorias',
+                'nombre' => 'required|string|max:100|unique:categorias,nombre',
                 'descripcion' => 'nullable|string',
-                'marca_id' => 'required|exists:marcas,id'
             ]);
 
             $categoria = Categoria::create($validated);
             return response()->json([
-                'success' => true, 
-                'message' => 'Categoría creada exitosamente', 
-                'data' => $categoria->load('marca')
+                'success' => true,
+                'message' => 'Categoría creada exitosamente',
+                'data' => $categoria,
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => 'Error de validación: ' . $e->getMessage()], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Ya existe una categoría con ese nombre',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error al crear la categoría: ' . $e->getMessage()], 500);
         }
@@ -237,7 +232,7 @@ class EquipoController extends Controller
         }
 
         try {
-            $categoria = Categoria::with(['marca', 'modelos' => function($q) {
+            $categoria = Categoria::with(['modelos' => function ($q) {
                 $q->with('marca');
             }])->withCount('modelos')->findOrFail($id);
 
@@ -259,13 +254,16 @@ class EquipoController extends Controller
             $validated = $request->validate([
                 'nombre' => 'required|string|max:100|unique:categorias,nombre,' . $id,
                 'descripcion' => 'nullable|string',
-                'marca_id' => 'required|exists:marcas,id'
             ]);
 
             $categoria->update($validated);
             return response()->json(['success' => true, 'message' => 'Categoría actualizada exitosamente']);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => 'Error de validación: ' . $e->getMessage()], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Ya existe una categoría con ese nombre',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error al actualizar la categoría: ' . $e->getMessage()], 500);
         }
@@ -308,19 +306,6 @@ class EquipoController extends Controller
         }
     }
 
-    public function getCategoriasPorMarca($marcaId)
-    {
-        try {
-            $categorias = Categoria::where('marca_id', $marcaId)
-                                   ->where('activo', true)
-                                   ->orderBy('nombre')
-                                   ->get(['id', 'nombre']);
-            return response()->json(['success' => true, 'data' => $categorias]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al cargar categorías'], 500);
-        }
-    }
-
     // ==================== MODELOS ====================
 
     public function getModelos(Request $request)
@@ -330,17 +315,17 @@ class EquipoController extends Controller
         }
 
         try {
-            $query = Modelo::with(['categoria.marca', 'marca']);
+            $query = Modelo::with(['marca', 'categoria']);
 
             if ($request->filled('buscar')) {
                 $buscar = $request->buscar;
-                $query->where(function($q) use ($buscar) {
+                $query->where(function ($q) use ($buscar) {
                     $q->where('nombre', 'ILIKE', "%{$buscar}%")
                       ->orWhere('descripcion', 'ILIKE', "%{$buscar}%")
-                      ->orWhereHas('categoria', function($q2) use ($buscar) {
+                      ->orWhereHas('categoria', function ($q2) use ($buscar) {
                           $q2->where('nombre', 'ILIKE', "%{$buscar}%");
                       })
-                      ->orWhereHas('categoria.marca', function($q2) use ($buscar) {
+                      ->orWhereHas('marca', function ($q2) use ($buscar) {
                           $q2->where('nombre', 'ILIKE', "%{$buscar}%");
                       });
                 });
@@ -373,43 +358,31 @@ class EquipoController extends Controller
         }
 
         try {
+            // ✅ Marca Y categoría son independientes, ambas se piden explícitamente
             $validated = $request->validate([
+                'marca_id' => 'required|exists:marcas,id',
                 'categoria_id' => 'required|exists:categorias,id',
                 'nombre' => 'required|string|max:100',
                 'descripcion' => 'nullable|string',
-                'especificaciones' => 'nullable|string'
+                'especificaciones' => 'nullable|string',
             ]);
 
-            // Obtener la categoría con su marca
-            $categoria = Categoria::with('marca')->find($validated['categoria_id']);
-            
-            if (!$categoria) {
-                return response()->json(['success' => false, 'message' => 'Categoría no encontrada'], 422);
-            }
-
-            if (!$categoria->marca_id) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'La categoría seleccionada no tiene una marca asociada. Por favor, edite la categoría y asígnele una marca.'
-                ], 422);
-            }
-
-            // Verificar que no exista otro modelo con el mismo nombre y categoría
-            $exists = Modelo::where('categoria_id', $validated['categoria_id'])
+            // Unicidad: mismo nombre dentro de la misma marca + categoría
+            $exists = Modelo::where('marca_id', $validated['marca_id'])
+                            ->where('categoria_id', $validated['categoria_id'])
                             ->where('nombre', $validated['nombre'])
                             ->exists();
 
             if ($exists) {
                 return response()->json([
-                    'success' => false, 
-                    'message' => 'Ya existe un modelo con este nombre en la categoría seleccionada'
+                    'success' => false,
+                    'message' => 'Ya existe un modelo con este nombre para esta marca y categoría',
                 ], 422);
             }
 
-            // Crear el modelo con la marca de la categoría
             $modelo = Modelo::create([
+                'marca_id' => $validated['marca_id'],
                 'categoria_id' => $validated['categoria_id'],
-                'marca_id' => $categoria->marca_id,
                 'nombre' => $validated['nombre'],
                 'descripcion' => $validated['descripcion'] ?? null,
                 'especificaciones' => $validated['especificaciones'] ?? null,
@@ -417,12 +390,12 @@ class EquipoController extends Controller
             ]);
 
             return response()->json([
-                'success' => true, 
-                'message' => 'Modelo creado exitosamente', 
-                'data' => $modelo->load(['categoria.marca', 'marca'])
+                'success' => true,
+                'message' => 'Modelo creado exitosamente',
+                'data' => $modelo->load(['marca', 'categoria']),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => 'Error de validación: ' . $e->getMessage()], 422);
+            return response()->json(['success' => false, 'message' => 'Error de validación', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error al crear el modelo: ' . $e->getMessage()], 500);
         }
@@ -435,7 +408,7 @@ class EquipoController extends Controller
         }
 
         try {
-            $modelo = Modelo::with(['categoria.marca', 'marca'])->findOrFail($id);
+            $modelo = Modelo::with(['marca', 'categoria'])->findOrFail($id);
             return response()->json(['success' => true, 'data' => $modelo]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Modelo no encontrado'], 404);
@@ -452,53 +425,35 @@ class EquipoController extends Controller
             $modelo = Modelo::findOrFail($id);
 
             $validated = $request->validate([
+                'marca_id' => 'required|exists:marcas,id',
                 'categoria_id' => 'required|exists:categorias,id',
                 'nombre' => 'required|string|max:100',
                 'descripcion' => 'nullable|string',
-                'especificaciones' => 'nullable|string'
+                'especificaciones' => 'nullable|string',
             ]);
 
-            // Obtener la categoría con su marca
-            $categoria = Categoria::with('marca')->find($validated['categoria_id']);
-            
-            if (!$categoria) {
-                return response()->json(['success' => false, 'message' => 'Categoría no encontrada'], 422);
-            }
-
-            if (!$categoria->marca_id) {
-                return response()->json([
-                    'success' => false, 
-                    'message' => 'La categoría seleccionada no tiene una marca asociada'
-                ], 422);
-            }
-
-            $exists = Modelo::where('categoria_id', $validated['categoria_id'])
+            $exists = Modelo::where('marca_id', $validated['marca_id'])
+                            ->where('categoria_id', $validated['categoria_id'])
                             ->where('nombre', $validated['nombre'])
                             ->where('id', '!=', $id)
                             ->exists();
 
             if ($exists) {
                 return response()->json([
-                    'success' => false, 
-                    'message' => 'Ya existe un modelo con este nombre en la categoría seleccionada'
+                    'success' => false,
+                    'message' => 'Ya existe un modelo con este nombre para esta marca y categoría',
                 ], 422);
             }
 
-            $modelo->update([
-                'categoria_id' => $validated['categoria_id'],
-                'marca_id' => $categoria->marca_id,
-                'nombre' => $validated['nombre'],
-                'descripcion' => $validated['descripcion'] ?? null,
-                'especificaciones' => $validated['especificaciones'] ?? null,
-            ]);
+            $modelo->update($validated);
 
             return response()->json([
-                'success' => true, 
+                'success' => true,
                 'message' => 'Modelo actualizado exitosamente',
-                'data' => $modelo->load(['categoria.marca', 'marca'])
+                'data' => $modelo->fresh(['marca', 'categoria']),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => 'Error de validación: ' . $e->getMessage()], 422);
+            return response()->json(['success' => false, 'message' => 'Error de validación', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Error al actualizar el modelo: ' . $e->getMessage()], 500);
         }
@@ -554,20 +509,6 @@ class EquipoController extends Controller
     {
         try {
             $categorias = Categoria::where('activo', true)
-                                   ->with('marca')
-                                   ->orderBy('nombre')
-                                   ->get(['id', 'nombre', 'marca_id']);
-            return response()->json(['success' => true, 'data' => $categorias]);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al cargar categorías'], 500);
-        }
-    }
-
-    public function getCategoriasListByMarca($marcaId)
-    {
-        try {
-            $categorias = Categoria::where('marca_id', $marcaId)
-                                   ->where('activo', true)
                                    ->orderBy('nombre')
                                    ->get(['id', 'nombre']);
             return response()->json(['success' => true, 'data' => $categorias]);

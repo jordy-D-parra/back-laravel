@@ -14,7 +14,6 @@ use App\Http\Controllers\Admin\InstitucionController;
 use App\Http\Controllers\Admin\DepartamentoController;
 use App\Http\Controllers\Admin\ResponsableController;
 use App\Http\Controllers\Admin\EquipoController;
-use App\Http\Controllers\Admin\ModeloComponenteController;
 use App\Http\Controllers\Admin\ActivoController;
 use App\Http\Controllers\Admin\ComponenteController;
 use App\Http\Controllers\Admin\InventarioController;
@@ -113,7 +112,6 @@ Route::middleware(['auth'])->group(function () {
             Route::delete('/categorias/{id}', [EquipoController::class, 'deleteCategoria']);
             Route::patch('/categorias/{id}/toggle', [EquipoController::class, 'toggleCategoria']);
 
-            // 👇 RUTA PARA FILTRAR CATEGORÍAS POR MARCA (WIZARD)
             Route::get('/categorias-por-marca/{marcaId}', [EquipoController::class, 'getCategoriasPorMarca']);
 
             Route::get('/modelos', [EquipoController::class, 'getModelos']);
@@ -122,12 +120,6 @@ Route::middleware(['auth'])->group(function () {
             Route::put('/modelos/{id}', [EquipoController::class, 'updateModelo']);
             Route::delete('/modelos/{id}', [EquipoController::class, 'deleteModelo']);
             Route::patch('/modelos/{id}/toggle', [EquipoController::class, 'toggleModelo']);
-
-            Route::get('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'index']);
-            Route::post('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'store']);
-            Route::get('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'show']);
-            Route::put('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'update']);
-            Route::delete('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'destroy']);
 
             Route::get('/marcas-list', [EquipoController::class, 'getMarcasList']);
             Route::get('/categorias-list', [EquipoController::class, 'getCategoriasList']);
@@ -211,18 +203,15 @@ Route::middleware(['auth'])->group(function () {
 
         // 3.5 Actas
         Route::prefix('actas')->name('actas.')->group(function () {
-            // Acta de Entrega
             Route::get('/generar', [ActaEntregaController::class, 'generarDesdePrestamo'])->name('generar');
             Route::get('/imprimir/{id}', [ActaEntregaController::class, 'imprimir'])->name('imprimir');
-            
-            // Acta de Devolución
+
             Route::get('/devolucion/generar', [ActaDevolucionController::class, 'generarDesdePrestamo'])->name('devolucion.generar');
             Route::get('/devolucion/imprimir/{id}', [ActaDevolucionController::class, 'imprimir'])->name('devolucion.imprimir');
         });
 
         // ========== 4. REPORTES ==========
         Route::prefix('reportes')->name('reportes.')->group(function () {
-            // Reporte de Inventario
             Route::get('/inventario', [ReporteInventarioController::class, 'index'])->name('inventario');
             Route::get('/inventario/exportar-pdf', [ReporteInventarioController::class, 'exportarPdf'])->name('inventario.exportar-pdf');
             Route::get('/inventario/exportar-excel', [ReporteInventarioController::class, 'exportarExcel'])->name('inventario.exportar-excel');

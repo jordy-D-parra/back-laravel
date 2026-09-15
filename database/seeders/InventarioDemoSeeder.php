@@ -6,7 +6,6 @@ use Illuminate\Database\Seeder;
 use App\Models\Activo;
 use App\Models\Componente;
 use App\Models\Modelo;
-use App\Models\ModeloComponente;
 use App\Models\Institucion;
 use App\Models\Responsable;
 use App\Models\Estatus;
@@ -20,15 +19,14 @@ class InventarioDemoSeeder extends Seeder
         $institucion = Institucion::first();
         $responsable = Responsable::first();
         $estatusDisponible = Estatus::where('descripcion', 'Disponible')->first();
-        $estatusBodega = Estatus::where('descripcion', 'En bodega')->first();
 
         if (!$institucion || !$responsable || !$estatusDisponible) {
             $this->command->error('Faltan datos base. Ejecuta primero EntidadesSeeder y EstatusSeeder');
             return;
         }
 
-        // Obtener algunos modelos con sus componentes
-        $modelos = Modelo::with('modeloComponentes')->take(5)->get();
+        // Obtener algunos modelos
+        $modelos = Modelo::take(5)->get();
 
         $activosCreados = 0;
         $componentesCreados = 0;
@@ -50,28 +48,23 @@ class InventarioDemoSeeder extends Seeder
                 ]);
                 $activosCreados++;
 
-                // Crear componentes reales basados en los componentes del modelo
-                foreach ($modelo->modeloComponentes as $compModelo) {
-                    $marcasPorTipo = [
-                        'RAM' => ['Kingston', 'Crucial', 'Corsair'],
-                        'Disco' => ['Samsung', 'Western Digital', 'Kingston'],
-                        'Batería' => ['Dell', 'HP', 'Lenovo'],
-                        'Cargador' => ['Dell', 'HP', 'Lenovo'],
-                        'Pantalla' => ['LG', 'Samsung', 'AUO'],
-                        'Procesador' => ['Intel', 'AMD'],
-                        'Teclado' => ['Logitech', 'Dell', 'HP'],
-                        'Mouse' => ['Logitech', 'Microsoft'],
-                    ];
+                // Crear componentes genéricos para el activo
+                $tiposComponentes = ['RAM', 'Disco', 'Batería', 'Cargador'];
+                $marcasPorTipo = [
+                    'RAM' => ['Kingston', 'Crucial', 'Corsair'],
+                    'Disco' => ['Samsung', 'Western Digital', 'Kingston'],
+                    'Batería' => ['Dell', 'HP', 'Lenovo'],
+                    'Cargador' => ['Dell', 'HP', 'Lenovo'],
+                ];
 
-                    $marcas = $marcasPorTipo[$compModelo->tipo] ?? ['Genérica'];
-
+                foreach ($tiposComponentes as $tipo) {
+                    $marcas = $marcasPorTipo[$tipo] ?? ['Genérica'];
                     Componente::create([
-                        'tipo' => $compModelo->tipo,
-                        'modelo_componente_id' => $compModelo->id,
+                        'tipo' => $tipo,
                         'marca' => $marcas[array_rand($marcas)],
-                        'modelo' => $compModelo->descripcion,
-                        'serial' => strtoupper(substr($compModelo->tipo, 0, 3)) . '-' . rand(10000, 99999),
-                        'capacidad' => $compModelo->capacidad,
+                        'modelo' => 'Genérico',
+                        'serial' => strtoupper(substr($tipo, 0, 3)) . '-' . rand(10000, 99999),
+                        'capacidad' => $tipo === 'RAM' ? '8GB' : ($tipo === 'Disco' ? '512GB' : null),
                         'estado' => 'instalado',
                         'activo_id' => $activo->id,
                         'institucion_id' => $institucion->id,
@@ -91,7 +84,6 @@ class InventarioDemoSeeder extends Seeder
 
             Componente::create([
                 'tipo' => $tipo,
-                'modelo_componente_id' => null,
                 'marca' => ['Kingston', 'Logitech', 'Samsung', 'Dell'][array_rand(['Kingston', 'Logitech', 'Samsung', 'Dell'])],
                 'modelo' => 'Genérico',
                 'serial' => 'STOCK-' . strtoupper(substr($tipo, 0, 3)) . '-' . rand(1000, 9999),

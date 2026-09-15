@@ -1,5 +1,4 @@
 <?php
-
 // app/Models/Modelo.php
 
 namespace App\Models;
@@ -38,18 +37,6 @@ class Modelo extends Model
         return $this->belongsTo(Categoria::class);
     }
 
-    // 👇 NUEVO: Obtener la marca a través de la categoría
-    public function getMarcaViaCategoriaAttribute()
-    {
-        return $this->categoria?->marca;
-    }
-
-    // 👇 NUEVO: Para compatibilidad con la vista
-    public function getMarcaNombreAttribute()
-    {
-        return $this->categoria?->marca?->nombre ?? 'N/A';
-    }
-
     public function modeloComponentes(): HasMany
     {
         return $this->hasMany(ModeloComponente::class, 'modelo_id');
@@ -72,7 +59,6 @@ class Modelo extends Model
 
     public function getNombreCompletoAttribute(): string
     {
-        $marca = $this->categoria?->marca;
-        return ($marca ? $marca->nombre . ' ' : '') . $this->nombre;
+        return ($this->marca?->nombre ?? '') . ' ' . $this->nombre;
     }
 }

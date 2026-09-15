@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use App\Models\Estatus;
 
 class Activo extends Model
 {
@@ -83,6 +82,22 @@ class Activo extends Model
     }
 
     /**
+     * Fichas de soporte del activo.
+     */
+    public function fichasSoporte(): HasMany
+    {
+        return $this->hasMany(FichaSoporte::class, 'activo_id');
+    }
+
+    /**
+     * Préstamo en el que está reservado (si aplica).
+     */
+    public function reservadoEnPrestamo(): BelongsTo
+    {
+        return $this->belongsTo(Prestamo::class, 'reservado_en_prestamo_id');
+    }
+
+    /**
      * Acceso rápido a la categoría a través del modelo.
      */
     public function getCategoriaAttribute()
@@ -98,8 +113,6 @@ class Activo extends Model
         return $this->modelo?->marca;
     }
 
-  
-
     /**
      * Scope: Solo activos prestados.
      */
@@ -111,6 +124,26 @@ class Activo extends Model
     }
 
     /**
+     * Scope: Activos disponibles (no reservados, permiten préstamo).
+     */
+    public function scopeDisponibles($query)
+    {
+        return $query->whereHas('estatus', function ($q) {
+            $q->where('permite_prestamo', true);
+        })->whereNull('reservado_en_prestamo_id');
+    }
+
+    /**
+     * Scope: Activos en préstamos activos.
+     */
+    public function scopeEnPrestamoActivo($query)
+    {
+        return $query->whereHas('prestamos', function($q) {
+            $q->whereIn('estado', ['entregado', 'extendido', 'aprobado']);
+        });
+    }
+
+    /**
      * Verifica si el activo está disponible para préstamo.
      */
     public function estaDisponible(): bool
@@ -118,27 +151,65 @@ class Activo extends Model
         return $this->estatus?->permite_prestamo ?? false;
     }
 
+    /**
+     * Verifica si está reservado.
+     */
+    public function estaReservado(): bool
+    {
+        return !is_null($this->reservado_en_prestamo_id);
+    }
+
+    /**
+     * Verifica si está disponible para préstamo (no reservado Y no prestado).
+     */
+    public function estaDisponibleParaPrestamo(): bool
+    {
+        return !$this->estaReservado() && $this->estaDisponible();
+    }
+
+    /**
+     * Marca el activo como prestado.
+     */
     public function marcarComoPrestado(): bool
     {
         $estatus = Estatus::where('descripcion', 'Prestado')->first();
 
-        if (! $estatus) {
+        if (!$estatus) {
             return false;
         }
 
         return $this->update(['id_estatus' => $estatus->id]);
     }
 
+    /**
+     * Marca el activo como disponible.
+     */
     public function marcarComoDisponible(): bool
     {
         $estatus = Estatus::where('descripcion', 'Disponible')->first()
             ?? Estatus::permitenPrestamo()->orderBy('id')->first();
 
-        if (! $estatus) {
+        if (!$estatus) {
             return false;
         }
 
         return $this->update(['id_estatus' => $estatus->id]);
+    }
+
+    /**
+     * Reserva el activo para un préstamo.
+     */
+    public function reservar(int $prestamoId): bool
+    {
+        return $this->update(['reservado_en_prestamo_id' => $prestamoId]);
+    }
+
+    /**
+     * Libera la reserva del activo.
+     */
+    public function liberarReserva(): bool
+    {
+        return $this->update(['reservado_en_prestamo_id' => null]);
     }
 
     /**
@@ -148,54 +219,4 @@ class Activo extends Model
     {
         return $this->fecha_fin_garantia && $this->fecha_fin_garantia->isPast();
     }
-
-    public function fichasSoporte(): HasMany
-    {
-        return $this->hasMany(FichaSoporte::class, 'activo_id');
-    }
-
-    // Agregar relación
-public function reservadoEnPrestamo()
-{
-    return $this->belongsTo(Prestamo::class, 'reservado_en_prestamo_id');
-}
-
-// Verificar si está reservado
-public function estaReservado(): bool
-{
-    return !is_null($this->reservado_en_prestamo_id);
-}
-
-// Verificar si está disponible (NO reservado Y NO prestado)
-public function estaDisponibleParaPrestamo(): bool
-{
-    return !$this->estaReservado() && $this->estaDisponible();
-}
-
-// Métodos para reservar/liberar
-public function reservar(int $prestamoId): bool
-{
-    return $this->update(['reservado_en_prestamo_id' => $prestamoId]);
-}
-
-public function liberarReserva(): bool
-{
-    return $this->update(['reservado_en_prestamo_id' => null]);
-}
-
-// Modificar el scope disponibles para excluir reservados
-public function scopeDisponibles($query)
-{
-    return $query->whereHas('estatus', function ($q) {
-        $q->where('permite_prestamo', true);
-    })->whereNull('reservado_en_prestamo_id');
-}
-
-// Scope para activos que están en préstamos activos (para búsqueda)
-public function scopeEnPrestamoActivo($query)
-{
-    return $query->whereHas('prestamos', function($q) {
-        $q->whereIn('estado', ['entregado', 'extendido', 'aprobado']);
-    });
-}
 }

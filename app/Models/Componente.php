@@ -11,7 +11,6 @@ class Componente extends Model
 
     protected $fillable = [
         'tipo',
-        'modelo_componente_id',
         'marca',
         'modelo',
         'serial',
@@ -33,14 +32,6 @@ class Componente extends Model
         'fecha_instalacion' => 'datetime',
         'fecha_retiro' => 'datetime',
     ];
-
-    /**
-     * Tipo de componente según modelo (nullable si es genérico).
-     */
-    public function modeloComponente(): BelongsTo
-    {
-        return $this->belongsTo(ModeloComponente::class, 'modelo_componente_id');
-    }
 
     /**
      * Activo donde está instalado (nullable si está en bodega o prestado solo).
@@ -74,6 +65,13 @@ class Componente extends Model
         return $this->belongsTo(Responsable::class);
     }
 
+    /**
+     * Prestamo reservado actualmente (si está reservado).
+     */
+    public function reservadoEnPrestamo(): BelongsTo
+    {
+        return $this->belongsTo(Prestamo::class, 'reservado_en_prestamo_id');
+    }
 
     /**
      * Scope: Solo componentes instalados en un activo.
@@ -92,6 +90,25 @@ class Componente extends Model
     }
 
     /**
+     * Scope: Componentes en bodega (excluye reservados).
+     */
+    public function scopeEnBodega($query)
+    {
+        return $query->where('estado', 'en_bodega')
+                     ->whereNull('reservado_en_prestamo_id');
+    }
+
+    /**
+     * Scope: Componentes en préstamos activos.
+     */
+    public function scopeEnPrestamoActivo($query)
+    {
+        return $query->whereHas('prestamos', function($q) {
+            $q->whereIn('estado', ['entregado', 'extendido', 'aprobado']);
+        });
+    }
+
+    /**
      * Verifica si el componente está disponible para préstamo.
      */
     public function estaDisponible(): bool
@@ -99,6 +116,25 @@ class Componente extends Model
         return $this->estado === 'en_bodega';
     }
 
+    /**
+     * Verifica si está reservado.
+     */
+    public function estaReservado(): bool
+    {
+        return !is_null($this->reservado_en_prestamo_id);
+    }
+
+    /**
+     * Verifica si está disponible para préstamo (no reservado Y en bodega).
+     */
+    public function estaDisponibleParaPrestamo(): bool
+    {
+        return !$this->estaReservado() && $this->estado === 'en_bodega';
+    }
+
+    /**
+     * Marca el componente como prestado.
+     */
     public function marcarComoPrestado(): bool
     {
         return $this->update([
@@ -108,6 +144,9 @@ class Componente extends Model
         ]);
     }
 
+    /**
+     * Marca el componente como devuelto.
+     */
     public function marcarComoDevuelto(): bool
     {
         return $this->update([
@@ -116,47 +155,19 @@ class Componente extends Model
         ]);
     }
 
-    // Agregar relación
-public function reservadoEnPrestamo()
-{
-    return $this->belongsTo(Prestamo::class, 'reservado_en_prestamo_id');
-}
+    /**
+     * Reserva el componente para un préstamo.
+     */
+    public function reservar(int $prestamoId): bool
+    {
+        return $this->update(['reservado_en_prestamo_id' => $prestamoId]);
+    }
 
-// Verificar si está reservado
-public function estaReservado(): bool
-{
-    return !is_null($this->reservado_en_prestamo_id);
-}
-
-// Verificar si está disponible (NO reservado Y en bodega)
-public function estaDisponibleParaPrestamo(): bool
-{
-    return !$this->estaReservado() && $this->estado === 'en_bodega';
-}
-
-// Métodos para reservar/liberar
-public function reservar(int $prestamoId): bool
-{
-    return $this->update(['reservado_en_prestamo_id' => $prestamoId]);
-}
-
-public function liberarReserva(): bool
-{
-    return $this->update(['reservado_en_prestamo_id' => null]);
-}
-
-// Modificar el scope en_bodega para excluir reservados
-public function scopeEnBodega($query)
-{
-    return $query->where('estado', 'en_bodega')
-                 ->whereNull('reservado_en_prestamo_id');
-}
-
-// Scope para componentes en préstamos activos
-public function scopeEnPrestamoActivo($query)
-{
-    return $query->whereHas('prestamos', function($q) {
-        $q->whereIn('estado', ['entregado', 'extendido', 'aprobado']);
-    });
-}
+    /**
+     * Libera la reserva del componente.
+     */
+    public function liberarReserva(): bool
+    {
+        return $this->update(['reservado_en_prestamo_id' => null]);
+    }
 }

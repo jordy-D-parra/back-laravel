@@ -5,7 +5,6 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Categoria extends Model
@@ -16,19 +15,15 @@ class Categoria extends Model
         'nombre',
         'descripcion',
         'activo',
-        'marca_id' // 👈 AGREGAR ESTE CAMPO
     ];
 
     protected $casts = [
-        'activo' => 'boolean'
+        'activo' => 'boolean',
     ];
 
-    // 👇 RELACIÓN CON MARCA
-    public function marca(): BelongsTo
-    {
-        return $this->belongsTo(Marca::class);
-    }
-
+    /**
+     * Una categoría tiene muchos modelos (de distintas marcas).
+     */
     public function modelos(): HasMany
     {
         return $this->hasMany(Modelo::class);
