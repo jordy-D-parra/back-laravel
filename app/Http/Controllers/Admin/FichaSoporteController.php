@@ -1,4 +1,5 @@
 <?php
+// app/Http/Controllers/Admin/FichaSoporteController.php
 
 namespace App\Http\Controllers\Admin;
 
@@ -34,7 +35,6 @@ class FichaSoporteController extends Controller
 
         $query = FichaSoporte::with(['activo.modelo.marca', 'tecnico.trabajador', 'detalles']);
 
-        // Búsqueda
         if ($request->filled('buscar')) {
             $buscar = $request->buscar;
             $query->where(function ($q) use ($buscar) {
@@ -45,19 +45,16 @@ class FichaSoporteController extends Controller
             });
         }
 
-        // Filtro por estado
         if ($request->filled('estado')) {
             $query->where('estado', $request->estado);
         }
 
         $fichas = $query->orderBy('created_at', 'desc')->paginate(15);
 
-        // Respuesta AJAX para la tabla
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json($fichas);
         }
 
-        // Activos disponibles (NO en reparación y sin ficha activa)
         $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
         $activosDisponibles = Activo::with('modelo.marca')
             ->whereDoesntHave('fichasSoporte', function ($q) {
@@ -69,7 +66,6 @@ class FichaSoporteController extends Controller
             ->orderBy('serial')
             ->get();
 
-        // Técnicos disponibles (usuarios con rol admin, ingeniero o tecnico)
         $tecnicos = Usuario::whereHas('rol', function ($q) {
             $q->whereIn('nombre', ['admin', 'ingeniero', 'tecnico']);
         })
@@ -77,7 +73,6 @@ class FichaSoporteController extends Controller
             ->orderBy('usuario')
             ->get();
 
-        // Estadísticas para el dashboard
         $totalFichas = FichaSoporte::count();
         $enProceso = FichaSoporte::where('estado', 'en_proceso')->count();
         $finalizados = FichaSoporte::where('estado', 'finalizado')->count();
@@ -85,9 +80,9 @@ class FichaSoporteController extends Controller
             $q->where('descripcion', 'En reparación');
         })->count();
 
-        // Contadores de correos de soporte
-        $correosNoLeidos = CorreoRecibido::soporte()->where('leido', false)->count();
-        $correosNoProcesados = CorreoRecibido::soporte()->where('procesado', false)->count();
+        // ✅ CONTADORES CORREGIDOS con el nuevo scope
+        $correosNoLeidos = CorreoRecibido::deTipoSoporte()->where('leido', false)->count();
+        $correosNoProcesados = CorreoRecibido::deTipoSoporte()->where('procesado', false)->count();
 
         return view('admin.soporte.index', compact(
             'fichas',
@@ -123,7 +118,6 @@ class FichaSoporteController extends Controller
 
             DB::beginTransaction();
 
-            // Cambiar estado del activo a "En reparación"
             $activo = Activo::find($validated['activo_id']);
             $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
 
@@ -131,7 +125,6 @@ class FichaSoporteController extends Controller
                 $activo->update(['id_estatus' => $estatusReparacion->id]);
             }
 
-            // Crear la ficha
             $ficha = FichaSoporte::create([
                 'activo_id' => $validated['activo_id'],
                 'tecnico_id' => $validated['tecnico_id'] ?? null,
@@ -145,7 +138,6 @@ class FichaSoporteController extends Controller
                 'origen' => 'manual',
             ]);
 
-            // Crear detalles con componentes del activo
             $componentes = Componente::where('activo_id', $validated['activo_id'])->get();
 
             foreach ($componentes as $comp) {
@@ -210,13 +202,11 @@ class FichaSoporteController extends Controller
 
             DB::beginTransaction();
 
-            // 1. Crear la marca si no existe
             $marca = Marca::firstOrCreate(
                 ['nombre' => $validated['marca']],
                 ['activo' => true]
             );
 
-            // 2. Crear el modelo si no existe
             $modelo = Modelo::firstOrCreate(
                 [
                     'marca_id' => $marca->id,
@@ -228,14 +218,12 @@ class FichaSoporteController extends Controller
                 ]
             );
 
-            // 3. Obtener estatus "En reparación"
             $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
 
             if (!$estatusReparacion) {
                 throw new \Exception('No se encontró el estatus "En reparación"');
             }
 
-            // 4. Crear el activo en inventario con estado "En reparación"
             $activo = Activo::create([
                 'serial' => $validated['serial'],
                 'modelo_id' => $modelo->id,
@@ -247,7 +235,6 @@ class FichaSoporteController extends Controller
                 'observaciones' => $validated['observaciones'] ?? null,
             ]);
 
-            // 5. Crear la ficha de soporte vinculada al activo
             $tecnicoNombre = $validated['tecnico_nombre'] ?? null;
 
             if ($validated['tecnico_id']) {
@@ -389,7 +376,6 @@ class FichaSoporteController extends Controller
 
             DB::beginTransaction();
 
-            // Actualizar estado de componentes
             if (isset($validated['detalles']) && is_array($validated['detalles'])) {
                 foreach ($validated['detalles'] as $detalleId => $det) {
                     if (isset($det['estado_salida'])) {
@@ -401,7 +387,6 @@ class FichaSoporteController extends Controller
                 }
             }
 
-            // Actualizar ficha
             $ficha->update([
                 'trabajo_realizado' => $validated['trabajo_realizado'] ?? null,
                 'observaciones' => $validated['observaciones_finales'] ?? $ficha->observaciones,
@@ -409,7 +394,6 @@ class FichaSoporteController extends Controller
                 'estado' => 'finalizado',
             ]);
 
-            // Cambiar estado del activo a "Disponible"
             $activo = Activo::find($ficha->activo_id);
             if ($activo) {
                 $estatusDisponible = Estatus::where('descripcion', 'Disponible')->first();
@@ -445,7 +429,6 @@ class FichaSoporteController extends Controller
         try {
             $ficha = FichaSoporte::findOrFail($id);
 
-            // Si la ficha estaba en proceso, restaurar el estado del activo
             if ($ficha->estado === 'en_proceso') {
                 $activo = Activo::find($ficha->activo_id);
                 if ($activo) {
@@ -506,7 +489,8 @@ class FichaSoporteController extends Controller
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
-        $query = CorreoRecibido::soporte()
+        // ✅ USAR SCOPE CORREGIDO 'deTipoSoporte'
+        $query = CorreoRecibido::deTipoSoporte()
             ->with(['fichaSoporte', 'usuario'])
             ->orderBy('received_at', 'desc');
 
@@ -536,8 +520,8 @@ class FichaSoporteController extends Controller
             'success' => true,
             'data' => $correos->items(),
             'total' => $correos->total(),
-            'no_leidos' => CorreoRecibido::soporte()->where('leido', false)->count(),
-            'no_procesados' => CorreoRecibido::soporte()->where('procesado', false)->count(),
+            'no_leidos' => CorreoRecibido::deTipoSoporte()->where('leido', false)->count(),
+            'no_procesados' => CorreoRecibido::deTipoSoporte()->where('procesado', false)->count(),
         ]);
     }
 
@@ -551,7 +535,7 @@ class FichaSoporteController extends Controller
         }
 
         try {
-            $correo = CorreoRecibido::soporte()
+            $correo = CorreoRecibido::deTipoSoporte()
                 ->with(['fichaSoporte', 'usuario'])
                 ->findOrFail($id);
 
@@ -584,6 +568,7 @@ class FichaSoporteController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error al revisar correos: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error al revisar correos: ' . $e->getMessage(),
@@ -592,7 +577,7 @@ class FichaSoporteController extends Controller
     }
 
     /**
-     * Contador de correos no leídos/procesados
+     * Contador de correos no leídos/procesados (SOLO de tipo soporte)
      */
     public function correosContador()
     {
@@ -602,8 +587,8 @@ class FichaSoporteController extends Controller
 
         return response()->json([
             'success' => true,
-            'no_leidos' => CorreoRecibido::soporte()->where('leido', false)->count(),
-            'no_procesados' => CorreoRecibido::soporte()->where('procesado', false)->count(),
+            'no_leidos' => CorreoRecibido::deTipoSoporte()->where('leido', false)->count(),
+            'no_procesados' => CorreoRecibido::deTipoSoporte()->where('procesado', false)->count(),
         ]);
     }
 
@@ -617,7 +602,7 @@ class FichaSoporteController extends Controller
         }
 
         try {
-            $correo = CorreoRecibido::soporte()->findOrFail($id);
+            $correo = CorreoRecibido::deTipoSoporte()->findOrFail($id);
 
             if ($correo->procesado) {
                 return response()->json([
@@ -647,7 +632,6 @@ class FichaSoporteController extends Controller
 
             $activoId = $validated['activo_id'] ?? null;
 
-            // Si viene equipo nuevo, crearlo
             if (!empty($validated['nuevo_equipo'])) {
                 $nuevo = $validated['nuevo_equipo'];
 
@@ -675,7 +659,6 @@ class FichaSoporteController extends Controller
 
                 $activoId = $activo->id;
             } else {
-                // Cambiar estado del activo existente
                 $activo = Activo::find($activoId);
                 $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
                 if ($activo && $estatusReparacion) {
@@ -683,7 +666,6 @@ class FichaSoporteController extends Controller
                 }
             }
 
-            // Crear ficha de soporte
             $ficha = FichaSoporte::create([
                 'activo_id' => $activoId,
                 'correo_id' => $correo->id,
@@ -699,7 +681,6 @@ class FichaSoporteController extends Controller
                 'origen' => 'correo',
             ]);
 
-            // Actualizar correo
             $correo->update([
                 'procesado' => true,
                 'leido' => true,
@@ -709,7 +690,6 @@ class FichaSoporteController extends Controller
 
             DB::commit();
 
-            // ========== NOTIFICACIONES ==========
             try {
                 $this->notificarFichaSoporteCreada($ficha, $correo);
             } catch (\Exception $e) {
@@ -723,6 +703,7 @@ class FichaSoporteController extends Controller
                 'data' => $ficha->load(['activo', 'tecnico', 'correo']),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',
@@ -745,7 +726,6 @@ class FichaSoporteController extends Controller
     {
         $notificacionService = app(NotificacionService::class);
 
-        // ========== 1. NOTIFICAR AL TÉCNICO ==========
         if ($ficha->tecnico_id) {
             $tecnico = Usuario::with('trabajador')->find($ficha->tecnico_id);
 
@@ -767,7 +747,6 @@ class FichaSoporteController extends Controller
             }
         }
 
-        // ========== 2. NOTIFICAR A ADMINISTRADORES ==========
         $admins = Usuario::whereHas('rol', function ($q) {
             $q->where('nombre', 'admin');
         })->where('status', 'activo')->with('trabajador')->get();

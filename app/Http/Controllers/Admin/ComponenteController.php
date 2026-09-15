@@ -6,19 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\Componente;
 use App\Models\ModeloComponente;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class ComponenteController extends Controller
 {
+    // ============================================================
+    // INDEX — Listado con filtros
+    // ============================================================
     public function index(Request $request)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('ver-componentes')) {
             abort(403, 'No tienes permiso para ver componentes');
         }
 
         try {
+            // ✅ Sin modeloComponente (esa tabla ya no se usa)
             $query = Componente::with([
-                'modeloComponente.modelo',
                 'activo',
                 'institucion',
                 'responsable',
@@ -29,6 +32,7 @@ class ComponenteController extends Controller
                 $query->where(function ($q) use ($buscar) {
                     $q->where('tipo', 'like', "%{$buscar}%")
                       ->orWhere('marca', 'like', "%{$buscar}%")
+                      ->orWhere('modelo', 'like', "%{$buscar}%")
                       ->orWhere('serial', 'like', "%{$buscar}%")
                       ->orWhere('ubicacion', 'like', "%{$buscar}%");
                 });
@@ -50,13 +54,80 @@ class ComponenteController extends Controller
 
             return response()->json(['success' => true, 'data' => $componentes]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al cargar componentes: ' . $e->getMessage()], 500);
+            Log::error('Error al listar componentes: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar componentes: ' . $e->getMessage()
+            ], 500);
         }
     }
 
+    // ============================================================
+    // DISPONIBLES — Componentes sin activo, listos para asignar
+    // ============================================================
+    public function disponibles(Request $request)
+    {
+        if (!auth()->user()->hasPermission('ver-componentes')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No autorizado'
+            ], 403);
+        }
+
+        try {
+            $query = Componente::query()
+                ->whereNull('activo_id')
+                ->whereNull('reservado_en_prestamo_id')
+                ->whereNotIn('estado', ['desechado']);
+
+            if ($request->filled('buscar')) {
+                $buscar = $request->buscar;
+                $query->where(function ($q) use ($buscar) {
+                    $q->where('tipo', 'ILIKE', "%{$buscar}%")
+                      ->orWhere('marca', 'ILIKE', "%{$buscar}%")
+                      ->orWhere('modelo', 'ILIKE', "%{$buscar}%")
+                      ->orWhere('serial', 'ILIKE', "%{$buscar}%");
+                });
+            }
+
+            if ($request->filled('tipo')) {
+                $query->where('tipo', $request->tipo);
+            }
+
+            if ($request->filled('excluir_ids')) {
+                $excluir = is_array($request->excluir_ids)
+                    ? $request->excluir_ids
+                    : explode(',', $request->excluir_ids);
+                $query->whereNotIn('id', $excluir);
+            }
+
+            $total = $query->count();
+
+            $componentes = $query
+                ->orderBy('tipo')
+                ->orderBy('marca')
+                ->limit(100)
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $componentes,
+                'total' => $total,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error al listar componentes disponibles: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============================================================
+    // STORE — Crear componente
+    // ============================================================
     public function store(Request $request)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('crear-componente')) {
             abort(403, 'No tienes permiso para crear componentes');
         }
@@ -64,10 +135,9 @@ class ComponenteController extends Controller
         try {
             $validated = $request->validate([
                 'tipo' => 'required|string|max:50',
-                'modelo_componente_id' => 'nullable|exists:modelo_componente,id',
                 'marca' => 'nullable|string|max:100',
                 'modelo' => 'nullable|string|max:100',
-                'serial' => 'nullable|string|max:100|unique:componentes',
+                'serial' => 'nullable|string|max:100|unique:componentes,serial',
                 'capacidad' => 'nullable|string|max:50',
                 'especificaciones' => 'nullable|json',
                 'estado' => 'required|string|in:en_bodega,instalado,prestado,desechado,en_reparacion',
@@ -81,38 +151,39 @@ class ComponenteController extends Controller
                 'observaciones' => 'nullable|string',
             ]);
 
-            if ($request->filled('modelo_componente_id')) {
-                $tipoComponente = ModeloComponente::find($request->modelo_componente_id);
-                if ($tipoComponente) {
-                    $validated['tipo'] = $validated['tipo'] ?? $tipoComponente->tipo;
-                    $validated['capacidad'] = $validated['capacidad'] ?? $tipoComponente->capacidad;
-                }
-            }
-
             $componente = Componente::create($validated);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Componente creado exitosamente',
-                'data' => $componente->load(['modeloComponente', 'activo', 'institucion', 'responsable']),
+                'data' => $componente->load(['activo', 'institucion', 'responsable']),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => 'Error de validación', 'errors' => $e->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al crear componente: ' . $e->getMessage()], 500);
+            Log::error('Error al crear componente: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear componente: ' . $e->getMessage()
+            ], 500);
         }
     }
 
+    // ============================================================
+    // SHOW — Detalle de un componente
+    // ============================================================
     public function show($id)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('ver-componentes')) {
             abort(403, 'No tienes permiso para ver componentes');
         }
 
         try {
             $componente = Componente::with([
-                'modeloComponente.modelo.marca',
                 'activo',
                 'institucion',
                 'departamento',
@@ -121,13 +192,18 @@ class ComponenteController extends Controller
 
             return response()->json(['success' => true, 'data' => $componente]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Componente no encontrado'], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Componente no encontrado'
+            ], 404);
         }
     }
 
+    // ============================================================
+    // UPDATE — Editar componente
+    // ============================================================
     public function update(Request $request, $id)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('editar-componente')) {
             abort(403, 'No tienes permiso para editar componentes');
         }
@@ -137,7 +213,6 @@ class ComponenteController extends Controller
 
             $validated = $request->validate([
                 'tipo' => 'required|string|max:50',
-                'modelo_componente_id' => 'nullable|exists:modelo_componente,id',
                 'marca' => 'nullable|string|max:100',
                 'modelo' => 'nullable|string|max:100',
                 'serial' => 'nullable|string|max:100|unique:componentes,serial,' . $id,
@@ -159,18 +234,28 @@ class ComponenteController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Componente actualizado exitosamente',
-                'data' => $componente->fresh(['modeloComponente', 'activo', 'institucion', 'responsable']),
+                'data' => $componente->fresh(['activo', 'institucion', 'responsable']),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json(['success' => false, 'message' => 'Error de validación', 'errors' => $e->errors()], 422);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al actualizar: ' . $e->getMessage()], 500);
+            Log::error('Error al actualizar componente: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar: ' . $e->getMessage()
+            ], 500);
         }
     }
 
+    // ============================================================
+    // DESTROY — Eliminar componente
+    // ============================================================
     public function destroy($id)
     {
-        // Verificar permiso
         if (!auth()->user()->hasPermission('eliminar-componente')) {
             abort(403, 'No tienes permiso para eliminar componentes');
         }
@@ -179,14 +264,28 @@ class ComponenteController extends Controller
             $componente = Componente::findOrFail($id);
             $componente->delete();
 
-            return response()->json(['success' => true, 'message' => 'Componente eliminado exitosamente']);
+            return response()->json([
+                'success' => true,
+                'message' => 'Componente eliminado exitosamente'
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al eliminar: ' . $e->getMessage()], 500);
+            Log::error('Error al eliminar componente: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar: ' . $e->getMessage()
+            ], 500);
         }
     }
 
+    // ============================================================
+    // TOGGLE STATUS
+    // ============================================================
     public function toggleStatus($id)
     {
+        if (!auth()->user()->hasPermission('editar-componente')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
         try {
             $componente = Componente::findOrFail($id);
 
@@ -208,37 +307,54 @@ class ComponenteController extends Controller
 
             $componente->update($updateData);
 
-            return response()->json(['success' => true, 'message' => 'Estado actualizado a: ' . $nuevoEstado]);
+            return response()->json([
+                'success' => true,
+                'message' => 'Estado actualizado a: ' . $nuevoEstado
+            ]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al cambiar estado: ' . $e->getMessage()], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cambiar estado: ' . $e->getMessage()
+            ], 500);
         }
     }
 
+    // ============================================================
+    // POR TIPO
+    // ============================================================
     public function porTipo($tipo)
     {
         try {
             $componentes = Componente::where('tipo', $tipo)
-                                     ->where('estado', 'en_bodega')
-                                     ->orderBy('marca')
-                                     ->get();
+                ->where('estado', 'en_bodega')
+                ->orderBy('marca')
+                ->get();
 
             return response()->json(['success' => true, 'data' => $componentes]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al cargar componentes'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar componentes'
+            ], 500);
         }
     }
 
+    // ============================================================
+    // EN BODEGA
+    // ============================================================
     public function enBodega()
     {
         try {
             $componentes = Componente::enBodega()
-                                     ->with('modeloComponente')
-                                     ->orderBy('tipo')
-                                     ->get();
+                ->orderBy('tipo')
+                ->get();
 
             return response()->json(['success' => true, 'data' => $componentes]);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error al cargar componentes'], 500);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar componentes'
+            ], 500);
         }
     }
 }

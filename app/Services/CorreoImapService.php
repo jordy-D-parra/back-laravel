@@ -1,4 +1,5 @@
 <?php
+// app/Services/CorreoImapService.php
 
 namespace App\Services;
 
@@ -22,7 +23,6 @@ class CorreoImapService
             $client->connect();
             $folder = $client->getFolder('INBOX');
             $messages = $folder->query()->unseen()->get();
-
             $count = 0;
 
             foreach ($messages as $message) {
@@ -67,14 +67,18 @@ class CorreoImapService
             // ========== CLASIFICACIÓN ==========
             $tipo = $this->clasificador->clasificar($subject, $bodyText);
 
+            Log::info("Correo clasificado como: {$tipo}", [
+                'subject' => $subject,
+                'from' => $fromEmail
+            ]);
+
             // Extraer datos según el tipo
             if ($tipo === 'soporte') {
                 $datosExtraidos = $this->clasificador->extraerDatosSoporte($bodyText);
                 $fechaRequerida = $datosExtraidos['fecha_requerida'] ?? null;
             } else {
-                // Extracción genérica para solicitudes (la que ya tenías)
-                $datosExtraidos = $this->extraerDatosSolicitud($bodyText);
-                $fechaRequerida = null;
+                $datosExtraidos = $this->clasificador->extraerDatosSolicitud($bodyText);
+                $fechaRequerida = $datosExtraidos['fecha_requerida'] ?? null;
             }
 
             CorreoRecibido::create([
@@ -94,89 +98,13 @@ class CorreoImapService
             ]);
 
             $message->setFlag('Seen');
+
             Log::info("Correo procesado [{$tipo}]: {$subject} de {$fromEmail}");
+
             return true;
         } catch (\Exception $e) {
             Log::error('Error procesando mensaje: ' . $e->getMessage());
             return false;
         }
-    }
-
-    /**
-     * Extracción para solicitudes de préstamo (tu lógica original)
-     */
-    private function extraerDatosSolicitud(string $body): array
-    {
-        $datos = [
-            'prioridad' => 'normal',
-            'fecha_requerida' => null,
-            'fecha_fin_estimada' => null,
-            'justificacion' => null,
-            'items' => [],
-            'entidad' => null,
-        ];
-
-        if (preg_match('/prioridad[:\s]+(baja|normal|alta|urgente)/i', $body, $m)) {
-            $datos['prioridad'] = strtolower($m[1]);
-        } elseif (preg_match('/(urgente|urge)/i', $body)) {
-            $datos['prioridad'] = 'urgente';
-        }
-
-        if (preg_match('/(?:fecha\s+requerida|necesito\s+para|para\s+el)[:\s]+(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/i', $body, $m)) {
-            $datos['fecha_requerida'] = $this->normalizarFecha($m[1]);
-        }
-
-        if (preg_match('/(?:justificaci[oó]n|motivo|raz[oó]n)[:\s]+(.+?)(?:\n\n|$)/is', $body, $m)) {
-            $datos['justificacion'] = trim($m[1]);
-        } else {
-            $datos['justificacion'] = substr(trim($body), 0, 500);
-        }
-
-        if (preg_match_all('/(\d+)\s+(?:x\s+)?([a-záéíóúñ\s]+?)(?:\n|,|\.|;|$)/iu', $body, $matches)) {
-            foreach ($matches[1] as $i => $cantidad) {
-                $descripcion = trim($matches[2][$i]);
-                if (strlen($descripcion) > 3 && strlen($descripcion) < 100) {
-                    $datos['items'][] = [
-                        'cantidad' => (int) $cantidad,
-                        'descripcion' => $descripcion,
-                        'tipo_item' => $this->detectarTipoItem($descripcion),
-                    ];
-                }
-            }
-        }
-
-        return $datos;
-    }
-
-    private function normalizarFecha(string $fecha): ?string
-    {
-        try {
-            $fecha = str_replace('/', '-', $fecha);
-            $partes = explode('-', $fecha);
-            if (count($partes) === 3) {
-                if (strlen($partes[0]) === 4) {
-                    return sprintf('%04d-%02d-%02d', $partes[0], $partes[1], $partes[2]);
-                }
-                return sprintf('%04d-%02d-%02d', $partes[2], $partes[1], $partes[0]);
-            }
-        } catch (\Exception $e) {
-            return null;
-        }
-        return null;
-    }
-
-    private function detectarTipoItem(string $descripcion): string
-    {
-        $descripcion = strtolower($descripcion);
-        $activos = ['laptop', 'computadora', 'pc', 'desktop', 'monitor', 'proyector', 'impresora', 'tablet', 'servidor', 'router', 'switch'];
-        $componentes = ['mouse', 'teclado', 'cable', 'cargador', 'ram', 'disco', 'batería', 'bateria', 'adaptador', 'usb', 'audífonos', 'audifonos'];
-
-        foreach ($activos as $a) {
-            if (strpos($descripcion, $a) !== false) return 'activo';
-        }
-        foreach ($componentes as $c) {
-            if (strpos($descripcion, $c) !== false) return 'componente';
-        }
-        return 'activo';
     }
 }

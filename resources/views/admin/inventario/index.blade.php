@@ -1,1197 +1,1373 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Inventario')
-
-@section('styles')
-    @vite(['resources/css/admin-inventario.css'])
-    <style>
-        /* ========== ESTILOS PARA REPORTES (SOLO LO NUEVO) ========== */
-        .reporte-filters {
-            background: white;
-            border-radius: 12px;
-            padding: 0.75rem 1.25rem;
-            margin-bottom: 1.5rem;
-            border: 1px solid #e9ecef;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.75rem;
-            align-items: center;
-        }
-        .reporte-filters .form-control,
-        .reporte-filters .form-select {
-            border-radius: 8px;
-            border: 1px solid #e9ecef;
-            padding: 0.4rem 0.75rem;
-            font-size: 0.85rem;
-        }
-        .reporte-filters .form-control:focus,
-        .reporte-filters .form-select:focus {
-            border-color: #1e3c72;
-            box-shadow: 0 0 0 3px rgba(30,60,114,0.1);
-        }
-        .reporte-filters .btn-export {
-            margin-left: auto;
-            display: flex;
-            gap: 0.5rem;
-        }
-
-        .reporte-resultados {
-            background: white;
-            border-radius: 0.75rem;
-            border: 1px solid #e9ecef;
-            overflow: hidden;
-        }
-        .reporte-resultados .table {
-            margin-bottom: 0;
-            font-size: 0.85rem;
-        }
-        .reporte-resultados .table thead th {
-            background: #f8f9fc;
-            color: #1e3c72;
-            font-weight: 600;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 2px solid #1e3c72;
-            padding: 0.75rem;
-            white-space: nowrap;
-        }
-        .reporte-resultados .table tbody td {
-            vertical-align: middle;
-            padding: 0.75rem;
-            border-bottom: 1px solid #f1f5f9;
-        }
-        .reporte-resultados .table tbody tr:hover {
-            background: #f8fafc;
-        }
-
-        .btn-export-pdf {
-            background: #dc3545;
-            color: white;
-            border: none;
-            padding: 0.4rem 1rem;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-export-pdf:hover {
-            background: #c82333;
-            color: white;
-            transform: translateY(-1px);
-        }
-
-        .btn-export-excel {
-            background: #28a745;
-            color: white;
-            border: none;
-            padding: 0.4rem 1rem;
-            border-radius: 8px;
-            font-size: 0.8rem;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-export-excel:hover {
-            background: #1e7e34;
-            color: white;
-            transform: translateY(-1px);
-        }
-
-        .stat-reporte {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.5rem;
-        }
-        .stat-reporte-item {
-            background: white;
-            border-radius: 12px;
-            padding: 0.75rem 1rem;
-            border: 1px solid #e9ecef;
-            text-align: center;
-        }
-        .stat-reporte-item .stat-number {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1e3c72;
-        }
-        .stat-reporte-item .stat-label {
-            font-size: 0.65rem;
-            color: #6c757d;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            font-weight: 500;
-        }
-        .stat-reporte-item .stat-number.vencido { color: #dc3545; }
-        .stat-reporte-item .stat-number.prestado { color: #f59e0b; }
-        .stat-reporte-item .stat-number.disponible { color: #1e7e34; }
-
-        .tab-badge {
-            background: #eef3fc;
-            color: #1e3c72;
-            padding: 0.1rem 0.5rem;
-            border-radius: 20px;
-            font-size: 0.65rem;
-            font-weight: 600;
-            margin-left: 4px;
-        }
-        .nav-tabs-custom .nav-link.active .tab-badge {
-            background: #1e3c72;
-            color: white;
-        }
-
-        @media (max-width: 768px) {
-            .stat-reporte {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .reporte-filters {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .reporte-filters .btn-export {
-                margin-left: 0;
-                justify-content: center;
-            }
-        }
-        @media (max-width: 576px) {
-            .stat-reporte {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-@endsection
+@section('title', 'Gestión de Inventario')
 
 @section('content')
 <div class="container-fluid px-4">
-
-    <!-- ========== HEADER CON GRADIENTE ========== -->
-    <div class="page-header">
-        <div>
-            <h4>
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:10px;">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                </svg>
-                Inventario
-            </h4>
-            <p>Gestión de activos y componentes tecnológicos</p>
-        </div>
-    </div>
-
-    <!-- ========== TARJETAS DE ESTADÍSTICAS ========== -->
-    <div class="stats-row">
-        <div class="stat-card-mini">
-            <div class="stat-info">
-                <div class="stat-number">{{ $totalActivos }}</div>
-                <div class="stat-label">Total Activos</div>
-            </div>
-            <div class="stat-icon-circle">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
-                    <line x1="9" y1="4" x2="9" y2="20"/>
-                    <line x1="15" y1="4" x2="15" y2="20"/>
-                </svg>
-            </div>
-        </div>
-        <div class="stat-card-mini">
-            <div class="stat-info">
-                <div class="stat-number">{{ $totalComponentes }}</div>
-                <div class="stat-label">Total Componentes</div>
-            </div>
-            <div class="stat-icon-circle" style="background: rgba(23, 162, 184, 0.1);">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#17a2b8" stroke-width="1.8">
-                    <rect x="2" y="6" width="20" height="12" rx="2" ry="2"/>
-                    <line x1="9" y1="6" x2="9" y2="18"/>
-                </svg>
-            </div>
-        </div>
-        <div class="stat-card-mini">
-            <div class="stat-info">
-                <div class="stat-number">{{ $componentesBodega }}</div>
-                <div class="stat-label">En Bodega</div>
-            </div>
-            <div class="stat-icon-circle" style="background: rgba(108, 117, 125, 0.1);">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="1.8">
-                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z"/>
-                    <polyline points="3 9 12 13 21 9"/>
-                    <path d="M12 13v9"/>
-                </svg>
-            </div>
-        </div>
-        <div class="stat-card-mini">
-            <div class="stat-info">
-                <div class="stat-number">{{ $activosPrestados }}</div>
-                <div class="stat-label">Prestados</div>
-            </div>
-            <div class="stat-icon-circle" style="background: rgba(255, 193, 7, 0.1);">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#f6c23e" stroke-width="1.8">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                    <circle cx="8.5" cy="7" r="4"/>
-                    <path d="M17 11l2.5-2.5M22 9l-2.5 2.5M19 11.5V6"/>
-                </svg>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== BOTONES PARA CAMBIAR ENTRE ACTIVOS Y COMPONENTES ========== -->
-    <div class="mb-3">
-        <div class="btn-group" role="group">
-            <button type="button" class="btn btn-primary-dark active" id="btnActivos" onclick="mostrarActivos()" >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:4px;">
-                    <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
-                    <line x1="9" y1="4" x2="9" y2="20"/>
-                    <line x1="15" y1="4" x2="15" y2="20"/>
-                </svg>
-                Activos
-                <span class="badge bg-light text-dark ms-1">{{ $totalActivos }}</span>
-            </button>
-            <button type="button" class="btn btn-outline-primary-dark" id="btnComponentes" onclick="mostrarComponentes()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:4px;">
-                    <rect x="2" y="6" width="20" height="12" rx="2" ry="2"/>
-                    <line x1="9" y1="6" x2="9" y2="18"/>
-                </svg>
-                Componentes
-                <span class="badge bg-light text-dark ms-1">{{ $totalComponentes }}</span>
-            </button>
-            <!-- ========== 🆕 BOTÓN REPORTES ========== -->
-            <button type="button" class="btn btn-outline-primary-dark" id="btnReportes" onclick="mostrarReportes()">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:4px;">
-                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="3" y1="9" x2="21" y2="9"/>
-                    <line x1="9" y1="21" x2="9" y2="9"/>
-                </svg>
-                Reportes
-            </button>
-        </div>
-    </div>
-
-    <!-- ========== SECCIÓN DE ACTIVOS ========== -->
-    <div id="seccionActivos">
-        <div class="filters-bar">
-            <div class="filtro-busqueda">
-                <div class="input-group">
-                    <span class="input-group-text">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/>
-                            <path d="M21 21l-4.35-4.35"/>
-                        </svg>
-                    </span>
-                    <input type="text" class="form-control" id="buscarActivos"
-                           placeholder="Buscar por serial, modelo...">
-                </div>
-            </div>
-            <div class="d-flex gap-2 flex-wrap">
-                @if(auth()->user()->hasPermission('crear-activo'))
-                <button class="btn btn-primary-dark btn-accion" onclick="abrirModalActivo()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block; margin-right:4px;">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Nuevo Activo
-                </button>
-                @endif
-            </div>
-        </div>
-
-        <div class="table-container">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Serial</th>
-                            <th>Modelo</th>
-                            <th>Marca</th>
-                            <th>Estado</th>
-                            <th>Ubicación</th>
-                            <th class="text-end">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaActivos">
-                        <tr><td colspan="6" class="text-center py-4 text-muted">Cargando...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== SECCIÓN DE COMPONENTES ========== -->
-    <div id="seccionComponentes" style="display:none;">
-        <div class="filters-bar">
-            <div class="filtro-busqueda">
-                <div class="input-group">
-                    <span class="input-group-text">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/>
-                            <path d="M21 21l-4.35-4.35"/>
-                        </svg>
-                    </span>
-                    <input type="text" class="form-control" id="buscarComponentes"
-                           placeholder="Buscar por tipo, marca, serial...">
-                </div>
-            </div>
-            <div class="d-flex gap-2 flex-wrap">
-                @if(auth()->user()->hasPermission('crear-componente'))
-                <button class="btn btn-primary-dark btn-accion" onclick="abrirModalComponente()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display:inline-block; margin-right:4px;">
-                        <line x1="12" y1="5" x2="12" y2="19"/>
-                        <line x1="5" y1="12" x2="19" y2="12"/>
-                    </svg>
-                    Nuevo Componente
-                </button>
-                @endif
-            </div>
-        </div>
-
-        <div class="table-container">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead>
-                        <tr>
-                            <th>Tipo</th>
-                            <th>Marca</th>
-                            <th>Serial</th>
-                            <th>Capacidad</th>
-                            <th>Estado</th>
-                            <th>Activo</th>
-                            <th class="text-end">Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaComponentes">
-                        <tr><td colspan="7" class="text-center py-4 text-muted">Cargando...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== 🆕 SECCIÓN DE REPORTES (CORREGIDA) ========== -->
-    <div id="seccionReportes" style="display:none;">
-        <div class="reporte-filters">
-            <!-- ========== SELECTOR DE TIPO DE REPORTE ========== -->
-            <div class="d-flex gap-2 align-items-center">
-                <label class="form-label mb-0 fw-bold" style="font-size:0.8rem; color:#1e3c72;">Reporte de:</label>
-                <select class="form-select" id="tipoReporte" style="width: 150px;">
-                    <option value="activos">Activos</option>
-                    <option value="componentes">Componentes</option>
-                </select>
-            </div>
-
-            <div class="input-group" style="flex: 1; min-width: 200px;">
-                <span class="input-group-text bg-white border-end-0">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/>
-                        <path d="M21 21l-4.35-4.35"/>
-                    </svg>
-                </span>
-                <input type="text" class="form-control border-start-0" id="buscarReporte" placeholder="Buscar por serial, modelo, tipo...">
-            </div>
-
-            <select class="form-select" id="filtroEstadoReporte" style="width: 150px;">
-                <option value="">Todos los estados</option>
-                <option value="Disponible">Disponible</option>
-                <option value="Prestado">Prestado</option>
-                <option value="En reparación">En reparación</option>
-                <option value="En bodega">En bodega</option>
-                <option value="Desechado">Desechado</option>
-                <option value="instalado">Instalado (Componentes)</option>
-                <option value="en_bodega">En Bodega (Componentes)</option>
-            </select>
-
-            <select class="form-select" id="filtroCategoriaReporte" style="width: 150px;">
-                <option value="">Todas las categorías</option>
-            </select>
-
-            <div class="btn-export">
-                <button class="btn btn-outline-secondary" id="limpiarFiltrosReporte" style="border-radius: 8px;">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="23 4 23 10 17 10"/>
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                    </svg>
-                    Limpiar
-                </button>
-                <button class="btn btn-export-pdf" onclick="exportarReportePDF()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <polyline points="6 9 6 2 18 2 18 9"/>
-                        <path d="M18 9H6"/>
-                        <rect x="4" y="12" width="16" height="10" rx="1"/>
-                        <line x1="8" y1="17" x2="16" y2="17"/>
-                        <line x1="8" y1="21" x2="12" y2="21"/>
-                        <line x1="16" y1="21" x2="16" y2="21"/>
-                    </svg>
-                    Exportar PDF
-                </button>
-                <button class="btn btn-export-excel" onclick="exportarReporteExcel()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                        <path d="M21 4H3v16h18V4z"/>
-                        <polyline points="8 10 12 14 16 10"/>
-                        <line x1="12" y1="14" x2="12" y2="20"/>
-                    </svg>
-                    Exportar Excel
-                </button>
-            </div>
-        </div>
-
-        <!-- Estadísticas del reporte -->
-        <div class="stat-reporte" id="reporteStats">
-            <div class="stat-reporte-item">
-                <div class="stat-number" id="reporteTotal">0</div>
-                <div class="stat-label">Total</div>
-            </div>
-            <div class="stat-reporte-item">
-                <div class="stat-number disponible" id="reporteDisponibles">0</div>
-                <div class="stat-label">Disponibles</div>
-            </div>
-            <div class="stat-reporte-item">
-                <div class="stat-number prestado" id="reportePrestados">0</div>
-                <div class="stat-label">Prestados</div>
-            </div>
-            <div class="stat-reporte-item">
-                <div class="stat-number reparacion" id="reporteReparacion">0</div>
-                <div class="stat-label">En Reparación / Bodega</div>
-            </div>
-        </div>
-
-        <!-- Resultados del reporte -->
-        <div class="reporte-resultados">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr id="reporteHeaders">
-                            <!-- Los headers se actualizan dinámicamente según el tipo -->
-                            <th>Serial</th>
-                            <th>Modelo / Tipo</th>
-                            <th>Marca</th>
-                            <th>Categoría</th>
-                            <th>Estado</th>
-                            <th>Ubicación</th>
-                            <th>Responsable</th>
-                        </tr>
-                    </thead>
-                    <tbody id="reporteTablaBody">
-                        <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">
-                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
-                                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                                </svg>
-                                <p>Aplique filtros para generar el reporte</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== MODALES ========== -->
-    <!-- (Mantén todos tus modales existentes sin cambios) -->
-
-    <!-- ========== MODAL ACTIVO ========== -->
-    <div class="modal fade" id="modalActivo" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalActivoLabel">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:8px;">
-                            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
-                            <line x1="9" y1="4" x2="9" y2="20"/>
-                            <line x1="15" y1="4" x2="15" y2="20"/>
-                        </svg>
-                        Nuevo Activo
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="formActivo">
-                    @csrf
-                    <input type="hidden" id="activoId" name="id">
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Serial <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="activo_serial" name="serial" required>
-                                <div id="serialFeedback" class="small mt-1"></div>
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Modelo <span class="text-danger">*</span></label>
-                                <div class="position-relative">
-                                    <input type="text" class="form-control" id="activo_modelo_buscar" placeholder="Escriba para buscar modelo..." autocomplete="off" oninput="filtrarModelos()" onfocus="filtrarModelos()">
-                                    <input type="hidden" id="activo_modelo_id" name="modelo_id">
-                                    <div id="modeloDropdown" class="list-group position-absolute w-100" style="display:none; z-index:1000; max-height:200px; overflow-y:auto; background:white; border:1px solid #dee2e6; border-radius:0 0 8px 8px;"></div>
-                                </div>
-                                <div id="modeloInfoBadges" class="mt-2"></div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Estatus</label>
-                                <select class="form-select" id="activo_id_estatus" name="id_estatus">
-                                    <option value="">Seleccionar...</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Institución</label>
-                                <select class="form-select" id="activo_institucion_id" name="institucion_id">
-                                    <option value="">Seleccionar...</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Responsable</label>
-                                <select class="form-select" id="activo_responsable_id" name="responsable_id">
-                                    <option value="">Seleccionar...</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Ubicación</label>
-                                <input type="text" class="form-control" id="activo_ubicacion" name="ubicacion" placeholder="Oficina 3B">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Fecha Adquisición</label>
-                                <input type="date" class="form-control" id="activo_fecha_adquisicion" name="fecha_adquisicion">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Fin Garantía</label>
-                                <input type="date" class="form-control" id="activo_fecha_fin_garantia" name="fecha_fin_garantia">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Vida Útil (años)</label>
-                                <input type="number" class="form-control" id="activo_vida_util_anos" name="vida_util_anos" min="1">
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Observaciones</label>
-                            <textarea class="form-control" id="activo_observaciones" name="observaciones" rows="2"></textarea>
-                        </div>
-                        <hr>
-                        <h6 class="fw-bold mb-3" style="color: var(--primary-dark);">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:6px;">
-                                <rect x="2" y="6" width="20" height="12" rx="2" ry="2"/>
-                                <line x1="9" y1="6" x2="9" y2="18"/>
-                            </svg>
-                            Componentes del Equipo
-                        </h6>
-                        <div id="componentesActivoContainer">
-                            <p class="text-muted text-center py-3">Seleccione un modelo para cargar sus componentes.</p>
-                        </div>
+    <!-- Encabezado -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h2 class="h4 mb-3">📦 Gestión de Inventario</h2>
+                        <p class="text-muted mb-0">Administra todos los activos tecnológicos de la Gobernación</p>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary-dark">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:4px;">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                                <polyline points="17 21 17 13 7 13 7 21"/>
-                            </svg>
-                            Guardar Activo
-                        </button>
+                    <div class="text-center">
+                        <div style="font-size: 2rem;">📦</div>
+                        <small class="text-muted" id="totalActivosCount">Total: 0</small>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- ========== MODAL COMPONENTE ========== -->
-    <div class="modal fade" id="modalComponente" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalComponenteLabel">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:8px;">
-                            <rect x="2" y="6" width="20" height="12" rx="2" ry="2"/>
-                            <line x1="9" y1="6" x2="9" y2="18"/>
-                        </svg>
-                        Nuevo Componente
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form id="formComponente">
-                    @csrf
-                    <input type="hidden" id="componenteId" name="id">
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Tipo <span class="text-danger">*</span></label>
-                                <select class="form-select" id="comp_tipo" name="tipo" required>
-                                    <option value="">Seleccionar...</option>
-                                    <option value="RAM">RAM</option>
-                                    <option value="Disco">Disco</option>
-                                    <option value="Batería">Batería</option>
-                                    <option value="Cargador">Cargador</option>
-                                    <option value="Pantalla">Pantalla</option>
-                                    <option value="Teclado">Teclado</option>
-                                    <option value="Mouse">Mouse</option>
-                                    <option value="Procesador">Procesador</option>
-                                    <option value="Tarjeta">Tarjeta</option>
-                                    <option value="Cable">Cable</option>
-                                    <option value="Otro">Otro</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Marca</label>
-                                <input type="text" class="form-control" id="comp_marca" name="marca">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Serial</label>
-                                <input type="text" class="form-control" id="comp_serial" name="serial">
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">Capacidad</label>
-                                <input type="text" class="form-control" id="comp_capacidad" name="capacidad" placeholder="8GB, 512GB">
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">Estado</label>
-                                <select class="form-select" id="comp_estado" name="estado">
-                                    <option value="en_bodega">En Bodega</option>
-                                    <option value="instalado">Instalado</option>
-                                    <option value="prestado">Prestado</option>
-                                    <option value="en_reparacion">En Reparación</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">Institución</label>
-                                <select class="form-select" id="comp_institucion_id" name="institucion_id">
-                                    <option value="">Seleccionar...</option>
-                                </select>
-                            </div>
-                            <div class="col-md-3 mb-3">
-                                <label class="form-label">Responsable</label>
-                                <select class="form-select" id="comp_responsable_id" name="responsable_id">
-                                    <option value="">Seleccionar...</option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Ubicación</label>
-                            <input type="text" class="form-control" id="comp_ubicacion" name="ubicacion" placeholder="Bodega Central">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Observaciones</label>
-                            <textarea class="form-control" id="comp_observaciones" name="observaciones" rows="2"></textarea>
-                        </div>
+    <!-- Filtros -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="stat-card">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold">🔍 Buscar</label>
+                        <input type="text" id="filtroInventario" class="form-control" 
+                               placeholder="Serial, marca/modelo o ubicación...">
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary-dark">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:4px;">
-                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-                                <polyline points="17 21 17 13 7 13 7 21"/>
-                            </svg>
-                            Guardar Componente
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== MODAL DETALLE ========== -->
-    <div class="modal fade" id="modalDetalle" tabindex="-1">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalDetalleLabel">Detalle</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body" id="detalleContenido">Cargando...</div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary-dark" data-bs-dismiss="modal">Cerrar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== MODAL ELIMINAR ========== -->
-    <div class="modal fade" id="modalEliminar" tabindex="-1">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content">
-                <div class="modal-header bg-danger text-white">
-                    <h5 class="modal-title">Confirmar Eliminación</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p>¿Eliminar este registro?</p>
-                    <p class="fw-bold text-danger" id="deleteNombre"></p>
-                    <p class="small text-muted">Esta acción no se puede deshacer.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">Eliminar</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- ========== MODAL CAMBIAR ESTADO ========== -->
-    <div class="modal fade" id="modalCambiarEstado" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-sm">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:8px;">
-                            <polyline points="1 4 1 10 7 10"/>
-                            <path d="M3.51 15a9 9 0 102.13-9.36L1 10"/>
-                        </svg>
-                        Cambiar Estado
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <p class="mb-2">Activo: <strong id="estadoSerial"></strong></p>
-                    <p class="mb-2">Estado actual: <strong id="estadoActual"></strong></p>
-                    <div class="mb-3">
-                        <label class="form-label">Nuevo estado:</label>
-                        <select id="nuevoEstadoSelect" class="form-select">
-                            <option value="">Seleccionar estado...</option>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">📂 Categoría</label>
+                        <select id="filtroTipoActivo" class="form-select">
+                            <option value="">Todos</option>
+                            @foreach($tiposActivo as $tipo)
+                                <option value="{{ $tipo->id }}">{{ $tipo->nombre }}</option>
+                            @endforeach
                         </select>
                     </div>
-                    <p class="small text-muted mt-2">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2" style="display:inline-block; margin-right:4px;">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M12 16v-4M12 8h.01"/>
-                        </svg>
-                        Los estados terminales no se pueden cambiar.
-                    </p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-primary-dark" id="btnConfirmarCambioEstado">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:4px;">
-                            <polyline points="20 6 9 17 4 12"/>
-                        </svg>
-                        Cambiar Estado
-                    </button>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold">⚡ Estatus</label>
+                        <select id="filtroEstatus" class="form-select">
+                            <option value="">Todos</option>
+                            @foreach($estatusList as $estatus)
+                                <option value="{{ $estatus->id }}">{{ $estatus->descripcion }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button class="btn btn-primary w-100" id="btnFiltrar">
+                            <i class="fas fa-filter"></i> Filtrar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-@endsection
-
-@section('scripts')
-    @vite(['resources/js/admin-inventario.js'])
-    <script>
-        window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
-        function authUserHasPermission(permiso) {
-            return window.userPermissions.includes(permiso);
-        }
-
-        // ============================================================
-        // FUNCIONES PARA CAMBIAR ENTRE ACTIVOS Y COMPONENTES
-        // ============================================================
-        function mostrarActivos() {
-            document.getElementById('seccionActivos').style.display = 'block';
-            document.getElementById('seccionComponentes').style.display = 'none';
-            document.getElementById('seccionReportes').style.display = 'none';
-
-            document.getElementById('btnActivos').className = 'btn btn-primary-dark active';
-            document.getElementById('btnComponentes').className = 'btn btn-outline-primary-dark';
-            document.getElementById('btnReportes').className = 'btn btn-outline-primary-dark';
-
-            if (typeof cargarActivos === 'function') {
-                cargarActivos();
-            }
-        }
-
-        function mostrarComponentes() {
-            document.getElementById('seccionActivos').style.display = 'none';
-            document.getElementById('seccionComponentes').style.display = 'block';
-            document.getElementById('seccionReportes').style.display = 'none';
-
-            document.getElementById('btnComponentes').className = 'btn btn-primary-dark active';
-            document.getElementById('btnActivos').className = 'btn btn-outline-primary-dark';
-            document.getElementById('btnReportes').className = 'btn btn-outline-primary-dark';
-
-            if (typeof cargarComponentes === 'function') {
-                cargarComponentes();
-            }
-        }
-
-        function mostrarReportes() {
-            document.getElementById('seccionActivos').style.display = 'none';
-            document.getElementById('seccionComponentes').style.display = 'none';
-            document.getElementById('seccionReportes').style.display = 'block';
-
-            document.getElementById('btnReportes').className = 'btn btn-primary-dark active';
-            document.getElementById('btnActivos').className = 'btn btn-outline-primary-dark';
-            document.getElementById('btnComponentes').className = 'btn btn-outline-primary-dark';
-
-            // Cargar categorías para el filtro
-            cargarCategoriasReporte();
-            // Generar reporte automáticamente
-            generarReporte();
-        }
-
-        // ============================================================
-        // FUNCIONES PARA REPORTES (CORREGIDAS Y FUNCIONALES)
-        // ============================================================
-
-        function cargarCategoriasReporte() {
-            fetch('/admin/equipos/categorias-list', {
-                headers: { 'Accept': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    const select = document.getElementById('filtroCategoriaReporte');
-                    if (select) {
-                        select.innerHTML = '<option value="">Todas las categorías</option>';
-                        data.data.forEach(cat => {
-                            select.innerHTML += `<option value="${cat.id}">${escapeHtml(cat.nombre)}</option>`;
-                        });
-                    }
-                }
-            })
-            .catch(error => console.error('Error cargando categorías:', error));
-        }
-
-        function generarReporte() {
-            const buscar = document.getElementById('buscarReporte')?.value || '';
-            const estado = document.getElementById('filtroEstadoReporte')?.value || '';
-            const categoria = document.getElementById('filtroCategoriaReporte')?.value || '';
-            const tipo = document.getElementById('tipoReporte')?.value || 'activos';
-
-            console.log('Generando reporte de:', tipo); // Depuración
-
-            // Actualizar headers según el tipo
-            actualizarHeaders(tipo);
-
-            // Mostrar loading
-            const tbody = document.getElementById('reporteTablaBody');
-            if (tbody) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="${tipo === 'componentes' ? 9 : 7}" class="text-center py-4">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Cargando...</span>
-                            </div>
-                            <p class="mt-2 text-muted">Generando reporte de ${tipo}...</p>
-                        </td>
-                    </tr>
-                `;
-            }
-
-            let url = `/admin/reportes/inventario?tipo=${tipo}`;
-            if (buscar) url += `&buscar=${encodeURIComponent(buscar)}`;
-            if (estado) url += `&estado=${encodeURIComponent(estado)}`;
-            if (categoria) url += `&categoria=${encodeURIComponent(categoria)}`;
-
-            fetch(url, {
-                headers: { 'Accept': 'application/json' }
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log('Respuesta del servidor:', data); // Depuración
-                if (data.success) {
-                    renderizarReporte(data);
-                } else {
-                    if (tbody) {
-                        tbody.innerHTML = `
+    <!-- Tabla de activos -->
+    <div class="row">
+        <div class="col-12">
+            <div class="stat-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">📋 Lista de Activos</h5>
+                    <button class="btn btn-primary" id="btnAgregarActivo">
+                        <i class="fas fa-plus"></i> Nuevo Equipo
+                    </button>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
                             <tr>
-                                <td colspan="${tipo === 'componentes' ? 9 : 7}" class="text-center py-4 text-danger">
-                                    ${data.message || 'Error al generar el reporte'}
+                                <th>Serial</th>
+                                <th>Marca/Modelo</th>
+                                <th>Categoría</th>
+                                <th>Estatus</th>
+                                <th>Ubicación</th>
+                                <th>Vida Útil</th>
+                                <th>Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaInventarioBody">
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">Cargando...</span>
+                                    </div>
+                                    <p class="mt-2 text-muted">Cargando activos...</p>
                                 </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="paginationLinks" class="mt-3 d-flex justify-content-center"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para crear/editar activo -->
+<div class="modal fade" id="activoModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nuevo Activo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="activo_id" name="activo_id">
+                
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Serial *</label>
+                        <input type="text" id="serial" name="serial" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Marca / Modelo *</label>
+                        <input type="text" id="marca_modelo" name="marca_modelo" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Categoría *</label>
+                        <select id="id_tipo_activo" name="id_tipo_activo" class="form-select" required>
+                            <option value="">Seleccione una categoría...</option>
+                            @foreach($tiposActivo as $tipo)
+                                <option value="{{ $tipo->id }}" data-vida-util="{{ $tipo->vida_util_por_defecto ?? 5 }}">{{ $tipo->nombre }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Estatus *</label>
+                        <select id="id_estatus" name="id_estatus" class="form-select" required>
+                            <option value="">Seleccione un estatus...</option>
+                            @foreach($estatusList as $estatus)
+                                <option value="{{ $estatus->id }}">{{ $estatus->descripcion }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">Ubicación</label>
+                        <input type="text" id="ubicacion" name="ubicacion" class="form-control" placeholder="Ej: Oficina 301">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">📅 Fecha de Adquisición *</label>
+                        <input type="date" id="fecha_adquisicion" name="fecha_adquisicion" class="form-control" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">⏱️ Vida Útil (años) *</label>
+                        <input type="number" id="vida_util_anos" name="vida_util_anos" class="form-control" 
+                               placeholder="Ej: 5" min="1" max="20" step="1" required>
+                        <small class="text-muted">Según categoría del equipo</small>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label fw-bold">🔧 Fecha Fin de Garantía</label>
+                        <input type="date" id="fecha_fin_garantia" name="fecha_fin_garantia" class="form-control">
+                    </div>
+                    <div class="col-md-12 mb-3">
+                        <div class="alert alert-info" id="vidaUtilPreview" style="display: none;">
+                            <i class="fas fa-info-circle"></i> 
+                            <span id="vidaUtilMensaje"></span>
+                        </div>
+                    </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label fw-bold">Observaciones</label>
+                        <textarea id="observaciones" name="observaciones" class="form-control" rows="2"></textarea>
+                    </div>
+                </div>
+                
+                <!-- Contenedor para campos específicos por categoría -->
+                <div id="camposEspecificosContainer" class="row mt-3"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnGuardarActivo">Guardar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver detalle -->
+<div class="modal fade" id="verActivoModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title">Detalle del Activo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleActivoBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-info" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para ver especificaciones técnicas -->
+<div class="modal fade" id="especificacionesModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-microchip"></i> Especificaciones Técnicas
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="especificacionesBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary" id="btnEditarEspecificaciones" style="display: none;">
+                    <i class="fas fa-edit"></i> Editar Especificaciones
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal para confirmar eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">
+                    <i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-3">
+                    <i class="fas fa-trash-alt fa-3x text-danger mb-3 d-block"></i>
+                    <p class="fw-bold mb-2">¿Estás seguro de eliminar este activo?</p>
+                    <p class="text-muted" id="deleteMessage">Esta acción no se puede deshacer.</p>
+                    <p class="text-muted small" id="deleteActivoInfo"></p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Cancelar
+                </button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">
+                    <i class="fas fa-trash"></i> Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sistema de Notificaciones Toast -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
+    <div id="notificationToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMessage">
+                Mensaje de notificación
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        transition: transform 0.3s;
+        border: none;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+    }
+
+    .btn-group .btn {
+        transition: all 0.3s ease;
+        margin: 0 3px;
+        border-radius: 8px;
+        padding: 6px 12px;
+        font-size: 0.85rem;
+    }
+    
+    .btn-group .btn i {
+        font-size: 0.9rem;
+        margin-right: 4px;
+    }
+    
+    .btn-group .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+    
+    .badge {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.85rem;
+        border-radius: 20px;
+    }
+    
+    .table th, .table td {
+        vertical-align: middle;
+        padding: 12px 10px;
+    }
+    
+    .pagination .page-link {
+        color: #1e4a76;
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        margin: 0 3px;
+        padding: 8px 14px;
+    }
+    
+    .pagination .page-link:hover {
+        background-color: #1e4a76;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .pagination .active .page-link {
+        background-color: #1e4a76;
+        border-color: #1e4a76;
+    }
+    
+    .toast {
+        opacity: 0.95;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        min-width: 280px;
+    }
+    
+    #btnAgregarActivo {
+        padding: 8px 20px;
+        font-size: 0.9rem;
+        border-radius: 10px;
+    }
+    
+    #btnFiltrar {
+        padding: 8px 16px;
+    }
+    
+    .modal-footer .btn {
+        padding: 8px 20px;
+        border-radius: 8px;
+    }
+    
+    #deleteModal .modal-content {
+        border-radius: 16px;
+    }
+    
+    .especificacion-item {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 10px;
+    }
+    
+    .especificacion-label {
+        font-weight: bold;
+        color: #1e4a76;
+    }
+</style>
+
+<script>
+// ========== SISTEMA DE SONIDOS ==========
+class SoundManager {
+    constructor() {
+        this.enabled = true;
+        this.volume = 0.5;
+        this.sounds = {};
+        this.initialized = false;
+        this.init();
+    }
+    
+    init() {
+        try {
+            const soundFiles = {
+                success: '/sounds/success.mp3',
+                error: '/sounds/error.mp3',
+                notification: '/sounds/notification.mp3',
+                warning: '/sounds/warning.mp3',
+                click: '/sounds/click.mp3'
+            };
+            
+            for (const [key, url] of Object.entries(soundFiles)) {
+                const audio = new Audio(url);
+                audio.preload = 'auto';
+                audio.volume = this.volume;
+                audio.load();
+                this.sounds[key] = audio;
+                
+                audio.addEventListener('error', (e) => {
+                    console.warn(`No se pudo cargar el sonido ${key}`);
+                    this.createFallbackSound(key);
+                });
+            }
+            
+            const savedEnabled = localStorage.getItem('soundEnabled');
+            if (savedEnabled !== null) {
+                this.enabled = savedEnabled === 'true';
+            }
+            
+            const savedVolume = localStorage.getItem('soundVolume');
+            if (savedVolume !== null) {
+                this.volume = parseFloat(savedVolume);
+                this.setVolume(this.volume);
+            }
+            
+            this.initialized = true;
+            this.addSoundControl();
+        } catch (error) {
+            console.error('Error inicializando sonidos:', error);
+        }
+    }
+    
+    createFallbackSound(type) {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            let frequency = 800;
+            let duration = 0.3;
+            
+            switch(type) {
+                case 'success':
+                    frequency = 880;
+                    duration = 0.2;
+                    break;
+                case 'error':
+                    frequency = 440;
+                    duration = 0.5;
+                    break;
+                case 'warning':
+                    frequency = 660;
+                    duration = 0.4;
+                    break;
+                case 'click':
+                    frequency = 528;
+                    duration = 0.15;
+                    break;
+                default:
+                    frequency = 528;
+                    duration = 0.3;
+            }
+            
+            this.sounds[type] = {
+                play: () => {
+                    if (!this.enabled) return;
+                    const osc = audioContext.createOscillator();
+                    const gain = audioContext.createGain();
+                    osc.connect(gain);
+                    gain.connect(audioContext.destination);
+                    osc.frequency.value = frequency;
+                    gain.gain.value = this.volume;
+                    osc.start();
+                    gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duration);
+                    osc.stop(audioContext.currentTime + duration);
+                }
+            };
+        } catch (e) {
+            console.error('No se pudo crear sonido de fallback:', e);
+        }
+    }
+    
+    play(type) {
+        if (!this.enabled || !this.initialized) return;
+        
+        const sound = this.sounds[type];
+        if (sound) {
+            try {
+                if (sound.cloneNode) {
+                    const soundClone = sound.cloneNode();
+                    soundClone.volume = this.volume;
+                    soundClone.play().catch(error => console.log('Error:', error));
+                    soundClone.onended = () => soundClone.remove();
+                } else if (typeof sound.play === 'function') {
+                    sound.play();
+                }
+            } catch (error) {
+                console.error(`Error al reproducir ${type}:`, error);
+            }
+        }
+    }
+    
+    setVolume(volume) {
+        this.volume = Math.max(0, Math.min(1, volume));
+        for (const sound of Object.values(this.sounds)) {
+            if (sound.volume !== undefined) {
+                sound.volume = this.volume;
+            }
+        }
+        localStorage.setItem('soundVolume', this.volume);
+    }
+    
+    toggle() {
+        this.enabled = !this.enabled;
+        localStorage.setItem('soundEnabled', this.enabled);
+        if (this.enabled) this.play('notification');
+        return this.enabled;
+    }
+    
+    addSoundControl() {
+        if (document.getElementById('soundControlBtn')) return;
+        
+        const controlHtml = `
+            <div style="position: fixed; bottom: 20px; left: 20px; z-index: 9999;">
+                <button id="soundControlBtn" 
+                        class="btn btn-secondary rounded-circle shadow"
+                        style="width: 50px; height: 50px; font-size: 24px;"
+                        title="${this.enabled ? 'Desactivar sonidos' : 'Activar sonidos'}">
+                    ${this.enabled ? '🔊' : '🔇'}
+                </button>
+            </div>
+        `;
+        
+        document.body.insertAdjacentHTML('beforeend', controlHtml);
+        
+        const btn = document.getElementById('soundControlBtn');
+        if (btn) {
+            btn.addEventListener('click', () => {
+                const isEnabled = this.toggle();
+                btn.textContent = isEnabled ? '🔊' : '🔇';
+                btn.title = isEnabled ? 'Desactivar sonidos' : 'Activar sonidos';
+            });
+        }
+    }
+}
+
+// Inicializar sistema de sonidos
+const soundManager = new SoundManager();
+
+// ========== SISTEMA DE NOTIFICACIONES ==========
+let toastInstance = null;
+
+function showNotification(message, type = 'success') {
+    soundManager.play(type);
+    
+    const toastEl = document.getElementById('notificationToast');
+    const toastMessage = document.getElementById('toastMessage');
+    
+    if (!toastEl || !toastMessage) {
+        if (type === 'error') alert('❌ Error: ' + message);
+        return;
+    }
+    
+    toastEl.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-info');
+    if (type === 'success') {
+        toastEl.classList.add('bg-success');
+    } else if (type === 'error') {
+        toastEl.classList.add('bg-danger');
+    } else if (type === 'warning') {
+        toastEl.classList.add('bg-warning');
+    } else {
+        toastEl.classList.add('bg-info');
+    }
+    
+    toastMessage.textContent = message;
+    
+    if (toastInstance) {
+        toastInstance.hide();
+        setTimeout(() => toastInstance.show(), 200);
+    } else {
+        toastInstance = new bootstrap.Toast(toastEl, {
+            autohide: true,
+            delay: 3000
+        });
+        toastInstance.show();
+    }
+}
+
+// ========== VARIABLES GLOBALES ==========
+let currentPage = 1;
+let deleteId = null;
+let currentActivoIdForEspecs = null;
+let filters = {
+    search: '',
+    id_tipo_activo: '',
+    id_estatus: ''
+};
+
+let activoModal = null;
+let verActivoModal = null;
+let deleteModal = null;
+let especificacionesModal = null;
+
+// ========== INICIALIZACIÓN ==========
+document.addEventListener('DOMContentLoaded', function() {
+    const modalElement = document.getElementById('activoModal');
+    const verModalElement = document.getElementById('verActivoModal');
+    const deleteModalElement = document.getElementById('deleteModal');
+    const especModalElement = document.getElementById('especificacionesModal');
+    
+    if (modalElement) activoModal = new bootstrap.Modal(modalElement);
+    if (verModalElement) verActivoModal = new bootstrap.Modal(verModalElement);
+    if (deleteModalElement) deleteModal = new bootstrap.Modal(deleteModalElement);
+    if (especModalElement) especificacionesModal = new bootstrap.Modal(especModalElement);
+    
+    configurarEventos();
+    configurarCamposPorCategoria();
+    cargarActivos();
+    
+    // Configurar botón editar especificaciones
+    const btnEditarEspecs = document.getElementById('btnEditarEspecificaciones');
+    if (btnEditarEspecs) {
+        btnEditarEspecs.addEventListener('click', function() {
+            if (currentActivoIdForEspecs) {
+                if (especificacionesModal) especificacionesModal.hide();
+                setTimeout(() => {
+                    editarActivo(currentActivoIdForEspecs);
+                }, 300);
+            }
+        });
+    }
+});
+
+function configurarEventos() {
+    const btnAgregar = document.getElementById('btnAgregarActivo');
+    if (btnAgregar) {
+        btnAgregar.addEventListener('click', function() {
+            soundManager.play('click');
+            limpiarFormulario();
+            document.getElementById('modalTitle').innerHTML = 'Nuevo Activo';
+            if (activoModal) activoModal.show();
+        });
+    }
+    
+    const btnGuardar = document.getElementById('btnGuardarActivo');
+    if (btnGuardar) {
+        btnGuardar.addEventListener('click', guardarActivo);
+    }
+    
+    const btnConfirmarEliminar = document.getElementById('btnConfirmarEliminar');
+    if (btnConfirmarEliminar) {
+        btnConfirmarEliminar.addEventListener('click', confirmarEliminar);
+    }
+    
+    const btnFiltrar = document.getElementById('btnFiltrar');
+    if (btnFiltrar) {
+        btnFiltrar.addEventListener('click', function() {
+            soundManager.play('click');
+            filters.search = document.getElementById('filtroInventario').value;
+            filters.id_tipo_activo = document.getElementById('filtroTipoActivo').value;
+            filters.id_estatus = document.getElementById('filtroEstatus').value;
+            currentPage = 1;
+            cargarActivos();
+        });
+    }
+    
+    const filtroInventario = document.getElementById('filtroInventario');
+    if (filtroInventario) {
+        let debounceTimer;
+        filtroInventario.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                filters.search = this.value;
+                currentPage = 1;
+                cargarActivos();
+            }, 500);
+        });
+    }
+}
+
+// ========== CRUD FUNCTIONS ==========
+function cargarActivos() {
+    const params = new URLSearchParams({
+        page: currentPage,
+        search: filters.search,
+        id_tipo_activo: filters.id_tipo_activo,
+        id_estatus: filters.id_estatus
+    });
+
+    fetch(`{{ route('inventario.data') }}?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            renderTabla(data.data);
+            renderPagination(data);
+            actualizarTotal(data.total);
+            verificarActivosPorVencer(data.data);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.getElementById('tablaInventarioBody').innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-4 text-danger">
+                        <i class="fas fa-exclamation-circle fa-2x mb-2 d-block"></i>
+                        Error al cargar los datos
+                    </td>
+                </tr>
+            `;
+            showNotification('Error al cargar los datos', 'error');
+        });
+}
+
+function actualizarTotal(total) {
+    const totalSpan = document.getElementById('totalActivosCount');
+    if (totalSpan) totalSpan.innerHTML = `Total: ${total}`;
+}
+
+function renderVidaUtil(fechaAdquisicion, vidaUtilAnos, fechaFinGarantia) {
+    if (!fechaAdquisicion || !vidaUtilAnos) return '<span class="badge bg-secondary">No definida</span>';
+    
+    const adquisicion = new Date(fechaAdquisicion);
+    const hoy = new Date();
+    const fechaFin = new Date(adquisicion);
+    fechaFin.setFullYear(adquisicion.getFullYear() + parseInt(vidaUtilAnos));
+    
+    const diffTime = fechaFin - hoy;
+    const diffDias = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffMeses = Math.floor(diffDias / 30);
+    
+    let badgeClass = 'success';
+    let mensaje = '';
+    
+    if (diffDias < 0) {
+        badgeClass = 'danger';
+        mensaje = '❌ Vida útil vencida';
+    } else if (diffMeses <= 6) {
+        badgeClass = 'warning';
+        mensaje = `⚠️ Próximo a vencer (${diffMeses} meses)`;
+    } else if (diffMeses <= 12) {
+        badgeClass = 'info';
+        mensaje = `⏰ ${diffMeses} meses restantes`;
+    } else {
+        const añosRest = (diffMeses / 12).toFixed(1);
+        mensaje = `✅ ${añosRest} años restantes`;
+    }
+    
+    if (fechaFinGarantia) {
+        const garantia = new Date(fechaFinGarantia);
+        if (garantia < hoy) {
+            mensaje += ' | Garantía vencida';
+        } else if (garantia < fechaFin) {
+            mensaje += ' | En garantía';
+        }
+    }
+    
+    return `<span class="badge bg-${badgeClass}" title="${mensaje}">${mensaje}</span>`;
+}
+
+function renderTabla(activos) {
+    const tbody = document.getElementById('tablaInventarioBody');
+    if (!activos || !activos.length) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center py-4">
+                    <i class="fas fa-box-open fa-2x text-muted mb-2 d-block"></i>
+                    No hay activos registrados
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    tbody.innerHTML = activos.map(activo => `
+        <tr>
+            <td><code class="badge bg-secondary">${escapeHtml(activo.serial)}</code></td>
+            <td>${escapeHtml(activo.marca_modelo)}</td>
+            <td>${activo.tipo_activo ? escapeHtml(activo.tipo_activo.nombre) : '-'}</td>
+            <td>
+                <span class="badge bg-${activo.estatus ? activo.estatus.color_badge : 'secondary'}">
+                    ${activo.estatus ? activo.estatus.descripcion : '-'}
+                </span>
+            </td>
+            <td>${escapeHtml(activo.ubicacion || '-')}</td>
+            <td>${renderVidaUtil(activo.fecha_adquisicion, activo.vida_util_anos, activo.fecha_fin_garantia)}</td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-info" onclick="verActivo(${activo.id})" title="Ver">
+                        <i class="fas fa-eye"></i> Ver
+                    </button>
+                    <button class="btn btn-success" onclick="verEspecificaciones(${activo.id})" title="Ver Especificaciones">
+                        <i class="fas fa-microchip"></i> Especs
+                    </button>
+                    <button class="btn btn-warning" onclick="editarActivo(${activo.id})" title="Editar">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-danger" onclick="abrirModalEliminar(${activo.id}, '${escapeHtml(activo.serial)}', '${escapeHtml(activo.marca_modelo)}')" title="Eliminar">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                </div>
+            </td>
+        </tr>
+    `).join('');
+}
+
+function renderPagination(data) {
+    const container = document.getElementById('paginationLinks');
+    if (!container) return;
+    
+    if (data.last_page <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = '<nav><ul class="pagination justify-content-center">';
+    
+    if (data.prev_page_url) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="cambiarPagina(${data.current_page - 1})">« Anterior</a></li>`;
+    } else {
+        html += `<li class="page-item disabled"><span class="page-link">« Anterior</span></li>`;
+    }
+    
+    for (let i = 1; i <= data.last_page; i++) {
+        if (i === data.current_page) {
+            html += `<li class="page-item active"><span class="page-link">${i}</span></li>`;
+        } else {
+            html += `<li class="page-item"><a class="page-link" href="#" onclick="cambiarPagina(${i})">${i}</a></li>`;
+        }
+    }
+    
+    if (data.next_page_url) {
+        html += `<li class="page-item"><a class="page-link" href="#" onclick="cambiarPagina(${data.current_page + 1})">Siguiente »</a></li>`;
+    } else {
+        html += `<li class="page-item disabled"><span class="page-link">Siguiente »</span></li>`;
+    }
+    
+    html += '</ul></nav>';
+    container.innerHTML = html;
+}
+
+function cambiarPagina(page) {
+    soundManager.play('click');
+    currentPage = page;
+    cargarActivos();
+}
+
+function verificarActivosPorVencer(activos) {
+    const hoy = new Date();
+    const proximosAVencer = [];
+    
+    activos.forEach(activo => {
+        if (activo.fecha_adquisicion && activo.vida_util_anos) {
+            const fechaFin = new Date(activo.fecha_adquisicion);
+            fechaFin.setFullYear(fechaFin.getFullYear() + parseInt(activo.vida_util_anos));
+            const diffMeses = Math.ceil((fechaFin - hoy) / (1000 * 60 * 60 * 24 * 30));
+            
+            if (diffMeses <= 6 && diffMeses > 0) {
+                proximosAVencer.push({
+                    nombre: `${activo.serial} - ${activo.marca_modelo}`,
+                    meses: diffMeses
+                });
+            }
+        }
+    });
+    
+    if (proximosAVencer.length > 0) {
+        const mensaje = `⚠️ ${proximosAVencer.length} equipo(s) próximo(s) a cumplir su vida útil`;
+        showNotification(mensaje, 'warning');
+    }
+}
+
+// ========== FUNCIÓN VER ACTIVO (con botón de especificaciones) ==========
+window.verActivo = function(id) {
+    soundManager.play('click');
+    fetch(`{{ url('inventario') }}/${id}`)
+        .then(response => response.json())
+        .then(activo => {
+            const modalBody = document.getElementById('detalleActivoBody');
+            modalBody.innerHTML = `
+                <div class="mb-3">
+                    <button class="btn btn-success btn-sm" onclick="verEspecificaciones(${activo.id})">
+                        <i class="fas fa-microchip"></i> Ver Especificaciones Técnicas
+                    </button>
+                </div>
+                <table class="table table-bordered">
+                    <tr><th width="35%">Serial:</th><td><code>${escapeHtml(activo.serial)}</code></td></tr>
+                    <tr><th>Marca/Modelo:</th><td>${escapeHtml(activo.marca_modelo)}</td></tr>
+                    <tr><th>Categoría:</th><td>${activo.tipo_activo ? activo.tipo_activo.nombre : '-'}</td></tr>
+                    <tr><th>Estatus:</th><td><span class="badge bg-${activo.estatus ? activo.estatus.color_badge : 'secondary'}">${activo.estatus ? activo.estatus.descripcion : '-'}</span></td></tr>
+                    <tr><th>Ubicación:</th><td>${escapeHtml(activo.ubicacion || '-')}</td></tr>
+                    <tr><th>Fecha Adquisición:</th><td>${activo.fecha_adquisicion || '-'}</td></tr>
+                    <tr><th>Vida Útil:</th><td>${activo.vida_util_anos || '-'} años</td></td>
+                    <tr><th>Fecha Fin Garantía:</th><td>${activo.fecha_fin_garantia || '-'}</td></tr>
+                    <tr><th>Estado Vida Útil:</th><td>${renderVidaUtil(activo.fecha_adquisicion, activo.vida_util_anos, activo.fecha_fin_garantia)}</td></tr>
+                    <tr><th>Observaciones:</th><td>${escapeHtml(activo.observaciones || '-')}</td></tr>
+                    <tr><th>Registrado:</th><td>${activo.created_at || '-'}</td></tr>
+                </table>
+            `;
+            if (verActivoModal) verActivoModal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error al cargar el detalle', 'error');
+        });
+};
+
+// ========== FUNCIÓN PARA VER ESPECIFICACIONES TÉCNICAS ==========
+window.verEspecificaciones = function(id) {
+    soundManager.play('click');
+    currentActivoIdForEspecs = id;
+    
+    fetch(`{{ url('inventario') }}/${id}`)
+        .then(response => response.json())
+        .then(activo => {
+            const especBody = document.getElementById('especificacionesBody');
+            const btnEditar = document.getElementById('btnEditarEspecificaciones');
+            
+            // Parsear especificaciones si existen
+            let especificaciones = null;
+            if (activo.especificaciones_tecnicas) {
+                try {
+                    especificaciones = typeof activo.especificaciones_tecnicas === 'string' ? 
+                        JSON.parse(activo.especificaciones_tecnicas) : activo.especificaciones_tecnicas;
+                } catch(e) {
+                    console.error('Error parsing especificaciones:', e);
+                }
+            }
+            
+            if (especificaciones && Object.keys(especificaciones).length > 0) {
+                // Mostrar especificaciones en una tabla bonita
+                let html = `
+                    <div class="alert alert-info mb-3">
+                        <i class="fas fa-info-circle"></i> 
+                        <strong>${escapeHtml(activo.marca_modelo)}</strong> - ${activo.tipo_activo ? activo.tipo_activo.nombre : 'Equipo'}
+                        <br>
+                        <small class="text-muted">Serial: ${escapeHtml(activo.serial)}</small>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="table-success">
+                                <tr>
+                                    <th width="40%">Característica</th>
+                                    <th width="60%">Especificación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                `;
+                
+                // Mapear nombres de campos a nombres legibles
+                const nombresLegibles = {
+                    'procesador': '🖥️ Procesador',
+                    'ram': '💾 RAM',
+                    'disco_duro': '💿 Disco Duro',
+                    'sistema_operativo': '⚙️ Sistema Operativo',
+                    'bateria': '🔋 Duración de Batería',
+                    'almacenamiento': '💽 Almacenamiento',
+                    'pantalla': '📱 Tamaño de Pantalla',
+                    'cpu_cores': '🎛️ CPU Cores',
+                    'ram_total': '💾 RAM Total',
+                    'tipo_impresora': '🖨️ Tipo de Impresora',
+                    'velocidad': '⚡ Velocidad',
+                    'modelo': '📱 Modelo',
+                    'imei': '🔢 IMEI',
+                    'procesador_grafico': '🎮 Procesador Gráfico',
+                    'puertos': '🔌 Puertos',
+                    'conectividad': '📡 Conectividad',
+                    'incluye': '📦 Incluye'
+                };
+                
+                let tieneEspecificaciones = false;
+                for (const [key, value] of Object.entries(especificaciones)) {
+                    if (value && value.toString().trim() !== '') {
+                        tieneEspecificaciones = true;
+                        const nombreLegible = nombresLegibles[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                        html += `
+                            <tr>
+                                <td class="fw-bold bg-light">${escapeHtml(nombreLegible)}</td>
+                                <td>${escapeHtml(value.toString())}</td>
                             </tr>
                         `;
                     }
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                if (tbody) {
-                    tbody.innerHTML = `
-                        <tr>
-                            <td colspan="${tipo === 'componentes' ? 9 : 7}" class="text-center py-4 text-danger">
-                                Error de conexión al servidor
-                            </td>
-                        </tr>
+                
+                if (!tieneEspecificaciones) {
+                    html = `
+                        <div class="text-center py-5">
+                            <i class="fas fa-microchip fa-4x text-muted mb-3 d-block"></i>
+                            <h5 class="text-muted">No hay especificaciones técnicas registradas</h5>
+                            <p class="text-muted">Este equipo no tiene especificaciones técnicas asociadas.</p>
+                        </div>
                     `;
-                }
-            });
-        }
-
-        function actualizarHeaders(tipo) {
-            const thead = document.getElementById('reporteHeaders');
-            if (!thead) return;
-
-            if (tipo === 'componentes') {
-                thead.innerHTML = `
-                    <th>Tipo</th>
-                    <th>Marca</th>
-                    <th>Modelo</th>
-                    <th>Serial</th>
-                    <th>Capacidad</th>
-                    <th>Estado</th>
-                    <th>Ubicación</th>
-                    <th>Activo</th>
-                    <th>Responsable</th>
-                `;
-            } else {
-                thead.innerHTML = `
-                    <th>Serial</th>
-                    <th>Modelo</th>
-                    <th>Marca</th>
-                    <th>Categoría</th>
-                    <th>Estado</th>
-                    <th>Ubicación</th>
-                    <th>Responsable</th>
-                `;
-            }
-        }
-
-        function renderizarReporte(data) {
-            console.log('Renderizando reporte tipo:', data.tipo); // Depuración
-
-            // Actualizar estadísticas
-            document.getElementById('reporteTotal').textContent = data.total || 0;
-            document.getElementById('reporteDisponibles').textContent = data.disponibles || 0;
-            document.getElementById('reportePrestados').textContent = data.prestados || 0;
-            document.getElementById('reporteReparacion').textContent = data.reparacion || 0;
-
-            // Actualizar tabla
-            const tbody = document.getElementById('reporteTablaBody');
-            if (!tbody) return;
-
-            const items = data.data || [];
-            console.log('Items a renderizar:', items.length); // Depuración
-
-            if (items.length === 0) {
-                tbody.innerHTML = `
-                    <tr>
-                        <td colspan="${data.tipo === 'componentes' ? 9 : 7}" class="text-center py-4 text-muted">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
-                                <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
-                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
-                            </svg>
-                            <p>No se encontraron ${data.tipo === 'componentes' ? 'componentes' : 'activos'} con los filtros seleccionados</p>
-                        </td>
-                    </tr>
-                `;
-                return;
-            }
-
-            let html = '';
-            const esComponente = data.tipo === 'componentes';
-
-            items.forEach(item => {
-                if (esComponente) {
-                    // Tabla de componentes - USANDO LA ESTRUCTURA CORRECTA
-                    const estado = item.estado || 'N/A';
-                    const estadoColor = getEstadoColorComponente(estado);
-                    html += `
-                        <tr>
-                            <td><span class="fw-medium" style="color: #1e3c72;">${escapeHtml(item.tipo || 'N/A')}</span></td>
-                            <td>${escapeHtml(item.marca || 'N/A')}</td>
-                            <td>${escapeHtml(item.modelo || 'N/A')}</td>
-                            <td>${escapeHtml(item.serial || 'N/A')}</td>
-                            <td>${escapeHtml(item.capacidad || 'N/A')}</td>
-                            <td><span class="badge bg-${estadoColor}">${escapeHtml(estado)}</span></td>
-                            <td>${escapeHtml(item.ubicacion || 'No especificada')}</td>
-                            <td>${escapeHtml(item.activo_serial || 'No instalado')}</td>
-                            <td>${escapeHtml(item.responsable || 'No asignado')}</td>
-                        </tr>
-                    `;
+                    btnEditar.style.display = 'block';
                 } else {
-                    // Tabla de activos
-                    const estado = item.estado || 'N/A';
-                    const estadoColor = getEstadoColor(estado);
                     html += `
-                        <tr>
-                            <td><span class="fw-medium" style="color: #1e3c72;">${escapeHtml(item.serial || 'N/A')}</span></td>
-                            <td>${escapeHtml(item.modelo || 'N/A')}</td>
-                            <td>${escapeHtml(item.marca || 'N/A')}</td>
-                            <td>${escapeHtml(item.categoria || 'N/A')}</td>
-                            <td><span class="badge bg-${estadoColor}">${escapeHtml(estado)}</span></td>
-                            <td>${escapeHtml(item.ubicacion || 'No especificada')}</td>
-                            <td>${escapeHtml(item.responsable || 'No asignado')}</td>
-                        </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="mt-3 text-muted small">
+                        <i class="fas fa-clock"></i> Última actualización: ${activo.updated_at || activo.created_at || 'No disponible'}
+                    </div>
                     `;
+                    btnEditar.style.display = 'block';
                 }
-            });
-
-            tbody.innerHTML = html;
-            console.log('Tabla renderizada con', items.length, 'items'); // Depuración
-        }
-
-        function getEstadoColor(estado) {
-            const colors = {
-                'Disponible': 'success',
-                'Prestado': 'warning',
-                'En reparación': 'danger',
-                'En bodega': 'secondary',
-                'Desechado': 'dark'
-            };
-            return colors[estado] || 'secondary';
-        }
-
-        function getEstadoColorComponente(estado) {
-            const colors = {
-                'En Bodega': 'secondary',
-                'Instalado': 'primary',
-                'Prestado': 'warning',
-                'En Reparación': 'danger',
-                'Desechado': 'dark'
-            };
-            return colors[estado] || 'secondary';
-        }
-
-        // ============================================================
-        // EXPORTAR REPORTES
-        // ============================================================
-        function exportarReportePDF() {
-            const buscar = document.getElementById('buscarReporte')?.value || '';
-            const estado = document.getElementById('filtroEstadoReporte')?.value || '';
-            const categoria = document.getElementById('filtroCategoriaReporte')?.value || '';
-            const tipo = document.getElementById('tipoReporte')?.value || 'activos';
-
-            let url = `/admin/reportes/inventario/exportar-pdf?tipo=${tipo}`;
-            if (buscar) url += `&buscar=${encodeURIComponent(buscar)}`;
-            if (estado) url += `&estado=${encodeURIComponent(estado)}`;
-            if (categoria) url += `&categoria=${encodeURIComponent(categoria)}`;
-
-            window.open(url, '_blank');
-        }
-
-        function exportarReporteExcel() {
-            const buscar = document.getElementById('buscarReporte')?.value || '';
-            const estado = document.getElementById('filtroEstadoReporte')?.value || '';
-            const categoria = document.getElementById('filtroCategoriaReporte')?.value || '';
-            const tipo = document.getElementById('tipoReporte')?.value || 'activos';
-
-            let url = `/admin/reportes/inventario/exportar-excel?tipo=${tipo}`;
-            if (buscar) url += `&buscar=${encodeURIComponent(buscar)}`;
-            if (estado) url += `&estado=${encodeURIComponent(estado)}`;
-            if (categoria) url += `&categoria=${encodeURIComponent(categoria)}`;
-
-            window.open(url, '_blank');
-        }
-
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // ============================================================
-        // DEBOUNCE
-        // ============================================================
-        function debounce(func, wait) {
-            let timeout;
-            return function(...args) {
-                clearTimeout(timeout);
-                timeout = setTimeout(() => func.apply(this, args), wait);
-            };
-        }
-
-        // ============================================================
-        // EVENTOS DE FILTROS EN REPORTES
-        // ============================================================
-        document.addEventListener('DOMContentLoaded', function() {
-            // Cargar activos al inicio
-            if (typeof cargarActivos === 'function') {
-                cargarActivos();
+                
+                especBody.innerHTML = html;
+            } else {
+                // No hay especificaciones registradas
+                especBody.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-microchip fa-4x text-muted mb-3 d-block"></i>
+                        <h5 class="text-muted">No hay especificaciones técnicas registradas</h5>
+                        <p class="text-muted">Este equipo no tiene especificaciones técnicas asociadas.</p>
+                        <div class="alert alert-info mt-3">
+                            <i class="fas fa-info-circle"></i> 
+                            Puedes agregar especificaciones técnicas editando el activo y completando los campos específicos según la categoría.
+                        </div>
+                    </div>
+                `;
+                btnEditar.style.display = 'block';
             }
-
-            // Búsqueda en tiempo real - Activos
-            const buscarActivos = document.getElementById('buscarActivos');
-            if (buscarActivos) {
-                buscarActivos.addEventListener('input', function() {
-                    if (typeof cargarActivos === 'function') {
-                        cargarActivos();
-                    }
-                });
-            }
-
-            // Búsqueda en tiempo real - Componentes
-            const buscarComponentes = document.getElementById('buscarComponentes');
-            if (buscarComponentes) {
-                buscarComponentes.addEventListener('input', function() {
-                    if (typeof cargarComponentes === 'function') {
-                        cargarComponentes();
-                    }
-                });
-            }
-
-            // Filtros de activos
-            const filtroEstadoActivos = document.getElementById('filtroEstadoActivos');
-            if (filtroEstadoActivos) {
-                filtroEstadoActivos.addEventListener('change', function() {
-                    if (typeof cargarActivos === 'function') {
-                        cargarActivos();
-                    }
-                });
-            }
-
-            // Filtros de componentes
-            const filtroTipoComponentes = document.getElementById('filtroTipoComponentes');
-            if (filtroTipoComponentes) {
-                filtroTipoComponentes.addEventListener('change', function() {
-                    if (typeof cargarComponentes === 'function') {
-                        cargarComponentes();
-                    }
-                });
-            }
-
-            const filtroEstadoComponentes = document.getElementById('filtroEstadoComponentes');
-            if (filtroEstadoComponentes) {
-                filtroEstadoComponentes.addEventListener('change', function() {
-                    if (typeof cargarComponentes === 'function') {
-                        cargarComponentes();
-                    }
-                });
-            }
-
-            // ============================================================
-            // 🆕 EVENTOS DE FILTROS EN REPORTES (CORREGIDO)
-            // ============================================================
-            const buscarReporte = document.getElementById('buscarReporte');
-            const filtroEstadoReporte = document.getElementById('filtroEstadoReporte');
-            const filtroCategoriaReporte = document.getElementById('filtroCategoriaReporte');
-            const limpiarFiltrosReporte = document.getElementById('limpiarFiltrosReporte');
-            const tipoReporte = document.getElementById('tipoReporte');
-
-            function aplicarFiltrosReporte() {
-                generarReporte();
-            }
-
-            if (buscarReporte) {
-                buscarReporte.addEventListener('input', debounce(aplicarFiltrosReporte, 400));
-            }
-            if (filtroEstadoReporte) {
-                filtroEstadoReporte.addEventListener('change', aplicarFiltrosReporte);
-            }
-            if (filtroCategoriaReporte) {
-                filtroCategoriaReporte.addEventListener('change', aplicarFiltrosReporte);
-            }
-            if (tipoReporte) {
-                tipoReporte.addEventListener('change', function() {
-                    actualizarHeaders(this.value);
-                    aplicarFiltrosReporte();
-                });
-            }
-            if (limpiarFiltrosReporte) {
-                limpiarFiltrosReporte.addEventListener('click', function() {
-                    if (buscarReporte) buscarReporte.value = '';
-                    if (filtroEstadoReporte) filtroEstadoReporte.value = '';
-                    if (filtroCategoriaReporte) filtroCategoriaReporte.value = '';
-                    aplicarFiltrosReporte();
-                });
-            }
-
-            // ========== CORRECCIÓN: HEADERS INICIALES ==========
-            // Asegurar que los headers sean correctos al cargar la página
-            const tipoInicial = tipoReporte ? tipoReporte.value : 'activos';
-            actualizarHeaders(tipoInicial);
+            
+            if (especificacionesModal) especificacionesModal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error al cargar las especificaciones', 'error');
         });
-    </script>
+};
+
+// Función para cerrar modal de especificaciones y editar
+window.cerrarModalEspecificacionesYEditar = function(id) {
+    if (especificacionesModal) especificacionesModal.hide();
+    setTimeout(() => {
+        editarActivo(id);
+    }, 300);
+};
+
+// ========== FUNCIÓN EDITAR ACTIVO ==========
+window.editarActivo = function(id) {
+    soundManager.play('click');
+    fetch(`{{ url('inventario') }}/${id}`)
+        .then(response => response.json())
+        .then(activo => {
+            document.getElementById('modalTitle').innerHTML = 'Editar Activo';
+            document.getElementById('activo_id').value = activo.id;
+            document.getElementById('serial').value = activo.serial;
+            document.getElementById('marca_modelo').value = activo.marca_modelo;
+            document.getElementById('id_tipo_activo').value = activo.id_tipo_activo;
+            document.getElementById('id_estatus').value = activo.id_estatus;
+            document.getElementById('ubicacion').value = activo.ubicacion || '';
+            document.getElementById('fecha_adquisicion').value = activo.fecha_adquisicion || '';
+            document.getElementById('vida_util_anos').value = activo.vida_util_anos || '';
+            document.getElementById('fecha_fin_garantia').value = activo.fecha_fin_garantia || '';
+            document.getElementById('observaciones').value = activo.observaciones || '';
+            
+            // Disparar evento change para cargar campos específicos
+            const selectCategoria = document.getElementById('id_tipo_activo');
+            if (selectCategoria) {
+                selectCategoria.dispatchEvent(new Event('change'));
+            }
+            
+            // Cargar campos específicos si existen
+            setTimeout(() => {
+                if (activo.especificaciones_tecnicas) {
+                    const especs = typeof activo.especificaciones_tecnicas === 'string' ? 
+                        JSON.parse(activo.especificaciones_tecnicas) : activo.especificaciones_tecnicas;
+                    for (const [key, value] of Object.entries(especs)) {
+                        const input = document.getElementById(key);
+                        if (input) input.value = value;
+                    }
+                }
+            }, 100);
+            
+            if (activoModal) activoModal.show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Error al cargar el activo para editar', 'error');
+        });
+};
+
+// ========== MODAL ELIMINAR ==========
+window.abrirModalEliminar = function(id, serial, marcaModelo) {
+    soundManager.play('warning');
+    deleteId = id;
+    const deleteMessage = document.getElementById('deleteActivoInfo');
+    if (deleteMessage) {
+        deleteMessage.innerHTML = `<strong>${escapeHtml(serial)}</strong> - ${escapeHtml(marcaModelo)}`;
+    }
+    if (deleteModal) deleteModal.show();
+};
+
+function confirmarEliminar() {
+    if (!deleteId) return;
+    
+    const btn = document.getElementById('btnConfirmarEliminar');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Eliminando...';
+    
+    fetch(`{{ url('inventario') }}/${deleteId}`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (deleteModal) deleteModal.hide();
+            cargarActivos();
+            showNotification(data.message || 'Activo eliminado correctamente', 'success');
+            deleteId = null;
+        } else {
+            showNotification(data.message || 'Error al eliminar', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error al eliminar el activo', 'error');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+// ========== GUARDAR ACTIVO ==========
+function guardarActivo() {
+    const id = document.getElementById('activo_id').value;
+    const url = id ? `{{ url('inventario') }}/${id}` : `{{ route('inventario.store') }}`;
+    const method = id ? 'PUT' : 'POST';
+    
+    // Recolectar campos específicos dinámicos
+    const especificacionesTecnicas = {};
+    const camposDinamicos = document.querySelectorAll('#camposEspecificosContainer input, #camposEspecificosContainer select, #camposEspecificosContainer textarea');
+    camposDinamicos.forEach(campo => {
+        if (campo.value && campo.value.trim() !== '') {
+            especificacionesTecnicas[campo.id] = campo.value;
+        }
+    });
+    
+    const formData = {
+        serial: document.getElementById('serial').value,
+        marca_modelo: document.getElementById('marca_modelo').value,
+        id_tipo_activo: document.getElementById('id_tipo_activo').value,
+        id_estatus: document.getElementById('id_estatus').value,
+        ubicacion: document.getElementById('ubicacion').value,
+        fecha_adquisicion: document.getElementById('fecha_adquisicion').value,
+        vida_util_anos: document.getElementById('vida_util_anos').value,
+        fecha_fin_garantia: document.getElementById('fecha_fin_garantia').value,
+        observaciones: document.getElementById('observaciones').value,
+        especificaciones_tecnicas: especificacionesTecnicas
+    };
+    
+    // Validaciones
+    if (!formData.serial) {
+        showNotification('El campo Serial es requerido', 'warning');
+        document.getElementById('serial').focus();
+        return;
+    }
+    if (!formData.marca_modelo) {
+        showNotification('El campo Marca/Modelo es requerido', 'warning');
+        document.getElementById('marca_modelo').focus();
+        return;
+    }
+    if (!formData.id_tipo_activo) {
+        showNotification('El campo Categoría es requerido', 'warning');
+        document.getElementById('id_tipo_activo').focus();
+        return;
+    }
+    if (!formData.id_estatus) {
+        showNotification('El campo Estatus es requerido', 'warning');
+        document.getElementById('id_estatus').focus();
+        return;
+    }
+    if (!formData.fecha_adquisicion) {
+        showNotification('El campo Fecha de Adquisición es requerido', 'warning');
+        document.getElementById('fecha_adquisicion').focus();
+        return;
+    }
+    if (!formData.vida_util_anos) {
+        showNotification('El campo Vida Útil es requerido', 'warning');
+        document.getElementById('vida_util_anos').focus();
+        return;
+    }
+    
+    const btn = document.getElementById('btnGuardarActivo');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'X-CSRF-TOKEN': '{{ csrf_token() }}',
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            if (activoModal) activoModal.hide();
+            cargarActivos();
+            showNotification(data.message || 'Activo guardado correctamente', 'success');
+            limpiarFormulario();
+        } else {
+            showNotification(data.message || 'Error al guardar el activo', 'error');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Error al guardar el activo', 'error');
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    });
+}
+
+function limpiarFormulario() {
+    document.getElementById('activo_id').value = '';
+    document.getElementById('serial').value = '';
+    document.getElementById('marca_modelo').value = '';
+    document.getElementById('id_tipo_activo').value = '';
+    document.getElementById('id_estatus').value = '';
+    document.getElementById('ubicacion').value = '';
+    document.getElementById('fecha_adquisicion').value = '';
+    document.getElementById('vida_util_anos').value = '';
+    document.getElementById('fecha_fin_garantia').value = '';
+    document.getElementById('observaciones').value = '';
+    
+    // Limpiar campos específicos
+    const container = document.getElementById('camposEspecificosContainer');
+    if (container) container.innerHTML = '';
+    
+    // Ocultar preview
+    const previewDiv = document.getElementById('vidaUtilPreview');
+    if (previewDiv) previewDiv.style.display = 'none';
+}
+
+// ========== CAMPOS DINÁMICOS POR CATEGORÍA ==========
+function configurarCamposPorCategoria() {
+    const selectCategoria = document.getElementById('id_tipo_activo');
+    if (!selectCategoria) return;
+    
+    // Vida útil por defecto según categoría (valores de ejemplo)
+    const vidaUtilPorDefecto = {
+        1: 5,  // Computadoras
+        2: 4,  // Laptops
+        3: 3,  // Tablets
+        4: 6,  // Servidores
+        5: 10, // Mobiliario
+        6: 3,  // Teléfonos
+        7: 5   // Impresoras
+    };
+    
+    selectCategoria.addEventListener('change', function() {
+        const categoriaId = parseInt(this.value);
+        const selectedOption = this.options[this.selectedIndex];
+        const vidaUtilData = selectedOption.getAttribute('data-vida-util');
+        const campoVidaUtil = document.getElementById('vida_util_anos');
+        const previewDiv = document.getElementById('vidaUtilPreview');
+        const mensajeSpan = document.getElementById('vidaUtilMensaje');
+        
+        // Auto-completar vida útil según categoría
+        if (categoriaId && vidaUtilPorDefecto[categoriaId]) {
+            const años = vidaUtilPorDefecto[categoriaId];
+            campoVidaUtil.value = años;
+            
+            // Mostrar preview
+            const fechaAdquisicion = document.getElementById('fecha_adquisicion').value;
+            if (fechaAdquisicion) {
+                const fechaFin = new Date(fechaAdquisicion);
+                fechaFin.setFullYear(fechaFin.getFullYear() + años);
+                mensajeSpan.innerHTML = `Este equipo tiene una vida útil estimada de ${años} años. 
+                                         Fecha estimada de fin de vida: ${fechaFin.toLocaleDateString()}`;
+                previewDiv.style.display = 'block';
+            } else {
+                mensajeSpan.innerHTML = `Este equipo tiene una vida útil estimada de ${años} años. 
+                                         Complete la fecha de adquisición para ver el cálculo.`;
+                previewDiv.style.display = 'block';
+            }
+        }
+        
+        // Mostrar campos específicos según categoría
+        mostrarCamposEspecificosPorCategoria(categoriaId);
+    });
+    
+    // Recalcular cuando cambie la fecha de adquisición
+    const fechaAdquisicionInput = document.getElementById('fecha_adquisicion');
+    if (fechaAdquisicionInput) {
+        fechaAdquisicionInput.addEventListener('change', function() {
+            const categoriaId = parseInt(selectCategoria.value);
+            const años = document.getElementById('vida_util_anos').value;
+            if (categoriaId && años && this.value) {
+                const fechaFin = new Date(this.value);
+                fechaFin.setFullYear(fechaFin.getFullYear() + parseInt(años));
+                const mensajeSpan = document.getElementById('vidaUtilMensaje');
+                if (mensajeSpan) {
+                    mensajeSpan.innerHTML = `Fecha estimada de fin de vida útil: ${fechaFin.toLocaleDateString()}`;
+                    document.getElementById('vidaUtilPreview').style.display = 'block';
+                }
+            }
+        });
+    }
+}
+
+function mostrarCamposEspecificosPorCategoria(categoriaId) {
+    const container = document.getElementById('camposEspecificosContainer');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // Definir campos según categoría (ajusta según tu BD)
+    const camposPorCategoria = {
+        1: [ // Computadoras
+            { tipo: 'text', id: 'procesador', label: '🖥️ Procesador', col: 4, placeholder: 'Ej: Intel Core i7-12700' },
+            { tipo: 'text', id: 'ram', label: '💾 RAM (GB)', col: 4, placeholder: 'Ej: 16' },
+            { tipo: 'text', id: 'disco_duro', label: '💿 Disco Duro', col: 4, placeholder: 'Ej: SSD 512GB' },
+            { tipo: 'text', id: 'sistema_operativo', label: '⚙️ Sistema Operativo', col: 6, placeholder: 'Ej: Windows 11 Pro' },
+            { tipo: 'text', id: 'procesador_grafico', label: '🎮 Procesador Gráfico', col: 6, placeholder: 'Ej: NVIDIA GTX 1660' }
+        ],
+        2: [ // Laptops
+            { tipo: 'text', id: 'procesador', label: '🖥️ Procesador', col: 4, placeholder: 'Ej: Intel Core i5' },
+            { tipo: 'text', id: 'ram', label: '💾 RAM (GB)', col: 4, placeholder: 'Ej: 8' },
+            { tipo: 'text', id: 'bateria', label: '🔋 Duración batería (horas)', col: 4, placeholder: 'Ej: 6' },
+            { tipo: 'text', id: 'pantalla', label: '📱 Tamaño Pantalla (pulgadas)', col: 6, placeholder: 'Ej: 15.6' }
+        ],
+        3: [ // Tablets
+            { tipo: 'text', id: 'almacenamiento', label: '💽 Almacenamiento (GB)', col: 6, placeholder: 'Ej: 64' },
+            { tipo: 'text', id: 'pantalla', label: '📱 Tamaño Pantalla (pulgadas)', col: 6, placeholder: 'Ej: 10.1' },
+            { tipo: 'text', id: 'conectividad', label: '📡 Conectividad', col: 12, placeholder: 'Ej: WiFi, 4G' }
+        ],
+        4: [ // Servidores
+            { tipo: 'text', id: 'cpu_cores', label: '🎛️ CPU Cores', col: 3, placeholder: 'Ej: 8' },
+            { tipo: 'text', id: 'ram_total', label: '💾 RAM Total (GB)', col: 3, placeholder: 'Ej: 32' },
+            { tipo: 'text', id: 'almacenamiento', label: '💽 Almacenamiento (TB)', col: 3, placeholder: 'Ej: 2' },
+            { tipo: 'text', id: 'sistema_operativo', label: '⚙️ Sistema Operativo', col: 3, placeholder: 'Ej: Ubuntu Server' }
+        ],
+        6: [ // Teléfonos
+            { tipo: 'text', id: 'modelo', label: '📱 Modelo', col: 4, placeholder: 'Ej: iPhone 13' },
+            { tipo: 'text', id: 'imei', label: '🔢 IMEI', col: 4, placeholder: 'Ej: 123456789012345' },
+            { tipo: 'text', id: 'almacenamiento', label: '💽 Almacenamiento (GB)', col: 4, placeholder: 'Ej: 128' }
+        ],
+        7: [ // Impresoras
+            { tipo: 'text', id: 'tipo_impresora', label: '🖨️ Tipo', col: 6, placeholder: 'Laser/Tinta' },
+            { tipo: 'text', id: 'velocidad', label: '⚡ Velocidad (ppm)', col: 6, placeholder: 'Ej: 20' },
+            { tipo: 'text', id: 'conectividad', label: '📡 Conectividad', col: 12, placeholder: 'Ej: USB, WiFi, Ethernet' }
+        ]
+    };
+    
+    const campos = camposPorCategoria[categoriaId] || [];
+    
+    if (campos.length > 0) {
+        const tituloDiv = document.createElement('div');
+        tituloDiv.className = 'col-12 mb-3';
+        tituloDiv.innerHTML = '<hr><h6 class="fw-bold text-primary">📋 Especificaciones Técnicas</h6><p class="text-muted small">Complete los detalles técnicos del equipo</p>';
+        container.appendChild(tituloDiv);
+    }
+    
+    campos.forEach(campo => {
+        const colDiv = document.createElement('div');
+        colDiv.className = `col-md-${campo.col} mb-3`;
+        colDiv.innerHTML = `
+            <label class="form-label fw-bold">${campo.label}</label>
+            <input type="${campo.tipo}" id="${campo.id}" name="${campo.id}" 
+                   class="form-control" placeholder="${campo.placeholder || ''}">
+        `;
+        container.appendChild(colDiv);
+    });
+}
+
+function escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+</script>
 @endsection

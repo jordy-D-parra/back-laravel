@@ -24,6 +24,7 @@ class Activo extends Model
         'especificaciones_tecnicas',
         'agrupacion',
         'observaciones',
+        'reservado_en_prestamo_id',   // ✅ AGREGADO
     ];
 
     protected $casts = [
@@ -32,6 +33,10 @@ class Activo extends Model
         'fecha_fin_garantia' => 'date',
         'vida_util_anos' => 'integer',
     ];
+
+    // ============================================================
+    // RELACIONES
+    // ============================================================
 
     /**
      * Modelo del activo (de aquí se obtiene categoría y marca).
@@ -90,12 +95,25 @@ class Activo extends Model
     }
 
     /**
+     * Detalles de préstamos donde aparece este activo (polimórfico).
+     */
+    public function prestamoDetalles(): HasMany
+    {
+        return $this->hasMany(PrestamoDetalle::class, 'prestable_id')
+            ->where('prestable_type', Activo::class);
+    }
+
+    /**
      * Préstamo en el que está reservado (si aplica).
      */
     public function reservadoEnPrestamo(): BelongsTo
     {
         return $this->belongsTo(Prestamo::class, 'reservado_en_prestamo_id');
     }
+
+    // ============================================================
+    // ACCESORES
+    // ============================================================
 
     /**
      * Acceso rápido a la categoría a través del modelo.
@@ -113,13 +131,17 @@ class Activo extends Model
         return $this->modelo?->marca;
     }
 
+    // ============================================================
+    // SCOPES
+    // ============================================================
+
     /**
      * Scope: Solo activos prestados.
      */
     public function scopePrestados($query)
     {
-        return $query->where('id_estatus', function ($sub) {
-            $sub->select('id')->from('estatus')->where('descripcion', 'Prestado')->limit(1);
+        return $query->whereHas('estatus', function ($q) {
+            $q->where('descripcion', 'Prestado');
         });
     }
 
@@ -138,10 +160,14 @@ class Activo extends Model
      */
     public function scopeEnPrestamoActivo($query)
     {
-        return $query->whereHas('prestamos', function($q) {
+        return $query->whereHas('prestamoDetalles.prestamo', function ($q) {
             $q->whereIn('estado', ['entregado', 'extendido', 'aprobado']);
         });
     }
+
+    // ============================================================
+    // HELPERS
+    // ============================================================
 
     /**
      * Verifica si el activo está disponible para préstamo.

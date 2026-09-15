@@ -1,4 +1,5 @@
 <?php
+// app/Models/CorreoRecibido.php
 
 namespace App\Models;
 
@@ -37,6 +38,8 @@ class CorreoRecibido extends Model
         'procesado' => 'boolean',
     ];
 
+    // ============ RELACIONES ============
+
     public function solicitud(): BelongsTo
     {
         return $this->belongsTo(Solicitud::class, 'solicitud_id');
@@ -52,7 +55,8 @@ class CorreoRecibido extends Model
         return $this->belongsTo(Usuario::class, 'usuario_id');
     }
 
-    // Scopes
+    // ============ SCOPES ============
+
     public function scopeNoLeidos($query)
     {
         return $query->where('leido', false);
@@ -63,12 +67,13 @@ class CorreoRecibido extends Model
         return $query->where('procesado', false);
     }
 
-    public function scopeSoporte($query)
+    // ✅ CAMBIAR NOMBRES PARA EVITAR CONFLICTO
+    public function scopeDeTipoSoporte($query)
     {
         return $query->where('tipo', 'soporte');
     }
 
-    public function scopeSolicitud($query)
+    public function scopeDeTipoSolicitud($query)
     {
         return $query->where('tipo', 'solicitud');
     }
