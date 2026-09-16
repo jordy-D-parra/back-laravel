@@ -1,4 +1,5 @@
 <?php
+
 // app/Http/Controllers/Admin/SolicitudController.php
 
 namespace App\Http\Controllers\Admin;
@@ -423,7 +424,6 @@ class SolicitudController extends Controller
     protected function enviarNotificacionesSolicitud(Solicitud $solicitud): void
     {
         $responsable = $solicitud->responsable;
-
         $entidadNombre = $solicitud->tipo_solicitante === 'interno'
             ? ($solicitud->departamento?->nombre ?? 'No especificado')
             : ($solicitud->institucion?->nombre ?? 'No especificado');
@@ -437,6 +437,7 @@ class SolicitudController extends Controller
             ?? $solicitud->usuario?->usuario
             ?? 'Usuario del sistema';
 
+        // ===== 1. NOTIFICAR AL RESPONSABLE INSTITUCIONAL =====
         if ($responsable && $responsable->email) {
             $mensajeResponsable =
                 "Hola, la solicitud #{$solicitud->id} ha sido recibida y está en proceso de aprobación.\n\n" .
@@ -462,7 +463,8 @@ class SolicitudController extends Controller
             );
         }
 
-        $administradores = Usuario::whereHas('rol', function ($query) {
+        // ===== 2. NOTIFICAR A LOS ADMINISTRADORES =====
+        $admins = Usuario::whereHas('rol', function ($query) {
             $query->where('nombre', 'admin');
         })->where('status', 'activo')->with('trabajador')->get();
 
@@ -484,7 +486,7 @@ class SolicitudController extends Controller
             "📝 Justificación:\n" . substr($solicitud->justificacion, 0, 200) . (strlen($solicitud->justificacion) > 200 ? '...' : '') . "\n\n" .
             "Por favor, revise y apruebe o rechace la solicitud.";
 
-        foreach ($administradores as $admin) {
+        foreach ($admins as $admin) {
             if ($admin->email) {
                 $this->notificacionService->enviarAUsuario(
                     $admin,
@@ -700,6 +702,7 @@ class SolicitudController extends Controller
             ]);
 
             $faltantes = [];
+
             foreach ($solicitud->detalles as $detalle) {
                 $descripcion = $detalle->descripcion_personalizada ?? 'Item';
                 $cantidadSolicitada = $detalle->cantidad_solicitada;
@@ -906,6 +909,7 @@ class SolicitudController extends Controller
         $usuarioCreador = $solicitud->usuario;
         $responsable = $solicitud->responsable;
 
+        // ===== 1. NOTIFICAR AL RESPONSABLE INSTITUCIONAL =====
         if ($responsable && $responsable->email) {
             $mensajeResponsable = "¡Felicidades! La solicitud #{$solicitud->id} ha sido APROBADA con éxito.\n\n" .
                 "Por favor, retira los equipos en la Gobernación del Estado Yaracuy (Dirección de Informática).\n\n" .
@@ -926,6 +930,7 @@ class SolicitudController extends Controller
             );
         }
 
+        // ===== 2. NOTIFICAR AL USUARIO CREADOR =====
         if ($usuarioCreador && $usuarioCreador->email) {
             $mensajeCreador = "Tu solicitud #{$solicitud->id} ha sido APROBADA.\n\n" .
                 "El responsable de tu entidad ha sido notificado para que retire los equipos en la Gobernación del Estado Yaracuy (Dirección de Informática).\n\n" .
@@ -952,6 +957,7 @@ class SolicitudController extends Controller
         $usuarioCreador = $solicitud->usuario;
         $responsable = $solicitud->responsable;
 
+        // ===== 1. NOTIFICAR AL RESPONSABLE INSTITUCIONAL =====
         if ($responsable && $responsable->email) {
             $mensajeResponsable = "Lamentamos informarte que la solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
                 "📝 Motivo del rechazo:\n" .
@@ -967,6 +973,7 @@ class SolicitudController extends Controller
             );
         }
 
+        // ===== 2. NOTIFICAR AL USUARIO CREADOR =====
         if ($usuarioCreador && $usuarioCreador->email) {
             $mensajeCreador = "Lamentamos informarte que tu solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
                 "📝 Motivo del rechazo:\n" .
@@ -992,6 +999,7 @@ class SolicitudController extends Controller
         $usuarioCreador = $solicitud->usuario;
         $responsable = $solicitud->responsable;
 
+        // ===== 1. NOTIFICAR AL USUARIO CREADOR =====
         if ($usuarioCreador && $usuarioCreador->email && $usuarioCreador->id !== auth()->id()) {
             $this->notificacionService->enviarAUsuario(
                 $usuarioCreador,
@@ -1006,6 +1014,7 @@ class SolicitudController extends Controller
             );
         }
 
+        // ===== 2. NOTIFICAR AL RESPONSABLE =====
         if ($responsable && $responsable->email) {
             $this->notificacionService->enviarAResponsable(
                 $responsable->email,
@@ -1019,9 +1028,10 @@ class SolicitudController extends Controller
             );
         }
 
+        // ===== 3. NOTIFICAR A LOS ADMINISTRADORES =====
         $administradores = Usuario::whereHas('rol', function ($query) {
             $query->where('nombre', 'admin');
-        })->where('status', 'activo')->get();
+        })->where('status', 'activo')->with('trabajador')->get();
 
         foreach ($administradores as $admin) {
             if ($admin->email) {
@@ -1047,17 +1057,12 @@ class SolicitudController extends Controller
     // ============================================================
     // ============ CORREOS DE SOLICITUDES ====================
     // ============================================================
-
-    /**
-     * Lista de correos de tipo SOLICITUD (excluye los de soporte)
-     */
     public function correosIndex(Request $request)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
-        // ✅ USAR SCOPE CORREGIDO 'deTipoSolicitud'
         $query = CorreoRecibido::deTipoSolicitud()
             ->with(['solicitud', 'usuario'])
             ->orderBy('received_at', 'desc');
@@ -1083,7 +1088,6 @@ class SolicitudController extends Controller
         }
 
         $correos = $query->paginate(20);
-
         $noLeidos = CorreoRecibido::deTipoSolicitud()->where('leido', false)->count();
         $noProcesados = CorreoRecibido::deTipoSolicitud()->where('procesado', false)->count();
 
@@ -1096,9 +1100,6 @@ class SolicitudController extends Controller
         ]);
     }
 
-    /**
-     * Ver un correo de SOLICITUD específico
-     */
     public function correoShow($id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1120,9 +1121,6 @@ class SolicitudController extends Controller
         }
     }
 
-    /**
-     * Revisar correos manualmente
-     */
     public function correosRevisar()
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1139,7 +1137,6 @@ class SolicitudController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error al revisar correos: ' . $e->getMessage());
-
             return response()->json([
                 'success' => false,
                 'message' => 'Error al revisar correos: ' . $e->getMessage(),
@@ -1147,9 +1144,6 @@ class SolicitudController extends Controller
         }
     }
 
-    /**
-     * Contador de correos no leídos/procesados (SOLO de tipo solicitud)
-     */
     public function correosContador()
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1166,9 +1160,6 @@ class SolicitudController extends Controller
         ]);
     }
 
-    /**
-     * Eliminar un correo de SOLICITUD
-     */
     public function correoDestroy($id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1185,9 +1176,6 @@ class SolicitudController extends Controller
         }
     }
 
-    /**
-     * Convertir correo en SOLICITUD (Wizard)
-     */
     public function correoConvertir(Request $request, $id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -1287,7 +1275,7 @@ class SolicitudController extends Controller
                         "Atentamente,\nDepartamento de Informática",
                         function ($message) use ($correo) {
                             $message->to($correo->from_email)
-                                    ->subject('✅ Solicitud recibida - En proceso');
+                                ->subject('✅ Solicitud recibida - En proceso');
                         }
                     );
                 }

@@ -58,6 +58,7 @@ class FichaSoporteController extends Controller
         }
 
         $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
+
         $activosDisponibles = Activo::with('modelo.marca')
             ->whereDoesntHave('fichasSoporte', function ($q) {
                 $q->where('estado', 'en_proceso');
@@ -75,6 +76,7 @@ class FichaSoporteController extends Controller
         $totalFichas = FichaSoporte::count();
         $enProceso = FichaSoporte::where('estado', 'en_proceso')->count();
         $finalizados = FichaSoporte::where('estado', 'finalizado')->count();
+
         $equiposReparacion = Activo::whereHas('estatus', function ($q) {
             $q->where('descripcion', 'En reparación');
         })->count();
@@ -112,6 +114,7 @@ class FichaSoporteController extends Controller
 
             $activo = Activo::find($validated['activo_id']);
             $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
+
             if ($activo && $estatusReparacion) {
                 $activo->update(['id_estatus' => $estatusReparacion->id]);
             }
@@ -154,7 +157,6 @@ class FichaSoporteController extends Controller
                 'ficha_id' => $ficha->id,
                 'data' => $ficha->load(['activo', 'detalles'])
             ]);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -268,7 +270,6 @@ class FichaSoporteController extends Controller
                     'ficha' => $ficha
                 ]
             ]);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -489,7 +490,6 @@ class FichaSoporteController extends Controller
     // ============================================================
     // ============ CORREOS DE SOPORTE TÉCNICO ====================
     // ============================================================
-
     public function correosIndex(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-fichas-soporte')) {
@@ -589,7 +589,7 @@ class FichaSoporteController extends Controller
     }
 
     // ============================================================
-    // CONVERTIR correo en Ficha de Soporte (Wizard) - MEJORADO
+    // CONVERTIR correo en Ficha de Soporte (Wizard)
     // ============================================================
     public function correoConvertir(Request $request, $id)
     {
@@ -607,7 +607,6 @@ class FichaSoporteController extends Controller
                 ], 422);
             }
 
-            // ✅ CORRECCIÓN: fecha normalizada y tolerante con la zona horaria
             $hoy = now()->startOfDay()->format('Y-m-d');
 
             $validated = $request->validate([
@@ -635,7 +634,6 @@ class FichaSoporteController extends Controller
             $activoId = null;
 
             if ($validated['tipo_equipo'] === 'nuevo' && !empty($validated['nuevo_equipo'])) {
-                // ===== EQUIPO NUEVO: crear activo =====
                 $nuevo = $validated['nuevo_equipo'];
 
                 $marca = Marca::firstOrCreate(
@@ -662,10 +660,10 @@ class FichaSoporteController extends Controller
 
                 $activoId = $activo->id;
             } else {
-                // ===== EQUIPO EXISTENTE =====
                 $activoId = $validated['activo_id'];
                 $activo = Activo::find($activoId);
                 $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
+
                 if ($activo && $estatusReparacion) {
                     $activo->update(['id_estatus' => $estatusReparacion->id]);
                 }
@@ -695,7 +693,6 @@ class FichaSoporteController extends Controller
 
             DB::commit();
 
-            // Notificar al técnico, admin Y RESPONSABLE INSTITUCIONAL
             try {
                 $this->notificarFichaSoporteCreada($ficha, $correo);
             } catch (\Throwable $e) {
@@ -708,7 +705,6 @@ class FichaSoporteController extends Controller
                 'ficha_id' => $ficha->id,
                 'data' => $ficha->load(['activo', 'tecnico', 'correo']),
             ]);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             return response()->json([
@@ -727,12 +723,11 @@ class FichaSoporteController extends Controller
     }
 
     // ============================================================
-    // ✅ NOTIFICAR FICHA DE SOPORTE CREADA
+    // NOTIFICAR FICHA DE SOPORTE CREADA
     // ============================================================
     protected function notificarFichaSoporteCreada(FichaSoporte $ficha, ?CorreoRecibido $correo = null): void
     {
         $notificacionService = app(NotificacionService::class);
-
         $ficha->loadMissing(['activo.modelo.marca', 'activo.institucion', 'activo.responsable']);
 
         $activo = $ficha->activo;
@@ -745,8 +740,10 @@ class FichaSoporteController extends Controller
         // ============================================================
         if ($ficha->tecnico_id) {
             $tecnico = Usuario::with('trabajador')->find($ficha->tecnico_id);
+
             if ($tecnico) {
                 $origen = $correo ? "Correo de {$correo->from_email}" : 'Ficha manual';
+
                 $mensajeTecnico =
                     "Se te ha asignado una nueva ficha de soporte técnico #{$ficha->id}.\n\n" .
                     "📧 Origen: {$origen}\n" .
@@ -773,8 +770,6 @@ class FichaSoporteController extends Controller
 
         if ($responsable && $responsable->email) {
             $destino = $institucion?->nombre ?? 'No especificada';
-
-            // ✅ CORREGIDO: Determinar si hay o no técnico asignado
             $tieneTecnico = !empty($ficha->tecnico_id) && $ficha->tecnico_nombre !== 'No asignado';
 
             if ($tieneTecnico) {
@@ -826,7 +821,7 @@ class FichaSoporteController extends Controller
                     'ficha_id' => $ficha->id,
                     'responsable' => $responsable->nombre,
                     'email' => $responsable->email,
-                    'tiene_tecnico'=> $tieneTecnico,
+                    'tiene_tecnico' => $tieneTecnico,
                 ]);
             } catch (\Throwable $e) {
                 Log::error('Error al enviar correo al responsable institucional: ' . $e->getMessage());
@@ -870,7 +865,7 @@ class FichaSoporteController extends Controller
     }
 
     // ============================================================
-    // ✅ NOTIFICAR CUANDO LA REPARACIÓN FINALIZA
+    // NOTIFICAR CUANDO LA REPARACIÓN FINALIZA
     // ============================================================
     protected function notificarFichaFinalizada(FichaSoporte $ficha): void
     {
@@ -885,7 +880,7 @@ class FichaSoporteController extends Controller
         $modelo = $activo?->modelo?->nombre ?? 'N/A';
         $marca = $activo?->modelo?->marca?->nombre ?? 'N/A';
 
-        // --- Notificar al responsable de la institución ---
+        // ===== Notificar al responsable de la institución =====
         if ($responsable && $responsable->email) {
             $mensajeResponsable =
                 "✅ REPARACIÓN FINALIZADA\n\n" .
@@ -918,7 +913,7 @@ class FichaSoporteController extends Controller
             }
         }
 
-        // --- Notificar internamente al técnico y admins ---
+        // ===== Notificar internamente al técnico y admins =====
         $mensajeInterno =
             "La ficha de soporte #{$ficha->id} ha sido finalizada.\n\n" .
             "🔧 Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .

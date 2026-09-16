@@ -1,7 +1,6 @@
 // resources/js/admin-entidades.js
 
 document.addEventListener('DOMContentLoaded', function() {
-
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     let elementoAEliminar = null;
 
@@ -65,8 +64,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 Cargando...</div>`;
         }
 
-        fetch(`/admin/instituciones?todos=1&buscar=${encodeURIComponent(buscar)}`, {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        fetch(`/admin/instituciones?todos=1&buscar=${encodeURIComponent(buscar)}&_t=${Date.now()}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache'
+            }
         })
         .then(r => r.json())
         .then(response => {
@@ -133,27 +136,46 @@ document.addEventListener('DOMContentLoaded', function() {
     function cargarDepartamentos() {
         const buscar = document.getElementById('buscarDepartamentos')?.value || '';
         const tabla = document.getElementById('tablaDepartamentos');
+
         if (tabla) {
-            tabla.innerHTML = `<div class="loading-spinner"><svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Cargando...</div>`;
+            tabla.innerHTML = `<div class="loading-spinner">
+                <svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px;">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                Cargando...
+            </div>`;
         }
 
-        fetch(`/admin/departamentos?buscar=${encodeURIComponent(buscar)}`, {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        fetch(`/admin/departamentos?buscar=${encodeURIComponent(buscar)}&_t=${Date.now()}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache'
+            }
         })
         .then(r => r.json())
         .then(data => {
-            const departamentos = data.data || data || [];
+            let departamentos = [];
+            if (Array.isArray(data)) {
+                departamentos = data;
+            } else if (data && Array.isArray(data.data)) {
+                departamentos = data.data;
+            } else {
+                departamentos = [];
+            }
+
             renderTablaDepartamentos(departamentos, buscar);
         })
         .catch(err => {
-            console.error(err);
-            if (tabla) tabla.innerHTML = '<p class="text-center py-4 text-danger">Error al cargar</p>';
+            console.error('Error al cargar departamentos:', err);
+            if (tabla) tabla.innerHTML = '<p class="text-center py-4 text-danger">Error al cargar departamentos</p>';
         });
     }
 
     function renderTablaDepartamentos(data, buscar) {
         const tabla = document.getElementById('tablaDepartamentos');
         if (!tabla) return;
+
         const departamentos = Array.isArray(data) ? data : (data.data || []);
 
         if (departamentos.length === 0) {
@@ -202,8 +224,12 @@ document.addEventListener('DOMContentLoaded', function() {
             tabla.innerHTML = `<div class="loading-spinner"><svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Cargando...</div>`;
         }
 
-        fetch(`/admin/responsables?buscar=${encodeURIComponent(buscar)}`, {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        fetch(`/admin/responsables?buscar=${encodeURIComponent(buscar)}&_t=${Date.now()}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache'
+            }
         })
         .then(r => r.json())
         .then(data => {
@@ -219,6 +245,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderTablaResponsables(data, buscar) {
         const tabla = document.getElementById('tablaResponsables');
         if (!tabla) return;
+
         const responsables = Array.isArray(data) ? data : (data.data || []);
 
         if (responsables.length === 0) {
@@ -411,7 +438,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!cargo) { mostrarToast('Ingrese el cargo', 'warning'); document.getElementById('wz_resp_cargo').focus(); return false; }
             return true;
         }
-
         return true;
     }
 
@@ -448,11 +474,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const instNombre = document.getElementById('wz_inst_nombre').value || '(Ninguna)';
         const deptoNombre = document.getElementById('wz_depto_nombre').value || '(Ninguno)';
 
-        // Etiquetas en paso 2
         const labelInst = document.getElementById('wizardInstitucionLabel');
         if (labelInst) labelInst.textContent = instNombre;
 
-        // Etiquetas en paso 3
         const labelInst2 = document.getElementById('wizardInstitucionLabel2');
         if (labelInst2) labelInst2.textContent = instNombre;
 
@@ -489,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.disabled = true;
 
         try {
-            // ===== 1. CREAR INSTITUCIÓN =====
+            // ===== 1. CREAR INSTITUCIÓN (con su responsable institucional) =====
             const formDataInst = new FormData();
             formDataInst.append('_token', csrfToken);
             formDataInst.append('nombre', document.getElementById('wz_inst_nombre').value);
@@ -534,15 +558,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // ===== 2. CREAR DEPARTAMENTO =====
+            // ===== 2. OBTENER EL RESPONSABLE INSTITUCIONAL RECIÉN CREADO =====
+            let responsableInstitucionalId = null;
+            try {
+                const respResponse = await fetch(`/admin/responsables?institucion_id=${institucionId}&todos=1&_t=${Date.now()}`, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' }
+                });
+                const respData = await respResponse.json();
+                const responsables = respData.data || respData || [];
+
+                const respInstitucional = responsables.find(r =>
+                    r.departamento_id === null || r.departamento_id === undefined
+                );
+
+                if (respInstitucional) {
+                    responsableInstitucionalId = respInstitucional.id;
+                }
+            } catch (e) {
+                console.warn('No se pudo obtener el responsable institucional:', e);
+            }
+
+            // ===== 3. CREAR DEPARTAMENTO =====
             const formDataDepto = new FormData();
             formDataDepto.append('_token', csrfToken);
             formDataDepto.append('institucion_id', institucionId);
             formDataDepto.append('nombre', document.getElementById('wz_depto_nombre').value);
             formDataDepto.append('ubicacion', document.getElementById('wz_depto_ubicacion').value);
             formDataDepto.append('informacion', document.getElementById('wz_depto_informacion').value);
-            // El representante del departamento es el mismo que el de la institución por ahora,
-            // pero puedes dejarlo vacío para no duplicar. Los campos son requeridos por el backend:
+
+            if (responsableInstitucionalId) {
+                formDataDepto.append('usar_responsable_institucion', '1');
+                formDataDepto.append('responsable_id', responsableInstitucionalId);
+            }
+
             formDataDepto.append('representante_nombre', document.getElementById('wz_resp_nombre').value);
             formDataDepto.append('representante_documento', document.getElementById('wz_resp_documento').value);
             formDataDepto.append('representante_telefono', document.getElementById('wz_resp_telefono').value);
@@ -565,21 +613,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            const departamentoId = resultDepto.data?.id;
-
-            // ===== 3. CREAR RESPONSABLE DEL DEPARTAMENTO =====
-            // El responsable ya se creó automáticamente al crear el departamento,
-            // pero si quieres crear uno adicional, descomenta este bloque.
-            // Por ahora, el departamento ya tiene su responsable asignado.
-
             // ===== ÉXITO =====
             bootstrap.Modal.getInstance(document.getElementById('modalWizardEntidad')).hide();
             mostrarToast('✅ Entidad registrada: Institución + Departamento + Responsable', 'success');
 
-            // Recargar tablas
-            cargarInstituciones();
-            cargarDepartamentos();
-            cargarResponsables();
+            // ✅ Recargar tablas (con un pequeño delay para asegurar persistencia)
+            setTimeout(() => {
+                cargarInstituciones();
+                cargarDepartamentos();
+                cargarResponsables();
+            }, 200);
 
             // Resetear wizard
             pasoWizard = 1;
@@ -620,6 +663,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.confirmarEliminar = function(tipo, id, nombre, tieneDependencias) {
         elementoAEliminar = { tipo, id };
         document.getElementById('deleteNombre').textContent = nombre;
+
         const adv = document.getElementById('deleteAdvertencia');
         if (adv) {
             if (tipo === 'institucion') {
@@ -632,12 +676,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 adv.style.display = 'none';
             }
         }
+
         new bootstrap.Modal(document.getElementById('modalEliminar')).show();
     };
 
     document.getElementById('btnConfirmarEliminar')?.addEventListener('click', function() {
         if (!elementoAEliminar) return;
         const btn = this;
+
         if (btn.getAttribute('data-confirmado') !== 'true') {
             btn.textContent = '¿Confirmar?';
             btn.className = 'btn btn-warning';
@@ -649,6 +695,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 3000);
             return;
         }
+
         const { tipo, id } = elementoAEliminar;
         fetch(getUrl(tipo, id), {
             method: 'DELETE',
@@ -682,6 +729,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!d) return;
 
             let html = '';
+
             if (tipo === 'institucion') {
                 const ubic = d.ubicacion_completa || 'No especificada';
                 html = `

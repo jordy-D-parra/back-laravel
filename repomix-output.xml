@@ -1716,9 +1716,13 @@ class DepartamentoController extends Controller
                 return $query->where('activo', $estado === 'activo');
             })
             ->orderBy('nombre')
-            ->paginate(10);
+            ->get();
 
-        return response()->json($departamentos);
+        return response()->json([
+            'success' => true,
+            'data' => $departamentos,
+            'total' => $departamentos->count(),
+        ]);
     }
 
     public function store(Request $request)
@@ -1759,7 +1763,7 @@ class DepartamentoController extends Controller
             'activo' => true,
         ]);
 
-        // ✅ Si se está usando el responsable de la institución Y hay institution_id
+        // Si se está usando el responsable de la institución Y hay institución_id
         if ($request->institucion_id && $request->usar_responsable_institucion && $request->responsable_id) {
             $responsable = Responsable::find($request->responsable_id);
             if ($responsable) {
@@ -1853,7 +1857,7 @@ class DepartamentoController extends Controller
             'informacion' => $validated['informacion'],
         ]);
 
-        // ✅ Si se está usando el responsable de la institución Y hay institution_id
+        // Si se está usando el responsable de la institución Y hay institución_id
         if ($request->institucion_id && $request->usar_responsable_institucion && $request->responsable_id) {
             // Quitar departamento_id del responsable anterior
             Responsable::where('departamento_id', $departamento->id)
@@ -1928,6 +1932,7 @@ class DepartamentoController extends Controller
         }
 
         $departamento->update(['activo' => !$departamento->activo]);
+
         return response()->json([
             'success' => true,
             'message' => 'Estado actualizado',
@@ -58022,7 +58027,6 @@ class InventarioDemoSeeder extends Seeder
 // resources/js/admin-entidades.js
 
 document.addEventListener('DOMContentLoaded', function() {
-
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     let elementoAEliminar = null;
 
@@ -58086,8 +58090,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 Cargando...</div>`;
         }
 
-        fetch(`/admin/instituciones?todos=1&buscar=${encodeURIComponent(buscar)}`, {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        fetch(`/admin/instituciones?todos=1&buscar=${encodeURIComponent(buscar)}&_t=${Date.now()}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache'
+            }
         })
         .then(r => r.json())
         .then(response => {
@@ -58154,27 +58162,46 @@ document.addEventListener('DOMContentLoaded', function() {
     function cargarDepartamentos() {
         const buscar = document.getElementById('buscarDepartamentos')?.value || '';
         const tabla = document.getElementById('tablaDepartamentos');
+
         if (tabla) {
-            tabla.innerHTML = `<div class="loading-spinner"><svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Cargando...</div>`;
+            tabla.innerHTML = `<div class="loading-spinner">
+                <svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px;">
+                    <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+                </svg>
+                Cargando...
+            </div>`;
         }
 
-        fetch(`/admin/departamentos?buscar=${encodeURIComponent(buscar)}`, {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        fetch(`/admin/departamentos?buscar=${encodeURIComponent(buscar)}&_t=${Date.now()}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache'
+            }
         })
         .then(r => r.json())
         .then(data => {
-            const departamentos = data.data || data || [];
+            let departamentos = [];
+            if (Array.isArray(data)) {
+                departamentos = data;
+            } else if (data && Array.isArray(data.data)) {
+                departamentos = data.data;
+            } else {
+                departamentos = [];
+            }
+
             renderTablaDepartamentos(departamentos, buscar);
         })
         .catch(err => {
-            console.error(err);
-            if (tabla) tabla.innerHTML = '<p class="text-center py-4 text-danger">Error al cargar</p>';
+            console.error('Error al cargar departamentos:', err);
+            if (tabla) tabla.innerHTML = '<p class="text-center py-4 text-danger">Error al cargar departamentos</p>';
         });
     }
 
     function renderTablaDepartamentos(data, buscar) {
         const tabla = document.getElementById('tablaDepartamentos');
         if (!tabla) return;
+
         const departamentos = Array.isArray(data) ? data : (data.data || []);
 
         if (departamentos.length === 0) {
@@ -58223,8 +58250,12 @@ document.addEventListener('DOMContentLoaded', function() {
             tabla.innerHTML = `<div class="loading-spinner"><svg class="spinner-icon" viewBox="0 0 24 24" stroke="#1e3c72" stroke-width="2" fill="none" style="width:20px;height:20px;"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>Cargando...</div>`;
         }
 
-        fetch(`/admin/responsables?buscar=${encodeURIComponent(buscar)}`, {
-            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        fetch(`/admin/responsables?buscar=${encodeURIComponent(buscar)}&_t=${Date.now()}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Cache-Control': 'no-cache'
+            }
         })
         .then(r => r.json())
         .then(data => {
@@ -58240,6 +58271,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderTablaResponsables(data, buscar) {
         const tabla = document.getElementById('tablaResponsables');
         if (!tabla) return;
+
         const responsables = Array.isArray(data) ? data : (data.data || []);
 
         if (responsables.length === 0) {
@@ -58432,7 +58464,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!cargo) { mostrarToast('Ingrese el cargo', 'warning'); document.getElementById('wz_resp_cargo').focus(); return false; }
             return true;
         }
-
         return true;
     }
 
@@ -58469,11 +58500,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const instNombre = document.getElementById('wz_inst_nombre').value || '(Ninguna)';
         const deptoNombre = document.getElementById('wz_depto_nombre').value || '(Ninguno)';
 
-        // Etiquetas en paso 2
         const labelInst = document.getElementById('wizardInstitucionLabel');
         if (labelInst) labelInst.textContent = instNombre;
 
-        // Etiquetas en paso 3
         const labelInst2 = document.getElementById('wizardInstitucionLabel2');
         if (labelInst2) labelInst2.textContent = instNombre;
 
@@ -58510,7 +58539,7 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.disabled = true;
 
         try {
-            // ===== 1. CREAR INSTITUCIÓN =====
+            // ===== 1. CREAR INSTITUCIÓN (con su responsable institucional) =====
             const formDataInst = new FormData();
             formDataInst.append('_token', csrfToken);
             formDataInst.append('nombre', document.getElementById('wz_inst_nombre').value);
@@ -58555,15 +58584,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // ===== 2. CREAR DEPARTAMENTO =====
+            // ===== 2. OBTENER EL RESPONSABLE INSTITUCIONAL RECIÉN CREADO =====
+            let responsableInstitucionalId = null;
+            try {
+                const respResponse = await fetch(`/admin/responsables?institucion_id=${institucionId}&todos=1&_t=${Date.now()}`, {
+                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest', 'Cache-Control': 'no-cache' }
+                });
+                const respData = await respResponse.json();
+                const responsables = respData.data || respData || [];
+
+                const respInstitucional = responsables.find(r =>
+                    r.departamento_id === null || r.departamento_id === undefined
+                );
+
+                if (respInstitucional) {
+                    responsableInstitucionalId = respInstitucional.id;
+                }
+            } catch (e) {
+                console.warn('No se pudo obtener el responsable institucional:', e);
+            }
+
+            // ===== 3. CREAR DEPARTAMENTO =====
             const formDataDepto = new FormData();
             formDataDepto.append('_token', csrfToken);
             formDataDepto.append('institucion_id', institucionId);
             formDataDepto.append('nombre', document.getElementById('wz_depto_nombre').value);
             formDataDepto.append('ubicacion', document.getElementById('wz_depto_ubicacion').value);
             formDataDepto.append('informacion', document.getElementById('wz_depto_informacion').value);
-            // El representante del departamento es el mismo que el de la institución por ahora,
-            // pero puedes dejarlo vacío para no duplicar. Los campos son requeridos por el backend:
+
+            if (responsableInstitucionalId) {
+                formDataDepto.append('usar_responsable_institucion', '1');
+                formDataDepto.append('responsable_id', responsableInstitucionalId);
+            }
+
             formDataDepto.append('representante_nombre', document.getElementById('wz_resp_nombre').value);
             formDataDepto.append('representante_documento', document.getElementById('wz_resp_documento').value);
             formDataDepto.append('representante_telefono', document.getElementById('wz_resp_telefono').value);
@@ -58586,21 +58639,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            const departamentoId = resultDepto.data?.id;
-
-            // ===== 3. CREAR RESPONSABLE DEL DEPARTAMENTO =====
-            // El responsable ya se creó automáticamente al crear el departamento,
-            // pero si quieres crear uno adicional, descomenta este bloque.
-            // Por ahora, el departamento ya tiene su responsable asignado.
-
             // ===== ÉXITO =====
             bootstrap.Modal.getInstance(document.getElementById('modalWizardEntidad')).hide();
             mostrarToast('✅ Entidad registrada: Institución + Departamento + Responsable', 'success');
 
-            // Recargar tablas
-            cargarInstituciones();
-            cargarDepartamentos();
-            cargarResponsables();
+            // ✅ Recargar tablas (con un pequeño delay para asegurar persistencia)
+            setTimeout(() => {
+                cargarInstituciones();
+                cargarDepartamentos();
+                cargarResponsables();
+            }, 200);
 
             // Resetear wizard
             pasoWizard = 1;
@@ -58641,6 +58689,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.confirmarEliminar = function(tipo, id, nombre, tieneDependencias) {
         elementoAEliminar = { tipo, id };
         document.getElementById('deleteNombre').textContent = nombre;
+
         const adv = document.getElementById('deleteAdvertencia');
         if (adv) {
             if (tipo === 'institucion') {
@@ -58653,12 +58702,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 adv.style.display = 'none';
             }
         }
+
         new bootstrap.Modal(document.getElementById('modalEliminar')).show();
     };
 
     document.getElementById('btnConfirmarEliminar')?.addEventListener('click', function() {
         if (!elementoAEliminar) return;
         const btn = this;
+
         if (btn.getAttribute('data-confirmado') !== 'true') {
             btn.textContent = '¿Confirmar?';
             btn.className = 'btn btn-warning';
@@ -58670,6 +58721,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 3000);
             return;
         }
+
         const { tipo, id } = elementoAEliminar;
         fetch(getUrl(tipo, id), {
             method: 'DELETE',
@@ -58703,6 +58755,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!d) return;
 
             let html = '';
+
             if (tipo === 'institucion') {
                 const ubic = d.ubicacion_completa || 'No especificada';
                 html = `
@@ -69168,8 +69221,8 @@ class NotificacionService
 {
     /**
      * Enviar notificación a un usuario del sistema.
-     * ✅ SIN LÍMITE DE TIEMPO: cada llamada crea una nueva notificación
-     * y envía un nuevo correo, sin importar cuántas veces se repita.
+     * SIEMPRE crea la notificación interna y SIEMPRE intenta enviar el correo.
+     * NO deduplica: cada llamada es una notificación única e independiente.
      */
     public function enviarAUsuario(
         Usuario $usuario,
@@ -69179,8 +69232,6 @@ class NotificacionService
         ?string $url = null,
         bool $enviarCorreo = true
     ): Notificacion {
-        // ✅ Se eliminó por completo la validación de duplicados (5 minutos)
-
         $notificacion = Notificacion::create([
             'usuario_id' => $usuario->id,
             'tipo' => $tipo,
@@ -69192,12 +69243,11 @@ class NotificacionService
         ]);
 
         if ($enviarCorreo && $usuario->email) {
-            try {
-                $nombre = $usuario->trabajador?->nombre ?? $usuario->usuario;
-                Mail::to($usuario->email)->send(new NotificacionMail($notificacion, $nombre));
-            } catch (\Exception $e) {
-                Log::error('Error al enviar correo a usuario: ' . $e->getMessage());
-            }
+            $this->enviarCorreo(
+                $usuario->email,
+                $usuario->trabajador?->nombre ?? $usuario->usuario,
+                $notificacion
+            );
         }
 
         return $notificacion;
@@ -69205,8 +69255,8 @@ class NotificacionService
 
     /**
      * Enviar notificación a un responsable EXTERNO (no usuario del sistema).
-     * ✅ SIN LÍMITE DE TIEMPO: cada llamada crea una nueva notificación
-     * y envía un nuevo correo, sin importar cuántas veces se repita.
+     * SIEMPRE crea la notificación y SIEMPRE intenta enviar el correo.
+     * NO deduplica: cada llamada es una notificación única e independiente.
      */
     public function enviarAResponsable(
         string $email,
@@ -69217,8 +69267,6 @@ class NotificacionService
         ?string $url = null
     ): ?Notificacion {
         try {
-            // ✅ Se eliminó por completo la validación de duplicados (5 minutos)
-
             $notificacion = Notificacion::create([
                 'usuario_id' => null,
                 'tipo' => $tipo,
@@ -69229,19 +69277,21 @@ class NotificacionService
                 'leida' => false,
             ]);
 
-            Mail::to($email)->send(new NotificacionMail($notificacion, $nombre));
+            $this->enviarCorreo($email, $nombre, $notificacion);
 
-            Log::info('Correo enviado a responsable externo', [
+            Log::info('✅ Correo enviado a responsable externo', [
                 'email' => $email,
                 'nombre' => $nombre,
-                'titulo' => $titulo
+                'titulo' => $titulo,
+                'tipo' => $tipo,
             ]);
 
             return $notificacion;
         } catch (\Exception $e) {
             Log::error('Error al enviar correo a responsable externo: ' . $e->getMessage(), [
                 'email' => $email,
-                'nombre' => $nombre
+                'nombre' => $nombre,
+                'titulo' => $titulo,
             ]);
             return null;
         }
@@ -69345,6 +69395,34 @@ class NotificacionService
         return Notificacion::porUsuario($usuario->id)
             ->noLeidas()
             ->update(['leida' => true]);
+    }
+
+    // ============================================================
+    // HELPER PRIVADO: Envío de correo
+    // ============================================================
+
+    /**
+     * Envía el correo de forma INMEDIATA (sync) y maneja el error de forma robusta.
+     * NO deduplica. Cada llamada envía un correo nuevo.
+     */
+    protected function enviarCorreo(string $email, string $nombre, Notificacion $notificacion): void
+    {
+        try {
+            Mail::to($email)->send(new NotificacionMail($notificacion, $nombre));
+
+            Log::info('📧 Correo enviado', [
+                'email' => $email,
+                'titulo' => $notificacion->titulo,
+                'tipo' => $notificacion->tipo,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ Error al enviar correo: ' . $e->getMessage(), [
+                'email' => $email,
+                'titulo' => $notificacion->titulo,
+                'tipo' => $notificacion->tipo,
+            ]);
+            // No relanzar la excepción para no romper el flujo del controlador
+        }
     }
 }
 </file>
@@ -71523,6 +71601,7 @@ class FichaSoporteController extends Controller
         }
 
         $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
+
         $activosDisponibles = Activo::with('modelo.marca')
             ->whereDoesntHave('fichasSoporte', function ($q) {
                 $q->where('estado', 'en_proceso');
@@ -71540,6 +71619,7 @@ class FichaSoporteController extends Controller
         $totalFichas = FichaSoporte::count();
         $enProceso = FichaSoporte::where('estado', 'en_proceso')->count();
         $finalizados = FichaSoporte::where('estado', 'finalizado')->count();
+
         $equiposReparacion = Activo::whereHas('estatus', function ($q) {
             $q->where('descripcion', 'En reparación');
         })->count();
@@ -71577,6 +71657,7 @@ class FichaSoporteController extends Controller
 
             $activo = Activo::find($validated['activo_id']);
             $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
+
             if ($activo && $estatusReparacion) {
                 $activo->update(['id_estatus' => $estatusReparacion->id]);
             }
@@ -71619,7 +71700,6 @@ class FichaSoporteController extends Controller
                 'ficha_id' => $ficha->id,
                 'data' => $ficha->load(['activo', 'detalles'])
             ]);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -71733,7 +71813,6 @@ class FichaSoporteController extends Controller
                     'ficha' => $ficha
                 ]
             ]);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -71954,7 +72033,6 @@ class FichaSoporteController extends Controller
     // ============================================================
     // ============ CORREOS DE SOPORTE TÉCNICO ====================
     // ============================================================
-
     public function correosIndex(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-fichas-soporte')) {
@@ -72054,7 +72132,7 @@ class FichaSoporteController extends Controller
     }
 
     // ============================================================
-    // CONVERTIR correo en Ficha de Soporte (Wizard) - MEJORADO
+    // CONVERTIR correo en Ficha de Soporte (Wizard)
     // ============================================================
     public function correoConvertir(Request $request, $id)
     {
@@ -72072,7 +72150,6 @@ class FichaSoporteController extends Controller
                 ], 422);
             }
 
-            // ✅ CORRECCIÓN: fecha normalizada y tolerante con la zona horaria
             $hoy = now()->startOfDay()->format('Y-m-d');
 
             $validated = $request->validate([
@@ -72100,7 +72177,6 @@ class FichaSoporteController extends Controller
             $activoId = null;
 
             if ($validated['tipo_equipo'] === 'nuevo' && !empty($validated['nuevo_equipo'])) {
-                // ===== EQUIPO NUEVO: crear activo =====
                 $nuevo = $validated['nuevo_equipo'];
 
                 $marca = Marca::firstOrCreate(
@@ -72127,10 +72203,10 @@ class FichaSoporteController extends Controller
 
                 $activoId = $activo->id;
             } else {
-                // ===== EQUIPO EXISTENTE =====
                 $activoId = $validated['activo_id'];
                 $activo = Activo::find($activoId);
                 $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
+
                 if ($activo && $estatusReparacion) {
                     $activo->update(['id_estatus' => $estatusReparacion->id]);
                 }
@@ -72160,7 +72236,6 @@ class FichaSoporteController extends Controller
 
             DB::commit();
 
-            // Notificar al técnico, admin Y RESPONSABLE INSTITUCIONAL
             try {
                 $this->notificarFichaSoporteCreada($ficha, $correo);
             } catch (\Throwable $e) {
@@ -72173,7 +72248,6 @@ class FichaSoporteController extends Controller
                 'ficha_id' => $ficha->id,
                 'data' => $ficha->load(['activo', 'tecnico', 'correo']),
             ]);
-
         } catch (\Illuminate\Validation\ValidationException $e) {
             DB::rollBack();
             return response()->json([
@@ -72192,12 +72266,11 @@ class FichaSoporteController extends Controller
     }
 
     // ============================================================
-    // ✅ NOTIFICAR FICHA DE SOPORTE CREADA
+    // NOTIFICAR FICHA DE SOPORTE CREADA
     // ============================================================
     protected function notificarFichaSoporteCreada(FichaSoporte $ficha, ?CorreoRecibido $correo = null): void
     {
         $notificacionService = app(NotificacionService::class);
-
         $ficha->loadMissing(['activo.modelo.marca', 'activo.institucion', 'activo.responsable']);
 
         $activo = $ficha->activo;
@@ -72210,8 +72283,10 @@ class FichaSoporteController extends Controller
         // ============================================================
         if ($ficha->tecnico_id) {
             $tecnico = Usuario::with('trabajador')->find($ficha->tecnico_id);
+
             if ($tecnico) {
                 $origen = $correo ? "Correo de {$correo->from_email}" : 'Ficha manual';
+
                 $mensajeTecnico =
                     "Se te ha asignado una nueva ficha de soporte técnico #{$ficha->id}.\n\n" .
                     "📧 Origen: {$origen}\n" .
@@ -72238,8 +72313,6 @@ class FichaSoporteController extends Controller
 
         if ($responsable && $responsable->email) {
             $destino = $institucion?->nombre ?? 'No especificada';
-
-            // ✅ CORREGIDO: Determinar si hay o no técnico asignado
             $tieneTecnico = !empty($ficha->tecnico_id) && $ficha->tecnico_nombre !== 'No asignado';
 
             if ($tieneTecnico) {
@@ -72291,7 +72364,7 @@ class FichaSoporteController extends Controller
                     'ficha_id' => $ficha->id,
                     'responsable' => $responsable->nombre,
                     'email' => $responsable->email,
-                    'tiene_tecnico'=> $tieneTecnico,
+                    'tiene_tecnico' => $tieneTecnico,
                 ]);
             } catch (\Throwable $e) {
                 Log::error('Error al enviar correo al responsable institucional: ' . $e->getMessage());
@@ -72335,7 +72408,7 @@ class FichaSoporteController extends Controller
     }
 
     // ============================================================
-    // ✅ NOTIFICAR CUANDO LA REPARACIÓN FINALIZA
+    // NOTIFICAR CUANDO LA REPARACIÓN FINALIZA
     // ============================================================
     protected function notificarFichaFinalizada(FichaSoporte $ficha): void
     {
@@ -72350,7 +72423,7 @@ class FichaSoporteController extends Controller
         $modelo = $activo?->modelo?->nombre ?? 'N/A';
         $marca = $activo?->modelo?->marca?->nombre ?? 'N/A';
 
-        // --- Notificar al responsable de la institución ---
+        // ===== Notificar al responsable de la institución =====
         if ($responsable && $responsable->email) {
             $mensajeResponsable =
                 "✅ REPARACIÓN FINALIZADA\n\n" .
@@ -72383,7 +72456,7 @@ class FichaSoporteController extends Controller
             }
         }
 
-        // --- Notificar internamente al técnico y admins ---
+        // ===== Notificar internamente al técnico y admins =====
         $mensajeInterno =
             "La ficha de soporte #{$ficha->id} ha sido finalizada.\n\n" .
             "🔧 Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .
@@ -72424,6 +72497,7 @@ class FichaSoporteController extends Controller
 
 <file path="app/Http/Controllers/Admin/SolicitudController.php">
 <?php
+
 // app/Http/Controllers/Admin/SolicitudController.php
 
 namespace App\Http\Controllers\Admin;
@@ -72848,7 +72922,6 @@ class SolicitudController extends Controller
     protected function enviarNotificacionesSolicitud(Solicitud $solicitud): void
     {
         $responsable = $solicitud->responsable;
-
         $entidadNombre = $solicitud->tipo_solicitante === 'interno'
             ? ($solicitud->departamento?->nombre ?? 'No especificado')
             : ($solicitud->institucion?->nombre ?? 'No especificado');
@@ -72862,6 +72935,7 @@ class SolicitudController extends Controller
             ?? $solicitud->usuario?->usuario
             ?? 'Usuario del sistema';
 
+        // ===== 1. NOTIFICAR AL RESPONSABLE INSTITUCIONAL =====
         if ($responsable && $responsable->email) {
             $mensajeResponsable =
                 "Hola, la solicitud #{$solicitud->id} ha sido recibida y está en proceso de aprobación.\n\n" .
@@ -72887,7 +72961,8 @@ class SolicitudController extends Controller
             );
         }
 
-        $administradores = Usuario::whereHas('rol', function ($query) {
+        // ===== 2. NOTIFICAR A LOS ADMINISTRADORES =====
+        $admins = Usuario::whereHas('rol', function ($query) {
             $query->where('nombre', 'admin');
         })->where('status', 'activo')->with('trabajador')->get();
 
@@ -72909,7 +72984,7 @@ class SolicitudController extends Controller
             "📝 Justificación:\n" . substr($solicitud->justificacion, 0, 200) . (strlen($solicitud->justificacion) > 200 ? '...' : '') . "\n\n" .
             "Por favor, revise y apruebe o rechace la solicitud.";
 
-        foreach ($administradores as $admin) {
+        foreach ($admins as $admin) {
             if ($admin->email) {
                 $this->notificacionService->enviarAUsuario(
                     $admin,
@@ -73125,6 +73200,7 @@ class SolicitudController extends Controller
             ]);
 
             $faltantes = [];
+
             foreach ($solicitud->detalles as $detalle) {
                 $descripcion = $detalle->descripcion_personalizada ?? 'Item';
                 $cantidadSolicitada = $detalle->cantidad_solicitada;
@@ -73331,6 +73407,7 @@ class SolicitudController extends Controller
         $usuarioCreador = $solicitud->usuario;
         $responsable = $solicitud->responsable;
 
+        // ===== 1. NOTIFICAR AL RESPONSABLE INSTITUCIONAL =====
         if ($responsable && $responsable->email) {
             $mensajeResponsable = "¡Felicidades! La solicitud #{$solicitud->id} ha sido APROBADA con éxito.\n\n" .
                 "Por favor, retira los equipos en la Gobernación del Estado Yaracuy (Dirección de Informática).\n\n" .
@@ -73351,6 +73428,7 @@ class SolicitudController extends Controller
             );
         }
 
+        // ===== 2. NOTIFICAR AL USUARIO CREADOR =====
         if ($usuarioCreador && $usuarioCreador->email) {
             $mensajeCreador = "Tu solicitud #{$solicitud->id} ha sido APROBADA.\n\n" .
                 "El responsable de tu entidad ha sido notificado para que retire los equipos en la Gobernación del Estado Yaracuy (Dirección de Informática).\n\n" .
@@ -73377,6 +73455,7 @@ class SolicitudController extends Controller
         $usuarioCreador = $solicitud->usuario;
         $responsable = $solicitud->responsable;
 
+        // ===== 1. NOTIFICAR AL RESPONSABLE INSTITUCIONAL =====
         if ($responsable && $responsable->email) {
             $mensajeResponsable = "Lamentamos informarte que la solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
                 "📝 Motivo del rechazo:\n" .
@@ -73392,6 +73471,7 @@ class SolicitudController extends Controller
             );
         }
 
+        // ===== 2. NOTIFICAR AL USUARIO CREADOR =====
         if ($usuarioCreador && $usuarioCreador->email) {
             $mensajeCreador = "Lamentamos informarte que tu solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
                 "📝 Motivo del rechazo:\n" .
@@ -73417,6 +73497,7 @@ class SolicitudController extends Controller
         $usuarioCreador = $solicitud->usuario;
         $responsable = $solicitud->responsable;
 
+        // ===== 1. NOTIFICAR AL USUARIO CREADOR =====
         if ($usuarioCreador && $usuarioCreador->email && $usuarioCreador->id !== auth()->id()) {
             $this->notificacionService->enviarAUsuario(
                 $usuarioCreador,
@@ -73431,6 +73512,7 @@ class SolicitudController extends Controller
             );
         }
 
+        // ===== 2. NOTIFICAR AL RESPONSABLE =====
         if ($responsable && $responsable->email) {
             $this->notificacionService->enviarAResponsable(
                 $responsable->email,
@@ -73444,9 +73526,10 @@ class SolicitudController extends Controller
             );
         }
 
+        // ===== 3. NOTIFICAR A LOS ADMINISTRADORES =====
         $administradores = Usuario::whereHas('rol', function ($query) {
             $query->where('nombre', 'admin');
-        })->where('status', 'activo')->get();
+        })->where('status', 'activo')->with('trabajador')->get();
 
         foreach ($administradores as $admin) {
             if ($admin->email) {
@@ -73472,17 +73555,12 @@ class SolicitudController extends Controller
     // ============================================================
     // ============ CORREOS DE SOLICITUDES ====================
     // ============================================================
-
-    /**
-     * Lista de correos de tipo SOLICITUD (excluye los de soporte)
-     */
     public function correosIndex(Request $request)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
-        // ✅ USAR SCOPE CORREGIDO 'deTipoSolicitud'
         $query = CorreoRecibido::deTipoSolicitud()
             ->with(['solicitud', 'usuario'])
             ->orderBy('received_at', 'desc');
@@ -73508,7 +73586,6 @@ class SolicitudController extends Controller
         }
 
         $correos = $query->paginate(20);
-
         $noLeidos = CorreoRecibido::deTipoSolicitud()->where('leido', false)->count();
         $noProcesados = CorreoRecibido::deTipoSolicitud()->where('procesado', false)->count();
 
@@ -73521,9 +73598,6 @@ class SolicitudController extends Controller
         ]);
     }
 
-    /**
-     * Ver un correo de SOLICITUD específico
-     */
     public function correoShow($id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -73545,9 +73619,6 @@ class SolicitudController extends Controller
         }
     }
 
-    /**
-     * Revisar correos manualmente
-     */
     public function correosRevisar()
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -73564,7 +73635,6 @@ class SolicitudController extends Controller
             ]);
         } catch (\Exception $e) {
             Log::error('Error al revisar correos: ' . $e->getMessage());
-
             return response()->json([
                 'success' => false,
                 'message' => 'Error al revisar correos: ' . $e->getMessage(),
@@ -73572,9 +73642,6 @@ class SolicitudController extends Controller
         }
     }
 
-    /**
-     * Contador de correos no leídos/procesados (SOLO de tipo solicitud)
-     */
     public function correosContador()
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -73591,9 +73658,6 @@ class SolicitudController extends Controller
         ]);
     }
 
-    /**
-     * Eliminar un correo de SOLICITUD
-     */
     public function correoDestroy($id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -73610,9 +73674,6 @@ class SolicitudController extends Controller
         }
     }
 
-    /**
-     * Convertir correo en SOLICITUD (Wizard)
-     */
     public function correoConvertir(Request $request, $id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -73712,7 +73773,7 @@ class SolicitudController extends Controller
                         "Atentamente,\nDepartamento de Informática",
                         function ($message) use ($correo) {
                             $message->to($correo->from_email)
-                                    ->subject('✅ Solicitud recibida - En proceso');
+                                ->subject('✅ Solicitud recibida - En proceso');
                         }
                     );
                 }

@@ -31,9 +31,13 @@ class DepartamentoController extends Controller
                 return $query->where('activo', $estado === 'activo');
             })
             ->orderBy('nombre')
-            ->paginate(10);
+            ->get();
 
-        return response()->json($departamentos);
+        return response()->json([
+            'success' => true,
+            'data' => $departamentos,
+            'total' => $departamentos->count(),
+        ]);
     }
 
     public function store(Request $request)
@@ -74,7 +78,7 @@ class DepartamentoController extends Controller
             'activo' => true,
         ]);
 
-        // ✅ Si se está usando el responsable de la institución Y hay institution_id
+        // Si se está usando el responsable de la institución Y hay institución_id
         if ($request->institucion_id && $request->usar_responsable_institucion && $request->responsable_id) {
             $responsable = Responsable::find($request->responsable_id);
             if ($responsable) {
@@ -168,7 +172,7 @@ class DepartamentoController extends Controller
             'informacion' => $validated['informacion'],
         ]);
 
-        // ✅ Si se está usando el responsable de la institución Y hay institution_id
+        // Si se está usando el responsable de la institución Y hay institución_id
         if ($request->institucion_id && $request->usar_responsable_institucion && $request->responsable_id) {
             // Quitar departamento_id del responsable anterior
             Responsable::where('departamento_id', $departamento->id)
@@ -243,6 +247,7 @@ class DepartamentoController extends Controller
         }
 
         $departamento->update(['activo' => !$departamento->activo]);
+
         return response()->json([
             'success' => true,
             'message' => 'Estado actualizado',

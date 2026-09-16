@@ -12,8 +12,8 @@ class NotificacionService
 {
     /**
      * Enviar notificación a un usuario del sistema.
-     * ✅ SIN LÍMITE DE TIEMPO: cada llamada crea una nueva notificación
-     * y envía un nuevo correo, sin importar cuántas veces se repita.
+     * SIEMPRE crea la notificación interna y SIEMPRE intenta enviar el correo.
+     * NO deduplica: cada llamada es una notificación única e independiente.
      */
     public function enviarAUsuario(
         Usuario $usuario,
@@ -23,8 +23,6 @@ class NotificacionService
         ?string $url = null,
         bool $enviarCorreo = true
     ): Notificacion {
-        // ✅ Se eliminó por completo la validación de duplicados (5 minutos)
-
         $notificacion = Notificacion::create([
             'usuario_id' => $usuario->id,
             'tipo' => $tipo,
@@ -36,12 +34,11 @@ class NotificacionService
         ]);
 
         if ($enviarCorreo && $usuario->email) {
-            try {
-                $nombre = $usuario->trabajador?->nombre ?? $usuario->usuario;
-                Mail::to($usuario->email)->send(new NotificacionMail($notificacion, $nombre));
-            } catch (\Exception $e) {
-                Log::error('Error al enviar correo a usuario: ' . $e->getMessage());
-            }
+            $this->enviarCorreo(
+                $usuario->email,
+                $usuario->trabajador?->nombre ?? $usuario->usuario,
+                $notificacion
+            );
         }
 
         return $notificacion;
@@ -49,8 +46,8 @@ class NotificacionService
 
     /**
      * Enviar notificación a un responsable EXTERNO (no usuario del sistema).
-     * ✅ SIN LÍMITE DE TIEMPO: cada llamada crea una nueva notificación
-     * y envía un nuevo correo, sin importar cuántas veces se repita.
+     * SIEMPRE crea la notificación y SIEMPRE intenta enviar el correo.
+     * NO deduplica: cada llamada es una notificación única e independiente.
      */
     public function enviarAResponsable(
         string $email,
@@ -61,8 +58,6 @@ class NotificacionService
         ?string $url = null
     ): ?Notificacion {
         try {
-            // ✅ Se eliminó por completo la validación de duplicados (5 minutos)
-
             $notificacion = Notificacion::create([
                 'usuario_id' => null,
                 'tipo' => $tipo,
@@ -73,19 +68,21 @@ class NotificacionService
                 'leida' => false,
             ]);
 
-            Mail::to($email)->send(new NotificacionMail($notificacion, $nombre));
+            $this->enviarCorreo($email, $nombre, $notificacion);
 
-            Log::info('Correo enviado a responsable externo', [
+            Log::info('✅ Correo enviado a responsable externo', [
                 'email' => $email,
                 'nombre' => $nombre,
-                'titulo' => $titulo
+                'titulo' => $titulo,
+                'tipo' => $tipo,
             ]);
 
             return $notificacion;
         } catch (\Exception $e) {
             Log::error('Error al enviar correo a responsable externo: ' . $e->getMessage(), [
                 'email' => $email,
-                'nombre' => $nombre
+                'nombre' => $nombre,
+                'titulo' => $titulo,
             ]);
             return null;
         }
@@ -189,5 +186,33 @@ class NotificacionService
         return Notificacion::porUsuario($usuario->id)
             ->noLeidas()
             ->update(['leida' => true]);
+    }
+
+    // ============================================================
+    // HELPER PRIVADO: Envío de correo
+    // ============================================================
+
+    /**
+     * Envía el correo de forma INMEDIATA (sync) y maneja el error de forma robusta.
+     * NO deduplica. Cada llamada envía un correo nuevo.
+     */
+    protected function enviarCorreo(string $email, string $nombre, Notificacion $notificacion): void
+    {
+        try {
+            Mail::to($email)->send(new NotificacionMail($notificacion, $nombre));
+
+            Log::info('📧 Correo enviado', [
+                'email' => $email,
+                'titulo' => $notificacion->titulo,
+                'tipo' => $notificacion->tipo,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('❌ Error al enviar correo: ' . $e->getMessage(), [
+                'email' => $email,
+                'titulo' => $notificacion->titulo,
+                'tipo' => $notificacion->tipo,
+            ]);
+            // No relanzar la excepción para no romper el flujo del controlador
+        }
     }
 }
