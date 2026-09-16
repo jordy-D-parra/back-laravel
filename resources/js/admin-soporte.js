@@ -1,5 +1,11 @@
 // resources/js/admin-soporte.js
-// ✅ VERSIÓN COMPLETA: Fichas + Correos de Soporte + Wizard
+// ✅ VERSIÓN COMPLETA CORREGIDA: Fichas + Correos + Wizard + Pre-llenado automático
+// ✅ CORRECCIÓN PRINCIPAL: Se eliminó deshabilitarCamposPasosNoActivos porque
+//    los campos disabled NO se envían en el FormData, causando que el servidor
+//    recibiera tipo_equipo, usuario_reporta_nombre, diagnostico y
+//    fecha_requerida_entrega vacíos. Los pasos ocultos con display:none SÍ se envían.
+// ✅ CORRECCIÓN FECHA: Se normaliza la fecha del correo al formato Y-m-d que acepta input[type=date]
+// ✅ MEJORA VER DETALLE: Modal de detalle rediseñado con estructura profesional
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -22,7 +28,6 @@ let extTecnicoSeleccionado = null;
 
 // Correos de soporte
 let correoSoporteActual = null;
-
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
 let filtros = {
@@ -48,6 +53,31 @@ function formatearFechaHora(fecha) {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit'
     });
+}
+
+// ✅ NUEVA FUNCIÓN: Normaliza cualquier fecha al formato Y-m-d que acepta input[type=date]
+function normalizarFechaParaInput(fechaStr) {
+    if (!fechaStr) return '';
+
+    // Si ya viene en Y-m-d (ej: 2026-10-15)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) return fechaStr;
+
+    // Si viene en d/m/Y o d-m-Y (ej: 15/10/2026)
+    const match = fechaStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (match) {
+        const dia = match[1].padStart(2, '0');
+        const mes = match[2].padStart(2, '0');
+        const anio = match[3];
+        return `${anio}-${mes}-${dia}`;
+    }
+
+    // Intentar con Date
+    const d = new Date(fechaStr);
+    if (!isNaN(d.getTime())) {
+        return d.toISOString().split('T')[0];
+    }
+
+    return '';
 }
 
 function mostrarNotificacion(tipo, mensaje) {
@@ -133,15 +163,15 @@ function renderizarTabla() {
     let html = '';
     for (const f of fichasData) {
         const fechaIngreso = f.fecha_ingreso ? new Date(f.fecha_ingreso).toLocaleDateString() : 'N/A';
-        const fechaSalida = f.fecha_salida ? new Date(f.fecha_salida).toLocaleDateString() : '—';
+        const fechaSalida = f.fecha_salida ? new Date(f.fecha_salida).toLocaleDateString() : '---';
         const activoInfo = f.activo ? `${f.activo.serial} - ${f.activo.modelo?.nombre || 'N/A'}` : 'N/A';
         const estadoClass = f.estado === 'en_proceso' ? 'badge-estado-en-proceso' : 'badge-estado-finalizado';
         const estadoText = f.estado === 'en_proceso' ? 'En Proceso' : 'Finalizado';
 
         html += `<tr>
             <td class="px-3 py-2">${escapeHtml(activoInfo)}</td>
-            <td class="px-3 py-2">${escapeHtml(f.tecnico_nombre || '—')}</td>
-            <td class="px-3 py-2">${escapeHtml(f.usuario_reporta_nombre || '—')}</td>
+            <td class="px-3 py-2">${escapeHtml(f.tecnico_nombre || '---')}</td>
+            <td class="px-3 py-2">${escapeHtml(f.usuario_reporta_nombre || '---')}</td>
             <td class="px-3 py-2">${fechaIngreso}</td>
             <td class="px-3 py-2">${fechaSalida}</td>
             <td class="px-3 py-2"><span class="${estadoClass}">${estadoText}</span></td>
@@ -177,14 +207,9 @@ function renderizarTabla() {
 function renderizarPaginacion() {
     const container = document.getElementById('paginationContainer');
     if (!container) return;
-
-    if (lastPage <= 1) {
-        container.innerHTML = '';
-        return;
-    }
+    if (lastPage <= 1) { container.innerHTML = ''; return; }
 
     let html = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(${currentPage - 1}); return false;">«</a></li>`;
-
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(lastPage, currentPage + 2);
 
@@ -203,7 +228,6 @@ function renderizarPaginacion() {
     }
 
     html += `<li class="page-item ${currentPage === lastPage ? 'disabled' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(${currentPage + 1}); return false;">»</a></li>`;
-
     container.innerHTML = html;
 
     const infoDiv = document.getElementById('paginationInfo');
@@ -239,7 +263,6 @@ async function cargarPagina(page) {
         });
 
         if (!response.ok) throw new Error('Error al cargar datos');
-
         const data = await response.json();
 
         fichasData = data.data || [];
@@ -251,6 +274,7 @@ async function cargarPagina(page) {
         renderizarTabla();
         actualizarEstadisticas();
         renderizarPaginacion();
+
     } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('error', 'No se pudieron cargar las fichas');
@@ -264,7 +288,6 @@ async function cargarPagina(page) {
 function aplicarFiltros() {
     const buscarInput = document.getElementById('buscarFichas');
     const estadoSelect = document.getElementById('filtroEstadoFichas');
-
     filtros = {
         search: buscarInput?.value || '',
         estado: estadoSelect?.value || ''
@@ -282,23 +305,26 @@ function aplicarFiltrosConDebounce() {
 // BUSCADOR DE ACTIVOS
 // ============================================================
 function cargarActivosParaBuscador() {
-    fetch('/admin/activos', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(response => {
-            if (response.success) {
-                todosActivos = response.data;
-                console.log('Activos cargados:', todosActivos.length);
-            }
-        })
-        .catch(error => console.error('Error cargando activos:', error));
+    fetch('/admin/activos', {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
+    })
+    .then(r => r.json())
+    .then(response => {
+        if (response.success) {
+            todosActivos = response.data;
+            console.log('Activos cargados:', todosActivos.length);
+        }
+    })
+    .catch(error => console.error('Error cargando activos:', error));
 }
 
 function buscarActivos() {
     const input = document.getElementById('activoBuscarInput');
     const dropdown = document.getElementById('activoDropdown');
     if (!input || !dropdown) return;
-    const buscar = input.value.toLowerCase().trim();
 
+    const buscar = input.value.toLowerCase().trim();
     if (!buscar || buscar.length < 2) {
         dropdown.style.display = 'none';
         return;
@@ -319,7 +345,6 @@ function buscarActivos() {
             const modelo = a.modelo?.nombre || 'N/A';
             const marca = a.modelo?.marca?.nombre || 'N/A';
             const id = a.id;
-
             return `<div class="list-group-item list-group-item-action" data-activo-id="${id}" onclick="window.seleccionarActivo(${id}, '${escapeHtml(serial)}', '${escapeHtml(modelo)}', '${escapeHtml(marca)}', '${escapeHtml(estado)}')">
                 <div class="activo-serial"><strong>${escapeHtml(serial)}</strong></div>
                 <div class="activo-info">${escapeHtml(marca)} ${escapeHtml(modelo)} - Estado: ${escapeHtml(estado)}</div>
@@ -373,66 +398,71 @@ window.limpiarActivoSeleccionado = function () {
 // ============================================================
 function buscarTecnicoPorCedula(cedula) {
     const url = '/admin/api/tecnicos?search=' + encodeURIComponent(cedula);
-    fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
-        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(tecnicos => {
-            const searchResults = document.getElementById('tecnicoSearchResults');
-            const infoTecnico = document.getElementById('tecnicoEncontrado');
-            if (!searchResults) return;
+    fetch(url, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(tecnicos => {
+        const searchResults = document.getElementById('tecnicoSearchResults');
+        const infoTecnico = document.getElementById('tecnicoEncontrado');
+        if (!searchResults) return;
 
-            if (!tecnicos || tecnicos.length === 0) {
-                searchResults.innerHTML = `<div class="p-2 text-muted small">No se encontraron técnicos con esta búsqueda.</div>`;
-                searchResults.style.display = 'block';
-                if (infoTecnico) infoTecnico.style.display = 'none';
-                document.getElementById('fichaTecnicoId').value = '';
-                document.getElementById('fichaTecnicoNombre').value = '';
-                return;
-            }
-
-            if (tecnicos.length === 1) {
-                window.seleccionarTecnico(tecnicos[0]);
-                searchResults.style.display = 'none';
-                return;
-            }
-
-            let html = '';
-            tecnicos.forEach(t => {
-                const trabajador = t.trabajador || {};
-                const nombre = trabajador.nombre && trabajador.apellido
-                    ? `${trabajador.nombre} ${trabajador.apellido}`.trim()
-                    : t.usuario || 'Sin nombre';
-                const cedulaTecnico = trabajador.cedula || 'Sin cédula';
-                const usuario = t.usuario || 'Sin usuario';
-                const id = t.id;
-
-                html += `<div class="p-2 border-bottom" style="cursor:pointer;" onclick="window.seleccionarTecnicoPorId(${id})">
-                    <strong>${escapeHtml(nombre)}</strong>
-                    <br><small class="text-muted">${escapeHtml(cedulaTecnico)} - Usuario: ${escapeHtml(usuario)}</small>
-                </div>`;
-            });
-            searchResults.innerHTML = html;
+        if (!tecnicos || tecnicos.length === 0) {
+            searchResults.innerHTML = `<div class="p-2 text-muted small">No se encontraron técnicos con esta búsqueda.</div>`;
             searchResults.style.display = 'block';
             if (infoTecnico) infoTecnico.style.display = 'none';
-        })
-        .catch(error => {
-            console.error('Error al buscar técnico:', error);
-            const searchResults = document.getElementById('tecnicoSearchResults');
-            if (searchResults) {
-                searchResults.innerHTML = `<div class="p-2 text-danger small">Error al buscar: ${error.message}</div>`;
-                searchResults.style.display = 'block';
-            }
+            document.getElementById('fichaTecnicoId').value = '';
+            document.getElementById('fichaTecnicoNombre').value = '';
+            return;
+        }
+
+        if (tecnicos.length === 1) {
+            window.seleccionarTecnico(tecnicos[0]);
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        let html = '';
+        tecnicos.forEach(t => {
+            const trabajador = t.trabajador || {};
+            const nombre = trabajador.nombre && trabajador.apellido
+                ? `${trabajador.nombre} ${trabajador.apellido}`.trim()
+                : t.usuario || 'Sin nombre';
+            const cedulaTecnico = trabajador.cedula || 'Sin cédula';
+            const usuario = t.usuario || 'Sin usuario';
+            const id = t.id;
+            html += `<div class="p-2 border-bottom" style="cursor:pointer;" onclick="window.seleccionarTecnicoPorId(${id})">
+                <strong>${escapeHtml(nombre)}</strong>
+                <br><small class="text-muted">${escapeHtml(cedulaTecnico)} - Usuario: ${escapeHtml(usuario)}</small>
+            </div>`;
         });
+        searchResults.innerHTML = html;
+        searchResults.style.display = 'block';
+        if (infoTecnico) infoTecnico.style.display = 'none';
+    })
+    .catch(error => {
+        console.error('Error al buscar técnico:', error);
+        const searchResults = document.getElementById('tecnicoSearchResults');
+        if (searchResults) {
+            searchResults.innerHTML = `<div class="p-2 text-danger small">Error al buscar: ${error.message}</div>`;
+            searchResults.style.display = 'block';
+        }
+    });
 }
 
 window.seleccionarTecnicoPorId = function (id) {
-    fetch('/admin/api/tecnicos/' + id, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
-        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(response => {
-            if (response.success && response.data) {
-                window.seleccionarTecnico(response.data);
-            }
-        })
-        .catch(error => console.error('Error al obtener técnico:', error));
+    fetch('/admin/api/tecnicos/' + id, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(response => {
+        if (response.success && response.data) {
+            window.seleccionarTecnico(response.data);
+        }
+    })
+    .catch(error => console.error('Error al obtener técnico:', error));
 };
 
 window.seleccionarTecnico = function (tecnico) {
@@ -472,66 +502,71 @@ window.limpiarTecnicoSeleccionado = function () {
 // ============================================================
 function buscarExtTecnicoPorCedula(cedula) {
     const url = '/admin/api/tecnicos?search=' + encodeURIComponent(cedula);
-    fetch(url, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
-        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(tecnicos => {
-            const searchResults = document.getElementById('extTecnicoSearchResults');
-            const infoTecnico = document.getElementById('extTecnicoEncontrado');
-            if (!searchResults) return;
+    fetch(url, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(tecnicos => {
+        const searchResults = document.getElementById('extTecnicoSearchResults');
+        const infoTecnico = document.getElementById('extTecnicoEncontrado');
+        if (!searchResults) return;
 
-            if (!tecnicos || tecnicos.length === 0) {
-                searchResults.innerHTML = `<div class="p-2 text-muted small">No se encontraron técnicos con esta búsqueda.</div>`;
-                searchResults.style.display = 'block';
-                if (infoTecnico) infoTecnico.style.display = 'none';
-                document.getElementById('ext_fichaTecnicoId').value = '';
-                document.getElementById('ext_fichaTecnicoNombre').value = '';
-                return;
-            }
-
-            if (tecnicos.length === 1) {
-                window.seleccionarExtTecnico(tecnicos[0]);
-                searchResults.style.display = 'none';
-                return;
-            }
-
-            let html = '';
-            tecnicos.forEach(t => {
-                const trabajador = t.trabajador || {};
-                const nombre = trabajador.nombre && trabajador.apellido
-                    ? `${trabajador.nombre} ${trabajador.apellido}`.trim()
-                    : t.usuario || 'Sin nombre';
-                const cedulaTecnico = trabajador.cedula || 'Sin cédula';
-                const usuario = t.usuario || 'Sin usuario';
-                const id = t.id;
-
-                html += `<div class="p-2 border-bottom" style="cursor:pointer;" onclick="window.seleccionarExtTecnicoPorId(${id})">
-                    <strong>${escapeHtml(nombre)}</strong>
-                    <br><small class="text-muted">${escapeHtml(cedulaTecnico)} - Usuario: ${escapeHtml(usuario)}</small>
-                </div>`;
-            });
-            searchResults.innerHTML = html;
+        if (!tecnicos || tecnicos.length === 0) {
+            searchResults.innerHTML = `<div class="p-2 text-muted small">No se encontraron técnicos con esta búsqueda.</div>`;
             searchResults.style.display = 'block';
             if (infoTecnico) infoTecnico.style.display = 'none';
-        })
-        .catch(error => {
-            console.error('Error al buscar técnico externo:', error);
-            const searchResults = document.getElementById('extTecnicoSearchResults');
-            if (searchResults) {
-                searchResults.innerHTML = `<div class="p-2 text-danger small">Error al buscar: ${error.message}</div>`;
-                searchResults.style.display = 'block';
-            }
+            document.getElementById('ext_fichaTecnicoId').value = '';
+            document.getElementById('ext_fichaTecnicoNombre').value = '';
+            return;
+        }
+
+        if (tecnicos.length === 1) {
+            window.seleccionarExtTecnico(tecnicos[0]);
+            searchResults.style.display = 'none';
+            return;
+        }
+
+        let html = '';
+        tecnicos.forEach(t => {
+            const trabajador = t.trabajador || {};
+            const nombre = trabajador.nombre && trabajador.apellido
+                ? `${trabajador.nombre} ${trabajador.apellido}`.trim()
+                : t.usuario || 'Sin nombre';
+            const cedulaTecnico = trabajador.cedula || 'Sin cédula';
+            const usuario = t.usuario || 'Sin usuario';
+            const id = t.id;
+            html += `<div class="p-2 border-bottom" style="cursor:pointer;" onclick="window.seleccionarExtTecnicoPorId(${id})">
+                <strong>${escapeHtml(nombre)}</strong>
+                <br><small class="text-muted">${escapeHtml(cedulaTecnico)} - Usuario: ${escapeHtml(usuario)}</small>
+            </div>`;
         });
+        searchResults.innerHTML = html;
+        searchResults.style.display = 'block';
+        if (infoTecnico) infoTecnico.style.display = 'none';
+    })
+    .catch(error => {
+        console.error('Error al buscar técnico externo:', error);
+        const searchResults = document.getElementById('extTecnicoSearchResults');
+        if (searchResults) {
+            searchResults.innerHTML = `<div class="p-2 text-danger small">Error al buscar: ${error.message}</div>`;
+            searchResults.style.display = 'block';
+        }
+    });
 }
 
 window.seleccionarExtTecnicoPorId = function (id) {
-    fetch('/admin/api/tecnicos/' + id, { headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
-        .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(response => {
-            if (response.success && response.data) {
-                window.seleccionarExtTecnico(response.data);
-            }
-        })
-        .catch(error => console.error('Error al obtener técnico externo:', error));
+    fetch('/admin/api/tecnicos/' + id, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    })
+    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+    .then(response => {
+        if (response.success && response.data) {
+            window.seleccionarExtTecnico(response.data);
+        }
+    })
+    .catch(error => console.error('Error al obtener técnico externo:', error));
 };
 
 window.seleccionarExtTecnico = function (tecnico) {
@@ -577,35 +612,26 @@ window.limpiarExtTecnicoSeleccionado = function () {
 window.abrirModalCrearFicha = function () {
     const form = document.getElementById('formCrearFicha');
     if (form) form.reset();
-
     window.limpiarActivoSeleccionado();
     window.limpiarTecnicoSeleccionado();
-
     const errorDiv = document.getElementById('activoErrorMensaje');
     if (errorDiv) errorDiv.style.display = 'none';
-
     const submitBtn = document.getElementById('btnGuardarFicha');
     if (submitBtn) submitBtn.disabled = true;
-
     new bootstrap.Modal(document.getElementById('modalCrearFicha')).show();
-
     if (todosActivos.length === 0) cargarActivosParaBuscador();
 };
 
 window.abrirModalEquipoExterno = function () {
     const form = document.getElementById('formEquipoExterno');
     if (form) form.reset();
-
     window.limpiarExtTecnicoSeleccionado();
     window.limpiarActivoSeleccionado();
-
     const fechaInput = document.getElementById('ext_fecha_adquisicion');
     if (fechaInput) fechaInput.value = new Date().toISOString().split('T')[0];
-
     configurarValidacionSerial();
     cargarCategoriasExterno();
     cargarInstitucionesExterno();
-
     new bootstrap.Modal(document.getElementById('modalEquipoExterno')).show();
 };
 
@@ -618,7 +644,6 @@ function configurarValidacionSerial() {
     serialInput.addEventListener('blur', function () {
         const serial = this.value.trim();
         let feedback = document.getElementById('ext_serial_feedback');
-
         if (!feedback) {
             feedback = document.createElement('small');
             feedback.id = 'ext_serial_feedback';
@@ -674,56 +699,67 @@ function configurarValidacionSerial() {
 // SELECTS DE EQUIPO EXTERNO
 // ============================================================
 function cargarCategoriasExterno() {
-    fetch('/admin/equipos/categorias-list', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(response => {
-            if (response.success) {
-                const select = document.getElementById('ext_categoria_id');
-                if (select) {
-                    select.innerHTML = '<option value="">Seleccionar categoría...</option>';
-                    response.data.forEach(cat => {
-                        select.innerHTML += `<option value="${cat.id}">${escapeHtml(cat.nombre)}</option>`;
-                    });
-                }
+    fetch('/admin/equipos/categorias-list', {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
+    })
+    .then(r => r.json())
+    .then(response => {
+        if (response.success) {
+            const select = document.getElementById('ext_categoria_id');
+            if (select) {
+                select.innerHTML = '<option value="">Seleccionar categoría...</option>';
+                response.data.forEach(cat => {
+                    select.innerHTML += `<option value="${cat.id}">${escapeHtml(cat.nombre)}</option>`;
+                });
             }
-        })
-        .catch(error => console.error('Error cargando categorías:', error));
+        }
+    })
+    .catch(error => console.error('Error cargando categorías:', error));
 }
 
 function cargarInstitucionesExterno() {
-    fetch('/admin/instituciones?todos=1', { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(response => {
-            const instituciones = response.data || response;
-            const select = document.getElementById('ext_institucion_id');
-            if (select && instituciones) {
-                select.innerHTML = '<option value="">Seleccionar institución...</option>';
-                instituciones.forEach(inst => {
-                    select.innerHTML += `<option value="${inst.id}">${escapeHtml(inst.nombre)}</option>`;
-                });
-            }
-        })
-        .catch(error => console.error('Error cargando instituciones:', error));
+    fetch('/admin/instituciones?todos=1', {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
+    })
+    .then(r => r.json())
+    .then(response => {
+        const instituciones = response.data || response;
+        const select = document.getElementById('ext_institucion_id');
+        if (select && instituciones) {
+            select.innerHTML = '<option value="">Seleccionar institución...</option>';
+            instituciones.forEach(inst => {
+                select.innerHTML += `<option value="${inst.id}">${escapeHtml(inst.nombre)}</option>`;
+            });
+        }
+    })
+    .catch(error => console.error('Error cargando instituciones:', error));
 }
 
 function cargarResponsablesExterno(institucionId) {
     const select = document.getElementById('ext_responsable_id');
     if (!select) return;
+
     if (!institucionId) {
         select.innerHTML = '<option value="">Seleccionar responsable...</option>';
         return;
     }
-    fetch(`/admin/responsables?institucion_id=${institucionId}`, { headers: { 'Accept': 'application/json' }, credentials: 'same-origin' })
-        .then(r => r.json())
-        .then(response => {
-            if (response.success) {
-                select.innerHTML = '<option value="">Seleccionar responsable...</option>';
-                response.data.forEach(resp => {
-                    select.innerHTML += `<option value="${resp.id}">${escapeHtml(resp.nombre)} - ${escapeHtml(resp.cargo || 'Sin cargo')}</option>`;
-                });
-            }
-        })
-        .catch(error => console.error('Error cargando responsables:', error));
+
+    fetch(`/admin/responsables?institucion_id=${institucionId}`, {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
+    })
+    .then(r => r.json())
+    .then(response => {
+        if (response.success) {
+            select.innerHTML = '<option value="">Seleccionar responsable...</option>';
+            response.data.forEach(resp => {
+                select.innerHTML += `<option value="${resp.id}">${escapeHtml(resp.nombre)} - ${escapeHtml(resp.cargo || 'Sin cargo')}</option>`;
+            });
+        }
+    })
+    .catch(error => console.error('Error cargando responsables:', error));
 }
 
 // ============================================================
@@ -759,10 +795,10 @@ window.cargarCorreosSoporte = async function () {
         });
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
         const data = await response.json();
         console.log('Correos recibidos:', data);
         renderizarCorreosSoporte(data.data || []);
+
     } catch (error) {
         console.error('Error al cargar correos:', error);
         container.innerHTML = `
@@ -878,10 +914,9 @@ window.abrirCorreoSoporte = async function (id) {
             headers: { 'Accept': 'application/json' },
             credentials: 'same-origin'
         });
-
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
         const data = await response.json();
+
         if (!data.success) {
             mostrarNotificacion('error', 'Error al cargar el correo');
             return;
@@ -904,10 +939,19 @@ window.abrirCorreoSoporte = async function (id) {
             const el = document.getElementById('wzDiagnostico');
             if (el) el.value = datos.problema;
         }
-        if (datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega) {
+
+        // ✅ CORRECCIÓN: Normalizar la fecha al formato Y-m-d
+        const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
+        if (fechaRaw) {
             const el = document.getElementById('wzFechaRequeridaSoporte');
-            if (el) el.value = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
+            if (el) {
+                const fechaNormalizada = normalizarFechaParaInput(fechaRaw);
+                if (fechaNormalizada) {
+                    el.value = fechaNormalizada;
+                }
+            }
         }
+
         if (correoSoporteActual.from_name) {
             const el = document.getElementById('wzUsuarioReporta');
             if (el) el.value = correoSoporteActual.from_name;
@@ -916,8 +960,7 @@ window.abrirCorreoSoporte = async function (id) {
         if (correoSoporteActual.procesado) {
             document.getElementById('botonIniciarWizardSoporte').innerHTML = `
                 <div class="alert alert-success">
-                    ✅ Este correo ya fue convertido en la ficha de soporte
-                    #${correoSoporteActual.ficha_soporte_id}
+                    ✅ Este correo ya fue convertido en la ficha de soporte #${correoSoporteActual.ficha_soporte_id}
                 </div>
             `;
         } else {
@@ -936,6 +979,7 @@ window.abrirCorreoSoporte = async function (id) {
         document.getElementById('botonIniciarWizardSoporte').style.display = 'block';
 
         new bootstrap.Modal(document.getElementById('modalCorreoSoporte')).show();
+
     } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('error', 'Error al cargar el correo: ' + error.message);
@@ -947,16 +991,117 @@ window.abrirCorreoSoporte = async function (id) {
 // ============================================================
 window.iniciarWizardSoporte = function () {
     if (!correoSoporteActual) return;
+
     document.getElementById('infoCorreoSoporte').style.display = 'none';
     document.getElementById('botonIniciarWizardSoporte').style.display = 'none';
     document.getElementById('wizardContainerSoporte').style.display = 'block';
     document.getElementById('wizardCorreoSoporteId').value = correoSoporteActual.id;
+
+    // Pre-llenar campos desde datos_extraidos
+    const datos = correoSoporteActual.datos_extraidos || {};
+    if (datos.problema) {
+        const el = document.getElementById('wzDiagnostico');
+        if (el) el.value = datos.problema;
+    }
+
+    // ✅ CORRECCIÓN: Normalizar la fecha al formato Y-m-d
+    const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
+    if (fechaRaw) {
+        const el = document.getElementById('wzFechaRequeridaSoporte');
+        if (el) {
+            const fechaNormalizada = normalizarFechaParaInput(fechaRaw);
+            if (fechaNormalizada) {
+                el.value = fechaNormalizada;
+            }
+        }
+    }
+
+    if (correoSoporteActual.from_name) {
+        const el = document.getElementById('wzUsuarioReporta');
+        if (el) el.value = correoSoporteActual.from_name;
+    }
+
+    // *** Pre-llenar institución y responsable si están disponibles ***
+    if (datos.serial) {
+        fetch(`/admin/activos?buscar=${encodeURIComponent(datos.serial)}`, {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(response => {
+            if (response.success && response.data && response.data.length > 0) {
+                const activo = response.data[0];
+                const selectActivo = document.getElementById('wzActivoId');
+                if (selectActivo) {
+                    if (selectActivo.options.length <= 1) {
+                        cargarActivosEnWizard().then(() => {
+                            selectActivo.value = activo.id;
+                        });
+                    } else {
+                        selectActivo.value = activo.id;
+                    }
+                }
+                const radioExistente = document.getElementById('equipoExistente');
+                if (radioExistente) {
+                    radioExistente.checked = true;
+                    document.getElementById('equipoExistenteFields').style.display = 'block';
+                    document.getElementById('equipoNuevoFields').style.display = 'none';
+                }
+            } else {
+                const radioNuevo = document.getElementById('equipoNuevo');
+                if (radioNuevo) {
+                    radioNuevo.checked = true;
+                    document.getElementById('equipoExistenteFields').style.display = 'none';
+                    document.getElementById('equipoNuevoFields').style.display = 'block';
+                }
+                if (datos.marca) {
+                    const el = document.querySelector('input[name="nuevo_equipo[marca]"]');
+                    if (el) el.value = datos.marca;
+                }
+                if (datos.modelo) {
+                    const el = document.querySelector('input[name="nuevo_equipo[modelo_nombre]"]');
+                    if (el) el.value = datos.modelo;
+                }
+                if (datos.serial) {
+                    const el = document.querySelector('input[name="nuevo_equipo[serial]"]');
+                    if (el) el.value = datos.serial;
+                }
+            }
+        })
+        .catch(error => console.error('Error al buscar activo:', error));
+    }
+
     irPasoSoporte(1);
 };
 
+function cargarActivosEnWizard() {
+    return new Promise((resolve) => {
+        const select = document.getElementById('wzActivoId');
+        if (!select || select.options.length > 1) {
+            resolve();
+            return;
+        }
+
+        fetch('/admin/activos', {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(response => {
+            if (response.success) {
+                select.innerHTML = '<option value="">Seleccionar activo...</option>';
+                response.data.forEach(act => {
+                    select.innerHTML += `<option value="${act.id}">${escapeHtml(act.serial)} - ${escapeHtml(act.modelo?.marca?.nombre || '')} ${escapeHtml(act.modelo?.nombre || '')}</option>`;
+                });
+            }
+            resolve();
+        })
+        .catch(() => resolve());
+    });
+}
+
 window.irPasoSoporte = function (paso) {
     if (paso < 1 || paso > 3) return;
-
     if (paso === 2 && !validarPasoSoporte1()) return;
     if (paso === 3 && !validarPasoSoporte2()) return;
 
@@ -1026,8 +1171,8 @@ function generarResumenSoporte() {
     const tipo = document.querySelector('input[name="tipo_equipo"]:checked')?.value;
     const lista = document.getElementById('resumenFichaSoporte');
     if (!lista) return;
-    let items = [];
 
+    let items = [];
     if (tipo === 'existente') {
         const sel = document.getElementById('wzActivoId');
         if (sel && sel.selectedIndex >= 0) {
@@ -1043,6 +1188,7 @@ function generarResumenSoporte() {
     if (tecnico && tecnico.selectedIndex >= 0) {
         items.push(`<li><strong>Técnico:</strong> ${tecnico.options[tecnico.selectedIndex].text}</li>`);
     }
+
     items.push(`<li><strong>Reporta:</strong> ${document.getElementById('wzUsuarioReporta').value}</li>`);
     items.push(`<li><strong>Diagnóstico:</strong> ${document.getElementById('wzDiagnostico').value}</li>`);
     items.push(`<li><strong>Fecha requerida:</strong> ${document.getElementById('wzFechaRequeridaSoporte').value}</li>`);
@@ -1092,6 +1238,7 @@ document.addEventListener('DOMContentLoaded', function () {
         tecnicoInput.addEventListener('input', function () {
             const cedula = this.value.trim();
             clearTimeout(timeoutTecnicoBusqueda);
+
             if (cedula.length < 2) {
                 const el1 = document.getElementById('tecnicoSearchResults');
                 if (el1) el1.style.display = 'none';
@@ -1113,6 +1260,7 @@ document.addEventListener('DOMContentLoaded', function () {
         extTecnicoInput.addEventListener('input', function () {
             const cedula = this.value.trim();
             clearTimeout(timeoutExtTecnicoBusqueda);
+
             if (cedula.length < 2) {
                 const el1 = document.getElementById('extTecnicoSearchResults');
                 if (el1) el1.style.display = 'none';
@@ -1147,6 +1295,7 @@ document.addEventListener('DOMContentLoaded', function () {
         formCrearFicha.addEventListener('submit', async function (e) {
             e.preventDefault();
             const activoId = document.getElementById('fichaActivoId').value;
+
             if (!activoId) {
                 mostrarNotificacion('error', 'Debe seleccionar un activo válido');
                 document.getElementById('activoBuscarInput').classList.add('is-invalid');
@@ -1156,13 +1305,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 mostrarNotificacion('error', 'Este activo ya tiene una ficha de soporte en proceso');
                 return;
             }
+
             const submitBtn = document.getElementById('btnGuardarFicha');
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Creando...';
             submitBtn.disabled = true;
+
             const formData = new FormData(this);
             const tecnicoNombre = document.getElementById('fichaTecnicoNombre').value;
             if (tecnicoNombre) formData.set('tecnico_nombre', tecnicoNombre);
+
             try {
                 const response = await fetch('/admin/soporte', {
                     method: 'POST',
@@ -1171,6 +1323,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     body: formData
                 });
                 const result = await response.json();
+
                 if (response.ok && result.success) {
                     mostrarNotificacion('success', result.message || 'Ficha creada exitosamente');
                     bootstrap.Modal.getInstance(document.getElementById('modalCrearFicha')).hide();
@@ -1199,7 +1352,9 @@ document.addEventListener('DOMContentLoaded', function () {
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Registrando...';
             submitBtn.disabled = true;
+
             const formData = new FormData(this);
+
             try {
                 const response = await fetch('/admin/soporte/equipo-externo', {
                     method: 'POST',
@@ -1208,6 +1363,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     body: formData
                 });
                 const result = await response.json();
+
                 if (response.ok && result.success) {
                     mostrarNotificacion('success', result.message || 'Equipo registrado');
                     bootstrap.Modal.getInstance(document.getElementById('modalEquipoExterno')).hide();
@@ -1236,6 +1392,7 @@ document.addEventListener('DOMContentLoaded', function () {
             const originalText = submitBtn.innerHTML;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Finalizando...';
             submitBtn.disabled = true;
+
             try {
                 const response = await fetch(`/admin/soporte/${id}/close`, {
                     method: 'POST',
@@ -1244,6 +1401,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     body: new FormData(this)
                 });
                 const result = await response.json();
+
                 if (response.ok && result.success) {
                     mostrarNotificacion('success', result.message || 'Ficha finalizada');
                     bootstrap.Modal.getInstance(document.getElementById('modalCerrarFicha')).hide();
@@ -1268,11 +1426,24 @@ document.addEventListener('DOMContentLoaded', function () {
     if (formWizardSoporte) {
         formWizardSoporte.addEventListener('submit', async function (e) {
             e.preventDefault();
+
+            // ✅ VALIDACIÓN FINAL antes de enviar
+            if (!validarPasoSoporte1()) {
+                irPasoSoporte(1);
+                return;
+            }
+            if (!validarPasoSoporte2()) {
+                irPasoSoporte(2);
+                return;
+            }
+
             const btn = document.getElementById('btnGuardarWizardSoporte');
             const original = btn.innerHTML;
             btn.disabled = true;
             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Creando ficha...';
+
             const correoId = document.getElementById('wizardCorreoSoporteId').value;
+
             try {
                 const response = await fetch(`/admin/soporte/correos/${correoId}/convertir`, {
                     method: 'POST',
@@ -1281,6 +1452,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     body: new FormData(this)
                 });
                 const data = await response.json();
+
                 if (data.success) {
                     mostrarNotificacion('success', data.message || 'Ficha de soporte creada');
                     bootstrap.Modal.getInstance(document.getElementById('modalCorreoSoporte'))?.hide();
@@ -1349,6 +1521,7 @@ document.addEventListener('DOMContentLoaded', function () {
             t = setTimeout(cargarCorreosSoporte, 400);
         });
     }
+
     const filtroCorreo = document.getElementById('filtroCorreo');
     if (filtroCorreo) {
         filtroCorreo.addEventListener('change', cargarCorreosSoporte);
@@ -1424,11 +1597,16 @@ window.abrirModalCerrarFicha = async function (id) {
 };
 
 // ============================================================
-// VER DETALLE DE FICHA
+// VER DETALLE DE FICHA (MEJORADO)
 // ============================================================
 window.verDetalle = async function (id) {
     const modalBody = document.getElementById('detalleContenido');
-    modalBody.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-2">Cargando detalles...</p></div>';
+    modalBody.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Cargando detalles de la ficha...</p>
+        </div>
+    `;
     new bootstrap.Modal(document.getElementById('modalDetalle')).show();
 
     try {
@@ -1438,106 +1616,440 @@ window.verDetalle = async function (id) {
         });
         const result = await response.json();
 
-        if (result.success && result.data) {
-            const f = result.data;
-            const fechaIngreso = f.fecha_ingreso ? new Date(f.fecha_ingreso).toLocaleString() : 'No registrada';
-            const fechaSalida = f.fecha_salida ? new Date(f.fecha_salida).toLocaleString() : 'En proceso';
-            const estadoColor = f.estado === 'en_proceso' ? '#fd7e14' : '#28a745';
-            const estadoIcono = f.estado === 'en_proceso' ? '🔧' : '✅';
-
-            let detallesHtml = '';
-            if (f.detalles && f.detalles.length > 0) {
-                detallesHtml = `
-                    <div class="detalle-seccion mb-3">
-                        <h6 class="fw-bold" style="color: #1e3c72;">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-1">
-                                <rect x="2" y="6" width="20" height="12" rx="2"/>
-                            </svg>
-                            Componentes Revisados (${f.detalles.length})
-                        </h6>
-                        <div class="row">
-                            ${f.detalles.map(det => `
-                                <div class="col-md-6 mb-2">
-                                    <div class="border rounded p-2" style="background: #f8f9fc;">
-                                        <strong>${escapeHtml(det.componente_nombre)}</strong><br>
-                                        ${det.estado_salida
-                                            ? `<span class="badge ${det.estado_salida === 'funcionando' ? 'bg-success' : (det.estado_salida === 'reemplazado' ? 'bg-warning' : 'bg-danger')} text-white">Salida: ${escapeHtml(det.estado_salida)}</span>`
-                                            : `<span class="badge bg-info">Ingreso: ${escapeHtml(det.estado_ingreso || 'N/A')}</span>`}
-                                        ${det.observaciones ? `<br><small class="text-muted">${escapeHtml(det.observaciones)}</small>` : ''}
-                                    </div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            const html = `
-                <div>
-                    <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); margin: -1rem -1rem 1.5rem -1rem; padding: 1.5rem; border-radius: 12px 12px 0 0;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <h4 class="mb-0 text-white">Ficha de Soporte #${f.id}</h4>
-                                <p class="mb-0 text-white-50 mt-1">
-                                    ${escapeHtml(f.activo?.serial || 'N/A')} - ${escapeHtml(f.activo?.modelo?.nombre || 'N/A')}
-                                </p>
-                            </div>
-                            <span style="background: ${estadoColor}; color: white; padding: 0.5rem 1rem; border-radius: 30px;">
-                                ${estadoIcono} ${f.estado === 'en_proceso' ? 'En Proceso' : 'Finalizado'}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="text-muted small">Técnico</label>
-                                <div class="fw-semibold">${escapeHtml(f.tecnico_nombre || 'No asignado')}</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="text-muted small">Usuario Reporta</label>
-                                <div class="fw-semibold">${escapeHtml(f.usuario_reporta_nombre || 'No especificado')}</div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label class="text-muted small">Fecha Ingreso</label>
-                                <div class="fw-semibold">${fechaIngreso}</div>
-                            </div>
-                            <div class="mb-3">
-                                <label class="text-muted small">Fecha Salida</label>
-                                <div class="fw-semibold">${fechaSalida}</div>
-                            </div>
-                        </div>
-                    </div>
-                    ${f.fecha_requerida_entrega ? `
-                        <div class="mb-3">
-                            <label class="text-muted small">Fecha Requerida de Entrega</label>
-                            <div class="fw-semibold">${new Date(f.fecha_requerida_entrega).toLocaleDateString()}</div>
-                        </div>
-                    ` : ''}
-                    <div class="mb-3">
-                        <label class="text-muted small">Diagnóstico Inicial</label>
-                        <div class="p-2 bg-light rounded">${escapeHtml(f.diagnostico || 'No registrado')}</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-muted small">Trabajo Realizado</label>
-                        <div class="p-2 bg-light rounded">${escapeHtml(f.trabajo_realizado || 'No registrado')}</div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="text-muted small">Observaciones</label>
-                        <div class="p-2 bg-light rounded">${escapeHtml(f.observaciones || 'Sin observaciones')}</div>
-                    </div>
-                    ${detallesHtml}
+        if (!result.success || !result.data) {
+            modalBody.innerHTML = `
+                <div class="text-center text-danger py-5">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                    </svg>
+                    <p class="mt-2">Error al cargar el detalle de la ficha</p>
                 </div>
             `;
-            document.getElementById('modalDetalleLabel').textContent = 'Detalle de Ficha de Soporte';
-            modalBody.innerHTML = html;
-        } else {
-            modalBody.innerHTML = '<div class="text-center text-danger py-4">Error al cargar detalle</div>';
+            return;
         }
+
+        const f = result.data;
+
+        // ===== Formateo de fechas =====
+        const fmtFecha = (fecha) => {
+            if (!fecha) return null;
+            const d = new Date(fecha);
+            if (isNaN(d.getTime())) return fecha;
+            return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        };
+        const fmtFechaHora = (fecha) => {
+            if (!fecha) return null;
+            const d = new Date(fecha);
+            if (isNaN(d.getTime())) return fecha;
+            return d.toLocaleDateString('es-ES', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            });
+        };
+
+        const fechaIngreso = fmtFechaHora(f.fecha_ingreso) || 'No registrada';
+        const fechaSalida = fmtFechaHora(f.fecha_salida) || 'En proceso';
+        const fechaRequerida = fmtFecha(f.fecha_requerida_entrega);
+
+        // ===== Estado =====
+        const esEnProceso = f.estado === 'en_proceso';
+        const estadoBg = esEnProceso ? 'linear-gradient(135deg, #f6c23e, #f4b619)' : 'linear-gradient(135deg, #1e7e34, #28a745)';
+        const estadoIcono = esEnProceso ? '🔧' : '✅';
+        const estadoTexto = esEnProceso ? 'En Proceso' : 'Finalizado';
+
+        // ===== Datos del activo =====
+        const serial = f.activo?.serial || 'N/A';
+        const modelo = f.activo?.modelo?.nombre || 'N/A';
+        const marca = f.activo?.modelo?.marca?.nombre || 'N/A';
+        const institucion = f.activo?.institucion?.nombre || 'No especificada';
+        const responsable = f.activo?.responsable?.nombre || 'No especificado';
+
+        // ===== Componentes =====
+        let componentesHtml = '';
+        if (f.detalles && f.detalles.length > 0) {
+            componentesHtml = f.detalles.map(det => {
+                const estadoSalida = det.estado_salida;
+                let badgeClass = 'bg-secondary';
+                let badgeIcon = '❓';
+                if (estadoSalida === 'funcionando') { badgeClass = 'bg-success'; badgeIcon = '✅'; }
+                else if (estadoSalida === 'reemplazado') { badgeClass = 'bg-warning text-dark'; badgeIcon = '🔄'; }
+                else if (estadoSalida === 'reparado') { badgeClass = 'bg-info text-dark'; badgeIcon = '🔧'; }
+                else if (estadoSalida === 'dañado') { badgeClass = 'bg-danger'; badgeIcon = '⚠️'; }
+                else if (estadoSalida === 'no_aplica') { badgeClass = 'bg-secondary'; badgeIcon = '❌'; }
+
+                return `
+                    <div class="componente-card">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div class="componente-nombre">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2" style="display:inline; margin-right:6px;">
+                                    <rect x="2" y="6" width="20" height="12" rx="2"/>
+                                </svg>
+                                ${escapeHtml(det.componente_nombre || 'Componente')}
+                            </div>
+                            ${estadoSalida
+                                ? `<span class="badge ${badgeClass}" style="font-size:0.72rem;">${badgeIcon} ${escapeHtml(estadoSalida)}</span>`
+                                : `<span class="badge bg-info text-dark" style="font-size:0.72rem;">📥 Ingreso: ${escapeHtml(det.estado_ingreso || 'N/A')}</span>`}
+                        </div>
+                        ${det.observaciones ? `
+                            <div class="componente-obs">
+                                <strong>Observaciones:</strong> ${escapeHtml(det.observaciones)}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        } else {
+            componentesHtml = `
+                <div class="text-center text-muted py-3" style="font-size:0.85rem;">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5">
+                        <rect x="2" y="6" width="20" height="12" rx="2"/>
+                    </svg>
+                    <p class="mb-0 mt-2">No hay componentes registrados para esta ficha</p>
+                </div>
+            `;
+        }
+
+        // ===== HTML final =====
+        const html = `
+            <style>
+                .ficha-detalle-wrap { font-family: inherit; }
+                .ficha-header {
+                    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+                    margin: -1rem -1rem 1.5rem -1rem;
+                    padding: 1.5rem;
+                    border-radius: 12px 12px 0 0;
+                    color: white;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .ficha-header::after {
+                    content: '';
+                    position: absolute;
+                    top: -50%;
+                    right: -10%;
+                    width: 200px;
+                    height: 200px;
+                    background: rgba(255,255,255,0.05);
+                    border-radius: 50%;
+                }
+                .ficha-header h4 {
+                    font-size: 1.35rem;
+                    font-weight: 700;
+                    margin: 0;
+                }
+                .ficha-header .subtitulo {
+                    font-size: 0.85rem;
+                    opacity: 0.85;
+                    margin-top: 4px;
+                }
+                .estado-badge {
+                    background: ${estadoBg};
+                    color: white;
+                    padding: 0.45rem 1rem;
+                    border-radius: 30px;
+                    font-size: 0.8rem;
+                    font-weight: 600;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+                    white-space: nowrap;
+                }
+                .info-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                    gap: 1rem;
+                    margin-bottom: 1.5rem;
+                }
+                .info-card {
+                    background: #f8f9fc;
+                    border-radius: 10px;
+                    padding: 0.85rem 1rem;
+                    border-left: 4px solid #1e3c72;
+                    transition: all 0.2s ease;
+                }
+                .info-card:hover {
+                    background: #eef2ff;
+                    transform: translateY(-2px);
+                    box-shadow: 0 4px 10px rgba(30,60,114,0.08);
+                }
+                .info-card .info-label {
+                    font-size: 0.7rem;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    color: #6c757d;
+                    font-weight: 700;
+                    margin-bottom: 4px;
+                    display: flex;
+                    align-items: center;
+                    gap: 5px;
+                }
+                .info-card .info-value {
+                    font-size: 0.92rem;
+                    font-weight: 600;
+                    color: #2c3e50;
+                    word-break: break-word;
+                }
+                .seccion-titulo {
+                    font-size: 0.95rem;
+                    font-weight: 700;
+                    color: #1e3c72;
+                    margin-bottom: 0.75rem;
+                    padding-bottom: 0.5rem;
+                    border-bottom: 2px solid #e9ecef;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                }
+                .seccion-titulo svg { flex-shrink: 0; }
+                .texto-bloque {
+                    background: #f8f9fc;
+                    border-radius: 8px;
+                    padding: 0.85rem 1rem;
+                    font-size: 0.9rem;
+                    color: #2c3e50;
+                    line-height: 1.55;
+                    white-space: pre-wrap;
+                    word-break: break-word;
+                    min-height: 44px;
+                    border-left: 3px solid #dee2e6;
+                }
+                .texto-bloque.vacio {
+                    color: #adb5bd;
+                    font-style: italic;
+                }
+                .texto-bloque.diagnostico { border-left-color: #f6c23e; }
+                .texto-bloque.trabajo { border-left-color: #1e7e34; }
+                .texto-bloque.observaciones { border-left-color: #17a2b8; }
+                .componentes-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+                    gap: 0.75rem;
+                }
+                .componente-card {
+                    background: #f8f9fc;
+                    border: 1px solid #e9ecef;
+                    border-radius: 10px;
+                    padding: 0.85rem 1rem;
+                    transition: all 0.2s ease;
+                }
+                .componente-card:hover {
+                    border-color: #1e3c72;
+                    box-shadow: 0 4px 10px rgba(30,60,114,0.08);
+                }
+                .componente-nombre {
+                    font-weight: 600;
+                    color: #1e3c72;
+                    font-size: 0.88rem;
+                }
+                .componente-obs {
+                    font-size: 0.8rem;
+                    color: #6c757d;
+                    margin-top: 6px;
+                    padding-top: 6px;
+                    border-top: 1px dashed #dee2e6;
+                }
+                .fecha-badge {
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 6px;
+                    padding: 0.3rem 0.75rem;
+                    border-radius: 20px;
+                    font-size: 0.78rem;
+                    font-weight: 600;
+                }
+                .fecha-badge.ingreso { background: #e7f1ff; color: #1e3c72; }
+                .fecha-badge.salida { background: #e8f5e9; color: #1e7e34; }
+                .fecha-badge.requerida { background: #fff8e1; color: #a67c00; }
+                .fecha-badge.pendiente { background: #f0f0f0; color: #6c757d; }
+            </style>
+
+            <div class="ficha-detalle-wrap">
+                <!-- HEADER -->
+                <div class="ficha-header">
+                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                        <div>
+                            <h4>
+                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:6px; vertical-align:middle;">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                </svg>
+                                Ficha de Soporte #${f.id}
+                            </h4>
+                            <div class="subtitulo">
+                                <strong>${escapeHtml(serial)}</strong> · ${escapeHtml(marca)} ${escapeHtml(modelo)}
+                            </div>
+                        </div>
+                        <span class="estado-badge">${estadoIcono} ${estadoTexto}</span>
+                    </div>
+                </div>
+
+                <!-- INFO PRINCIPAL -->
+                <div class="info-grid">
+                    <div class="info-card">
+                        <div class="info-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            Técnico Asignado
+                        </div>
+                        <div class="info-value">${escapeHtml(f.tecnico_nombre || 'No asignado')}</div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            Usuario Reporta
+                        </div>
+                        <div class="info-value">${escapeHtml(f.usuario_reporta_nombre || 'No especificado')}</div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M3 21h18"/>
+                                <path d="M5 21V7l8-4v18"/>
+                                <path d="M19 21V11l-6-4"/>
+                            </svg>
+                            Institución
+                        </div>
+                        <div class="info-value">${escapeHtml(institucion)}</div>
+                    </div>
+
+                    <div class="info-card">
+                        <div class="info-label">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                <circle cx="12" cy="7" r="4"/>
+                            </svg>
+                            Responsable
+                        </div>
+                        <div class="info-value">${escapeHtml(responsable)}</div>
+                    </div>
+                </div>
+
+                <!-- FECHAS -->
+                <div class="mb-4">
+                    <div class="seccion-titulo">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="16" y1="2" x2="16" y2="6"/>
+                            <line x1="8" y1="2" x2="8" y2="6"/>
+                            <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
+                        Fechas del Proceso
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="fecha-badge ingreso">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
+                            Ingreso: ${fechaIngreso}
+                        </span>
+                        <span class="fecha-badge ${f.fecha_salida ? 'salida' : 'pendiente'}">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                                <polyline points="22 4 12 14.01 9 11.01"/>
+                            </svg>
+                            Salida: ${fechaSalida}
+                        </span>
+                        ${fechaRequerida ? `
+                            <span class="fecha-badge requerida">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <polyline points="12 6 12 12 16 14"/>
+                                </svg>
+                                Requerida: ${fechaRequerida}
+                            </span>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- DIAGNÓSTICO -->
+                <div class="mb-4">
+                    <div class="seccion-titulo">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
+                            <path d="M9 11l3 3L22 4"/>
+                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                        </svg>
+                        Diagnóstico Inicial
+                    </div>
+                    <div class="texto-bloque diagnostico ${!f.diagnostico ? 'vacio' : ''}">
+                        ${escapeHtml(f.diagnostico || 'No se registró diagnóstico inicial.')}
+                    </div>
+                </div>
+
+                <!-- TRABAJO REALIZADO -->
+                ${f.trabajo_realizado ? `
+                    <div class="mb-4">
+                        <div class="seccion-titulo">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
+                                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                            </svg>
+                            Trabajo Realizado
+                        </div>
+                        <div class="texto-bloque trabajo">
+                            ${escapeHtml(f.trabajo_realizado)}
+                        </div>
+                    </div>
+                ` : ''}
+
+                <!-- OBSERVACIONES -->
+                <div class="mb-4">
+                    <div class="seccion-titulo">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                        Observaciones
+                    </div>
+                    <div class="texto-bloque observaciones ${!f.observaciones ? 'vacio' : ''}">
+                        ${escapeHtml(f.observaciones || 'Sin observaciones registradas.')}
+                    </div>
+                </div>
+
+                <!-- COMPONENTES -->
+                <div class="mb-2">
+                    <div class="seccion-titulo">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
+                            <rect x="2" y="6" width="20" height="12" rx="2"/>
+                            <line x1="6" y1="10" x2="6" y2="14"/>
+                            <line x1="10" y1="10" x2="10" y2="14"/>
+                            <line x1="14" y1="10" x2="14" y2="14"/>
+                            <line x1="18" y1="10" x2="18" y2="14"/>
+                        </svg>
+                        Componentes Revisados
+                        <span class="badge bg-secondary ms-2" style="font-size:0.7rem;">
+                            ${f.detalles?.length || 0}
+                        </span>
+                    </div>
+                    <div class="componentes-grid">
+                        ${componentesHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.getElementById('modalDetalleLabel').textContent = 'Detalle de Ficha de Soporte';
+        modalBody.innerHTML = html;
+
     } catch (error) {
         console.error('Error:', error);
-        modalBody.innerHTML = '<div class="text-center text-danger py-4">Error de conexión</div>';
+        modalBody.innerHTML = `
+            <div class="text-center text-danger py-5">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="8" x2="12" y2="12"/>
+                    <line x1="12" y1="16" x2="12.01" y2="16"/>
+                </svg>
+                <p class="mt-2">Error de conexión al cargar el detalle</p>
+            </div>
+        `;
     }
 };
 

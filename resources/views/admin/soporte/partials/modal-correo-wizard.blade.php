@@ -48,7 +48,7 @@
                         </div>
                     </div>
 
-                    <form id="formWizardSoporte">
+                    <form id="formWizardSoporte" novalidate>
                         @csrf
                         <input type="hidden" id="wizardCorreoSoporteId">
 
