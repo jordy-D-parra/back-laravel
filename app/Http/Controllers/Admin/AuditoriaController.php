@@ -51,11 +51,25 @@ class AuditoriaController extends Controller
         $modulos = Auditoria::distinct()->pluck('modulo')->filter()->sort()->values();
         $acciones = Auditoria::distinct()->pluck('accion')->filter()->sort()->values();
 
-        // Estadísticas
+        // ============================================================
+        // ESTADÍSTICAS (CORREGIDAS)
+        // ============================================================
+        // Total de registros
         $totalRegistros = Auditoria::count();
+
+        // Registros de HOY
         $hoy = Auditoria::whereDate('created_at', today())->count();
-        $semana = Auditoria::whereBetween('created_at', [now()->startOfWeek(), now()])->count();
-        $mes = Auditoria::whereMonth('created_at', now()->month)->count();
+
+        // Registros de la SEMANA actual (lunes a domingo)
+        $semana = Auditoria::whereBetween('created_at', [
+            now()->startOfWeek(),
+            now()->endOfWeek()
+        ])->count();
+
+        // Registros del MES actual (solo del año y mes actual)
+        $mes = Auditoria::whereMonth('created_at', now()->month)
+            ->whereYear('created_at', now()->year)
+            ->count();
 
         return view('admin.auditoria.index', compact(
             'auditoria',

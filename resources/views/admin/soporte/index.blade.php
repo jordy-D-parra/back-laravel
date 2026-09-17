@@ -4,148 +4,6 @@
 
 @section('styles')
 @vite(['resources/css/admin-soporte.css'])
-<style>
-/* ============ CORREOS ============ */
-.tab-correos-badge {
-    background: #dc3545 !important;
-    color: white !important;
-    padding: 2px 8px;
-    border-radius: 20px;
-    font-size: 0.7rem;
-    font-weight: 700;
-    margin-left: 6px;
-    animation: pulseBadge 1.5s infinite;
-}
-
-@keyframes pulseBadge {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-}
-
-.correo-item {
-    background: white;
-    border-radius: 10px;
-    padding: 15px 20px;
-    margin-bottom: 10px;
-    border: 1px solid #e9ecef;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border-left: 4px solid transparent;
-}
-
-.correo-item:hover {
-    background: #f8f9fc;
-    transform: translateX(4px);
-    border-left-color: #1e3c72;
-}
-
-.correo-item.no-leido {
-    background: #f0f4ff;
-    border-left-color: #1e3c72;
-}
-
-.correo-item.procesado {
-    opacity: 0.7;
-    background: #f8f9fa;
-}
-
-.badge-nueva {
-    background: #dc3545;
-    color: white;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-size: 0.65rem;
-    font-weight: 700;
-    margin-left: 6px;
-    animation: pulseBadge 1.5s infinite;
-}
-
-/* ============ WIZARD ============ */
-.wizard-step-soporte {
-    display: none;
-}
-
-.wizard-step-soporte.active {
-    display: block;
-    animation: fadeInUp 0.3s ease;
-}
-
-@keyframes fadeInUp {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-.step-circle {
-    display: inline-block;
-    width: 32px;
-    height: 32px;
-    line-height: 32px;
-    text-align: center;
-    border-radius: 50%;
-    background: #e9ecef;
-    color: #6c757d;
-    font-weight: 700;
-    margin-right: 8px;
-    transition: all 0.3s ease;
-}
-
-.step-circle.active {
-    background: #1e3c72;
-    color: white;
-    box-shadow: 0 0 0 4px rgba(30, 60, 114, 0.15);
-}
-
-.step-circle.completed {
-    background: #1e7e34;
-    color: white;
-}
-
-/* ============ BADGES DE FECHA ============ */
-.badge-fecha-entrega {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    border-radius: 20px;
-    font-size: 0.72rem;
-    font-weight: 600;
-}
-
-.badge-fecha-vigente {
-    background: #d4edda;
-    color: #155724;
-}
-
-.badge-fecha-proxima {
-    background: #fff3cd;
-    color: #856404;
-}
-
-.badge-fecha-vencida {
-    background: #f8d7da;
-    color: #721c24;
-}
-
-.badge-fecha-sin {
-    background: #e9ecef;
-    color: #6c757d;
-}
-
-/* Estilos para el feedback del serial */
-#ext_serial_feedback {
-    font-size: 0.75rem;
-    margin-top: 4px;
-    display: block;
-    transition: all 0.2s ease;
-}
-
-#ext_serial_feedback.text-success { color: #1e7e34 !important; }
-#ext_serial_feedback.text-danger { color: #c5221f !important; }
-#ext_serial_feedback.text-muted { color: #6c757d !important; }
-
-.is-valid { border-color: #1e7e34 !important; }
-.is-invalid { border-color: #c5221f !important; }
-</style>
 @endsection
 
 @section('content')
@@ -210,39 +68,36 @@
                 </svg>
             </div>
         </div>
-
         <div class="stat-card-mini">
             <div class="stat-info">
                 <div class="stat-number" id="statsEnProceso">{{ $enProceso ?? 0 }}</div>
                 <div class="stat-label">En Proceso</div>
             </div>
-            <div class="stat-icon-circle" style="background: rgba(246, 194, 62, 0.1);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#f6c23e" stroke-width="1.8">
+            <div class="stat-icon-circle" style="background: rgba(246, 194, 62, 0.1); color: #f6c23e;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <circle cx="12" cy="12" r="10"/>
                     <polyline points="12 6 12 12 16 14"/>
                 </svg>
             </div>
         </div>
-
         <div class="stat-card-mini">
             <div class="stat-info">
                 <div class="stat-number" id="statsFinalizados">{{ $finalizados ?? 0 }}</div>
                 <div class="stat-label">Finalizados</div>
             </div>
-            <div class="stat-icon-circle" style="background: rgba(30, 126, 52, 0.1);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#1e7e34" stroke-width="1.8">
+            <div class="stat-icon-circle" style="background: rgba(30, 126, 52, 0.1); color: #1e7e34;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <path d="M20 6L9 17l-5-5"/>
                 </svg>
             </div>
         </div>
-
         <div class="stat-card-mini">
             <div class="stat-info">
                 <div class="stat-number" id="statsEquiposReparacion">{{ $equiposReparacion ?? 0 }}</div>
                 <div class="stat-label">En Reparación</div>
             </div>
-            <div class="stat-icon-circle" style="background: rgba(23, 162, 184, 0.1);">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#17a2b8" stroke-width="1.8">
+            <div class="stat-icon-circle" style="background: rgba(23, 162, 184, 0.1); color: #17a2b8;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
                 </svg>
             </div>
@@ -252,8 +107,7 @@
     {{-- ========== TABS ========== --}}
     <ul class="nav nav-tabs-custom mb-3" id="soporteTabs" role="tablist">
         <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="tab-fichas" data-bs-toggle="tab"
-                    data-bs-target="#panel-fichas" type="button" role="tab">
+            <button class="nav-link active" id="tab-fichas" data-bs-toggle="tab" data-bs-target="#panel-fichas" type="button" role="tab">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:6px;">
                     <rect x="2" y="6" width="20" height="12" rx="2"/>
                 </svg>
@@ -262,15 +116,13 @@
         </li>
         @if(auth()->user()->hasPermission('ver-fichas-soporte'))
         <li class="nav-item" role="presentation">
-            <button class="nav-link" id="tab-correos" data-bs-toggle="tab"
-                    data-bs-target="#panel-correos" type="button" role="tab">
+            <button class="nav-link" id="tab-correos" data-bs-toggle="tab" data-bs-target="#panel-correos" type="button" role="tab">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:6px;">
                     <rect x="2" y="4" width="20" height="16" rx="2"/>
                     <path d="M22 7l-10 7L2 7"/>
                 </svg>
                 Correo de Soporte
-                <span class="tab-correos-badge" id="tabCorreosBadge"
-                      style="{{ ($correosNoProcesados ?? 0) > 0 ? '' : 'display:none;' }}">
+                <span class="tab-correos-badge" id="tabCorreosBadge" style="{{ ($correosNoProcesados ?? 0) > 0 ? '' : 'display:none;' }}">
                     {{ $correosNoProcesados ?? 0 }}
                 </span>
             </button>
@@ -279,12 +131,11 @@
     </ul>
 
     <div class="tab-content">
+
         {{-- ============================================ --}}
         {{-- PANEL 1: FICHAS DE SOPORTE --}}
         {{-- ============================================ --}}
         <div class="tab-pane fade show active" id="panel-fichas" role="tabpanel">
-
-            {{-- Barra de filtros --}}
             <div class="filters-bar">
                 <div class="filtro-busqueda">
                     <div class="input-group">
@@ -294,8 +145,7 @@
                                 <path d="M21 21l-4.35-4.35"/>
                             </svg>
                         </span>
-                        <input type="text" class="form-control" id="buscarFichas"
-                               placeholder="Buscar por activo, técnico, reportante...">
+                        <input type="text" class="form-control" id="buscarFichas" placeholder="Buscar por activo, técnico, reportante...">
                     </div>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
@@ -310,7 +160,6 @@
                 </div>
             </div>
 
-            {{-- Tabla --}}
             <div class="table-container">
                 <div class="table-responsive">
                     <table class="table table-hover align-middle mb-0">
@@ -331,15 +180,15 @@
                             <tr>
                                 <td>
                                     @if($ficha->activo)
-                                        <span class="fw-medium" style="color:#1e3c72;">
-                                            {{ $ficha->activo->serial }}
-                                        </span>
-                                        <br>
-                                        <small class="text-muted">
-                                            {{ $ficha->activo->modelo?->nombre ?? 'N/A' }}
-                                        </small>
+                                    <span class="fw-medium" style="color:#1e3c72;">
+                                        {{ $ficha->activo->serial }}
+                                    </span>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ $ficha->activo->modelo?->nombre ?? 'N/A' }}
+                                    </small>
                                     @else
-                                        <span class="text-muted">Equipo externo</span>
+                                    <span class="text-muted">Equipo externo</span>
                                     @endif
                                 </td>
                                 <td>{{ $ficha->tecnico_nombre ?? '---' }}</td>
@@ -349,23 +198,23 @@
                                 </td>
                                 <td>
                                     @if($ficha->fecha_requerida_entrega)
-                                        @php
-                                            $dias = $ficha->dias_restantes;
-                                            $clase = 'badge-fecha-vigente';
-                                            $texto = $ficha->fecha_requerida_entrega->format('d/m/Y');
-                                            if ($ficha->esta_vencida) {
-                                                $clase = 'badge-fecha-vencida';
-                                                $texto .= ' (Vencida)';
-                                            } elseif ($dias !== null && $dias <= 3) {
-                                                $clase = 'badge-fecha-proxima';
-                                                $texto .= " ({$dias} d)";
-                                            }
-                                        @endphp
-                                        <span class="badge-fecha-entrega {{ $clase }}">
-                                            {{ $texto }}
-                                        </span>
+                                    @php
+                                    $dias = $ficha->dias_restantes;
+                                    $clase = 'badge-fecha-vigente';
+                                    $texto = $ficha->fecha_requerida_entrega->format('d/m/Y');
+                                    if ($ficha->esta_vencida) {
+                                        $clase = 'badge-fecha-vencida';
+                                        $texto .= ' (Vencida)';
+                                    } elseif ($dias !== null && $dias <= 3) {
+                                        $clase = 'badge-fecha-proxima';
+                                        $texto .= " ({$dias} d)";
+                                    }
+                                    @endphp
+                                    <span class="badge-fecha-entrega {{ $clase }}">
+                                        {{ $texto }}
+                                    </span>
                                     @else
-                                        <span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>
+                                    <span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>
                                     @endif
                                 </td>
                                 <td>
@@ -373,14 +222,13 @@
                                 </td>
                                 <td>
                                     @if($ficha->estado === 'en_proceso')
-                                        <span class="badge-estado-en-proceso">En Proceso</span>
+                                    <span class="badge-estado-en-proceso">En Proceso</span>
                                     @else
-                                        <span class="badge-estado-finalizado">Finalizado</span>
+                                    <span class="badge-estado-finalizado">Finalizado</span>
                                     @endif
                                 </td>
                                 <td class="text-end">
-                                    <button type="button" class="btn-action btn-outline-primary-dark"
-                                            onclick="verDetalle({{ $ficha->id }})" title="Ver detalle">
+                                    <button type="button" class="btn-action btn-outline-primary-dark" onclick="verDetalle({{ $ficha->id }})" title="Ver detalle">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <circle cx="12" cy="12" r="10"/>
                                             <path d="M12 8v4"/>
@@ -388,14 +236,12 @@
                                         </svg>
                                     </button>
                                     @if($ficha->estado === 'en_proceso')
-                                    <button type="button" class="btn-cerrar-ficha ms-1"
-                                            onclick="abrirModalCerrarFicha({{ $ficha->id }})" title="Cerrar ficha">
+                                    <button type="button" class="btn-cerrar-ficha ms-1" onclick="abrirModalCerrarFicha({{ $ficha->id }})" title="Cerrar ficha">
                                         ✓ Cerrar
                                     </button>
                                     @endif
                                     @if(auth()->user()->hasPermission('eliminar-ficha-soporte'))
-                                    <button type="button" class="btn-action text-danger ms-1"
-                                            onclick="confirmarEliminar({{ $ficha->id }})" title="Eliminar">
+                                    <button type="button" class="btn-action text-danger ms-1" onclick="confirmarEliminar({{ $ficha->id }})" title="Eliminar">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <polyline points="3 6 5 6 21 6"/>
                                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -419,7 +265,6 @@
                 </div>
             </div>
 
-            {{-- Paginación --}}
             @if($fichas->hasPages())
             <div class="d-flex justify-content-between align-items-center mt-3">
                 <div class="text-muted small" id="paginationInfo">
@@ -438,7 +283,6 @@
         {{-- ============================================ --}}
         @if(auth()->user()->hasPermission('ver-fichas-soporte'))
         <div class="tab-pane fade" id="panel-correos" role="tabpanel">
-
             <div class="filters-bar">
                 <div class="input-group" style="max-width: 400px;">
                     <span class="input-group-text">
@@ -447,8 +291,7 @@
                             <path d="M21 21l-4.35-4.35"/>
                         </svg>
                     </span>
-                    <input type="text" class="form-control" id="buscarCorreo"
-                           placeholder="Buscar por remitente, asunto...">
+                    <input type="text" class="form-control" id="buscarCorreo" placeholder="Buscar por remitente, asunto...">
                 </div>
                 <select class="form-select" id="filtroCorreo" style="max-width: 200px;">
                     <option value="">Todos</option>
@@ -464,7 +307,6 @@
                     Revisar ahora
                 </button>
             </div>
-
             <div id="listaCorreos" class="p-3" style="background: white; border-radius: 12px;">
                 <div class="text-center py-5 text-muted">
                     <div class="spinner-border text-primary" role="status"></div>
@@ -494,12 +336,10 @@
             <form id="formCrearFicha">
                 @csrf
                 <div class="modal-body">
-                    {{-- Buscador de Activo --}}
                     <div class="mb-3">
                         <label class="form-label">Buscar Activo <span class="text-danger">*</span></label>
                         <div class="activo-buscar-container">
-                            <input type="text" class="form-control" id="activoBuscarInput"
-                                   placeholder="Escriba el serial, modelo o marca del activo..." autocomplete="off">
+                            <input type="text" class="form-control" id="activoBuscarInput" placeholder="Escriba el serial, modelo o marca del activo..." autocomplete="off">
                             <input type="hidden" id="fichaActivoId" name="activo_id" value="">
                             <div class="activo-dropdown" id="activoDropdown"></div>
                         </div>
@@ -511,7 +351,6 @@
                         <small class="text-muted">Solo se muestran activos disponibles</small>
                     </div>
 
-                    {{-- Buscador de Técnico --}}
                     <div class="mb-3">
                         <label class="form-label">Técnico Responsable</label>
                         <div class="tecnico-search-container">
@@ -522,8 +361,7 @@
                                         <path d="M21 21l-4.35-4.35"/>
                                     </svg>
                                 </span>
-                                <input type="text" class="form-control" id="tecnicoBuscarInput"
-                                       placeholder="Buscar por cédula, nombre o usuario..." autocomplete="off">
+                                <input type="text" class="form-control" id="tecnicoBuscarInput" placeholder="Buscar por cédula, nombre o usuario..." autocomplete="off">
                             </div>
                             <div id="tecnicoSearchResults" class="tecnico-search-results" style="display:none;"></div>
                             <div id="tecnicoEncontrado" class="tecnico-encontrado" style="display:none;">
@@ -544,24 +382,19 @@
                         </div>
                     </div>
 
-                    {{-- Usuario que Reporta --}}
                     <div class="mb-3">
                         <label class="form-label">Usuario que Reporta <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="fichaUsuarioReporta" name="usuario_reporta_nombre" required>
                     </div>
 
-                    {{-- Diagnóstico --}}
                     <div class="mb-3">
                         <label class="form-label">Diagnóstico</label>
-                        <textarea name="diagnostico" id="fichaDiagnostico" rows="3" class="form-control"
-                                  placeholder="Describa el problema del equipo..."></textarea>
+                        <textarea name="diagnostico" id="fichaDiagnostico" rows="3" class="form-control" placeholder="Describa el problema del equipo..."></textarea>
                     </div>
 
-                    {{-- Observaciones --}}
                     <div class="mb-3">
                         <label class="form-label">Observaciones</label>
-                        <textarea name="observaciones" id="fichaObservaciones" rows="2" class="form-control"
-                                  placeholder="Observaciones adicionales..."></textarea>
+                        <textarea name="observaciones" id="fichaObservaciones" rows="2" class="form-control" placeholder="Observaciones adicionales..."></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -593,7 +426,6 @@
             <form id="formEquipoExterno">
                 @csrf
                 <div class="modal-body">
-                    {{-- Datos del Equipo --}}
                     <div class="equipo-externo-card">
                         <div class="card-title">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:8px;">
@@ -604,7 +436,6 @@
                             Datos del Equipo Externo
                         </div>
                         <p class="text-muted small">Complete los datos del equipo que ingresa a reparación. Se creará automáticamente en el inventario.</p>
-
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Serial <span class="text-danger">*</span></label>
@@ -613,11 +444,9 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Modelo <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="ext_modelo_nombre" name="modelo_nombre"
-                                       required placeholder="Ej: Dell Latitude 5540">
+                                <input type="text" class="form-control" id="ext_modelo_nombre" name="modelo_nombre" required placeholder="Ej: Dell Latitude 5540">
                             </div>
                         </div>
-
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Marca <span class="text-danger">*</span></label>
@@ -630,7 +459,6 @@
                                 </select>
                             </div>
                         </div>
-
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Institución <span class="text-danger">*</span></label>
@@ -645,7 +473,6 @@
                                 </select>
                             </div>
                         </div>
-
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Ubicación</label>
@@ -656,15 +483,12 @@
                                 <input type="date" class="form-control" id="ext_fecha_adquisicion" name="fecha_adquisicion">
                             </div>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label">Observaciones</label>
-                            <textarea class="form-control" id="ext_observaciones" name="observaciones" rows="2"
-                                      placeholder="Observaciones del equipo..."></textarea>
+                            <textarea class="form-control" id="ext_observaciones" name="observaciones" rows="2" placeholder="Observaciones del equipo..."></textarea>
                         </div>
                     </div>
 
-                    {{-- Datos de la Ficha --}}
                     <div class="mt-3">
                         <h6 style="color:#1e3c72; font-weight:600; margin-bottom:1rem; border-bottom:1px solid #e9ecef; padding-bottom:0.5rem;">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:6px;">
@@ -672,7 +496,6 @@
                             </svg>
                             Datos de la Ficha de Soporte
                         </h6>
-
                         <div class="mb-3">
                             <label class="form-label">Técnico Responsable</label>
                             <div class="tecnico-search-container">
@@ -683,8 +506,7 @@
                                             <path d="M21 21l-4.35-4.35"/>
                                         </svg>
                                     </span>
-                                    <input type="text" class="form-control" id="ext_tecnicoBuscarInput"
-                                           placeholder="Buscar por cédula, nombre o usuario..." autocomplete="off">
+                                    <input type="text" class="form-control" id="ext_tecnicoBuscarInput" placeholder="Buscar por cédula, nombre o usuario..." autocomplete="off">
                                 </div>
                                 <div id="extTecnicoSearchResults" class="tecnico-search-results" style="display:none;"></div>
                                 <div id="extTecnicoEncontrado" class="tecnico-encontrado" style="display:none;">
@@ -704,22 +526,17 @@
                                 <input type="hidden" id="ext_fichaTecnicoNombre" name="tecnico_nombre" value="">
                             </div>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label">Usuario que Reporta <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="ext_usuario_reporta" name="usuario_reporta_nombre" required>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label">Diagnóstico</label>
-                            <textarea name="diagnostico" id="ext_diagnostico" rows="3" class="form-control"
-                                      placeholder="Describa el problema del equipo..."></textarea>
+                            <textarea name="diagnostico" id="ext_diagnostico" rows="3" class="form-control" placeholder="Describa el problema del equipo..."></textarea>
                         </div>
-
                         <div class="mb-3">
                             <label class="form-label">Observaciones</label>
-                            <textarea name="observaciones_ficha" id="ext_observaciones_ficha" rows="2"
-                                      class="form-control" placeholder="Observaciones adicionales..."></textarea>
+                            <textarea name="observaciones_ficha" id="ext_observaciones_ficha" rows="2" class="form-control" placeholder="Observaciones adicionales..."></textarea>
                         </div>
                     </div>
                 </div>
@@ -762,16 +579,12 @@
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Trabajo Realizado</label>
-                        <textarea name="trabajo_realizado" id="cerrarTrabajoRealizado" rows="3"
-                                  class="form-control" placeholder="Describa el trabajo realizado..."></textarea>
+                        <textarea name="trabajo_realizado" id="cerrarTrabajoRealizado" rows="3" class="form-control" placeholder="Describa el trabajo realizado..."></textarea>
                     </div>
-
                     <div class="mb-3">
                         <label class="form-label">Observaciones Finales</label>
-                        <textarea name="observaciones_finales" id="cerrarObservacionesFinales" rows="2"
-                                  class="form-control" placeholder="Observaciones finales..."></textarea>
+                        <textarea name="observaciones_finales" id="cerrarObservacionesFinales" rows="2" class="form-control" placeholder="Observaciones finales..."></textarea>
                     </div>
-
                     <hr>
                     <h6 class="fw-bold mb-3" style="color: #1e3c72;">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; margin-right:6px;">
@@ -845,14 +658,10 @@
 
 @section('scripts')
 @vite(['resources/js/admin-soporte.js'])
-
 <script>
 window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
 function authUserHasPermission(p) { return window.userPermissions.includes(p); }
 
-// ============================================================
-// VALIDACIÓN DE SERIAL EN TIEMPO REAL (EQUIPO EXTERNO)
-// ============================================================
 document.addEventListener('DOMContentLoaded', function () {
     const serialInput = document.getElementById('ext_serial');
     const feedback = document.getElementById('ext_serial_feedback');
@@ -860,14 +669,12 @@ document.addEventListener('DOMContentLoaded', function () {
     if (serialInput && feedback) {
         serialInput.addEventListener('blur', function () {
             const serial = this.value.trim();
-
             if (serial.length < 3) {
                 feedback.textContent = 'Ingrese al menos 3 caracteres para verificar';
                 feedback.className = 'text-muted';
                 this.classList.remove('is-valid', 'is-invalid');
                 return;
             }
-
             feedback.textContent = 'Verificando serial...';
             feedback.className = 'text-muted';
 
