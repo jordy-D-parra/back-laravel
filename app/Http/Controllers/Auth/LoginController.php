@@ -93,8 +93,16 @@ class LoginController extends Controller
         }
 
         Auth::logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-        return redirect()->route('login');
+        $request->session()->flush();
+
+        return redirect()->route('login')
+            ->withHeaders([
+                'Cache-Control' => 'no-cache, no-store, max-age=0, must-revalidate',
+                'Pragma' => 'no-cache',
+                'Expires' => 'Fri, 01 Jan 1990 00:00:00 GMT',
+            ]);
     }
 }

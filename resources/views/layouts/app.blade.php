@@ -19,5 +19,14 @@
     @yield('content')
 
     @yield('scripts')
+
+    <script>
+    // Prevenir bfcache (back-forward cache) del navegador
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+</script>
 </body>
 </html>

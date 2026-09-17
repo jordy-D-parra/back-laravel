@@ -11,11 +11,15 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Registrar alias para el middleware de roles
+        // Alias
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'auditoria' => \App\Http\Middleware\AuditoriaMiddleware::class,
+            'prevent-back-history' => \App\Http\Middleware\PreventBackHistory::class,
         ]);
+
+        // ✅ Añadir el middleware GLOBALMENTE al grupo 'web'
+        $middleware->appendToGroup('web', \App\Http\Middleware\PreventBackHistory::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

@@ -354,5 +354,15 @@
     @vite(['resources/css/dashboard-home.css'])
     @vite(['resources/js/app.js'])
     @yield('scripts')
+
+
+    <script>
+    // Prevenir bfcache (back-forward cache) del navegador
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+</script>
 </body>
 </html>
