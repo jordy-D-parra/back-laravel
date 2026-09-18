@@ -67,12 +67,17 @@ class CorreoRecibido extends Model
         return $query->where('procesado', false);
     }
 
-    // ✅ CAMBIAR NOMBRES PARA EVITAR CONFLICTO
+    /**
+     * ✅ Scope: Solo correos de tipo SOPORTE
+     */
     public function scopeDeTipoSoporte($query)
     {
         return $query->where('tipo', 'soporte');
     }
 
+    /**
+     * ✅ Scope: Solo correos de tipo SOLICITUD
+     */
     public function scopeDeTipoSolicitud($query)
     {
         return $query->where('tipo', 'solicitud');

@@ -14,8 +14,12 @@ use App\Models\Departamento;
 use App\Models\Responsable;
 use App\Models\Usuario;
 use App\Models\CorreoRecibido;
+use App\Models\Marca;
+use App\Models\Modelo;
 use App\Services\NotificacionService;
 use App\Services\CorreoImapService;
+use App\Mail\ActaRetiroMail;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -35,8 +39,9 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // LISTADO DE SOLICITUDES (ADMIN)
+    // INDEX - Lista de solicitudes
     // ============================================================
+
     public function index(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-solicitudes')) {
@@ -44,7 +49,6 @@ class SolicitudController extends Controller
         }
 
         $user = auth()->user();
-
         $query = Solicitud::with([
             'detalles',
             'institucion',
@@ -115,6 +119,7 @@ class SolicitudController extends Controller
     // ============================================================
     // NO LEÍDAS POR ADMIN
     // ============================================================
+
     public function noLeidasAdmin(Request $request)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -136,11 +141,10 @@ class SolicitudController extends Controller
         }
 
         $solicitudes = $query->get();
-        $total = $solicitudes->count();
 
         return response()->json([
             'success' => true,
-            'total' => $total,
+            'total' => $solicitudes->count(),
             'data' => $solicitudes
         ]);
     }
@@ -148,6 +152,7 @@ class SolicitudController extends Controller
     // ============================================================
     // MARCAR SOLICITUD COMO LEÍDA
     // ============================================================
+
     public function marcarLeida($id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
@@ -173,6 +178,7 @@ class SolicitudController extends Controller
     // ============================================================
     // SOLICITUDES PARA PRÉSTAMO
     // ============================================================
+
     public function paraPrestamo(Request $request)
     {
         $user = auth()->user();
@@ -204,6 +210,7 @@ class SolicitudController extends Controller
     // ============================================================
     // OBTENER DETALLES
     // ============================================================
+
     public function getDetalles($id)
     {
         $user = auth()->user();
@@ -296,6 +303,7 @@ class SolicitudController extends Controller
     // ============================================================
     // STORE - CREAR SOLICITUD
     // ============================================================
+
     public function store(Request $request)
     {
         try {
@@ -321,6 +329,7 @@ class SolicitudController extends Controller
                 'items.*.tipo_item' => 'required|in:activo,componente',
                 'items.*.cantidad' => 'required|integer|min:1',
                 'items.*.item_descripcion' => 'required|string|max:255',
+                'correo_origen' => 'nullable|string|max:255',
             ]);
 
             $institucionId = null;
@@ -380,6 +389,14 @@ class SolicitudController extends Controller
 
             $solicitud->load(['usuario.trabajador', 'responsable', 'departamento', 'institucion', 'detalles']);
 
+            $this->notificarSolicitanteSolicitudCreada($solicitud);
+
+            $this->notificarResponsableSolicitudCreada($solicitud);
+
+            if ($request->filled('correo_origen')) {
+                $this->notificarResponsableCorreoSolicitud($solicitud, $request->correo_origen);
+            }
+
             try {
                 $this->enviarNotificacionesSolicitud($solicitud);
             } catch (\Exception $e) {
@@ -387,14 +404,8 @@ class SolicitudController extends Controller
             }
 
             $solicitudCreada = Solicitud::with([
-                'responsable',
-                'departamento',
-                'institucion',
-                'detalles',
-                'estado',
-                'municipio',
-                'parroquia',
-                'usuario.trabajador'
+                'responsable', 'departamento', 'institucion', 'detalles',
+                'estado', 'municipio', 'parroquia', 'usuario.trabajador'
             ])->find($solicitud->id);
 
             return response()->json([
@@ -403,6 +414,7 @@ class SolicitudController extends Controller
                 'solicitud_id' => $solicitud->id,
                 'data' => $solicitudCreada
             ]);
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -419,89 +431,9 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // NOTIFICACIONES DE SOLICITUD (AL CREAR)
-    // ============================================================
-    protected function enviarNotificacionesSolicitud(Solicitud $solicitud): void
-    {
-        $responsable = $solicitud->responsable;
-        $entidadNombre = $solicitud->tipo_solicitante === 'interno'
-            ? ($solicitud->departamento?->nombre ?? 'No especificado')
-            : ($solicitud->institucion?->nombre ?? 'No especificado');
-
-        $itemsLista = '';
-        foreach ($solicitud->detalles as $detalle) {
-            $itemsLista .= " • " . $detalle->tipo_item . ": " . $detalle->descripcion_personalizada . " (Cant: " . $detalle->cantidad_solicitada . ")\n";
-        }
-
-        $solicitanteNombre = $solicitud->usuario?->trabajador?->nombre
-            ?? $solicitud->usuario?->usuario
-            ?? 'Usuario del sistema';
-
-        // ===== 1. NOTIFICAR AL RESPONSABLE INSTITUCIONAL =====
-        if ($responsable && $responsable->email) {
-            $mensajeResponsable =
-                "Hola, la solicitud #{$solicitud->id} ha sido recibida y está en proceso de aprobación.\n\n" .
-                "Por favor, espera un momento mientras nuestro equipo la revisa. " .
-                "Te notificaremos tan pronto como haya una respuesta.\n\n" .
-                "📌 Detalles de la solicitud:\n" .
-                "👤 Solicitante: {$solicitanteNombre}\n" .
-                "🏢 Entidad: {$entidadNombre}\n" .
-                "🔴 Prioridad: " . ucfirst($solicitud->prioridad) . "\n" .
-                "📅 Fecha requerida: " . ($solicitud->fecha_requerida ? $solicitud->fecha_requerida->format('d/m/Y') : 'No especificada') . "\n" .
-                "📅 Fecha fin estimada: " . ($solicitud->fecha_fin_estimada ? $solicitud->fecha_fin_estimada->format('d/m/Y') : 'No especificada') . "\n" .
-                "📍 Lugar del evento: " . ($solicitud->lugar_evento ?? 'No especificado') . "\n\n" .
-                "📦 Items solicitados:\n" . $itemsLista . "\n" .
-                "📝 Justificación:\n" . substr($solicitud->justificacion, 0, 200) . (strlen($solicitud->justificacion) > 200 ? '...' : '') . "\n\n" .
-                "Gracias por tu paciencia.";
-
-            $this->notificacionService->enviarAResponsable(
-                $responsable->email,
-                $responsable->nombre,
-                '⏳ Solicitud en Proceso de Aprobación',
-                $mensajeResponsable,
-                'solicitud'
-            );
-        }
-
-        // ===== 2. NOTIFICAR A LOS ADMINISTRADORES =====
-        $admins = Usuario::whereHas('rol', function ($query) {
-            $query->where('nombre', 'admin');
-        })->where('status', 'activo')->with('trabajador')->get();
-
-        $responsableNombre = $responsable?->nombre ?? 'No especificado';
-        $responsableEmail = $responsable?->email ?? 'No registrado';
-
-        $mensajeAdmin =
-            "Se ha creado una nueva solicitud de préstamo.\n\n" .
-            "📌 Solicitud #{$solicitud->id}\n" .
-            "👤 Solicitante: {$solicitanteNombre}\n" .
-            "🏢 Entidad: {$entidadNombre}\n" .
-            "👤 Responsable: {$responsableNombre}\n" .
-            "📧 Email responsable: {$responsableEmail}\n" .
-            "🔴 Prioridad: " . ucfirst($solicitud->prioridad) . "\n" .
-            "📅 Fecha requerida: " . ($solicitud->fecha_requerida ? $solicitud->fecha_requerida->format('d/m/Y') : 'No especificada') . "\n" .
-            "📅 Fecha fin estimada: " . ($solicitud->fecha_fin_estimada ? $solicitud->fecha_fin_estimada->format('d/m/Y') : 'No especificada') . "\n" .
-            "📍 Lugar del evento: " . ($solicitud->lugar_evento ?? 'No especificado') . "\n\n" .
-            "📦 Items solicitados:\n" . $itemsLista . "\n" .
-            "📝 Justificación:\n" . substr($solicitud->justificacion, 0, 200) . (strlen($solicitud->justificacion) > 200 ? '...' : '') . "\n\n" .
-            "Por favor, revise y apruebe o rechace la solicitud.";
-
-        foreach ($admins as $admin) {
-            if ($admin->email) {
-                $this->notificacionService->enviarAUsuario(
-                    $admin,
-                    '📋 Nueva solicitud de préstamo',
-                    $mensajeAdmin,
-                    'solicitud',
-                    route('admin.solicitudes.index')
-                );
-            }
-        }
-    }
-
-    // ============================================================
     // UPDATE - ACTUALIZAR SOLICITUD
     // ============================================================
+
     public function update(Request $request, $id)
     {
         try {
@@ -547,9 +479,11 @@ class SolicitudController extends Controller
                 $items = $request->input('items', []);
                 if (!empty($items) && is_array($items)) {
                     $solicitud->detalles()->delete();
+
                     foreach ($items as $item) {
                         $descripcion = $item['item_descripcion'] ?? '';
                         $cantidad = $item['cantidad'] ?? 0;
+
                         if (!empty($descripcion) && $cantidad > 0) {
                             DetalleSolicitud::create([
                                 'solicitud_id' => $solicitud->id,
@@ -577,6 +511,7 @@ class SolicitudController extends Controller
 
             return redirect()->route('admin.solicitudes.index')
                 ->with('success', 'Solicitud actualizada exitosamente');
+
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
                 'success' => false,
@@ -593,473 +528,242 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // DESTROY - ELIMINAR SOLICITUD
+    // APPROVE - APROBAR SOLICITUD (CON ACTA DE RETIRO)
     // ============================================================
-    public function destroy($id)
-    {
-        if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'No tienes permiso para eliminar solicitudes. Solo administradores.'], 403);
-            }
-            abort(403);
-        }
 
-        try {
-            $solicitud = Solicitud::findOrFail($id);
-
-            DB::transaction(function () use ($solicitud) {
-                $solicitud->detalles()->delete();
-                $solicitud->delete();
-            });
-
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => true, 'message' => 'Solicitud eliminada exitosamente']);
-            }
-
-            return redirect()->route('admin.solicitudes.index')->with('success', 'Solicitud eliminada exitosamente');
-        } catch (\Exception $e) {
-            Log::error('Error en destroy: ' . $e->getMessage());
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-            }
-            return back()->with('error', $e->getMessage());
-        }
-    }
-
-    // ============================================================
-    // CANCEL - CANCELAR SOLICITUD
-    // ============================================================
-    public function cancel($id)
-    {
-        if (!auth()->user()->hasPermission('cancelar-solicitud')) {
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'No tienes permiso para cancelar solicitudes'], 403);
-            }
-            abort(403);
-        }
-
-        try {
-            $solicitud = Solicitud::findOrFail($id);
-
-            if ($solicitud->usuario_id !== auth()->id()) {
-                return response()->json(['success' => false, 'message' => 'No puedes cancelar una solicitud que no creaste'], 403);
-            }
-
-            if (!in_array($solicitud->estado_solicitud, ['pendiente', 'aprobada'])) {
-                return response()->json(['success' => false, 'message' => 'No se puede cancelar esta solicitud porque ya fue ' . $solicitud->estado_solicitud], 422);
-            }
-
-            DB::transaction(function () use ($solicitud) {
-                $solicitud->update(['estado_solicitud' => 'cancelada']);
-            });
-
-            try {
-                $this->enviarNotificacionCancelacion($solicitud);
-            } catch (\Exception $e) {
-                Log::error('Error al enviar notificación de cancelación: ' . $e->getMessage());
-            }
-
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => true, 'message' => 'Solicitud cancelada exitosamente']);
-            }
-
-            return redirect()->route('admin.solicitudes.index')->with('success', 'Solicitud cancelada');
-        } catch (\Exception $e) {
-            Log::error('Error en cancel: ' . $e->getMessage());
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-            }
-            return back()->with('error', $e->getMessage());
-        }
-    }
-
-    // ============================================================
-    // APPROVE - APROBAR SOLICITUD (CON VERIFICACIÓN DE STOCK)
-    // ============================================================
     public function approve(Request $request, $id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-            }
-            abort(403);
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
         try {
-            $solicitud = Solicitud::with(['detalles', 'usuario.trabajador', 'responsable'])->findOrFail($id);
+            $solicitud = Solicitud::with(['detalles', 'responsable', 'usuario.trabajador', 'institucion', 'departamento'])
+                ->findOrFail($id);
 
             if ($solicitud->estado_solicitud !== 'pendiente') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Solo se pueden aprobar solicitudes pendientes. Estado actual: ' . $solicitud->estado_solicitud
-                ], 422);
+                return response()->json(['success' => false, 'message' => 'Solo se pueden aprobar solicitudes pendientes'], 422);
             }
 
             $validated = $request->validate([
-                'fecha_requerida' => 'required|date',
-                'fecha_fin_estimada' => 'required|date|after_or_equal:fecha_requerida',
-                'observaciones' => 'nullable|string|max:500',
+                'observaciones' => 'nullable|string|max:1000',
+                'fecha_requerida' => 'nullable|date',
+                'fecha_fin_estimada' => 'nullable|date',
             ]);
-
-            $faltantes = [];
-
-            foreach ($solicitud->detalles as $detalle) {
-                $descripcion = $detalle->descripcion_personalizada ?? 'Item';
-                $cantidadSolicitada = $detalle->cantidad_solicitada;
-
-                if ($detalle->tipo_item === 'activo' && $detalle->activo_id) {
-                    $activo = Activo::find($detalle->activo_id);
-                    if (!$activo || $activo->cantidad < $cantidadSolicitada) {
-                        $faltantes[] = [
-                            'tipo' => 'activo',
-                            'nombre' => $descripcion,
-                            'solicitado' => $cantidadSolicitada,
-                            'disponible' => $activo->cantidad ?? 0,
-                            'serial' => $activo->serial ?? 'N/A'
-                        ];
-                    }
-                } elseif ($detalle->tipo_item === 'componente' && $detalle->componente_id) {
-                    $componente = Componente::find($detalle->componente_id);
-                    if (!$componente || $componente->estado !== 'en_bodega') {
-                        $faltantes[] = [
-                            'tipo' => 'componente',
-                            'nombre' => $descripcion,
-                            'solicitado' => $cantidadSolicitada,
-                            'disponible' => 0,
-                            'serial' => $componente->serial ?? 'N/A'
-                        ];
-                    }
-                }
-            }
-
-            if (count($faltantes) > 0) {
-                $motivoRechazo = $this->construirMensajeFaltaStock($faltantes);
-
-                DB::transaction(function () use ($solicitud, $motivoRechazo) {
-                    $solicitud->update([
-                        'estado_solicitud' => 'rechazada',
-                        'aprobado_por' => auth()->id(),
-                        'fecha_aprobacion' => now(),
-                        'observaciones' => $motivoRechazo,
-                        'leida_por_admin' => true,
-                    ]);
-                });
-
-                $solicitud->refresh()->load(['usuario.trabajador', 'responsable']);
-
-                try {
-                    $this->enviarNotificacionRechazo($solicitud, $motivoRechazo);
-                } catch (\Exception $e) {
-                    Log::error('Error al enviar notificación de rechazo: ' . $e->getMessage());
-                }
-
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No hay stock suficiente para los siguientes items: ' . $this->formatearFaltantes($faltantes),
-                    'faltantes' => $faltantes,
-                    'auto_rechazada' => true
-                ], 422);
-            }
-
-            $fechaRequerida = new \DateTime($validated['fecha_requerida']);
-            $hoy = new \DateTime('today');
-            $fechaPasada = $fechaRequerida < $hoy;
 
             DB::transaction(function () use ($solicitud, $validated) {
                 $solicitud->update([
                     'estado_solicitud' => 'aprobada',
                     'aprobado_por' => auth()->id(),
                     'fecha_aprobacion' => now(),
-                    'fecha_requerida' => $validated['fecha_requerida'],
-                    'fecha_fin_estimada' => $validated['fecha_fin_estimada'],
                     'observaciones' => $validated['observaciones'] ?? $solicitud->observaciones,
                     'leida_por_admin' => true,
+                    'fecha_requerida' => $validated['fecha_requerida'] ?? $solicitud->fecha_requerida,
+                    'fecha_fin_estimada' => $validated['fecha_fin_estimada'] ?? $solicitud->fecha_fin_estimada,
                 ]);
             });
 
-            $solicitud->refresh()->load(['usuario.trabajador', 'responsable']);
+            // ✅ NOTIFICAR AL RESPONSABLE DE LA SOLICITUD (por correo)
+            $this->notificarResponsableSolicitudEstado($solicitud, 'aprobada', $validated['observaciones'] ?? null);
 
+            // 🆕 GENERAR Y ENVIAR ACTA DE RETIRO POR CORREO
             try {
-                $this->enviarNotificacionAprobacion($solicitud, $fechaPasada);
-            } catch (\Exception $e) {
-                Log::error('Error al enviar notificación de aprobación: ' . $e->getMessage());
-            }
-
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => $fechaPasada
-                        ? 'Solicitud aprobada exitosamente. ⚠️ La fecha requerida ya pasó.'
-                        : 'Solicitud aprobada exitosamente',
-                    'fecha_pasada' => $fechaPasada
+                $this->generarYEnviarActaRetiro($solicitud);
+            } catch (\Throwable $e) {
+                Log::error('Error al generar/enviar acta de retiro: ' . $e->getMessage(), [
+                    'solicitud_id' => $solicitud->id,
+                    'trace' => $e->getTraceAsString()
                 ]);
             }
 
-            return redirect()->route('admin.solicitudes.index')->with('success', 'Solicitud aprobada exitosamente');
+            // Notificar internamente al solicitante
+            try {
+                $this->notificacionService->enviarAUsuario(
+                    $solicitud->usuario,
+                    '✅ Solicitud Aprobada',
+                    "Tu solicitud #{$solicitud->id} ha sido aprobada.",
+                    'solicitud',
+                    route('admin.solicitudes.index')
+                );
+            } catch (\Exception $e) {
+                Log::error('Error al notificar aprobación al usuario: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Solicitud aprobada exitosamente',
+                'data' => $solicitud->fresh()
+            ]);
+
         } catch (\Illuminate\Validation\ValidationException $e) {
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Error de validación',
-                    'errors' => $e->errors()
-                ], 422);
-            }
-            return back()->withErrors($e->errors())->withInput();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
-            Log::error('Error en approve: ' . $e->getMessage());
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'Error al aprobar la solicitud: ' . $e->getMessage()], 500);
-            }
-            return back()->with('error', $e->getMessage());
+            Log::error('Error al aprobar solicitud: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
-    }
-
-    // ============================================================
-    // HELPERS DE STOCK
-    // ============================================================
-    private function construirMensajeFaltaStock(array $faltantes): string
-    {
-        $mensaje = "Lo sentimos, no contamos con los equipos necesarios para su solicitud en este momento.\n\n";
-        $mensaje .= "Detalle de items no disponibles:\n\n";
-
-        foreach ($faltantes as $item) {
-            $tipo = $item['tipo'] === 'activo' ? 'Equipo' : 'Componente';
-            $mensaje .= "• {$tipo}: {$item['nombre']}\n";
-            $mensaje .= "  Solicitado: {$item['solicitado']} | Disponible: {$item['disponible']}\n";
-            if ($item['serial'] !== 'N/A') {
-                $mensaje .= "  Serial: {$item['serial']}\n";
-            }
-            $mensaje .= "\n";
-        }
-
-        $mensaje .= "Por favor, intente más tarde o contacte al administrador para más información.\n\n";
-        $mensaje .= "Disculpe las molestias ocasionadas.";
-
-        return $mensaje;
-    }
-
-    private function formatearFaltantes(array $faltantes): string
-    {
-        $lineas = [];
-        foreach ($faltantes as $item) {
-            $tipo = $item['tipo'] === 'activo' ? 'Equipo' : 'Componente';
-            $lineas[] = "• {$tipo}: {$item['nombre']} (Solicitado: {$item['solicitado']}, Disponible: {$item['disponible']})";
-        }
-        return implode("\n", $lineas);
     }
 
     // ============================================================
     // REJECT - RECHAZAR SOLICITUD
     // ============================================================
+
     public function reject(Request $request, $id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-            }
-            abort(403);
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
         try {
-            $solicitud = Solicitud::with(['usuario.trabajador', 'responsable'])->findOrFail($id);
+            $solicitud = Solicitud::with(['responsable', 'usuario.trabajador', 'institucion', 'departamento'])
+                ->findOrFail($id);
 
             if ($solicitud->estado_solicitud !== 'pendiente') {
                 return response()->json(['success' => false, 'message' => 'Solo se pueden rechazar solicitudes pendientes'], 422);
             }
 
-            $motivo = $request->input('motivo', 'Rechazada por el administrador');
+            $validated = $request->validate([
+                'motivo' => 'required|string|min:10|max:1000',
+            ]);
 
-            DB::transaction(function () use ($solicitud, $motivo) {
+            DB::transaction(function () use ($solicitud, $validated) {
                 $solicitud->update([
                     'estado_solicitud' => 'rechazada',
                     'aprobado_por' => auth()->id(),
                     'fecha_aprobacion' => now(),
-                    'observaciones' => $motivo,
+                    'observaciones' => $validated['motivo'],
                     'leida_por_admin' => true,
                 ]);
             });
 
-            $solicitud->refresh()->load(['usuario.trabajador', 'responsable']);
+            $this->notificarResponsableSolicitudEstado($solicitud, 'rechazada', $validated['motivo']);
 
             try {
-                $this->enviarNotificacionRechazo($solicitud, $motivo);
-            } catch (\Exception $e) {
-                Log::error('Error al enviar notificación de rechazo: ' . $e->getMessage());
-            }
-
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => true, 'message' => 'Solicitud rechazada exitosamente']);
-            }
-
-            return redirect()->route('admin.solicitudes.index')->with('success', 'Solicitud rechazada');
-        } catch (\Exception $e) {
-            Log::error('Error en reject: ' . $e->getMessage());
-            if (request()->ajax() || request()->wantsJson()) {
-                return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-            }
-            return back()->with('error', $e->getMessage());
-        }
-    }
-
-    // ============================================================
-    // NOTIFICACIÓN DE APROBACIÓN
-    // ============================================================
-    protected function enviarNotificacionAprobacion(Solicitud $solicitud, bool $fechaPasada = false): void
-    {
-        $usuarioCreador = $solicitud->usuario;
-        $responsable = $solicitud->responsable;
-
-        // ===== 1. NOTIFICAR AL RESPONSABLE INSTITUCIONAL =====
-        if ($responsable && $responsable->email) {
-            $mensajeResponsable = "¡Felicidades! La solicitud #{$solicitud->id} ha sido APROBADA con éxito.\n\n" .
-                "Por favor, retira los equipos en la Gobernación del Estado Yaracuy (Dirección de Informática).\n\n" .
-                "Presenta este mensaje o tu cédula al momento del retiro.\n\n" .
-                "¡Gracias por confiar en nosotros!";
-
-            if ($fechaPasada) {
-                $mensajeResponsable .= "\n\n⚠️ Nota: La fecha requerida ya había pasado, pero la solicitud fue aprobada. " .
-                    "Te recomendamos retirar los equipos lo antes posible.";
-            }
-
-            $this->notificacionService->enviarAResponsable(
-                $responsable->email,
-                $responsable->nombre,
-                '✅ ¡Solicitud Aprobada! - Retirar en Gobernación',
-                $mensajeResponsable,
-                'solicitud'
-            );
-        }
-
-        // ===== 2. NOTIFICAR AL USUARIO CREADOR =====
-        if ($usuarioCreador && $usuarioCreador->email) {
-            $mensajeCreador = "Tu solicitud #{$solicitud->id} ha sido APROBADA.\n\n" .
-                "El responsable de tu entidad ha sido notificado para que retire los equipos en la Gobernación del Estado Yaracuy (Dirección de Informática).\n\n" .
-                "Si tienes alguna duda, contacta al Departamento de Informática.";
-
-            if ($fechaPasada) {
-                $mensajeCreador .= "\n\n⚠️ Nota: La fecha requerida ya había pasado, pero la solicitud fue aprobada.";
-            }
-
-            $this->notificacionService->enviarAUsuario(
-                $usuarioCreador,
-                '✅ Solicitud Aprobada',
-                $mensajeCreador,
-                'solicitud'
-            );
-        }
-    }
-
-    // ============================================================
-    // NOTIFICACIÓN DE RECHAZO
-    // ============================================================
-    protected function enviarNotificacionRechazo(Solicitud $solicitud, string $motivo): void
-    {
-        $usuarioCreador = $solicitud->usuario;
-        $responsable = $solicitud->responsable;
-
-        // ===== 1. NOTIFICAR AL RESPONSABLE INSTITUCIONAL =====
-        if ($responsable && $responsable->email) {
-            $mensajeResponsable = "Lamentamos informarte que la solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
-                "📝 Motivo del rechazo:\n" .
-                "{$motivo}\n\n" .
-                "Si tienes dudas o crees que es un error, por favor contacta al Departamento de Informática de la Gobernación.";
-
-            $this->notificacionService->enviarAResponsable(
-                $responsable->email,
-                $responsable->nombre,
-                '❌ Solicitud Rechazada',
-                $mensajeResponsable,
-                'solicitud'
-            );
-        }
-
-        // ===== 2. NOTIFICAR AL USUARIO CREADOR =====
-        if ($usuarioCreador && $usuarioCreador->email) {
-            $mensajeCreador = "Lamentamos informarte que tu solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
-                "📝 Motivo del rechazo:\n" .
-                "{$motivo}\n\n" .
-                "Si tienes dudas o crees que es un error, por favor contacta al Departamento de Informática de la Gobernación.\n\n" .
-                "Puedes realizar una nueva solicitud con las correcciones necesarias.";
-
-            $this->notificacionService->enviarAUsuario(
-                $usuarioCreador,
-                '❌ Solicitud Rechazada',
-                $mensajeCreador,
-                'solicitud'
-            );
-        }
-    }
-
-    // ============================================================
-    // NOTIFICACIÓN DE CANCELACIÓN
-    // ============================================================
-    protected function enviarNotificacionCancelacion(Solicitud $solicitud): void
-    {
-        $cancelador = auth()->user();
-        $usuarioCreador = $solicitud->usuario;
-        $responsable = $solicitud->responsable;
-
-        // ===== 1. NOTIFICAR AL USUARIO CREADOR =====
-        if ($usuarioCreador && $usuarioCreador->email && $usuarioCreador->id !== auth()->id()) {
-            $this->notificacionService->enviarAUsuario(
-                $usuarioCreador,
-                '🗑️ Solicitud cancelada',
-                "Tu solicitud #{$solicitud->id} ha sido cancelada.\n\n" .
-                "📌 Solicitud: #{$solicitud->id}\n" .
-                "👤 Cancelada por: " . ($cancelador?->trabajador?->nombre ?? $cancelador?->usuario ?? 'Usuario') . "\n" .
-                "📅 Fecha de cancelación: " . now()->format('d/m/Y H:i') . "\n\n" .
-                "Si esto fue un error, puedes crear una nueva solicitud.",
-                'solicitud',
-                route('admin.solicitudes.index')
-            );
-        }
-
-        // ===== 2. NOTIFICAR AL RESPONSABLE =====
-        if ($responsable && $responsable->email) {
-            $this->notificacionService->enviarAResponsable(
-                $responsable->email,
-                $responsable->nombre,
-                '🗑️ Solicitud cancelada',
-                "La solicitud #{$solicitud->id} ha sido cancelada.\n\n" .
-                "📌 Solicitud: #{$solicitud->id}\n" .
-                "👤 Cancelada por: " . ($cancelador?->trabajador?->nombre ?? $cancelador?->usuario ?? 'Usuario') . "\n" .
-                "📅 Fecha de cancelación: " . now()->format('d/m/Y H:i'),
-                'solicitud'
-            );
-        }
-
-        // ===== 3. NOTIFICAR A LOS ADMINISTRADORES =====
-        $administradores = Usuario::whereHas('rol', function ($query) {
-            $query->where('nombre', 'admin');
-        })->where('status', 'activo')->with('trabajador')->get();
-
-        foreach ($administradores as $admin) {
-            if ($admin->email) {
                 $this->notificacionService->enviarAUsuario(
-                    $admin,
-                    '🗑️ Solicitud cancelada',
-                    "La solicitud #{$solicitud->id} ha sido cancelada.\n\n" .
-                    "📌 Solicitud: #{$solicitud->id}\n" .
-                    "👤 Cancelada por: " . ($cancelador?->trabajador?->nombre ?? $cancelador?->usuario ?? 'Usuario') . "\n" .
-                    "📅 Fecha de cancelación: " . now()->format('d/m/Y H:i') . "\n" .
-                    "🏢 Entidad: " . ($solicitud->tipo_solicitante === 'interno'
-                        ? ($solicitud->departamento?->nombre ?? 'No especificado')
-                        : ($solicitud->institucion?->nombre ?? 'No especificado')) . "\n" .
-                    "🔴 Prioridad: " . ucfirst($solicitud->prioridad) . "\n\n" .
-                    "La solicitud ha sido cancelada por el usuario.",
+                    $solicitud->usuario,
+                    '❌ Solicitud Rechazada',
+                    "Tu solicitud #{$solicitud->id} ha sido rechazada. Motivo: {$validated['motivo']}",
                     'solicitud',
                     route('admin.solicitudes.index')
                 );
+            } catch (\Exception $e) {
+                Log::error('Error al notificar rechazo al usuario: ' . $e->getMessage());
             }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Solicitud rechazada exitosamente',
+                'data' => $solicitud->fresh()
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('Error al rechazar solicitud: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     // ============================================================
-    // ============ CORREOS DE SOLICITUDES ====================
+    // CANCEL - CANCELAR SOLICITUD
     // ============================================================
-    public function correosIndex(Request $request)
+
+    public function cancel($id)
+    {
+        try {
+            $solicitud = Solicitud::with(['responsable', 'usuario.trabajador'])->findOrFail($id);
+
+            if (auth()->id() !== $solicitud->usuario_id
+                && !auth()->user()->hasPermission('aprobar-solicitudes')) {
+                return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+            }
+
+            if (!in_array($solicitud->estado_solicitud, ['pendiente', 'aprobada'])) {
+                return response()->json(['success' => false, 'message' => 'No se puede cancelar esta solicitud'], 422);
+            }
+
+            $estadoAnterior = $solicitud->estado_solicitud;
+
+            $solicitud->update(['estado_solicitud' => 'cancelada']);
+
+            if ($estadoAnterior === 'aprobada') {
+                $this->notificarResponsableSolicitudEstado($solicitud, 'cancelada', 'La solicitud fue cancelada por el solicitante.');
+            }
+
+            return response()->json(['success' => true, 'message' => 'Solicitud cancelada exitosamente']);
+
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    // ============================================================
+    // DESTROY - ELIMINAR SOLICITUD
+    // ============================================================
+
+    public function destroy($id)
     {
         if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No tienes permiso para eliminar solicitudes'
+            ], 403);
+        }
+
+        try {
+            $solicitud = Solicitud::findOrFail($id);
+
+            DB::beginTransaction();
+            $solicitud->detalles()->delete();
+            $solicitud->delete();
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Solicitud eliminada exitosamente'
+            ]);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Solicitud no encontrada'
+            ], 404);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Error al eliminar solicitud: ' . $e->getMessage(), [
+                'solicitud_id' => $id,
+                'user_id' => auth()->id(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar la solicitud: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ============================================================
+    // CORREOS DE SOLICITUD
+    // ============================================================
+
+    public function correosIndex(Request $request)
+    {
+        if (!auth()->user()->hasPermission('ver-solicitudes')) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -1088,21 +792,19 @@ class SolicitudController extends Controller
         }
 
         $correos = $query->paginate(20);
-        $noLeidos = CorreoRecibido::deTipoSolicitud()->where('leido', false)->count();
-        $noProcesados = CorreoRecibido::deTipoSolicitud()->where('procesado', false)->count();
 
         return response()->json([
             'success' => true,
             'data' => $correos->items(),
             'total' => $correos->total(),
-            'no_leidos' => $noLeidos,
-            'no_procesados' => $noProcesados,
+            'no_leidos' => CorreoRecibido::deTipoSolicitud()->where('leido', false)->count(),
+            'no_procesados' => CorreoRecibido::deTipoSolicitud()->where('procesado', false)->count(),
         ]);
     }
 
     public function correoShow($id)
     {
-        if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
+        if (!auth()->user()->hasPermission('ver-solicitudes')) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -1116,26 +818,27 @@ class SolicitudController extends Controller
             }
 
             return response()->json(['success' => true, 'data' => $correo]);
-        } catch (\Exception $e) {
+
+        } catch (\Throwable $e) {
             return response()->json(['success' => false, 'message' => 'Correo no encontrado'], 404);
         }
     }
 
-    public function correosRevisar()
+    public function correosRevisar(CorreoImapService $imapService)
     {
-        if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
+        if (!auth()->user()->hasPermission('ver-solicitudes')) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
         try {
-            $count = $this->imapService->leerCorreosNuevos();
+            $count = $imapService->leerCorreosNuevos();
 
             return response()->json([
                 'success' => true,
                 'message' => "✅ {$count} correo(s) nuevo(s) procesado(s)",
                 'count' => $count,
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             Log::error('Error al revisar correos: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
@@ -1146,39 +849,20 @@ class SolicitudController extends Controller
 
     public function correosContador()
     {
-        if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
+        if (!auth()->user()->hasPermission('ver-solicitudes')) {
             return response()->json(['success' => false, 'no_leidos' => 0, 'no_procesados' => 0], 403);
         }
 
-        $noLeidos = CorreoRecibido::deTipoSolicitud()->where('leido', false)->count();
-        $noProcesados = CorreoRecibido::deTipoSolicitud()->where('procesado', false)->count();
-
         return response()->json([
             'success' => true,
-            'no_leidos' => $noLeidos,
-            'no_procesados' => $noProcesados,
+            'no_leidos' => CorreoRecibido::deTipoSolicitud()->where('leido', false)->count(),
+            'no_procesados' => CorreoRecibido::deTipoSolicitud()->where('procesado', false)->count(),
         ]);
-    }
-
-    public function correoDestroy($id)
-    {
-        if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-        }
-
-        try {
-            $correo = CorreoRecibido::deTipoSolicitud()->findOrFail($id);
-            $correo->delete();
-
-            return response()->json(['success' => true, 'message' => 'Correo eliminado']);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
-        }
     }
 
     public function correoConvertir(Request $request, $id)
     {
-        if (!auth()->user()->hasPermission('aprobar-solicitudes')) {
+        if (!auth()->user()->hasPermission('crear-solicitud')) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
@@ -1188,19 +872,19 @@ class SolicitudController extends Controller
             if ($correo->procesado) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Este correo ya fue convertido en solicitud',
+                    'message' => 'Este correo ya fue convertido en una solicitud',
                 ], 422);
             }
 
             $validated = $request->validate([
                 'tipo_solicitante' => 'required|in:interno,externo',
-                'institucion_id' => 'nullable|exists:instituciones,id',
                 'departamento_id' => 'nullable|exists:departamentos,id',
+                'institucion_id' => 'nullable|exists:instituciones,id',
                 'responsable_id' => 'required|exists:responsables,id',
                 'fecha_requerida' => 'required|date|after_or_equal:today',
                 'fecha_fin_estimada' => 'required|date|after_or_equal:fecha_requerida',
-                'justificacion' => 'required|string|min:20|max:1000',
                 'prioridad' => 'required|in:baja,normal,alta,urgente',
+                'justificacion' => 'required|string|min:20|max:1000',
                 'observaciones' => 'nullable|string|max:500',
                 'items' => 'required|array|min:1',
                 'items.*.tipo_item' => 'required|in:activo,componente',
@@ -1208,79 +892,61 @@ class SolicitudController extends Controller
                 'items.*.item_descripcion' => 'required|string|max:255',
             ]);
 
-            $solicitud = DB::transaction(function () use ($validated, $correo) {
-                $nuevaSolicitud = Solicitud::create([
-                    'usuario_id' => auth()->id(),
-                    'tipo_solicitante' => $validated['tipo_solicitante'],
-                    'institucion_id' => $validated['institucion_id'] ?? null,
-                    'departamento_id' => $validated['departamento_id'] ?? null,
-                    'responsable_id' => $validated['responsable_id'],
-                    'oficio_adjunto' => null,
-                    'fecha_solicitud' => now(),
-                    'fecha_requerida' => $validated['fecha_requerida'],
-                    'fecha_fin_estimada' => $validated['fecha_fin_estimada'],
-                    'justificacion' => $validated['justificacion'],
-                    'prioridad' => $validated['prioridad'],
-                    'estado_solicitud' => 'pendiente',
-                    'observaciones' => $validated['observaciones'] ?? "Creada desde correo de: {$correo->from_email}",
-                    'leida_por_admin' => false,
+            DB::beginTransaction();
+
+            $institucionId = $request->tipo_solicitante === 'externo'
+                ? ($request->institucion_id ?: null)
+                : null;
+
+            $departamentoId = $request->tipo_solicitante === 'interno'
+                ? ($request->departamento_id ?: null)
+                : null;
+
+            $solicitud = Solicitud::create([
+                'usuario_id' => auth()->id(),
+                'tipo_solicitante' => $validated['tipo_solicitante'],
+                'institucion_id' => $institucionId,
+                'departamento_id' => $departamentoId,
+                'responsable_id' => $validated['responsable_id'],
+                'oficio_adjunto' => null,
+                'fecha_solicitud' => now(),
+                'fecha_requerida' => $validated['fecha_requerida'],
+                'fecha_fin_estimada' => $validated['fecha_fin_estimada'],
+                'justificacion' => $validated['justificacion'],
+                'prioridad' => $validated['prioridad'],
+                'estado_solicitud' => 'pendiente',
+                'observaciones' => $validated['observaciones'] ?? null,
+                'leida_por_admin' => false,
+            ]);
+
+            foreach ($validated['items'] as $item) {
+                DetalleSolicitud::create([
+                    'solicitud_id' => $solicitud->id,
+                    'tipo_item' => $item['tipo_item'],
+                    'cantidad_solicitada' => (int) $item['cantidad'],
+                    'descripcion_personalizada' => $item['item_descripcion'],
+                    'activo_id' => null,
+                    'componente_id' => null,
+                    'observaciones' => $item['observaciones'] ?? null,
                 ]);
+            }
 
-                foreach ($validated['items'] as $item) {
-                    DetalleSolicitud::create([
-                        'solicitud_id' => $nuevaSolicitud->id,
-                        'tipo_item' => $item['tipo_item'],
-                        'cantidad_solicitada' => (int) $item['cantidad'],
-                        'descripcion_personalizada' => $item['item_descripcion'],
-                        'activo_id' => null,
-                        'componente_id' => null,
-                        'observaciones' => $item['observaciones'] ?? null,
-                    ]);
-                }
+            $correo->update([
+                'procesado' => true,
+                'leido' => true,
+                'solicitud_id' => $solicitud->id,
+                'usuario_id' => auth()->id(),
+            ]);
 
-                $correo->update([
-                    'procesado' => true,
-                    'leido' => true,
-                    'solicitud_id' => $nuevaSolicitud->id,
-                    'usuario_id' => auth()->id(),
-                ]);
+            DB::commit();
 
-                return $nuevaSolicitud;
-            });
-
-            $solicitud->load(['responsable', 'departamento', 'institucion', 'detalles', 'usuario.trabajador']);
+            $solicitud->load(['usuario.trabajador', 'responsable', 'departamento', 'institucion', 'detalles']);
 
             try {
-                if ($solicitud->responsable && $solicitud->responsable->email) {
-                    $this->notificacionService->enviarAResponsable(
-                        $solicitud->responsable->email,
-                        $solicitud->responsable->nombre,
-                        '⏳ Solicitud en Proceso de Aprobación',
-                        "Se ha creado una solicitud desde el correo de {$correo->from_email}.\n\n" .
-                        "La solicitud #{$solicitud->id} está en proceso de aprobación.\n\n" .
-                        "Por favor, espera un momento mientras nuestro equipo la revisa. " .
-                        "Te notificaremos tan pronto como haya una respuesta.",
-                        'solicitud'
-                    );
-                }
-
-                if ($correo->from_email) {
-                    Mail::raw(
-                        "Estimado/a {$correo->from_name},\n\n" .
-                        "Su solicitud ha sido recibida y está siendo procesada.\n\n" .
-                        "📌 Número de solicitud: #{$solicitud->id}\n" .
-                        "📅 Fecha requerida: " . date('d/m/Y', strtotime($validated['fecha_requerida'])) . "\n" .
-                        "🔴 Prioridad: " . ucfirst($validated['prioridad']) . "\n\n" .
-                        "Le notificaremos cuando sea aprobada o rechazada.\n\n" .
-                        "Atentamente,\nDepartamento de Informática",
-                        function ($message) use ($correo) {
-                            $message->to($correo->from_email)
-                                ->subject('✅ Solicitud recibida - En proceso');
-                        }
-                    );
-                }
+                $this->notificarSolicitanteSolicitudCreada($solicitud);
+                $this->notificarResponsableSolicitudCreada($solicitud);
             } catch (\Exception $e) {
-                Log::error('Error al enviar notificaciones: ' . $e->getMessage());
+                Log::error('Error al notificar responsable: ' . $e->getMessage());
             }
 
             return response()->json([
@@ -1289,18 +955,564 @@ class SolicitudController extends Controller
                 'solicitud_id' => $solicitud->id,
                 'data' => $solicitud,
             ]);
+
         } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',
                 'errors' => $e->errors(),
             ], 422);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            DB::rollBack();
             Log::error('Error al convertir correo: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    // ============================================================
+    // NOTIFICAR AL SOLICITANTE - SOLICITUD CREADA (EN PROCESO)
+    // ============================================================
+
+    protected function notificarSolicitanteSolicitudCreada(Solicitud $solicitud): void
+    {
+        try {
+            $solicitud->loadMissing(['responsable', 'institucion', 'departamento', 'usuario.trabajador', 'detalles']);
+
+            $usuario = $solicitud->usuario;
+
+            if (!$usuario || !$usuario->email) {
+                Log::warning('⚠️ No se pudo notificar al solicitante de solicitud creada', [
+                    'solicitud_id' => $solicitud->id,
+                    'tiene_usuario' => (bool) $usuario,
+                    'tiene_email' => (bool) ($usuario?->email),
+                ]);
+                return;
+            }
+
+            $entidad = $solicitud->tipo_solicitante === 'interno'
+                ? ($solicitud->departamento?->nombre ?? 'Departamento')
+                : ($solicitud->institucion?->nombre ?? 'Institución');
+
+            $solicitante = $solicitud->usuario?->trabajador
+                ? trim($solicitud->usuario->trabajador->nombre . ' ' . $solicitud->usuario->trabajador->apellido)
+                : ($solicitud->usuario?->usuario ?? 'Usuario');
+
+            $fechaRequerida = $solicitud->fecha_requerida
+                ? \Carbon\Carbon::parse($solicitud->fecha_requerida)->format('d/m/Y')
+                : 'No especificada';
+
+            $fechaFin = $solicitud->fecha_fin_estimada
+                ? \Carbon\Carbon::parse($solicitud->fecha_fin_estimada)->format('d/m/Y')
+                : 'No especificada';
+
+            $itemsTexto = '';
+            foreach ($solicitud->detalles as $det) {
+                $itemsTexto .= " • " . ($det->descripcion_personalizada ?? 'Item') . " (Cant: {$det->cantidad_solicitada})\n";
+            }
+
+            $titulo = '📋 Solicitud de Préstamo Registrada - En Proceso';
+
+            $mensaje =
+                "📋 SOLICITUD DE PRÉSTAMO REGISTRADA\n\n" .
+                "Estimado/a {$solicitante},\n\n" .
+                "Le informamos que su solicitud de préstamo ha sido registrada exitosamente y se encuentra EN PROCESO de revisión.\n\n" .
+                "📌 Detalles de la solicitud:\n" .
+                " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                " • Entidad: {$entidad}\n" .
+                " • Fecha de solicitud: " . ($solicitud->fecha_solicitud ? \Carbon\Carbon::parse($solicitud->fecha_solicitud)->format('d/m/Y') : now()->format('d/m/Y')) . "\n" .
+                " • Fecha requerida: {$fechaRequerida}\n" .
+                " • Fecha fin estimada: {$fechaFin}\n" .
+                " • Prioridad: " . strtoupper($solicitud->prioridad ?? 'normal') . "\n\n" .
+                "📦 Items solicitados:\n" . ($itemsTexto ?: " • Sin items registrados\n") . "\n" .
+                "📝 Justificación:\n" .
+                " {$solicitud->justificacion}\n\n" .
+                "⏳ Estado actual: EN PROCESO (pendiente de aprobación)\n\n" .
+                "Le notificaremos por este mismo medio cuando su solicitud sea APROBADA o RECHAZADA.\n\n" .
+                "Gracias por usar nuestro sistema de préstamos.";
+
+            $this->notificacionService->enviarAResponsable(
+                $usuario->email,
+                $solicitante,
+                $titulo,
+                $mensaje,
+                'solicitud'
+            );
+
+            Log::info('📧 Correo enviado al solicitante por solicitud creada (en proceso)', [
+                'solicitud_id' => $solicitud->id,
+                'solicitante' => $solicitante,
+                'email' => $usuario->email,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('Error al notificar al solicitante por solicitud creada: ' . $e->getMessage(), [
+                'solicitud_id' => $solicitud->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
+
+    // ============================================================
+    // NOTIFICAR AL RESPONSABLE - SOLICITUD CREADA
+    // ============================================================
+
+    protected function notificarResponsableSolicitudCreada(Solicitud $solicitud): void
+    {
+        try {
+            $solicitud->loadMissing(['responsable', 'institucion', 'departamento', 'usuario.trabajador', 'detalles']);
+
+            $responsable = $solicitud->responsable;
+
+            if (!$responsable || !$responsable->email) {
+                Log::warning('⚠️ No se pudo notificar al responsable de solicitud creada', [
+                    'solicitud_id' => $solicitud->id,
+                    'tiene_responsable' => (bool) $responsable,
+                    'tiene_email' => (bool) ($responsable?->email),
+                ]);
+                return;
+            }
+
+            $entidad = $solicitud->tipo_solicitante === 'interno'
+                ? ($solicitud->departamento?->nombre ?? 'Departamento')
+                : ($solicitud->institucion?->nombre ?? 'Institución');
+
+            $solicitante = $solicitud->usuario?->trabajador
+                ? trim($solicitud->usuario->trabajador->nombre . ' ' . $solicitud->usuario->trabajador->apellido)
+                : ($solicitud->usuario?->usuario ?? 'Usuario');
+
+            $fechaRequerida = $solicitud->fecha_requerida
+                ? \Carbon\Carbon::parse($solicitud->fecha_requerida)->format('d/m/Y')
+                : 'No especificada';
+
+            $fechaFin = $solicitud->fecha_fin_estimada
+                ? \Carbon\Carbon::parse($solicitud->fecha_fin_estimada)->format('d/m/Y')
+                : 'No especificada';
+
+            $itemsTexto = '';
+            foreach ($solicitud->detalles as $det) {
+                $itemsTexto .= " • " . ($det->descripcion_personalizada ?? 'Item') . " (Cant: {$det->cantidad_solicitada})\n";
+            }
+
+            $titulo = '📋 Nueva Solicitud de Préstamo - En Proceso';
+
+            $mensaje =
+                "📋 NUEVA SOLICITUD DE PRÉSTAMO REGISTRADA\n\n" .
+                "Estimado/a {$responsable->nombre},\n\n" .
+                "Le informamos que se ha registrado una nueva solicitud de préstamo en el sistema, donde usted figura como responsable.\n\n" .
+                "📌 Detalles de la solicitud:\n" .
+                " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                " • Entidad: {$entidad}\n" .
+                " • Solicitante: {$solicitante}\n" .
+                " • Fecha de solicitud: " . ($solicitud->fecha_solicitud ? \Carbon\Carbon::parse($solicitud->fecha_solicitud)->format('d/m/Y') : now()->format('d/m/Y')) . "\n" .
+                " • Fecha requerida: {$fechaRequerida}\n" .
+                " • Fecha fin estimada: {$fechaFin}\n" .
+                " • Prioridad: " . strtoupper($solicitud->prioridad ?? 'normal') . "\n\n" .
+                "📦 Items solicitados:\n" . ($itemsTexto ?: " • Sin items registrados\n") . "\n" .
+                "📝 Justificación:\n" .
+                " {$solicitud->justificacion}\n\n" .
+                "⏳ Estado actual: EN PROCESO (pendiente de aprobación)\n\n" .
+                "Le notificaremos por este mismo medio cuando la solicitud sea APROBADA o RECHAZADA.\n\n" .
+                "Gracias.";
+
+            $this->notificacionService->enviarAResponsable(
+                $responsable->email,
+                $responsable->nombre,
+                $titulo,
+                $mensaje,
+                'solicitud'
+            );
+
+            Log::info('📧 Correo enviado al responsable por solicitud creada (en proceso)', [
+                'solicitud_id' => $solicitud->id,
+                'responsable' => $responsable->nombre,
+                'email' => $responsable->email,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('Error al notificar al responsable por solicitud creada: ' . $e->getMessage(), [
+                'solicitud_id' => $solicitud->id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
+
+    // ============================================================
+    // NOTIFICAR AL RESPONSABLE - CAMBIO DE ESTADO
+    // ============================================================
+
+    protected function notificarResponsableSolicitudEstado(Solicitud $solicitud, string $estado, ?string $motivo = null): void
+    {
+        try {
+            $responsable = $solicitud->responsable;
+
+            if (!$responsable || !$responsable->email) {
+                Log::warning("No se pudo notificar al responsable: sin email", [
+                    'solicitud_id' => $solicitud->id,
+                    'responsable_id' => $responsable?->id,
+                ]);
+                return;
+            }
+
+            $solicitud->loadMissing(['institucion', 'departamento', 'usuario.trabajador', 'detalles']);
+
+            $entidad = $solicitud->tipo_solicitante === 'interno'
+                ? ($solicitud->departamento?->nombre ?? 'Departamento')
+                : ($solicitud->institucion?->nombre ?? 'Institución');
+
+            $solicitante = $solicitud->usuario?->trabajador
+                ? trim($solicitud->usuario->trabajador->nombre . ' ' . $solicitud->usuario->trabajador->apellido)
+                : ($solicitud->usuario?->usuario ?? 'Usuario');
+
+            $itemsTexto = '';
+            foreach ($solicitud->detalles as $det) {
+                $itemsTexto .= " • " . ($det->descripcion_personalizada ?? 'Item') . " (Cant: {$det->cantidad_solicitada})\n";
+            }
+
+            $fechaRequerida = $solicitud->fecha_requerida
+                ? \Carbon\Carbon::parse($solicitud->fecha_requerida)->format('d/m/Y')
+                : 'No especificada';
+
+            $fechaFin = $solicitud->fecha_fin_estimada
+                ? \Carbon\Carbon::parse($solicitud->fecha_fin_estimada)->format('d/m/Y')
+                : 'No especificada';
+
+            if ($estado === 'aprobada') {
+                $titulo = '✅ Solicitud de Préstamo APROBADA';
+                $mensaje =
+                    "✅ SOLICITUD DE PRÉSTAMO APROBADA\n\n" .
+                    "Estimado/a {$responsable->nombre},\n\n" .
+                    "Le informamos que su solicitud de préstamo ha sido APROBADA.\n\n" .
+                    "📌 Detalles de la solicitud:\n" .
+                    " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                    " • Entidad: {$entidad}\n" .
+                    " • Solicitante: {$solicitante}\n" .
+                    " • Fecha de solicitud: " . ($solicitud->fecha_solicitud ? \Carbon\Carbon::parse($solicitud->fecha_solicitud)->format('d/m/Y') : 'N/A') . "\n" .
+                    " • Fecha requerida: {$fechaRequerida}\n" .
+                    " • Fecha fin estimada: {$fechaFin}\n" .
+                    " • Prioridad: " . strtoupper($solicitud->prioridad ?? 'normal') . "\n\n" .
+                    "📦 Items solicitados:\n" . ($itemsTexto ?: " • Sin items registrados\n") . "\n" .
+                    ($motivo ? "📝 Observaciones del aprobador:\n {$motivo}\n\n" : "") .
+                    "📍 Próximos pasos:\n" .
+                    " 1. El Departamento de Informática se contactará con usted.\n" .
+                    " 2. Deberá firmar el acta de responsabilidad.\n" .
+                    " 3. Se coordinará la entrega de los equipos.\n\n" .
+                    "Gracias por usar nuestro sistema de préstamos.";
+
+            } elseif ($estado === 'rechazada') {
+                $titulo = '❌ Solicitud de Préstamo RECHAZADA';
+                $mensaje =
+                    "❌ SOLICITUD DE PRÉSTAMO RECHAZADA\n\n" .
+                    "Estimado/a {$responsable->nombre},\n\n" .
+                    "Lamentamos informarle que su solicitud de préstamo ha sido RECHAZADA.\n\n" .
+                    "📌 Detalles de la solicitud:\n" .
+                    " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                    " • Entidad: {$entidad}\n" .
+                    " • Solicitante: {$solicitante}\n" .
+                    " • Fecha de solicitud: " . ($solicitud->fecha_solicitud ? \Carbon\Carbon::parse($solicitud->fecha_solicitud)->format('d/m/Y') : 'N/A') . "\n" .
+                    " • Fecha requerida: {$fechaRequerida}\n\n" .
+                    "📦 Items solicitados:\n" . ($itemsTexto ?: " • Sin items registrados\n") . "\n" .
+                    "❗ Motivo del rechazo:\n" .
+                    " " . ($motivo ?? 'No especificado') . "\n\n" .
+                    "📝 ¿Qué puede hacer?\n" .
+                    " 1. Revisar el motivo del rechazo.\n" .
+                    " 2. Corregir los aspectos mencionados.\n" .
+                    " 3. Realizar una nueva solicitud con la información corregida.\n\n" .
+                    "Si tiene dudas, contacte al Departamento de Informática.";
+
+            } elseif ($estado === 'cancelada') {
+                $titulo = '🚫 Solicitud de Préstamo CANCELADA';
+                $mensaje =
+                    "🚫 SOLICITUD DE PRÉSTAMO CANCELADA\n\n" .
+                    "Estimado/a {$responsable->nombre},\n\n" .
+                    "La solicitud de préstamo ha sido CANCELADA.\n\n" .
+                    "📌 Detalles:\n" .
+                    " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                    " • Entidad: {$entidad}\n" .
+                    " • Motivo: " . ($motivo ?? 'Cancelada por el solicitante') . "\n\n" .
+                    "Si no solicitó esta cancelación, contacte al Departamento de Informática.";
+
+            } else {
+                return;
+            }
+
+            $this->notificacionService->enviarAResponsable(
+                $responsable->email,
+                $responsable->nombre,
+                $titulo,
+                $mensaje,
+                'solicitud'
+            );
+
+            Log::info("📧 Notificación enviada al responsable", [
+                'solicitud_id' => $solicitud->id,
+                'estado' => $estado,
+                'responsable' => $responsable->nombre,
+                'email' => $responsable->email,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('Error al notificar al responsable: ' . $e->getMessage(), [
+                'solicitud_id' => $solicitud->id,
+                'estado' => $estado,
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+    }
+
+    // ============================================================
+    // NOTIFICAR AL CORREO ORIGEN
+    // ============================================================
+
+    protected function notificarResponsableCorreoSolicitud(Solicitud $solicitud, string $correoOrigen): void
+    {
+        try {
+            $solicitud->loadMissing(['institucion', 'departamento', 'usuario.trabajador', 'detalles']);
+
+            $entidad = $solicitud->tipo_solicitante === 'interno'
+                ? ($solicitud->departamento?->nombre ?? 'Departamento')
+                : ($solicitud->institucion?->nombre ?? 'Institución');
+
+            $fechaRequerida = $solicitud->fecha_requerida
+                ? \Carbon\Carbon::parse($solicitud->fecha_requerida)->format('d/m/Y')
+                : 'No especificada';
+
+            $itemsTexto = '';
+            foreach ($solicitud->detalles as $det) {
+                $itemsTexto .= " • " . ($det->descripcion_personalizada ?? 'Item') . " (Cant: {$det->cantidad_solicitada})\n";
+            }
+
+            $mensaje =
+                "✅ SOLICITUD DE PRÉSTAMO RECIBIDA\n\n" .
+                "Estimado/a usuario,\n\n" .
+                "Hemos recibido su solicitud de préstamo enviada por correo electrónico.\n\n" .
+                "📌 Detalles de la solicitud:\n" .
+                " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                " • Entidad: {$entidad}\n" .
+                " • Fecha de solicitud: " . now()->format('d/m/Y H:i') . "\n" .
+                " • Fecha requerida: {$fechaRequerida}\n" .
+                " • Prioridad: " . strtoupper($solicitud->prioridad ?? 'normal') . "\n\n" .
+                "📦 Items solicitados:\n" . ($itemsTexto ?: " • Sin items registrados\n") . "\n" .
+                "⏳ Estado actual: PENDIENTE DE APROBACIÓN\n\n" .
+                "Le notificaremos por este mismo medio cuando su solicitud sea APROBADA o RECHAZADA.\n\n" .
+                "Gracias por usar nuestro sistema de préstamos.";
+
+            $this->notificacionService->enviarAResponsable(
+                $correoOrigen,
+                'Solicitante',
+                '📋 Solicitud de Préstamo Recibida - Pendiente de Aprobación',
+                $mensaje,
+                'solicitud'
+            );
+
+            Log::info("📧 Confirmación de recepción enviada al correo origen", [
+                'solicitud_id' => $solicitud->id,
+                'correo_origen' => $correoOrigen,
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('Error al notificar al correo origen: ' . $e->getMessage(), [
+                'solicitud_id' => $solicitud->id,
+                'correo_origen' => $correoOrigen,
+            ]);
+        }
+    }
+
+    // ============================================================
+    // ENVIAR NOTIFICACIONES A ADMINS/TÉCNICOS
+    // ============================================================
+
+    protected function enviarNotificacionesSolicitud(Solicitud $solicitud): void
+    {
+        try {
+            $admins = Usuario::whereHas('rol', function ($q) {
+                $q->whereIn('nombre', ['admin', 'super_admin', 'tecnico']);
+            })->where('status', 'activo')->with('trabajador')->get();
+
+            $solicitud->loadMissing(['institucion', 'departamento', 'usuario.trabajador', 'detalles']);
+
+            $entidad = $solicitud->tipo_solicitante === 'interno'
+                ? ($solicitud->departamento?->nombre ?? 'Departamento')
+                : ($solicitud->institucion?->nombre ?? 'Institución');
+
+            $solicitante = $solicitud->usuario?->trabajador
+                ? trim($solicitud->usuario->trabajador->nombre . ' ' . $solicitud->usuario->trabajador->apellido)
+                : ($solicitud->usuario?->usuario ?? 'Usuario');
+
+            $mensaje =
+                "📋 Nueva solicitud de préstamo registrada.\n\n" .
+                "📌 Detalles:\n" .
+                " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                " • Solicitante: {$solicitante}\n" .
+                " • Entidad: {$entidad}\n" .
+                " • Prioridad: " . strtoupper($solicitud->prioridad ?? 'normal') . "\n" .
+                " • Fecha requerida: " . ($solicitud->fecha_requerida ? \Carbon\Carbon::parse($solicitud->fecha_requerida)->format('d/m/Y') : 'N/A') . "\n\n" .
+                "Revise la solicitud en el módulo de Solicitudes.";
+
+            foreach ($admins as $admin) {
+                if ($admin->email) {
+                    $this->notificacionService->enviarAUsuario(
+                        $admin,
+                        '📋 Nueva Solicitud de Préstamo',
+                        $mensaje,
+                        'solicitud',
+                        route('admin.solicitudes.index')
+                    );
+                }
+            }
+        } catch (\Throwable $e) {
+            Log::error('Error al enviar notificaciones de solicitud: ' . $e->getMessage());
+        }
+    }
+
+    // ============================================================
+    // 🆕 GENERAR Y ENVIAR ACTA DE RETIRO
+    // ============================================================
+
+    protected function generarYEnviarActaRetiro(Solicitud $solicitud): void
+    {
+        $solicitud->load([
+            'responsable',
+            'departamento',
+            'institucion',
+            'detalles',
+            'usuario.trabajador'
+        ]);
+
+        $dataActa = $this->prepararDatosActaRetiro($solicitud);
+
+        $pdf = Pdf::loadView('admin.actas.retiro-pdf', [
+            'data' => $dataActa,
+            'solicitud' => $solicitud
+        ]);
+        $pdf->setPaper('letter');
+
+        $this->enviarActaRetiroPorCorreo($solicitud, $pdf);
+    }
+
+    // ============================================================
+    // 🆕 PREPARAR DATOS ACTA DE RETIRO
+    // ============================================================
+
+    protected function prepararDatosActaRetiro(Solicitud $solicitud): array
+    {
+        $items = [];
+        foreach ($solicitud->detalles as $detalle) {
+            $items[] = [
+                'tipo_item' => $detalle->tipo_item ?? 'Item',
+                'descripcion' => $detalle->descripcion_personalizada
+                    ?? $detalle->descripcion_item
+                    ?? 'Item sin descripción',
+                'cantidad' => $detalle->cantidad_solicitada ?? 1,
+            ];
+        }
+
+        $encargado = $this->obtenerEncargadoInformatica();
+
+        $entidad = 'No especificada';
+        if ($solicitud->tipo_solicitante === 'interno' && $solicitud->departamento) {
+            $entidad = $solicitud->departamento->nombre;
+        } elseif ($solicitud->tipo_solicitante === 'externo' && $solicitud->institucion) {
+            $entidad = $solicitud->institucion->nombre;
+        }
+
+        $responsable = $solicitud->responsable;
+
+        return [
+            'numero_acta' => 'ACTA-RETIRO-' . date('Ym') . '-' . str_pad($solicitud->id, 4, '0', STR_PAD_LEFT),
+            'codigo_solicitud' => 'SOL-' . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT),
+            'fecha' => now()->format('d/m/Y'),
+            'institucion' => $entidad,
+            'responsable_nombre' => $responsable->nombre ?? 'No especificado',
+            'responsable_cargo' => $responsable->cargo ?? 'Responsable',
+            'responsable_documento' => $responsable->documento ?? 'N/A',
+            'responsable_telefono' => $responsable->telefono ?? 'N/A',
+            'encargado_nombre' => $encargado['nombre'],
+            'encargado_cargo' => $encargado['cargo'],
+            'items' => $items,
+        ];
+    }
+
+    // ============================================================
+    // 🆕 OBTENER ENCARGADO DE INFORMÁTICA
+    // ============================================================
+
+    protected function obtenerEncargadoInformatica(): array
+    {
+        $deptoInformatica = Departamento::where('nombre', 'ILIKE', '%informatica%')
+            ->orWhere('nombre', 'ILIKE', '%informática%')
+            ->orWhere('nombre', 'ILIKE', '%sistemas%')
+            ->orWhere('nombre', 'ILIKE', '%tecnologia%')
+            ->first();
+
+        if ($deptoInformatica) {
+            $responsable = Responsable::where('departamento_id', $deptoInformatica->id)
+                ->where('activo', true)
+                ->first();
+
+            if ($responsable) {
+                return [
+                    'nombre' => $responsable->nombre,
+                    'cargo' => $responsable->cargo ?? 'Jefe de Informática',
+                ];
+            }
+        }
+
+        return [
+            'nombre' => 'Departamento de Informática',
+            'cargo' => 'Dirección de Informática',
+        ];
+    }
+
+    // ============================================================
+    // 🆕 ENVIAR ACTA DE RETIRO POR CORREO
+    // ============================================================
+
+    protected function enviarActaRetiroPorCorreo(Solicitud $solicitud, $pdf): void
+    {
+        $responsable = $solicitud->responsable;
+
+        if (!$responsable || !$responsable->email) {
+            Log::warning("No se pudo enviar acta de retiro: Responsable sin email", [
+                'solicitud_id' => $solicitud->id,
+                'responsable_id' => $responsable->id ?? null,
+            ]);
+            return;
+        }
+
+        $entidad = $solicitud->institucion->nombre
+            ?? $solicitud->departamento->nombre
+            ?? 'su entidad';
+
+        $mensaje = "Le informamos que su solicitud de préstamo #{$solicitud->id} ha sido APROBADA.\n\n";
+        $mensaje .= "Adjunto encontrará el Acta de Retiro correspondiente, la cual debe:\n";
+        $mensaje .= "1. Imprimir\n";
+        $mensaje .= "2. Firmar\n";
+        $mensaje .= "3. Presentar en el Departamento de Informática al momento de retirar los equipos\n\n";
+        $mensaje .= "Entidad solicitante: {$entidad}\n";
+        $mensaje .= "Fecha de aprobación: " . now()->format('d/m/Y H:i') . "\n\n";
+        $mensaje .= "Por favor, preséntese con su cédula de identidad y el acta firmada.\n\n";
+        $mensaje .= "Gracias por usar nuestro sistema.";
+
+        try {
+            Mail::to($responsable->email)->send(
+                new ActaRetiroMail($solicitud, $pdf, $mensaje)
+            );
+
+            Log::info("✅ Acta de retiro enviada al responsable", [
+                'solicitud_id' => $solicitud->id,
+                'responsable' => $responsable->nombre,
+                'email' => $responsable->email,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("❌ Error al enviar acta de retiro: " . $e->getMessage(), [
+                'solicitud_id' => $solicitud->id,
+                'email' => $responsable->email,
+            ]);
+            throw $e;
         }
     }
 }

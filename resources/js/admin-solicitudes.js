@@ -1408,4 +1408,218 @@ document.addEventListener('DOMContentLoaded', function() {
     intervaloNotificaciones = setInterval(actualizarBadgeCorreos, 30000);
 
     console.log('✅ Módulo de solicitudes inicializado correctamente');
+
+
+    // ============================================================
+// CORREOS DE SOLICITUDES (SOLO TIPO SOLICITUD)
+// ============================================================
+async function cargarCorreosSolicitudes() {
+    const container = document.getElementById('listaCorreos');
+    if (!container) return;
+
+    const buscar = document.getElementById('buscarCorreo')?.value || '';
+    const filtro = document.getElementById('filtroCorreo')?.value || '';
+
+    const params = new URLSearchParams();
+    if (buscar) params.append('buscar', buscar);
+    if (filtro) params.append('filtro', filtro);
+
+    container.innerHTML = `
+        <div class="text-center py-5 text-muted">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Cargando correos...</p>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`/admin/solicitudes/correos/lista?${params}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        renderizarCorreosSolicitudes(data.data || []);
+    } catch (error) {
+        console.error('Error al cargar correos:', error);
+        container.innerHTML = `
+            <div class="text-center py-5 text-danger">
+                <p>Error al cargar correos: ${escapeHtml(error.message)}</p>
+                <button class="btn btn-sm btn-primary-dark mt-2" onclick="cargarCorreosSolicitudes()">Reintentar</button>
+            </div>
+        `;
+    }
+}
+
+function renderizarCorreosSolicitudes(correos) {
+    const container = document.getElementById('listaCorreos');
+    if (!container) return;
+
+    if (!correos.length) {
+        container.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5">
+                    <rect x="2" y="4" width="20" height="16" rx="2"/>
+                    <path d="M22 7l-10 7L2 7"/>
+                </svg>
+                <p class="mt-3">No hay correos de solicitudes recibidos</p>
+                <p class="small">Haz clic en "Revisar ahora" para buscar nuevos correos</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    correos.forEach(c => {
+        const clases = ['correo-item'];
+        if (!c.leido) clases.push('no-leido');
+        if (c.procesado) clases.push('procesado');
+
+        const badge = !c.leido ? '<span class="badge-nueva">NUEVO</span>' : '';
+
+        html += `
+            <div class="${clases.join(' ')}" onclick="abrirCorreoSolicitud(${c.id})">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div style="flex:1">
+                        <div class="fw-bold">${escapeHtml(c.from_name || c.from_email)} ${badge}</div>
+                        <div class="text-muted small">${escapeHtml(c.from_email)}</div>
+                        <div class="fw-semibold mt-1">${escapeHtml(c.subject || '(Sin asunto)')}</div>
+                        <div class="text-muted small mt-1">${escapeHtml((c.body_text || '').substring(0, 150))}...</div>
+                    </div>
+                    <div class="text-end ms-3">
+                        <div class="small text-muted">${formatearFechaHora(c.received_at)}</div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    container.innerHTML = html;
+}
+
+async function actualizarBadgeCorreosSolicitudes() {
+    try {
+        const response = await fetch('/admin/solicitudes/correos/contador', {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        });
+        const data = await response.json();
+
+        if (data.success) {
+            const badge = document.getElementById('tabCorreosBadge');
+            if (badge && data.no_procesados > 0) {
+                badge.textContent = data.no_procesados;
+                badge.style.display = 'inline-block';
+            } else if (badge) {
+                badge.style.display = 'none';
+            }
+        }
+    } catch (error) {
+        console.error('Error al actualizar badge:', error);
+    }
+}
+
+window.revisarCorreos = async function () {
+    const btn = document.getElementById('btnRevisarCorreos');
+    if (!btn) return;
+
+    const original = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Revisando...';
+    btn.disabled = true;
+
+    try {
+        const response = await fetch('/admin/solicitudes/correos/revisar', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            credentials: 'same-origin'
+        });
+
+        const data = await response.json();
+        mostrarNotificacion('info', data.message || 'Revisión completada');
+        cargarCorreosSolicitudes();
+        actualizarBadgeCorreosSolicitudes();
+    } catch (error) {
+        mostrarNotificacion('error', 'Error al revisar correos: ' + error.message);
+    } finally {
+        btn.innerHTML = original;
+        btn.disabled = false;
+    }
+};
+
+window.abrirCorreoSolicitud = async function (id) {
+    try {
+        const response = await fetch(`/admin/solicitudes/correos/${id}`, {
+            headers: { 'Accept': 'application/json' },
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+        const data = await response.json();
+        if (!data.success) {
+            mostrarNotificacion('error', 'Error al cargar el correo');
+            return;
+        }
+
+        correoActual = data.data;
+
+        document.getElementById('correoFrom').textContent =
+            `${correoActual.from_name || ''} <${correoActual.from_email}>`;
+        document.getElementById('correoFecha').textContent = formatearFechaHora(correoActual.received_at);
+        document.getElementById('correoAsunto').textContent = correoActual.subject || '(Sin asunto)';
+        document.getElementById('correoCuerpo').textContent = correoActual.body_text || '(Sin contenido)';
+
+        if (correoActual.procesado) {
+            document.getElementById('botonIniciarWizard').innerHTML = `
+                <div class="alert alert-success">
+                    ✅ Este correo ya fue convertido en la solicitud #${correoActual.solicitud_id}
+                </div>
+            `;
+        } else {
+            document.getElementById('botonIniciarWizard').innerHTML = `
+                <button class="btn btn-success btn-lg" onclick="iniciarWizard()">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:6px;">
+                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                    </svg>
+                    Convertir en Solicitud (Wizard)
+                </button>
+            `;
+        }
+
+        document.getElementById('wizardContainer').style.display = 'none';
+        document.getElementById('infoCorreo').style.display = 'block';
+        document.getElementById('botonIniciarWizard').style.display = 'block';
+
+        new bootstrap.Modal(document.getElementById('modalCorreo')).show();
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('error', 'Error al cargar el correo: ' + error.message);
+    }
+};
+
+// Inicialización al cargar el tab de correos
+document.getElementById('tab-correos')?.addEventListener('shown.bs.tab', function () {
+    cargarCorreosSolicitudes();
+    actualizarBadgeCorreosSolicitudes();
+});
+
+// Buscador de correos
+document.getElementById('buscarCorreo')?.addEventListener('input', (() => {
+    let t;
+    return function () {
+        clearTimeout(t);
+        t = setTimeout(cargarCorreosSolicitudes, 400);
+    };
+})());
+
+document.getElementById('filtroCorreo')?.addEventListener('change', cargarCorreosSolicitudes);
+
+// Actualizar badge periódicamente
+setInterval(actualizarBadgeCorreosSolicitudes, 30000);
 });

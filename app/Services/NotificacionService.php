@@ -1,4 +1,5 @@
 <?php
+// app/Services/NotificacionService.php
 
 namespace App\Services;
 
@@ -12,8 +13,8 @@ class NotificacionService
 {
     /**
      * Enviar notificación a un usuario del sistema.
-     * SIEMPRE crea la notificación interna y SIEMPRE intenta enviar el correo.
-     * NO deduplica: cada llamada es una notificación única e independiente.
+     *
+     * ✅ OPTIMIZACIÓN: Evita duplicados exactos en un margen de 5 minutos.
      */
     public function enviarAUsuario(
         Usuario $usuario,
@@ -23,6 +24,21 @@ class NotificacionService
         ?string $url = null,
         bool $enviarCorreo = true
     ): Notificacion {
+        // ✅ VERIFICACIÓN ANTI-DUPLICADOS (mismo usuario + mismo título + mismo mensaje en 5 min)
+        $existente = Notificacion::where('usuario_id', $usuario->id)
+            ->where('titulo', $titulo)
+            ->where('mensaje', $mensaje)
+            ->where('fecha_envio', '>=', now()->subMinutes(5))
+            ->first();
+
+        if ($existente) {
+            Log::info('⏭️ Notificación duplicada omitida', [
+                'usuario_id' => $usuario->id,
+                'titulo' => $titulo,
+            ]);
+            return $existente;
+        }
+
         $notificacion = Notificacion::create([
             'usuario_id' => $usuario->id,
             'tipo' => $tipo,
@@ -45,9 +61,9 @@ class NotificacionService
     }
 
     /**
-     * Enviar notificación a un responsable EXTERNO (no usuario del sistema).
-     * SIEMPRE crea la notificación y SIEMPRE intenta enviar el correo.
-     * NO deduplica: cada llamada es una notificación única e independiente.
+     * Enviar notificación a un responsable EXTERNO.
+     *
+     * ✅ OPTIMIZACIÓN: Evita duplicados exactos en un margen de 5 minutos.
      */
     public function enviarAResponsable(
         string $email,
@@ -58,6 +74,21 @@ class NotificacionService
         ?string $url = null
     ): ?Notificacion {
         try {
+            // ✅ VERIFICACIÓN ANTI-DUPLICADOS (mismo título + mismo mensaje + misma fecha en 5 min)
+            $existente = Notificacion::whereNull('usuario_id')
+                ->where('titulo', $titulo)
+                ->where('mensaje', $mensaje)
+                ->where('fecha_envio', '>=', now()->subMinutes(5))
+                ->first();
+
+            if ($existente) {
+                Log::info('⏭️ Correo duplicado omitido a responsable externo', [
+                    'email' => $email,
+                    'titulo' => $titulo,
+                ]);
+                return $existente;
+            }
+
             $notificacion = Notificacion::create([
                 'usuario_id' => null,
                 'tipo' => $tipo,
@@ -193,8 +224,7 @@ class NotificacionService
     // ============================================================
 
     /**
-     * Envía el correo de forma INMEDIATA (sync) y maneja el error de forma robusta.
-     * NO deduplica. Cada llamada envía un correo nuevo.
+     * Envía el correo de forma INMEDIATA (sync).
      */
     protected function enviarCorreo(string $email, string $nombre, Notificacion $notificacion): void
     {

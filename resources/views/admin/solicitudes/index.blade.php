@@ -744,12 +744,15 @@
 @section('scripts')
 <script>
 window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
+
 window.authUserHasPermission = function(p) {
     return window.userPermissions.includes(p);
 };
+
 window.departamentos = @json($departamentos ?? []);
 window.instituciones = @json($instituciones ?? []);
 window.responsables = @json($responsables ?? []);
 </script>
+
 @vite(['resources/js/admin-solicitudes.js'])
 @endsection

@@ -1,4 +1,5 @@
 <?php
+// app/Jobs/LeerCorreosSolicitudes.php
 
 namespace App\Jobs;
 
@@ -14,9 +15,19 @@ class LeerCorreosSolicitudes implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
+    public $timeout = 300; // 5 minutos máximo
+    public $tries = 2;      // 2 intentos máximo
+
     public function handle(CorreoImapService $service): void
     {
-        $count = $service->leerCorreosNuevos();
-        Log::info("LeerCorreosSolicitudes: {$count} correos procesados");
+        Log::info('🔄 [LeerCorreosSolicitudes] Iniciando lectura de correos...');
+
+        try {
+            $count = $service->leerCorreosNuevos();
+            Log::info("✅ [LeerCorreosSolicitudes] {$count} correos procesados");
+        } catch (\Throwable $e) {
+            Log::error('❌ [LeerCorreosSolicitudes] Error: ' . $e->getMessage());
+            throw $e;
+        }
     }
 }

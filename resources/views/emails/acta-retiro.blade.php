@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $notificacion->titulo }}</title>
+    <title>Acta de Retiro</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             background: #f5f7fa;
             padding: 20px;
+            margin: 0;
         }
         .email-container {
             max-width: 600px;
@@ -43,9 +43,6 @@
             color: #1a1a1a;
             margin-bottom: 20px;
         }
-        .email-body .greeting strong {
-            color: #1e3c72;
-        }
         .notification-card {
             background: #f8f9fc;
             border-radius: 12px;
@@ -64,19 +61,18 @@
             line-height: 1.6;
             white-space: pre-line;
         }
-        .notification-meta {
-            display: flex;
-            gap: 20px;
-            font-size: 13px;
-            color: #6c757d;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid #e9ecef;
+        .instrucciones {
+            background: #fff3cd;
+            border-radius: 12px;
+            padding: 16px 20px;
+            border-left: 4px solid #ffc107;
+            margin-bottom: 24px;
         }
-        .notification-meta span {
-            display: flex;
-            align-items: center;
-            gap: 4px;
+        .instrucciones p {
+            margin: 0;
+            font-size: 14px;
+            color: #856404;
+            line-height: 1.6;
         }
         .email-footer {
             padding: 20px 40px;
@@ -103,34 +99,37 @@
 <body>
     <div class="email-container">
         <div class="email-header">
-            <h1>📬 Sistema de Inventario</h1>
-            <p>Gobernación del Estado Yaracuy</p>
+            <h1>📄 Acta de Retiro de Equipo</h1>
+            <p>Gobernación del Estado Yaracuy - Dirección de Informática</p>
         </div>
-
         <div class="email-body">
-            <p class="greeting">
-                Hola, <strong>{{ $destinatario }}</strong>
-            </p>
+            <p class="greeting">Hola, <strong>{{ $solicitud->responsable->nombre ?? 'Responsable' }}</strong></p>
 
             <div class="notification-card">
-                <div class="titulo">{{ $notificacion->titulo }}</div>
-                <div class="mensaje">{{ $notificacion->mensaje }}</div>
-
-                <div class="notification-meta">
-                    <span>📅 {{ $notificacion->fecha_envio->format('d/m/Y H:i') }}</span>
-                    <span>🏷️ {{ ucfirst($notificacion->tipo) }}</span>
+                <div class="titulo">✅ Solicitud Aprobada</div>
+                <div class="mensaje">
+                    {{ $mensaje }}
                 </div>
             </div>
+
+            <div class="instrucciones">
+                <p>
+                    <strong>📌 Instrucciones:</strong><br>
+                    1. Descargue el Acta de Retiro adjunta a este correo.<br>
+                    2. Imprímala y fírmela.<br>
+                    3. Preséntese en el Departamento de Informática con el acta firmada y su cédula de identidad.<br>
+                    4. Recibirá los equipos detallados en el acta.
+                </p>
+            </div>
+
             <p style="margin-top: 20px; color: #6c757d; font-size: 14px;">
                 Este es un mensaje automático del Sistema de Gestión de Inventario.
                 Por favor, no responda a este correo.
             </p>
         </div>
-
         <div class="email-footer">
             <p>
-                <span class="footer-logo">Sistema de Gestión de Inventario Tecnológico</span>
-                <br>
+                <span class="footer-logo">Sistema de Gestión de Inventario Tecnológico</span><br>
                 Gobernación del Estado Yaracuy - San Felipe, Edo. Yaracuy
             </p>
         </div>
