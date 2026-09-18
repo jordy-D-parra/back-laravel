@@ -47,6 +47,7 @@ class UsuarioController extends Controller
         }
 
         $usuarios = $query->paginate(15)->withQueryString();
+
         $trabajadoresDisponibles = Trabajador::doesntHave('usuario')->get();
         $roles = Rol::all();
 
@@ -83,10 +84,11 @@ class UsuarioController extends Controller
             ]);
 
             $password = Str::random(12);
+            $passwordHash = Hash::make($password);
 
             $usuario = Usuario::create([
                 'usuario' => $validated['usuario'],
-                'password' => Hash::make($password),
+                'password' => $passwordHash,
                 'must_change_password' => true,
                 'status' => 'activo',
                 'trabajador_id' => $validated['trabajador_id'],
@@ -103,7 +105,10 @@ class UsuarioController extends Controller
                 return response()->json([
                     'success' => true,
                     'message' => 'Usuario creado exitosamente',
-                    'data' => $usuario
+                    'data' => $usuario,
+                    'password_hash' => $passwordHash,
+                    'new_password' => $password,
+                    'new_usuario' => $usuario->usuario,
                 ]);
             }
 
@@ -197,6 +202,7 @@ class UsuarioController extends Controller
     {
         try {
             $notificacionService = app(\App\Services\NotificacionService::class);
+
             $notificacionService->enviarAUsuario(
                 $usuario,
                 '🎉 ¡Bienvenido al Sistema!',
@@ -265,7 +271,7 @@ class UsuarioController extends Controller
             $usuario->save();
 
             $estado = $usuario->status === 'activo' ? 'activado' : 'desactivado';
-            
+
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => true,
@@ -275,6 +281,7 @@ class UsuarioController extends Controller
             }
 
             return back()->with('success', 'Usuario "' . $usuario->usuario . '" ' . $estado . '.');
+
         } catch (\Exception $e) {
             Log::error('Error al cambiar estado de usuario: ' . $e->getMessage());
             if ($request->ajax() || $request->wantsJson()) {
@@ -298,6 +305,7 @@ class UsuarioController extends Controller
 
         try {
             $usuario = Usuario::findOrFail($id);
+
             $password = Str::random(12);
             $usuario->password = Hash::make($password);
             $usuario->must_change_password = true;
@@ -322,6 +330,7 @@ class UsuarioController extends Controller
                 ->with('success', 'Contraseña reseteada exitosamente.')
                 ->with('reset_password', $password)
                 ->with('reset_usuario', $usuario->usuario);
+
         } catch (\Exception $e) {
             Log::error('Error al resetear contraseña: ' . $e->getMessage());
             if ($request->ajax() || $request->wantsJson()) {
@@ -338,6 +347,7 @@ class UsuarioController extends Controller
     {
         try {
             $notificacionService = app(\App\Services\NotificacionService::class);
+
             $notificacionService->enviarAUsuario(
                 $usuario,
                 '🔑 Contraseña Reseteada',
@@ -361,7 +371,7 @@ class UsuarioController extends Controller
         }
 
         $usuario = Usuario::with(['trabajador', 'rol'])->findOrFail($id);
-        
+
         return response()->json([
             'usuario' => $usuario->usuario,
             'status' => $usuario->status,

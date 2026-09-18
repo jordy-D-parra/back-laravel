@@ -1,881 +1,435 @@
 @extends('layouts.dashboard')
 
-@section('title', 'Gestión de Usuarios')
+@section('title', 'Usuarios')
+
+@section('styles')
+@vite(['resources/css/admin-usuarios.css'])
+@endsection
 
 @section('content')
 <div class="container-fluid px-4">
-    <!-- Encabezado -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <h2 class="h4 mb-3">👥 Gestión de Usuarios</h2>
-                        <p class="text-muted mb-0">Administra los usuarios, sus roles y estados en el sistema</p>
-                    </div>
-                    <div class="text-center">
-                        <div style="font-size: 2rem;">👥</div>
-                        <small class="text-muted">Total: {{ $users->count() }}</small>
-                    </div>
-                </div>
+
+    {{-- ========== HEADER CON GRADIENTE ========== --}}
+    <div class="page-header">
+        <div>
+            <h4>
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                </svg>
+                Gestión de Usuarios
+            </h4>
+            <p>Administración de usuarios, roles y accesos al sistema</p>
+        </div>
+    </div>
+
+    {{-- ========== TARJETAS DE ESTADÍSTICAS ========== --}}
+    <div class="stats-row">
+        <div class="stat-card-mini">
+            <div class="stat-info">
+                <div class="stat-number">{{ $totalActivos ?? 0 }}</div>
+                <div class="stat-label">Usuarios Activos</div>
+            </div>
+            <div class="stat-icon-circle">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card-mini">
+            <div class="stat-info">
+                <div class="stat-number">{{ $totalInactivos ?? 0 }}</div>
+                <div class="stat-label">Usuarios Inactivos</div>
+            </div>
+            <div class="stat-icon-circle" style="background: rgba(197, 34, 31, 0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#c5221f" stroke-width="1.8">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="9" cy="7" r="4"/>
+                    <line x1="23" y1="3" x2="17" y2="9"/>
+                    <line x1="17" y1="3" x2="23" y2="9"/>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card-mini">
+            <div class="stat-info">
+                <div class="stat-number">{{ $pendientesCambio ?? 0 }}</div>
+                <div class="stat-label">Pendientes Cambio Clave</div>
+            </div>
+            <div class="stat-icon-circle" style="background: rgba(246, 194, 62, 0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#f6c23e" stroke-width="1.8">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 8v4"/>
+                    <path d="M12 16h.01"/>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card-mini">
+            <div class="stat-info">
+                <div class="stat-number">{{ $nuncaLogeados ?? 0 }}</div>
+                <div class="stat-label">Nunca Han Ingresado</div>
+            </div>
+            <div class="stat-icon-circle" style="background: rgba(23, 162, 184, 0.1);">
+                <svg viewBox="0 0 24 24" fill="none" stroke="#17a2b8" stroke-width="1.8">
+                    <circle cx="12" cy="12" r="10"/>
+                    <polyline points="12 6 12 12 16 14"/>
+                </svg>
             </div>
         </div>
     </div>
 
-    <!-- Mensajes de éxito/error (respaldo) -->
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    {{-- ========== BARRA DE FILTROS ========== --}}
+    <div class="filters-bar">
+        <div class="input-group">
+            <span class="input-group-text bg-white">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="M21 21l-4.35-4.35"/>
+                </svg>
+            </span>
+            <input type="text" class="form-control border-start-0" id="buscarUsuario"
+                   placeholder="Buscar por nombre, cédula o usuario..."
+                   value="{{ request('search') }}">
         </div>
-    @endif
+        @if(auth()->user()->hasPermission('crear-usuario'))
+        <button class="btn btn-primary-dark" data-bs-toggle="modal" data-bs-target="#modalUsuario" style="color: #fff">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            Nuevo Usuario
+        </button>
+        @endif
+    </div>
 
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    {{-- ========== TABLA ========== --}}
+    <div class="table-container">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Trabajador</th>
+                        <th>Cédula</th>
+                        <th>Rol</th>
+                        <th>Estado</th>
+                        <th>Último Ingreso</th>
+                        <th>Clave</th>
+                        <th class="text-end">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="tablaUsuarios">
+                    @forelse($usuarios as $usuario)
+                    <tr>
+                        <td><span class="fw-medium" style="color: var(--primary-dark);">{{ $usuario->usuario }}</span></td>
+                        <td>{{ $usuario->trabajador->nombre }} {{ $usuario->trabajador->apellido }}</td>
+                        <td><small>{{ $usuario->trabajador->cedula }}</small></td>
+                        <td>
+                            @php
+                                $rolClass = 'badge-role-' . $usuario->rol->nombre;
+                            @endphp
+                            <span class="badge-role {{ $rolClass }}">{{ ucfirst($usuario->rol->nombre) }}</span>
+                        </td>
+                        <td>
+                            @if(auth()->user()->hasPermission('activar-desactivar-usuario'))
+                            <button class="btn btn-sm btn-toggle-status {{ $usuario->status === 'activo' ? 'badge-status-activo' : 'badge-status-inactivo' }} border-0"
+                                    data-id="{{ $usuario->id }}" style="font-size: 0.75rem;">
+                                {{ $usuario->status === 'activo' ? 'Activo' : 'Inactivo' }}
+                            </button>
+                            @else
+                            <span class="badge {{ $usuario->status === 'activo' ? 'badge-status-activo' : 'badge-status-inactivo' }}">
+                                {{ $usuario->status === 'activo' ? 'Activo' : 'Inactivo' }}
+                            </span>
+                            @endif
+                        </td>
+                        <td><small>{{ $usuario->ultimo_login ? $usuario->ultimo_login->format('d/m/Y H:i') : 'Nunca' }}</small></td>
+                        <td>
+                            @if($usuario->must_change_password)
+                                <span class="badge-status-inactivo" style="font-size: 0.7rem; padding: 3px 8px; border-radius: 12px;">Pendiente</span>
+                            @else
+                                <span class="badge-status-activo" style="font-size: 0.7rem; padding: 3px 8px; border-radius: 12px;">OK</span>
+                            @endif
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group">
+                                @if(auth()->user()->hasPermission('ver-usuarios'))
+                                <button class="btn btn-sm btn-action btn-outline-primary-dark btn-ver-usuario"
+                                        data-id="{{ $usuario->id }}" title="Ver detalle">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                        <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                </button>
+                                @endif
+                                @if(auth()->user()->hasPermission('editar-usuario'))
+                                <button class="btn btn-sm btn-action btn-outline-primary-dark btn-editar-usuario"
+                                        data-id="{{ $usuario->id }}"
+                                        data-usuario="{{ $usuario->usuario }}"
+                                        data-rol-id="{{ $usuario->rol_id }}"
+                                        data-status="{{ $usuario->status }}" title="Editar">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </button>
+                                @endif
+                                @if(auth()->user()->hasPermission('resetear-password-usuario'))
+                                <button class="btn btn-sm btn-action btn-outline-primary-dark btn-reset-password"
+                                        data-id="{{ $usuario->id }}" title="Resetear contraseña">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                                    </svg>
+                                </button>
+                                @endif
+                                @if(auth()->user()->hasPermission('eliminar-usuario') && $usuario->id !== Auth::id())
+                                <button class="btn btn-sm btn-action btn-outline-danger btn-eliminar-usuario"
+                                        data-id="{{ $usuario->id }}"
+                                        data-usuario="{{ $usuario->usuario }}" title="Eliminar">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c5221f" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                </button>
+                                @endif
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            </svg>
+                            <p>No se encontraron usuarios</p>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-    @endif
+    </div>
 
-    <!-- Tabla de usuarios -->
-    <div class="row">
-        <div class="col-12">
-            <div class="stat-card">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead class="table-light">
-                            <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Cédula</th>
-                                <th>Rol Actual</th>
-                                <th>Estado</th>
-                                <th>Fecha Registro</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($users as $user)
-                            <tr>
-                                <td>{{ $user->id }}</td>
-                                <td>
-                                    {{ $user->nombre }} {{ $user->apellido }}
-                                    @if($user->id === Auth::id())
-                                        <span class="badge bg-info ms-2">Tú</span>
-                                    @endif
-                                </td>
-                                <td>{{ $user->cedula }}</td>
-                                <td>
-                                    @if($user->rol)
-                                        @php
-                                            $badgeClass = match($user->rol->nombre) {
-                                                'super_admin' => 'bg-danger',
-                                                'admin' => 'bg-warning text-dark',
-                                                'worker' => 'bg-primary',
-                                                'user', 'usuario' => 'bg-success',
-                                                default => 'bg-secondary'
-                                            };
-                                            $roleIcon = match($user->rol->nombre) {
-                                                'super_admin' => '👑',
-                                                'admin' => '⚙️',
-                                                'worker' => '🔧',
-                                                'user', 'usuario' => '👤',
-                                                default => '❓'
-                                            };
-                                        @endphp
-                                        <span class="badge {{ $badgeClass }} fs-6 p-2" id="rol-badge-{{ $user->id }}">
-                                            {{ $roleIcon }} {{ ucfirst($user->rol->nombre) }}
-                                        </span>
-                                    @else
-                                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                                            <span class="badge bg-danger fs-6 p-2" id="rol-badge-{{ $user->id }}">
-                                                ⚠️ SIN ROL
-                                            </span>
-                                            <button type="button"
-                                                    class="btn btn-sm btn-warning"
-                                                    onclick="asignarRolUrgente({{ $user->id }}, '{{ addslashes($user->nombre . ' ' . $user->apellido) }}')"
-                                                    title="Asignar rol">
-                                                🚨 Asignar
-                                            </button>
-                                        </div>
-                                    @endif
-                                </td>
-                                <td>
-                                    @php
-                                        $estadoColors = [
-                                            'activo' => 'success',
-                                            'pendiente' => 'warning',
-                                            'inactivo' => 'danger',
-                                            'suspendido' => 'secondary'
-                                        ];
-                                        $color = $estadoColors[$user->estado_usuario] ?? 'secondary';
-                                    @endphp
-                                    <span class="badge bg-{{ $color }} fs-6 p-2" id="estado-badge-{{ $user->id }}">
-                                        @if($user->estado_usuario == 'activo') ✅
-                                        @elseif($user->estado_usuario == 'pendiente') ⏳
-                                        @elseif($user->estado_usuario == 'inactivo') ❌
-                                        @elseif($user->estado_usuario == 'suspendido') ⚠️
-                                        @endif
-                                        {{ ucfirst($user->estado_usuario) }}
-                                    </span>
-                                </td>
-                                <td>{{ \Carbon\Carbon::parse($user->fecha_solicitud)->format('d/m/Y') }}</td>
-                                <td>
-                                    <!-- Botón cambiar rol -->
-                                    <button type="button"
-                                            class="btn btn-sm btn-primary mb-1 w-100"
-                                            onclick="openRoleModalWithSound({{ $user->id }}, '{{ addslashes($user->nombre . ' ' . $user->apellido) }}', '{{ $user->rol->nombre ?? 'user' }}')">
-                                        🔄 Cambiar Rol
-                                    </button>
-
-                                    <!-- Botón cambiar estado -->
-                                    <button type="button"
-                                            class="btn btn-sm btn-info mb-1 w-100"
-                                            onclick="openEstadoModalWithSound({{ $user->id }}, '{{ addslashes($user->nombre . ' ' . $user->apellido) }}', '{{ $user->estado_usuario }}')">
-                                        📌 Cambiar Estado
-                                    </button>
-
-                                    <!-- Botón cambiar contraseña -->
-                                    <button type="button"
-                                            class="btn btn-sm btn-warning w-100"
-                                            onclick="openPasswordModalWithSound({{ $user->id }}, '{{ addslashes($user->nombre . ' ' . $user->apellido) }}')">
-                                        🔒 Cambiar Pass
-                                    </button>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+    {{-- ========== PAGINACIÓN ========== --}}
+    <div class="mt-3">
+        {{ $usuarios->links() }}
     </div>
 </div>
 
-<!-- Modal Cambiar Rol -->
-<div class="modal fade" id="roleModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="roleModalTitle">Cambiar Rol</h5>
+{{-- ========== MODAL CREAR/EDITAR USUARIO ========== --}}
+<div class="modal fade" id="modalUsuario" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalUsuarioTitulo">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                        <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                    Nuevo Usuario
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <input type="hidden" id="roleUserId">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Seleccionar nuevo rol</label>
-                    <select class="form-select" id="roleSelect" required>
-                        <option value="">-- Seleccione un rol --</option>
-                        @foreach($roles as $rol)
+            <form id="formUsuario" method="POST" action="/admin/usuarios">
+                @csrf
+                <input type="hidden" name="_method" id="usuarioMethod" value="POST">
+                <input type="hidden" name="id" id="usuarioId" value="">
+                <div class="modal-body px-4">
+
+                    {{-- BUSCADOR POR CÉDULA --}}
+                    <div class="mb-4" id="divTrabajadorSelect">
+                        <label class="form-label small fw-bold" style="color: var(--primary-dark);">
+                            Buscar Trabajador por Cédula
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" stroke-width="2">
+                                    <circle cx="11" cy="11" r="8"/>
+                                    <path d="M21 21l-4.35-4.35"/>
+                                </svg>
+                            </span>
+                            <input type="text" class="form-control" id="usuarioCedulaSearch"
+                                   placeholder="V-12345678" autocomplete="off">
+                        </div>
+                        <div id="cedulaSearchResults" class="mt-2" style="display:none;"></div>
+
+                        <div id="infoTrabajadorEncontrado" class="mt-3" style="display:none;">
+                            <div class="d-flex align-items-start gap-2">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" stroke-width="2" class="mt-1 flex-shrink-0">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                                    <circle cx="12" cy="7" r="4"/>
+                                </svg>
+                                <div>
+                                    <p class="mb-1 fw-medium" style="color: var(--primary-dark);" id="trabajadorEncontradoNombre"></p>
+                                    <p class="mb-0 small text-muted" id="trabajadorEncontradoCargo"></p>
+                                    <p class="mb-0 small text-muted" id="trabajadorEncontradoDepartamento"></p>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="hidden" id="usuarioTrabajadorId" name="trabajador_id">
+                    </div>
+
+                    {{-- INFO TRABAJADOR (EDICIÓN) --}}
+                    <div class="mb-3" id="divTrabajadorInfo" style="display:none;">
+                        <div class="p-2 rounded" style="background: var(--primary-lighter); border: 1px solid #c5d5f0;">
+                            <small class="fw-bold" style="color: var(--primary-dark);">Trabajador vinculado</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="usuarioNombre" class="form-label small fw-bold">Nombre de Usuario</label>
+                        <input type="text" class="form-control" id="usuarioNombre" name="usuario"
+                               placeholder="ejemplo: juan.perez" required>
+                        <small class="text-muted">
+                            Sugerido: <span id="usuarioSugerido" style="color: var(--primary-dark); font-weight: 500;"></span>
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="usuarioRolId" class="form-label small fw-bold">Rol</label>
+                        <select class="form-select" id="usuarioRolId" name="rol_id" required>
+                            <option value="">Seleccione un rol</option>
+                            @foreach($roles as $rol)
                             <option value="{{ $rol->id }}">{{ ucfirst($rol->nombre) }} - {{ $rol->descripcion }}</option>
-                        @endforeach
-                    </select>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="usuarioStatus" class="form-label small fw-bold">Estado</label>
+                        <select class="form-select" id="usuarioStatus" name="status">
+                            <option value="activo">Activo</option>
+                            <option value="inactivo">Inactivo</option>
+                        </select>
+                    </div>
+
+                    <div class="p-3 rounded mt-3" style="background: var(--primary-lighter); border: 1px solid #c5d5f0;">
+                        <div class="d-flex align-items-start gap-2">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary-dark)" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="16" x2="12" y2="12"/>
+                                <line x1="12" y1="8" x2="12.01" y2="8"/>
+                            </svg>
+                            <small style="color: var(--primary-dark);">
+                                Se generará una contraseña temporal automáticamente. El usuario deberá cambiarla en su primer acceso.
+                            </small>
+                        </div>
+                    </div>
+
+                    {{-- ============================================= --}}
+                    {{-- CONTENEDOR DE CONTRASEÑA HASHEADA (NUEVO) --}}
+                    {{-- ============================================= --}}
+                    <div id="passwordHashContainer" class="password-hash-container">
+                        <span class="hash-label">🔐 Contraseña Encriptada (Hash)</span>
+                        <span class="hash-value" id="passwordHashValue">---</span>
+                    </div>
+                    {{-- ============================================= --}}
+
                 </div>
-                <div class="alert alert-info">
-                    <small>
-                        <strong>📌 Descripción de roles:</strong><br>
-                        • <strong>super_admin:</strong> Acceso total al sistema.<br>
-                        • <strong>admin:</strong> Puede administrar usuarios y solicitudes.<br>
-                        • <strong>worker:</strong> Puede gestionar préstamos y equipos.<br>
-                        • <strong>user:</strong> Solo puede ver y solicitar préstamos.
-                    </small>
+                <div class="modal-footer border-0 px-4 pb-4">
+                    <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary-dark" id="btnGuardarUsuario">Guardar Usuario</button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary" onclick="confirmarCambioRol()">Guardar Cambios</button>
-            </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Modal Cambiar Estado -->
-<div class="modal fade" id="estadoModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-info text-white">
-                <h5 class="modal-title" id="estadoModalTitle">Cambiar Estado</h5>
+{{-- ========== MODAL CONFIRMAR ELIMINACIÓN ========== --}}
+<div class="modal fade" id="modalConfirmDelete" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <input type="hidden" id="estadoUserId">
-                <div class="mb-3">
-                    <label class="form-label fw-bold">Seleccionar nuevo estado</label>
-                    <select class="form-select" id="estadoSelect" required>
-                        <option value="activo">✅ Activo - Puede iniciar sesión normalmente</option>
-                        <option value="pendiente">⏳ Pendiente - Esperando aprobación</option>
-                        <option value="inactivo">❌ Inactivo - No puede iniciar sesión</option>
-                        <option value="suspendido">⚠️ Suspendido - Suspendido temporalmente</option>
-                    </select>
-                </div>
-                <div class="alert alert-info">
-                    <small>
-                        <strong>📌 Estados disponibles:</strong><br>
-                        • <strong>Activo:</strong> Usuario puede iniciar sesión y usar el sistema.<br>
-                        • <strong>Pendiente:</strong> Usuario registrado, espera aprobación.<br>
-                        • <strong>Inactivo:</strong> Usuario deshabilitado permanentemente.<br>
-                        • <strong>Suspendido:</strong> Usuario suspendido temporalmente.
-                    </small>
+            <div class="modal-body px-4">
+                <div class="delete-warning" style="background: #fff3f3; border: 1px solid #f5c6cb; border-radius: 10px; padding: 1rem;">
+                    <p class="mb-1 fw-medium" style="color: var(--danger);">Esta acción no se puede deshacer.</p>
+                    <p class="mb-0 small text-muted">Se eliminará permanentemente al usuario <strong id="deleteUserName"></strong>.</p>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-info" onclick="confirmarCambioEstado()">Guardar Cambios</button>
+            <div class="modal-footer border-0 px-4 pb-4">
+                <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formDelete" method="POST" action="">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">Eliminar Permanentemente</button>
+                </form>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Modal Cambiar Contraseña CORREGIDO -->
-<div class="modal fade" id="passwordModal" tabindex="-1" data-bs-backdrop="static">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header bg-warning">
-                <h5 class="modal-title" id="passwordModalTitle">Cambiar Contraseña</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+{{-- ========== MODAL DETALLE ========== --}}
+<div class="modal fade" id="modalDetail" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalle del Usuario</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <input type="hidden" id="passwordUserId">
-                <div class="mb-3">
-                    <label for="new_password" class="form-label fw-bold">Nueva contraseña</label>
-                    <input type="password" class="form-control" id="new_password" name="new_password" required minlength="6">
-                    <div class="form-text">Mínimo 6 caracteres</div>
+            <div class="modal-body px-4">
+                <h6 style="color: var(--primary-dark); font-weight: 600; margin-bottom: 1rem;">Datos del Trabajador</h6>
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Cédula</div><div class="detail-value" id="detailCedula">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Nombre Completo</div><div class="detail-value" id="detailNombre">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Departamento</div><div class="detail-value" id="detailDepartamento">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Cargo</div><div class="detail-value" id="detailCargo">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Especialidad</div><div class="detail-value" id="detailEspecialidad">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Teléfono</div><div class="detail-value" id="detailTelefono">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Email</div><div class="detail-value" id="detailEmail">-</div></div>
                 </div>
-                <div class="mb-3">
-                    <label for="new_password_confirmation" class="form-label fw-bold">Confirmar nueva contraseña</label>
-                    <input type="password" class="form-control" id="new_password_confirmation" name="new_password_confirmation" required minlength="6">
-                    <div class="form-text">Repite la nueva contraseña</div>
+                <hr>
+                <h6 style="color: var(--primary-dark); font-weight: 600; margin-bottom: 1rem;">Datos de Acceso</h6>
+                <div class="detail-grid">
+                    <div class="detail-item"><div class="detail-label">Usuario</div><div class="detail-value" id="detailUsuario">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Rol</div><div class="detail-value" id="detailRol">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Estado</div><div class="detail-value" id="detailStatus">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Último Ingreso</div><div class="detail-value" id="detailUltimoLogin">-</div></div>
+                    <div class="detail-item"><div class="detail-label">Creado</div><div class="detail-value" id="detailCreado">-</div></div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-warning" onclick="confirmarCambioPassword()">
-                    <i class="fas fa-key"></i> Actualizar Contraseña
-                </button>
+            <div class="modal-footer border-0 px-4 pb-4">
+                <button type="button" class="btn btn-primary-dark" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Sistema de Notificaciones Toast -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 9999">
-    <div id="notificationToast" class="toast align-items-center text-white border-0" role="alert" aria-live="assertive" aria-atomic="true" data-bs-autohide="true" data-bs-delay="3000">
-        <div class="d-flex">
-            <div class="toast-body" id="toastMessage">
-                Mensaje de notificación
+{{-- ========== MODAL CONTRASEÑA TEMPORAL ========== --}}
+@if(session('new_password') || session('reset_password'))
+<div class="modal fade" id="modalPassword" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content shadow-lg">
+            <div class="modal-header">
+                <h5 class="modal-title">{{ session('reset_password') ? 'Contraseña Reseteada' : 'Contraseña Generada' }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            <div class="modal-body px-4 text-center">
+                <p class="small text-muted mb-2">Usuario: <strong>{{ session('new_usuario') ?? session('reset_usuario') }}</strong></p>
+                <div class="password-display" id="passwordDisplay">{{ session('new_password') ?? session('reset_password') }}</div>
+                <p class="small text-danger mt-2 mb-0">Copie esta contraseña ahora. No se volverá a mostrar.</p>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 justify-content-center">
+                <button type="button" class="btn btn-primary-dark w-100" id="btnClosePasswordModal">Cerrar</button>
+            </div>
         </div>
     </div>
 </div>
+@endif
 
-<style>
-    .stat-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-        transition: transform 0.3s;
-        border: none;
-    }
+{{-- ========== FORMS OCULTOS ========== --}}
+<form id="formToggleStatus" method="POST" style="display:none;">@csrf @method('PATCH')</form>
+<form id="formResetPassword" method="POST" style="display:none;">@csrf @method('PATCH')</form>
 
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-    }
+@endsection
 
-    .btn-sm {
-        font-size: 0.8rem;
-    }
-
-    .table th, .table td {
-        vertical-align: middle;
-    }
-    
-    .badge {
-        font-size: 0.85rem;
-        padding: 0.5rem 0.75rem;
-    }
-    
-    .toast {
-        opacity: 0.95;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        min-width: 250px;
-    }
-    
-    .spinner-border-sm {
-        width: 1rem;
-        height: 1rem;
-        border-width: 0.2em;
-    }
-    
-    .sound-control-btn {
-        transition: all 0.3s ease;
-    }
-    
-    .sound-control-btn:hover {
-        transform: scale(1.1);
-    }
-</style>
-
-<script>
-// ========== SISTEMA DE SONIDOS ==========
-class SoundManager {
-    constructor() {
-        this.enabled = true;
-        this.volume = 0.5;
-        this.sounds = {};
-        this.initialized = false;
-        this.init();
-    }
-    
-    init() {
-        try {
-            const soundFiles = {
-                success: '/sounds/success.mp3',
-                error: '/sounds/error.mp3',
-                notification: '/sounds/notification.mp3',
-                warning: '/sounds/warning.mp3'
-            };
-            
-            for (const [key, url] of Object.entries(soundFiles)) {
-                const audio = new Audio(url);
-                audio.preload = 'auto';
-                audio.volume = this.volume;
-                audio.load();
-                this.sounds[key] = audio;
-                
-                audio.addEventListener('error', (e) => {
-                    console.warn(`No se pudo cargar el sonido ${key}`);
-                    this.createFallbackSound(key);
-                });
-            }
-            
-            const savedEnabled = localStorage.getItem('soundEnabled');
-            if (savedEnabled !== null) {
-                this.enabled = savedEnabled === 'true';
-            }
-            
-            const savedVolume = localStorage.getItem('soundVolume');
-            if (savedVolume !== null) {
-                this.volume = parseFloat(savedVolume);
-                this.setVolume(this.volume);
-            }
-            
-            this.initialized = true;
-            this.addSoundControl();
-        } catch (error) {
-            console.error('Error inicializando sonidos:', error);
-        }
-    }
-    
-    createFallbackSound(type) {
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            let frequency = 800;
-            let duration = 0.3;
-            
-            switch(type) {
-                case 'success':
-                    frequency = 880;
-                    duration = 0.2;
-                    break;
-                case 'error':
-                    frequency = 440;
-                    duration = 0.5;
-                    break;
-                case 'warning':
-                    frequency = 660;
-                    duration = 0.4;
-                    break;
-                default:
-                    frequency = 528;
-                    duration = 0.3;
-            }
-            
-            this.sounds[type] = {
-                play: () => {
-                    if (!this.enabled) return;
-                    const osc = audioContext.createOscillator();
-                    const gain = audioContext.createGain();
-                    osc.connect(gain);
-                    gain.connect(audioContext.destination);
-                    osc.frequency.value = frequency;
-                    gain.gain.value = this.volume;
-                    osc.start();
-                    gain.gain.exponentialRampToValueAtTime(0.00001, audioContext.currentTime + duration);
-                    osc.stop(audioContext.currentTime + duration);
-                }
-            };
-        } catch (e) {
-            console.error('No se pudo crear sonido de fallback:', e);
-        }
-    }
-    
-    play(type) {
-        if (!this.enabled || !this.initialized) return;
-        
-        const sound = this.sounds[type];
-        if (sound) {
-            try {
-                if (sound.cloneNode) {
-                    const soundClone = sound.cloneNode();
-                    soundClone.volume = this.volume;
-                    soundClone.play().catch(error => console.log('Error:', error));
-                    soundClone.onended = () => soundClone.remove();
-                } else if (typeof sound.play === 'function') {
-                    sound.play();
-                }
-            } catch (error) {
-                console.error(`Error al reproducir ${type}:`, error);
-            }
-        }
-    }
-    
-    setVolume(volume) {
-        this.volume = Math.max(0, Math.min(1, volume));
-        for (const sound of Object.values(this.sounds)) {
-            if (sound.volume !== undefined) {
-                sound.volume = this.volume;
-            }
-        }
-        localStorage.setItem('soundVolume', this.volume);
-    }
-    
-    toggle() {
-        this.enabled = !this.enabled;
-        localStorage.setItem('soundEnabled', this.enabled);
-        if (this.enabled) this.play('notification');
-        return this.enabled;
-    }
-    
-    addSoundControl() {
-        if (document.getElementById('soundControlBtn')) return;
-        
-        const controlHtml = `
-            <div style="position: fixed; bottom: 20px; left: 20px; z-index: 9999;">
-                <button id="soundControlBtn" 
-                        class="btn btn-secondary rounded-circle shadow"
-                        style="width: 50px; height: 50px; font-size: 24px;"
-                        title="${this.enabled ? 'Desactivar sonidos' : 'Activar sonidos'}">
-                    ${this.enabled ? '🔊' : '🔇'}
-                </button>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', controlHtml);
-        
-        const btn = document.getElementById('soundControlBtn');
-        if (btn) {
-            btn.addEventListener('click', () => {
-                const isEnabled = this.toggle();
-                btn.textContent = isEnabled ? '🔊' : '🔇';
-                btn.title = isEnabled ? 'Desactivar sonidos' : 'Activar sonidos';
-            });
-        }
-    }
-}
-
-// Inicializar sistema de sonidos
-const soundManager = new SoundManager();
-
-// ========== SISTEMA DE NOTIFICACIONES ==========
-let toastInstance = null;
-
-function showNotification(message, type = 'success') {
-    soundManager.play(type);
-    
-    const toastEl = document.getElementById('notificationToast');
-    const toastMessage = document.getElementById('toastMessage');
-    
-    if (!toastEl || !toastMessage) {
-        if (type === 'error') alert('❌ Error: ' + message);
-        return;
-    }
-    
-    toastEl.classList.remove('bg-success', 'bg-danger', 'bg-warning', 'bg-info');
-    if (type === 'success') {
-        toastEl.classList.add('bg-success');
-    } else if (type === 'error') {
-        toastEl.classList.add('bg-danger');
-    } else if (type === 'warning') {
-        toastEl.classList.add('bg-warning');
-    } else {
-        toastEl.classList.add('bg-info');
-    }
-    
-    toastMessage.textContent = message;
-    
-    if (toastInstance) {
-        toastInstance.hide();
-        setTimeout(() => toastInstance.show(), 200);
-    } else {
-        toastInstance = new bootstrap.Toast(toastEl, {
-            autohide: true,
-            delay: 3000
-        });
-        toastInstance.show();
-    }
-}
-
-// ========== FUNCIONES PARA ABRIR MODALES ==========
-function openRoleModalWithSound(userId, userName, currentRole) {
-    soundManager.play('notification');
-    openRoleModal(userId, userName, currentRole);
-}
-
-function openEstadoModalWithSound(userId, userName, currentEstado) {
-    soundManager.play('notification');
-    openEstadoModal(userId, userName, currentEstado);
-}
-
-function openPasswordModalWithSound(userId, userName) {
-    soundManager.play('notification');
-    openPasswordModal(userId, userName);
-}
-
-function openRoleModal(userId, userName, currentRole) {
-    document.getElementById('roleModalTitle').innerHTML = 'Cambiar Rol - ' + userName;
-    document.getElementById('roleUserId').value = userId;
-    
-    const select = document.getElementById('roleSelect');
-    let selected = false;
-    
-    for(let i = 0; i < select.options.length; i++) {
-        const optionText = select.options[i].text.toLowerCase();
-        if(currentRole && optionText.includes(currentRole.toLowerCase())) {
-            select.options[i].selected = true;
-            selected = true;
-            break;
-        }
-    }
-    
-    if(!selected && currentRole === 'user') {
-        for(let i = 0; i < select.options.length; i++) {
-            const optionText = select.options[i].text.toLowerCase();
-            if(optionText.includes('user') || optionText.includes('usuario')) {
-                select.options[i].selected = true;
-                break;
-            }
-        }
-    }
-    
-    const modal = new bootstrap.Modal(document.getElementById('roleModal'));
-    modal.show();
-}
-
-function openEstadoModal(userId, userName, currentEstado) {
-    document.getElementById('estadoModalTitle').innerHTML = 'Cambiar Estado - ' + userName;
-    document.getElementById('estadoUserId').value = userId;
-    
-    const select = document.getElementById('estadoSelect');
-    for(let i = 0; i < select.options.length; i++) {
-        if(select.options[i].value === currentEstado) {
-            select.options[i].selected = true;
-            break;
-        }
-    }
-    
-    const modal = new bootstrap.Modal(document.getElementById('estadoModal'));
-    modal.show();
-}
-
-function openPasswordModal(userId, userName) {
-    document.getElementById('passwordModalTitle').innerHTML = 'Cambiar Contraseña - ' + userName;
-    document.getElementById('passwordUserId').value = userId;
-    document.getElementById('new_password').value = '';
-    document.getElementById('new_password_confirmation').value = '';
-    
-    const modal = new bootstrap.Modal(document.getElementById('passwordModal'));
-    modal.show();
-}
-
-// ========== FUNCIÓN CORREGIDA PARA CAMBIAR CONTRASEÑA ==========
-async function confirmarCambioPassword() {
-    const userId = document.getElementById('passwordUserId').value;
-    const newPassword = document.getElementById('new_password').value;
-    const newPasswordConfirmation = document.getElementById('new_password_confirmation').value;
-    
-    // Validaciones
-    if (!newPassword) {
-        soundManager.play('warning');
-        showNotification('Ingrese la nueva contraseña', 'warning');
-        document.getElementById('new_password').focus();
-        return;
-    }
-    
-    if (newPassword.length < 6) {
-        soundManager.play('warning');
-        showNotification('La contraseña debe tener al menos 6 caracteres', 'warning');
-        document.getElementById('new_password').focus();
-        return;
-    }
-    
-    if (newPassword !== newPasswordConfirmation) {
-        soundManager.play('warning');
-        showNotification('Las contraseñas no coinciden', 'warning');
-        document.getElementById('new_password_confirmation').focus();
-        return;
-    }
-    
-    const modalElement = document.getElementById('passwordModal');
-    const modal = bootstrap.Modal.getInstance(modalElement);
-    const btn = modalElement.querySelector('.btn-warning');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Actualizando...';
-    
-    try {
-        const response = await fetch('{{ route("admin.reset-password") }}', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                user_id: userId,
-                new_password: newPassword,
-                new_password_confirmation: newPasswordConfirmation
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            modal.hide();
-            showNotification(data.message, 'success');
-            // Limpiar campos
-            document.getElementById('new_password').value = '';
-            document.getElementById('new_password_confirmation').value = '';
-        } else {
-            showNotification(data.message || 'Error al cambiar la contraseña', 'error');
-        }
-    } catch(error) {
-        console.error('Error:', error);
-        showNotification('Error al cambiar la contraseña: ' + error.message, 'error');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    }
-}
-
-// ========== CONFIRMAR CAMBIOS ROL Y ESTADO ==========
-async function confirmarCambioRol() {
-    const userId = document.getElementById('roleUserId').value;
-    const roleId = document.getElementById('roleSelect').value;
-    
-    if(!roleId) {
-        soundManager.play('warning');
-        showNotification('Por favor seleccione un rol', 'warning');
-        return;
-    }
-    
-    const modalElement = document.getElementById('roleModal');
-    const modal = bootstrap.Modal.getInstance(modalElement);
-    const btn = modalElement.querySelector('.btn-primary');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
-    
-    try {
-        const response = await fetch(`/admin/change-role/${userId}`, {
-            method: 'PUT',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ id_rol: roleId })
-        });
-        
-        const data = await response.json();
-        
-        if(data.success) {
-            modal.hide();
-            showNotification(data.message, 'success');
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            showNotification(data.message || 'Error al cambiar el rol', 'error');
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
-    } catch(error) {
-        console.error('Error:', error);
-        showNotification('Error al cambiar el rol: ' + error.message, 'error');
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    }
-}
-
-async function confirmarCambioEstado() {
-    const userId = document.getElementById('estadoUserId').value;
-    const estado = document.getElementById('estadoSelect').value;
-    
-    if(!estado) {
-        soundManager.play('warning');
-        showNotification('Por favor seleccione un estado', 'warning');
-        return;
-    }
-    
-    const modalElement = document.getElementById('estadoModal');
-    const modal = bootstrap.Modal.getInstance(modalElement);
-    const btn = modalElement.querySelector('.btn-info');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
-    
-    try {
-        const response = await fetch(`/admin/change-status`, {
-            method: 'PUT',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ 
-                user_id: userId,
-                estado_usuario: estado 
-            })
-        });
-        
-        const data = await response.json();
-        
-        if(data.success) {
-            modal.hide();
-            showNotification(data.message, 'success');
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            showNotification(data.message || 'Error al cambiar el estado', 'error');
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
-    } catch(error) {
-        console.error('Error:', error);
-        showNotification('Error al cambiar el estado: ' + error.message, 'error');
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    }
-}
-
-async function confirmarAsignacionRolUrgente(userId) {
-    const select = document.getElementById('rolUrgenteSelect');
-    const roleId = select?.value;
-    
-    if(!roleId) {
-        soundManager.play('warning');
-        showNotification('Por favor seleccione un rol', 'warning');
-        return;
-    }
-    
-    const modalElement = document.getElementById('rolUrgenteModal');
-    if (!modalElement) return;
-    
-    const btn = modalElement.querySelector('.btn-danger');
-    const originalText = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Asignando...';
-    
-    try {
-        const response = await fetch(`/admin/change-role/${userId}`, {
-            method: 'PUT',
-            headers: {
-                'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ id_rol: roleId })
-        });
-        
-        const data = await response.json();
-        
-        if(data.success) {
-            const modal = bootstrap.Modal.getInstance(modalElement);
-            modal.hide();
-            showNotification(data.message, 'success');
-            setTimeout(() => {
-                location.reload();
-            }, 1500);
-        } else {
-            showNotification(data.message || 'Error al asignar el rol', 'error');
-            btn.disabled = false;
-            btn.innerHTML = originalText;
-        }
-    } catch(error) {
-        console.error('Error:', error);
-        showNotification('Error al asignar el rol: ' + error.message, 'error');
-        btn.disabled = false;
-        btn.innerHTML = originalText;
-    }
-}
-
-function asignarRolUrgente(userId, userName) {
-    soundManager.play('warning');
-    
-    const modalHtml = `
-        <div class="modal fade" id="rolUrgenteModal" tabindex="-1" data-bs-backdrop="static">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
-                        <h5 class="modal-title">🚨 ASIGNAR ROL URGENTE - ${userName}</h5>
-                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-warning">
-                            <strong>⚠️ Este usuario NO tiene un rol asignado!</strong><br>
-                            Sin un rol, no podrá acceder correctamente al sistema.
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label fw-bold">Seleccionar rol:</label>
-                            <select class="form-select form-select-lg" id="rolUrgenteSelect" required>
-                                <option value="">-- Seleccione un rol --</option>
-                                @foreach($roles as $rol)
-                                    <option value="{{ $rol->id }}">
-                                        {{ ucfirst($rol->nombre) }} - {{ $rol->descripcion }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                        <button type="button" class="btn btn-danger" onclick="confirmarAsignacionRolUrgente(${userId})">✅ Asignar Rol Ahora</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    const existingModal = document.getElementById('rolUrgenteModal');
-    if(existingModal) {
-        existingModal.remove();
-    }
-    
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    const modalElement = document.getElementById('rolUrgenteModal');
-    const modal = new bootstrap.Modal(modalElement);
-    modal.show();
-}
-
-// Mostrar mensajes de sesión con sonido
-document.addEventListener('DOMContentLoaded', function() {
-    @if(session('success'))
-        setTimeout(() => {
-            soundManager.play('success');
-            showNotification('{{ session('success') }}', 'success');
-        }, 500);
-    @endif
-    
-    @if(session('error'))
-        setTimeout(() => {
-            soundManager.play('error');
-            showNotification('{{ session('error') }}', 'error');
-        }, 500);
-    @endif
-});
-</script>
+@section('scripts')
+@vite(['resources/js/admin-usuarios.js'])
 @endsection

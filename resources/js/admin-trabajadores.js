@@ -1,7 +1,7 @@
+// resources/js/admin-trabajadores.js
 import 'bootstrap';
 
 document.addEventListener('DOMContentLoaded', function () {
-
     // ===========================
     // REFERENCIAS
     // ===========================
@@ -14,13 +14,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const modalConfirmDelete = document.getElementById('modalConfirmDelete');
     const formDelete = document.getElementById('formDelete');
     const deleteTrabajadorNombre = document.getElementById('deleteTrabajadorNombre');
-    const deleteTieneUsuario = document.getElementById('deleteTieneUsuario');
     const deleteWarningUsuario = document.getElementById('deleteWarningUsuario');
-
     const modalDetail = document.getElementById('modalDetail');
 
     // ===========================
-    // Validacion de cedula venezolana en tiempo real
+    // VALIDACIÓN DE CÉDULA
     // ===========================
     const cedulaInput = document.getElementById('trabajadorCedula');
     const cedulaFeedback = document.getElementById('cedulaFeedback');
@@ -28,15 +26,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (cedulaInput) {
         cedulaInput.addEventListener('input', function () {
             let value = this.value.replace(/[^0-9VvEe-]/g, '').toUpperCase();
-
-            // Autocompletar V- si solo escribe numeros
             if (/^\d{7,8}$/.test(value)) {
                 value = 'V-' + value;
             }
-
             this.value = value;
 
-            // Validar formato
             const regexCedula = /^[VEJPG]-\d{7,8}$/;
             if (value.length === 0) {
                 this.classList.remove('cedula-valid', 'cedula-invalid');
@@ -45,7 +39,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 this.classList.add('cedula-valid');
                 this.classList.remove('cedula-invalid');
                 if (cedulaFeedback) {
-                    cedulaFeedback.textContent = 'Formato valido';
+                    cedulaFeedback.textContent = 'Formato válido';
                     cedulaFeedback.style.color = '#1e7e34';
                 }
             } else {
@@ -60,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===========================
-    // Nuevo Trabajador
+    // NUEVO TRABAJADOR
     // ===========================
     const btnNuevo = document.querySelector('[data-bs-target="#modalTrabajador"]');
     if (btnNuevo) {
@@ -74,24 +68,33 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('trabajadorNombre').value = '';
             document.getElementById('trabajadorApellido').value = '';
             document.getElementById('trabajadorEmail').value = '';
-            document.getElementById('trabajadorDepartamento').value = 'Informatica';
+            document.getElementById('trabajadorDepartamento').value = 'Informática';
             document.getElementById('trabajadorCargo').value = '';
             document.getElementById('trabajadorEspecialidad').value = '';
             document.getElementById('trabajadorTelefono').value = '';
 
             if (cedulaFeedback) cedulaFeedback.textContent = '';
-            cedulaInput.classList.remove('cedula-valid', 'cedula-invalid');
+            if (cedulaInput) cedulaInput.classList.remove('cedula-valid', 'cedula-invalid');
 
             formTrabajador.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
         });
     }
 
     // ===========================
-    // Editar Trabajador (CORREGIDO - ahora recibe el email)
+    // EDITAR TRABAJADOR
     // ===========================
     document.querySelectorAll('.btn-editar-trabajador').forEach(btn => {
         btn.addEventListener('click', function () {
             const id = this.dataset.id;
+
+            if (!id || id === '' || id === 'undefined') {
+                if (window.mostrarNotificacion) {
+                    window.mostrarNotificacion('error', 'No se pudo obtener el ID del trabajador.');
+                } else {
+                    alert('Error: no se pudo obtener el ID del trabajador.');
+                }
+                return;
+            }
 
             modalTitulo.textContent = 'Editar Trabajador';
             btnGuardar.textContent = 'Actualizar Trabajador';
@@ -102,14 +105,16 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('trabajadorNombre').value = this.dataset.nombre || '';
             document.getElementById('trabajadorApellido').value = this.dataset.apellido || '';
             document.getElementById('trabajadorEmail').value = this.dataset.email || '';
-            document.getElementById('trabajadorDepartamento').value = this.dataset.departamento || 'Informatica';
+            document.getElementById('trabajadorDepartamento').value = this.dataset.departamento || 'Informática';
             document.getElementById('trabajadorCargo').value = this.dataset.cargo || '';
             document.getElementById('trabajadorEspecialidad').value = this.dataset.especialidad || '';
             document.getElementById('trabajadorTelefono').value = this.dataset.telefono || '';
 
             if (cedulaFeedback) cedulaFeedback.textContent = '';
-            cedulaInput.classList.add('cedula-valid');
-            cedulaInput.classList.remove('cedula-invalid');
+            if (cedulaInput) {
+                cedulaInput.classList.add('cedula-valid');
+                cedulaInput.classList.remove('cedula-invalid');
+            }
 
             formTrabajador.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
 
@@ -119,13 +124,22 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ===========================
-    // Eliminar Trabajador
+    // ELIMINAR TRABAJADOR
     // ===========================
     document.querySelectorAll('.btn-eliminar-trabajador').forEach(btn => {
         btn.addEventListener('click', function () {
             const id = this.dataset.id;
             const nombre = this.dataset.nombre;
             const tieneUsuario = this.dataset.tieneUsuario === '1';
+
+            if (!id || id === '' || id === 'undefined') {
+                if (window.mostrarNotificacion) {
+                    window.mostrarNotificacion('error', 'No se pudo obtener el ID del trabajador.');
+                } else {
+                    alert('Error: no se pudo obtener el ID del trabajador.');
+                }
+                return;
+            }
 
             if (deleteTrabajadorNombre) deleteTrabajadorNombre.textContent = nombre;
 
@@ -148,7 +162,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ===========================
-    // Crear usuario desde trabajador
+    // CREAR USUARIO DESDE TRABAJADOR
     // ===========================
     document.querySelectorAll('.btn-crear-usuario').forEach(btn => {
         btn.addEventListener('click', function () {
@@ -157,7 +171,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Si viene de crear usuario, abrir modal automaticamente
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('crear') === '1') {
         const btnNuevoUsuario = document.querySelector('[data-bs-target="#modalUsuario"]');
@@ -167,11 +180,18 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===========================
-    // Ver Detalle Trabajador (CORREGIDO - ahora muestra el email)
+    // VER DETALLE TRABAJADOR
     // ===========================
     document.querySelectorAll('.btn-ver-trabajador').forEach(btn => {
         btn.addEventListener('click', function () {
             const id = this.dataset.id;
+
+            if (!id || id === '' || id === 'undefined') {
+                if (window.mostrarNotificacion) {
+                    window.mostrarNotificacion('error', 'No se pudo obtener el ID del trabajador.');
+                }
+                return;
+            }
 
             fetch('/admin/trabajadores/' + id + '/detalle')
                 .then(response => response.json())
@@ -193,6 +213,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     const infoUsuario = document.getElementById('dtInfoUsuario');
                     const btnCrearUsuario = document.getElementById('btnCrearUsuarioDesdeDetalle');
+                    const sinUsuario = document.getElementById('dtSinUsuario');
 
                     if (t.tiene_usuario && t.usuario) {
                         if (infoUsuario) {
@@ -200,13 +221,15 @@ document.addEventListener('DOMContentLoaded', function () {
                                 <div class="detail-item"><div class="detail-label">Usuario</div><div class="detail-value">${t.usuario.nombre}</div></div>
                                 <div class="detail-item"><div class="detail-label">Rol</div><div class="detail-value">${t.usuario.rol}</div></div>
                                 <div class="detail-item"><div class="detail-label">Estado</div><div class="detail-value">${t.usuario.status}</div></div>
-                                <div class="detail-item"><div class="detail-label">Ultimo Ingreso</div><div class="detail-value">${t.usuario.ultimo_login}</div></div>
+                                <div class="detail-item"><div class="detail-label">Último Ingreso</div><div class="detail-value">${t.usuario.ultimo_login}</div></div>
                             `;
                             infoUsuario.style.display = 'block';
                         }
+                        if (sinUsuario) sinUsuario.style.display = 'none';
                         if (btnCrearUsuario) btnCrearUsuario.style.display = 'none';
                     } else {
                         if (infoUsuario) infoUsuario.style.display = 'none';
+                        if (sinUsuario) sinUsuario.style.display = 'block';
                         if (btnCrearUsuario) {
                             btnCrearUsuario.style.display = 'block';
                             btnCrearUsuario.onclick = function () {
@@ -219,36 +242,33 @@ document.addEventListener('DOMContentLoaded', function () {
                         const bsModal = new bootstrap.Modal(modalDetail);
                         bsModal.show();
                     }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    if (window.mostrarNotificacion) {
+                        window.mostrarNotificacion('error', 'Error al cargar el detalle del trabajador.');
+                    }
                 });
         });
     });
 
-});
-
-// ===========================
-// BÚSQUEDA EN TIEMPO REAL PARA TRABAJADORES
-// ===========================
-document.addEventListener('DOMContentLoaded', function() {
+    // ===========================
+    // BÚSQUEDA EN TIEMPO REAL
+    // ===========================
     const buscarInput = document.getElementById('buscarTrabajador');
     let timeoutBusqueda = null;
 
     if (buscarInput) {
-        console.log('✅ Buscador de trabajadores inicializado');
-
-        buscarInput.addEventListener('input', function() {
+        buscarInput.addEventListener('input', function () {
             const termino = this.value.trim();
-
             clearTimeout(timeoutBusqueda);
-
-            timeoutBusqueda = setTimeout(function() {
+            timeoutBusqueda = setTimeout(function () {
                 const url = new URL(window.location.href);
-                
                 if (termino === '') {
                     url.searchParams.delete('search');
                 } else {
                     url.searchParams.set('search', termino);
                 }
-                
                 window.location.href = url.toString();
             }, 400);
         });
@@ -257,7 +277,5 @@ document.addEventListener('DOMContentLoaded', function() {
             buscarInput.focus();
             buscarInput.setSelectionRange(buscarInput.value.length, buscarInput.value.length);
         }
-    } else {
-        console.log('⚠️ No se encontró el elemento #buscarTrabajador');
     }
 });

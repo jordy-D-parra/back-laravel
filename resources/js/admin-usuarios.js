@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function () {
             warning: '#f6c23e',
             info: '#1e3c72'
         };
+
         const toast = document.createElement('div');
         toast.style.cssText = `
             position: fixed; top: 20px; right: 20px; z-index: 9999;
@@ -32,10 +33,33 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
         toast.textContent = mensaje;
         document.body.appendChild(toast);
+
         setTimeout(() => {
             toast.style.animation = 'slideOutRight 0.3s ease-in';
             setTimeout(() => toast.remove(), 300);
         }, 3500);
+    }
+
+    // ===========================
+    // FUNCIÓN: MOSTRAR HASH DE CONTRASEÑA
+    // ===========================
+    function mostrarHashContraseña(hash) {
+        const container = document.getElementById('passwordHashContainer');
+        const valueSpan = document.getElementById('passwordHashValue');
+        if (container && valueSpan) {
+            valueSpan.textContent = hash;
+            container.style.display = 'block';
+        }
+    }
+
+    // ===========================
+    // FUNCIÓN: OCULTAR HASH
+    // ===========================
+    function ocultarHashContraseña() {
+        const container = document.getElementById('passwordHashContainer');
+        if (container) {
+            container.style.display = 'none';
+        }
     }
 
     // ===========================
@@ -116,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     const nombreEl = document.getElementById('trabajadorEncontradoNombre');
                     const cargoEl = document.getElementById('trabajadorEncontradoCargo');
                     const deptoEl = document.getElementById('trabajadorEncontradoDepartamento');
-                    
+
                     if (nombreEl) nombreEl.textContent = `${trabajador.nombre} ${trabajador.apellido}`;
                     if (cargoEl) cargoEl.textContent = `Cargo: ${trabajador.cargo || 'No especificado'}`;
                     if (deptoEl) deptoEl.textContent = `Departamento: ${trabajador.departamento || 'No especificado'}`;
@@ -150,7 +174,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         infoDiv.parentNode.insertBefore(warningDiv, infoDiv.nextSibling);
                     }
                 }
-
             } else {
                 if (infoDiv) infoDiv.style.display = 'none';
                 if (trabajadorIdInput) trabajadorIdInput.value = '';
@@ -186,23 +209,23 @@ document.addEventListener('DOMContentLoaded', function () {
             if (resultsDiv) resultsDiv.style.display = 'none';
             if (infoDiv) infoDiv.style.display = 'none';
             if (trabajadorIdInput) trabajadorIdInput.value = '';
-            
             const warning = document.getElementById('trabajadorTieneUsuarioWarning');
             if (warning) warning.remove();
 
             formUsuario.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
-
             if (usuarioSugerido) usuarioSugerido.textContent = '';
-            
+
             const divTrabajadorSelect = document.getElementById('divTrabajadorSelect');
             if (divTrabajadorSelect) {
                 divTrabajadorSelect.style.display = 'block';
                 const cedulaSearchGroup = document.querySelector('#divTrabajadorSelect .input-group');
                 if (cedulaSearchGroup) cedulaSearchGroup.style.display = 'flex';
             }
-            
+
             const divTrabajadorInfo = document.getElementById('divTrabajadorInfo');
             if (divTrabajadorInfo) divTrabajadorInfo.style.display = 'none';
+
+            ocultarHashContraseña();
         });
     }
 
@@ -221,18 +244,19 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('usuarioMethod').value = 'PUT';
             document.getElementById('usuarioId').value = id;
             formUsuario.action = '/admin/usuarios/' + id;
-
             document.getElementById('usuarioNombre').value = usuario;
             document.getElementById('usuarioRolId').value = rolId;
             document.getElementById('usuarioStatus').value = status;
 
             const divTrabajadorSelect = document.getElementById('divTrabajadorSelect');
             if (divTrabajadorSelect) divTrabajadorSelect.style.display = 'none';
-            
+
             const divTrabajadorInfo = document.getElementById('divTrabajadorInfo');
             if (divTrabajadorInfo) divTrabajadorInfo.style.display = 'block';
 
             formUsuario.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
+            ocultarHashContraseña();
 
             const bsModal = new bootstrap.Modal(modalUsuario);
             bsModal.show();
@@ -245,7 +269,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.btn-ver-usuario').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
-
             fetch('/admin/usuarios/' + id + '/detalle')
                 .then(response => response.json())
                 .then(data => {
@@ -262,7 +285,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('detailCargo').textContent = t.cargo || '-';
                     document.getElementById('detailEspecialidad').textContent = t.especialidad || 'No asignada';
                     document.getElementById('detailTelefono').textContent = t.telefono || 'No registrado';
-                    // Agregar email del trabajador en el detalle
                     document.getElementById('detailEmail').textContent = t.email || 'No registrado';
 
                     const modalDetail = document.getElementById('modalDetail');
@@ -285,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
             const usuario = this.dataset.usuario || 'Usuario';
-            
+
             if (confirm(`¿Estás seguro de resetear la contraseña de "${usuario}"?`)) {
                 fetch('/admin/usuarios/' + id + '/reset-password', {
                     method: 'PATCH',
@@ -300,7 +322,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     if (data.success) {
                         const nuevaPassword = data.new_password || 'N/A';
                         const nombreUsuario = data.usuario || usuario;
-                        
                         mostrarModalContraseña(nombreUsuario, nuevaPassword);
                         mostrarNotificacion('success', 'Contraseña reseteada exitosamente');
                     } else {
@@ -379,7 +400,6 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
-
         const modalElement = document.getElementById('modalPasswordDisplay');
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
@@ -420,10 +440,10 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
             const usuario = this.dataset.usuario;
-            
+
             document.getElementById('deleteUserName').textContent = usuario;
             document.getElementById('formDelete').action = '/admin/usuarios/' + id;
-            
+
             const modalConfirmDelete = document.getElementById('modalConfirmDelete');
             if (modalConfirmDelete) {
                 const bsModal = new bootstrap.Modal(modalConfirmDelete);
@@ -465,7 +485,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ===========================
-    // VALIDACIÓN Y ENVÍO DEL FORMULARIO
+    // VALIDACIÓN Y ENVÍO DEL FORMULARIO (CON HASH)
     // ===========================
     if (formUsuario) {
         formUsuario.addEventListener('submit', function(e) {
@@ -498,9 +518,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('usuarioRolId').classList.remove('is-invalid');
             }
 
-            if (!isValid) {
-                return;
-            }
+            if (!isValid) return;
 
             btnGuardar.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Guardando...';
             btnGuardar.disabled = true;
@@ -525,8 +543,22 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (data.success) {
                     const modal = bootstrap.Modal.getInstance(modalUsuario);
                     if (modal) modal.hide();
-                    mostrarNotificacion('success', data.message);
-                    setTimeout(() => location.reload(), 1000);
+
+                    mostrarNotificacion('success', data.message || 'Usuario guardado exitosamente');
+
+                    // ✅ MOSTRAR HASH SI VIENE EN LA RESPUESTA
+                    if (data.password_hash) {
+                        mostrarHashContraseña(data.password_hash);
+                    }
+
+                    // ✅ Si es un nuevo usuario, mostrar también el modal de contraseña temporal
+                    if (data.new_password && data.new_usuario) {
+                        setTimeout(() => {
+                            mostrarModalContraseña(data.new_usuario, data.new_password);
+                        }, 500);
+                    }
+
+                    setTimeout(() => location.reload(), 2000);
                 } else {
                     mostrarNotificacion('error', data.message || 'Error al guardar usuario');
                     if (data.errors) {

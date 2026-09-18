@@ -162,10 +162,16 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
         Route::get('/permisos/todos', [RoleController::class, 'getPermisos'])->name('permisos.todos');
 
         // ------ TRABAJADORES ------
-        // ⚠️ Rutas específicas ANTES del resource
-        Route::get('/trabajadores/buscar-cedula/{cedula}', [TrabajadorController::class, 'buscarPorCedula'])->name('trabajadores.buscar-cedula');
-        Route::get('trabajadores/{trabajador}/detalle', [TrabajadorController::class, 'show'])->name('trabajadores.show');
-        Route::resource('trabajadores', TrabajadorController::class)->except(['show']);
+       // ============ TRABAJADORES ============
+// ⚠️ Rutas específicas ANTES del resource
+ // Ruta personalizada para buscar por cédula (debe ir ANTES del resource)
+    Route::get('trabajadores/buscar-cedula/{cedula}', [TrabajadorController::class, 'buscarPorCedula'])
+        ->name('trabajadores.buscar-cedula');
+    Route::get('/trabajadores/{trabajador}/detalle', [TrabajadorController::class, 'show'])
+    ->name('trabajadores.show'); 
+    // Resource con parameter correcto
+    Route::resource('trabajadores', TrabajadorController::class)
+        ->parameters(['trabajadores' => 'trabajador']);
 
         // ------ USUARIOS ------
         // ⚠️ Rutas específicas ANTES del resource

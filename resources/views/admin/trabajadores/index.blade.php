@@ -3,13 +3,13 @@
 @section('title', 'Trabajadores')
 
 @section('styles')
-    @vite(['resources/css/admin-trabajadores.css'])
+@vite(['resources/css/admin-trabajadores.css'])
 @endsection
 
 @section('content')
 <div class="container-fluid px-4">
 
-    <!-- ========== HEADER CON GRADIENTE ========== -->
+    {{-- ========== HEADER CON GRADIENTE ========== --}}
     <div class="page-header">
         <div>
             <h4>
@@ -24,7 +24,7 @@
         </div>
     </div>
 
-    <!-- ========== TARJETAS DE ESTADÍSTICAS ========== -->
+    {{-- ========== TARJETAS DE ESTADÍSTICAS ========== --}}
     <div class="stats-row">
         <div class="stat-card-mini">
             <div class="stat-info">
@@ -39,6 +39,7 @@
                 </svg>
             </div>
         </div>
+
         <div class="stat-card-mini">
             <div class="stat-info">
                 <div class="stat-number">{{ $conUsuario ?? 0 }}</div>
@@ -50,6 +51,7 @@
                 </svg>
             </div>
         </div>
+
         <div class="stat-card-mini">
             <div class="stat-info">
                 <div class="stat-number">{{ $sinUsuario ?? 0 }}</div>
@@ -63,6 +65,7 @@
                 </svg>
             </div>
         </div>
+
         <div class="stat-card-mini">
             <div class="stat-info">
                 <div class="stat-number">{{ $departamentos ?? 0 }}</div>
@@ -77,7 +80,7 @@
         </div>
     </div>
 
-    <!-- ========== BARRA DE FILTROS CON SEPARACIÓN ========== -->
+    {{-- ========== BARRA DE FILTROS ========== --}}
     <div class="filters-bar">
         <div class="filtro-busqueda">
             <div class="input-group">
@@ -88,13 +91,14 @@
                     </svg>
                 </span>
                 <input type="text" class="form-control" id="buscarTrabajador"
-                       placeholder="Buscar por nombre, apellido o cédula..."
-                       value="{{ request('search') }}">
+                    placeholder="Buscar por nombre, apellido o cédula..."
+                    value="{{ request('search') }}">
             </div>
         </div>
 
         @if(auth()->user()->hasPermission('crear-trabajador'))
-        <button style="color: #fff" class="btn btn-primary-dark btn-accion" data-bs-toggle="modal" data-bs-target="#modalTrabajador">
+        <button style="color: #fff" class="btn btn-primary-dark btn-accion"
+            data-bs-toggle="modal" data-bs-target="#modalTrabajador">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <line x1="12" y1="5" x2="12" y2="19"/>
                 <line x1="5" y1="12" x2="19" y2="12"/>
@@ -104,7 +108,7 @@
         @endif
     </div>
 
-    <!-- ========== TABLA (SIN EMAIL) ========== -->
+    {{-- ========== TABLA ========== --}}
     <div class="table-container">
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
@@ -138,7 +142,7 @@
                             <div class="btn-group">
                                 @if(auth()->user()->hasPermission('ver-trabajadores'))
                                 <button class="btn btn-sm btn-action btn-outline-primary-dark btn-ver-trabajador"
-                                        data-id="{{ $trabajador->id }}" title="Ver detalle">
+                                    data-id="{{ $trabajador->id }}" title="Ver detalle">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                         <circle cx="12" cy="12" r="3"/>
@@ -148,15 +152,15 @@
 
                                 @if(auth()->user()->hasPermission('editar-trabajador'))
                                 <button class="btn btn-sm btn-action btn-outline-primary-dark btn-editar-trabajador"
-                                        data-id="{{ $trabajador->id }}"
-                                        data-cedula="{{ $trabajador->cedula }}"
-                                        data-nombre="{{ $trabajador->nombre }}"
-                                        data-apellido="{{ $trabajador->apellido }}"
-                                        data-email="{{ $trabajador->email }}"
-                                        data-departamento="{{ $trabajador->departamento }}"
-                                        data-cargo="{{ $trabajador->cargo }}"
-                                        data-especialidad="{{ $trabajador->especialidad }}"
-                                        data-telefono="{{ $trabajador->telefono }}" title="Editar">
+                                    data-id="{{ $trabajador->id }}"
+                                    data-cedula="{{ $trabajador->cedula }}"
+                                    data-nombre="{{ $trabajador->nombre }}"
+                                    data-apellido="{{ $trabajador->apellido }}"
+                                    data-email="{{ $trabajador->email }}"
+                                    data-departamento="{{ $trabajador->departamento }}"
+                                    data-cargo="{{ $trabajador->cargo }}"
+                                    data-especialidad="{{ $trabajador->especialidad }}"
+                                    data-telefono="{{ $trabajador->telefono }}" title="Editar">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
@@ -166,7 +170,7 @@
 
                                 @if(!$trabajador->usuario && auth()->user()->hasPermission('crear-usuario'))
                                 <a href="{{ route('admin.usuarios.index', ['search' => $trabajador->cedula, 'crear' => 1]) }}"
-                                   class="btn btn-sm btn-action btn-outline-primary-dark" title="Crear usuario">
+                                    class="btn btn-sm btn-action btn-outline-primary-dark" title="Crear usuario">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
                                         <circle cx="12" cy="7" r="4"/>
@@ -176,9 +180,9 @@
 
                                 @if(auth()->user()->hasPermission('eliminar-trabajador') && (!$trabajador->usuario || $trabajador->usuario->id !== Auth::id()))
                                 <button class="btn btn-sm btn-action btn-outline-danger btn-eliminar-trabajador"
-                                        data-id="{{ $trabajador->id }}"
-                                        data-nombre="{{ $trabajador->nombre }} {{ $trabajador->apellido }}"
-                                        data-tiene-usuario="{{ $trabajador->usuario ? '1' : '0' }}" title="Eliminar">
+                                    data-id="{{ $trabajador->id }}"
+                                    data-nombre="{{ $trabajador->nombre }} {{ $trabajador->apellido }}"
+                                    data-tiene-usuario="{{ $trabajador->usuario ? '1' : '0' }}" title="Eliminar">
                                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c5221f" stroke-width="2">
                                         <polyline points="3 6 5 6 21 6"/>
                                         <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -204,13 +208,13 @@
         </div>
     </div>
 
-    <!-- ========== PAGINACIÓN ========== -->
+    {{-- ========== PAGINACIÓN ========== --}}
     <div class="mt-3">
         {{ $trabajadores->links() }}
     </div>
 </div>
 
-<!-- ========== MODAL CREAR/EDITAR TRABAJADOR ========== -->
+{{-- ========== MODAL CREAR/EDITAR TRABAJADOR ========== --}}
 <div class="modal fade" id="modalTrabajador" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content shadow-lg">
@@ -277,7 +281,7 @@
     </div>
 </div>
 
-<!-- ========== MODAL CONFIRMAR ELIMINACIÓN ========== -->
+{{-- ========== MODAL CONFIRMAR ELIMINACIÓN ========== --}}
 <div class="modal fade" id="modalConfirmDelete" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content shadow-lg">
@@ -308,7 +312,7 @@
     </div>
 </div>
 
-<!-- ========== MODAL DETALLE ========== -->
+{{-- ========== MODAL DETALLE ========== --}}
 <div class="modal fade" id="modalDetail" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content shadow-lg">
@@ -332,7 +336,9 @@
                 <h6 style="color: var(--primary-dark); font-weight: 600; margin-bottom: 1rem;">Usuario Vinculado</h6>
                 <div id="dtInfoUsuario" class="detail-grid" style="display:none;"></div>
                 <div id="dtSinUsuario" class="text-muted small">Sin usuario vinculado.</div>
-                <button type="button" class="btn btn-primary-dark btn-sm mt-2" id="btnCrearUsuarioDesdeDetalle" style="display:none;">Crear Usuario para este Trabajador</button>
+                <button type="button" class="btn btn-primary-dark btn-sm mt-2" id="btnCrearUsuarioDesdeDetalle" style="display:none;">
+                    Crear Usuario para este Trabajador
+                </button>
             </div>
             <div class="modal-footer border-0 px-4 pb-4">
                 <button type="button" class="btn btn-primary-dark" data-bs-dismiss="modal">Cerrar</button>
@@ -341,8 +347,121 @@
     </div>
 </div>
 
+{{-- ========== CONTENEDOR DE NOTIFICACIONES TOAST ========== --}}
+<div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 99999; width: 340px;"></div>
+
 @endsection
 
 @section('scripts')
-    @vite(['resources/js/admin-trabajadores.js'])
+@vite(['resources/js/admin-trabajadores.js'])
+
+<script>
+    // ============================================================
+    // SISTEMA DE NOTIFICACIONES TOAST
+    // ============================================================
+    window.mostrarNotificacion = function(tipo, mensaje) {
+        const container = document.getElementById('notification-container');
+        if (!container) return;
+
+        const colores = {
+            success: '#1e7e34',
+            error: '#c5221f',
+            warning: '#f6c23e',
+            info: '#1e3c72'
+        };
+
+        const iconos = {
+            success: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M20 6L9 17l-5-5"/></svg>',
+            error: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>',
+            warning: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>',
+            info: '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+        };
+
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            background: ${colores[tipo] || colores.info};
+            color: white;
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            animation: slideInRight 0.3s ease-out;
+            cursor: pointer;
+            white-space: pre-line;
+            line-height: 1.4;
+        `;
+
+        toast.innerHTML = `
+            <span style="flex-shrink:0; display:flex;">${iconos[tipo] || iconos.info}</span>
+            <span style="flex:1;">${mensaje}</span>
+        `;
+
+        toast.addEventListener('click', () => {
+            toast.style.transition = 'all 0.3s ease';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => toast.remove(), 300);
+        });
+
+        container.appendChild(toast);
+
+        // Auto-cerrar a los 4.5 segundos
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.style.transition = 'all 0.3s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 4500);
+    };
+
+    // ============================================================
+    // INYECTAR ESTILOS DE ANIMACIÓN
+    // ============================================================
+    (function() {
+        if (document.getElementById('notif-styles')) return;
+        const style = document.createElement('style');
+        style.id = 'notif-styles';
+        style.textContent = `
+            @keyframes slideInRight {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+        `;
+        document.head.appendChild(style);
+    })();
+
+    // ============================================================
+    // DETECTAR MENSAJES FLASH DE LARAVEL (SESSION)
+    // ============================================================
+    document.addEventListener('DOMContentLoaded', function () {
+        @if(session('success'))
+            mostrarNotificacion('success', @json(session('success')));
+        @endif
+
+        @if(session('error'))
+            mostrarNotificacion('error', @json(session('error')));
+        @endif
+
+        @if(session('warning'))
+            mostrarNotificacion('warning', @json(session('warning')));
+        @endif
+
+        @if(session('info'))
+            mostrarNotificacion('info', @json(session('info')));
+        @endif
+
+        @if($errors->any())
+            @foreach($errors->all() as $error)
+                mostrarNotificacion('error', @json($error));
+            @endforeach
+        @endif
+    });
+</script>
 @endsection

@@ -1,6 +1,6 @@
 /* ============================================================
-   ADMIN TRABAJADORES - Estilos unificados y simplificados
-   ============================================================ */
+ADMIN USUARIOS - Estilos unificados y simplificados
+============================================================ */
 
 /* ---------- Variables ---------- */
 :root {
@@ -485,6 +485,85 @@
 
 .pagination .page-item.disabled .page-link {
     color: var(--text-muted);
+}
+
+/* ============================================================
+   NUEVO: CONTENEDOR DE CONTRASEÑA HASHEADA
+   ============================================================ */
+.password-hash-container {
+    display: none; /* Oculto por defecto */
+    background: linear-gradient(135deg, #f8f9fc 0%, #eef3fc 100%);
+    border: 2px dashed #1e3c72;
+    border-radius: 12px;
+    padding: 15px 20px;
+    margin-top: 15px;
+    animation: fadeInUpHash 0.4s ease-out;
+    word-break: break-all;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    color: #1e3c72;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(30, 60, 114, 0.08);
+}
+
+.password-hash-container .hash-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #6c757d;
+    display: block;
+    margin-bottom: 6px;
+    font-family: 'Segoe UI', sans-serif;
+}
+
+.password-hash-container .hash-value {
+    font-weight: 700;
+    color: #0f172a;
+    background: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@keyframes fadeInUpHash {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ============================================================
+   ANIMACIONES PARA TOASTS
+   ============================================================ */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
 }
 
 /* ---------- RESPONSIVE ---------- */
