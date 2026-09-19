@@ -11,6 +11,10 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/dashboard-layout.js',
 
+                // Módulo de Perfil de Usuario
+                'resources/css/user-avatar.css',
+                'resources/js/user-avatar.js',
+
                 // CSS principal
                 'resources/css/bootstrap.css',
                 'resources/css/dashboard-layout.css',

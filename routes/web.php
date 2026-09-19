@@ -30,6 +30,7 @@ use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\AuditoriaController;
 use App\Http\Controllers\Admin\ReporteInventarioController;
 use App\Http\Controllers\Admin\UbicacionController;
+use App\Http\Controllers\ProfileController; // 🆕 AÑADIDO: Perfil de usuario
 use App\Models\Estatus;
 
 // ==================== RUTA PRINCIPAL ====================
@@ -66,6 +67,19 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
         Route::get('/', [CalendarioController::class, 'index'])->name('index');
         Route::get('/eventos', [CalendarioController::class, 'getEventos'])->name('eventos');
         Route::get('/evento', [CalendarioController::class, 'getEventoDetalle'])->name('evento.detalle');
+    });
+
+    // 🆕 ============================================================
+    // 🆕 PERFIL DE USUARIO
+    // 🆕 ============================================================
+    Route::prefix('perfil')->name('profile.')->group(function () {
+        Route::get('/', [ProfileController::class, 'index'])->name('index');
+        Route::get('/data', [ProfileController::class, 'getData'])->name('data');
+        Route::put('/info', [ProfileController::class, 'updateInfo'])->name('update');
+        Route::post('/foto', [ProfileController::class, 'updateFoto'])->name('foto.update');
+        Route::delete('/foto', [ProfileController::class, 'deleteFoto'])->name('foto.delete');
+        Route::put('/password', [ProfileController::class, 'updatePassword'])->name('password');
+        Route::put('/security', [ProfileController::class, 'updateSecurity'])->name('security');
     });
 
     // ==================== ADMINISTRACIÓN ====================
