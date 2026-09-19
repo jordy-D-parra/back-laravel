@@ -183,14 +183,78 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
         // ------ INVENTARIO ------
         Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario.index');
 
+        // ✅ RUTA: data paginada para activos (la que usa tu JS)
+        Route::get('/inventario/data', function (Request $request) {
+            $query = \App\Models\Activo::with([
+                'modelo.marca',
+                'modelo.categoria',
+                'estatus',
+                'institucion',
+                'responsable',
+            ]);
+
+            if ($request->filled('search')) {
+                $buscar = $request->search;
+                $query->where(function ($q) use ($buscar) {
+                    $q->where('serial', 'ILIKE', "%{$buscar}%")
+                      ->orWhere('ubicacion', 'ILIKE', "%{$buscar}%")
+                      ->orWhereHas('modelo', fn($q2) => $q2->where('nombre', 'ILIKE', "%{$buscar}%"))
+                      ->orWhereHas('modelo.marca', fn($q2) => $q2->where('nombre', 'ILIKE', "%{$buscar}%"));
+                });
+            }
+
+            if ($request->filled('id_tipo_activo')) {
+                $query->whereHas('modelo', fn($q) => $q->where('categoria_id', $request->id_tipo_activo));
+            }
+
+            if ($request->filled('id_estatus')) {
+                $query->where('id_estatus', $request->id_estatus);
+            }
+
+            return response()->json(
+                $query->orderBy('created_at', 'desc')->paginate(10)
+            );
+        })->name('inventario.data');
+
+        // ✅ RUTA: data paginada para componentes
+        Route::get('/componentes/data', function (Request $request) {
+            $query = \App\Models\Componente::with([
+                'activo',
+                'institucion',
+                'responsable',
+            ]);
+
+            if ($request->filled('search')) {
+                $buscar = $request->search;
+                $query->where(function ($q) use ($buscar) {
+                    $q->where('tipo', 'ILIKE', "%{$buscar}%")
+                      ->orWhere('marca', 'ILIKE', "%{$buscar}%")
+                      ->orWhere('modelo', 'ILIKE', "%{$buscar}%")
+                      ->orWhere('serial', 'ILIKE', "%{$buscar}%");
+                });
+            }
+
+            if ($request->filled('tipo')) {
+                $query->where('tipo', $request->tipo);
+            }
+
+            if ($request->filled('estado')) {
+                $query->where('estado', $request->estado);
+            }
+
+            return response()->json(
+                $query->orderBy('created_at', 'desc')->paginate(10)
+            );
+        })->name('componentes.data');
+
         // ------ ACTIVOS ------
-        Route::get('/activos/por-modelo/{modeloId}', [ActivoController::class, 'porModelo']);
-        Route::get('/activos', [ActivoController::class, 'index']);
-        Route::post('/activos', [ActivoController::class, 'store']);
-        Route::get('/activos/{activo}', [ActivoController::class, 'show']);
-        Route::put('/activos/{activo}', [ActivoController::class, 'update']);
-        Route::delete('/activos/{activo}', [ActivoController::class, 'destroy']);
-        Route::patch('/activos/{activo}/toggle-status', [ActivoController::class, 'toggleStatus']);
+        Route::get('/activos/por-modelo/{modeloId}', [ActivoController::class, 'porModelo'])->name('activos.por-modelo');
+        Route::get('/activos', [ActivoController::class, 'index'])->name('inventario.index');
+        Route::post('/activos', [ActivoController::class, 'store'])->name('inventario.store');
+        Route::get('/activos/{activo}', [ActivoController::class, 'show'])->name('inventario.show');
+        Route::put('/activos/{activo}', [ActivoController::class, 'update'])->name('inventario.update');
+        Route::delete('/activos/{activo}', [ActivoController::class, 'destroy'])->name('inventario.destroy');
+        Route::patch('/activos/{activo}/toggle-status', [ActivoController::class, 'toggleStatus'])->name('inventario.toggle-status');
 
         // ------ COMPONENTES ------
         Route::get('/componentes/disponibles', [ComponenteController::class, 'disponibles'])->name('componentes.disponibles');
@@ -232,7 +296,6 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
         // ============================================================
         // SOLICITUDES
         // ⚠️ IMPORTANTE: Las rutas /correos/ van ANTES del CRUD
-        // ⚠️ SIN la ruta delete/{id} porque NO existe correoDestroy
         // ============================================================
         Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
 
@@ -519,7 +582,7 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
 
         // ============================================================
         // API PARA TÉCNICOS (SOPORTE)
-        // ✅ CORREGIDO: Incluye admin, ingeniero y tecnico
+        // ✅ Incluye admin, ingeniero y tecnico
         // ============================================================
         Route::prefix('api')->group(function () {
 

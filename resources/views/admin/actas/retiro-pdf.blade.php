@@ -259,6 +259,7 @@
     <div class="acta-container">
         <div class="watermark">ACTA DE RETIRO</div>
 
+        <!-- HEADER con logos -->
         <div class="header">
             <div class="logos">
                 <div class="logo-item">
@@ -276,14 +277,17 @@
             <div class="titulo-acta">Acta de Retiro</div>
         </div>
 
+        <!-- Número de acta -->
         <div class="numero-acta">
             <span>Nº {{ $data['numero_acta'] ?? 'N/A' }}</span>
         </div>
 
+        <!-- Fecha -->
         <div class="fecha">
             <strong>San Felipe, {{ $data['fecha'] ?? date('d/m/Y') }}</strong>
         </div>
 
+        <!-- Cuerpo -->
         <div class="cuerpo">
             <p>
                 Mediante el presente instrumento, se certifica que el/la ciudadano(a)
@@ -294,6 +298,7 @@
             </p>
         </div>
 
+        <!-- Datos de la solicitud -->
         <div class="datos-solicitud">
             <div class="item">
                 <span class="label">Solicitud Nº:</span>
@@ -321,6 +326,7 @@
             </div>
         </div>
 
+        <!-- Lista de items -->
         <table class="items-lista">
             <thead>
                 <tr>
@@ -340,6 +346,7 @@
             </tbody>
         </table>
 
+        <!-- Compromiso -->
         <div class="cuerpo">
             <p>
                 El/la responsable abajo firmante se compromete a hacer uso adecuado de los equipos
@@ -348,6 +355,7 @@
             </p>
         </div>
 
+        <!-- Firmas -->
         <div class="firmas">
             <div class="firma-box">
                 <div class="linea"></div>
@@ -363,6 +371,7 @@
             </div>
         </div>
 
+        <!-- Footer -->
         <div class="footer">
             <div class="footer-marca">
                 Documento generado por el Sistema de Gestión de Inventario Tecnológico - Gobernación de Yaracuy

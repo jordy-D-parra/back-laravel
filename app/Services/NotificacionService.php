@@ -1,4 +1,5 @@
 <?php
+
 // app/Services/NotificacionService.php
 
 namespace App\Services;
@@ -13,8 +14,6 @@ class NotificacionService
 {
     /**
      * Enviar notificación a un usuario del sistema.
-     *
-     * ✅ OPTIMIZACIÓN: Evita duplicados exactos en un margen de 5 minutos.
      */
     public function enviarAUsuario(
         Usuario $usuario,
@@ -24,15 +23,14 @@ class NotificacionService
         ?string $url = null,
         bool $enviarCorreo = true
     ): Notificacion {
-        // ✅ VERIFICACIÓN ANTI-DUPLICADOS (mismo usuario + mismo título + mismo mensaje en 5 min)
+        // Anti-duplicados: mismo usuario + mismo título en 5 min
         $existente = Notificacion::where('usuario_id', $usuario->id)
             ->where('titulo', $titulo)
-            ->where('mensaje', $mensaje)
             ->where('fecha_envio', '>=', now()->subMinutes(5))
             ->first();
 
         if ($existente) {
-            Log::info('⏭️ Notificación duplicada omitida', [
+            Log::info('⏭️ Notificación duplicada omitida (usuario)', [
                 'usuario_id' => $usuario->id,
                 'titulo' => $titulo,
             ]);
@@ -50,11 +48,28 @@ class NotificacionService
         ]);
 
         if ($enviarCorreo && $usuario->email) {
-            $this->enviarCorreo(
-                $usuario->email,
-                $usuario->trabajador?->nombre ?? $usuario->usuario,
-                $notificacion
-            );
+            try {
+                Mail::to($usuario->email)->send(
+                    new NotificacionMail(
+                        $notificacion,
+                        $usuario->trabajador?->nombre ?? $usuario->usuario
+                    )
+                );
+
+                Log::info('📧 ✅ Correo enviado a usuario', [
+                    'email' => $usuario->email,
+                    'titulo' => $titulo,
+                    'tipo' => $tipo,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('❌ Error al enviar correo a usuario: ' . $e->getMessage(), [
+                    'email' => $usuario->email,
+                    'titulo' => $titulo,
+                    'error_clase' => get_class($e),
+                    'trace' => $e->getTraceAsString(),
+                ]);
+                throw $e;
+            }
         }
 
         return $notificacion;
@@ -62,8 +77,6 @@ class NotificacionService
 
     /**
      * Enviar notificación a un responsable EXTERNO.
-     *
-     * ✅ OPTIMIZACIÓN: Evita duplicados exactos en un margen de 5 minutos.
      */
     public function enviarAResponsable(
         string $email,
@@ -73,35 +86,42 @@ class NotificacionService
         string $tipo = 'solicitud',
         ?string $url = null
     ): ?Notificacion {
-        try {
-            // ✅ VERIFICACIÓN ANTI-DUPLICADOS (mismo título + mismo mensaje + misma fecha en 5 min)
-            $existente = Notificacion::whereNull('usuario_id')
-                ->where('titulo', $titulo)
-                ->where('mensaje', $mensaje)
-                ->where('fecha_envio', '>=', now()->subMinutes(5))
-                ->first();
+        Log::info('📤 [NotificacionService] Enviando a responsable externo', [
+            'email' => $email,
+            'nombre' => $nombre,
+            'titulo' => $titulo,
+            'tipo' => $tipo,
+            'longitud_mensaje' => strlen($mensaje),
+        ]);
 
-            if ($existente) {
-                Log::info('⏭️ Correo duplicado omitido a responsable externo', [
-                    'email' => $email,
-                    'titulo' => $titulo,
-                ]);
-                return $existente;
-            }
+        // Anti-duplicados: mismo título en 5 min
+        $existente = Notificacion::whereNull('usuario_id')
+            ->where('titulo', $titulo)
+            ->where('fecha_envio', '>=', now()->subMinutes(5))
+            ->first();
 
-            $notificacion = Notificacion::create([
-                'usuario_id' => null,
-                'tipo' => $tipo,
+        if ($existente) {
+            Log::info('⏭️ Correo duplicado omitido a responsable externo', [
+                'email' => $email,
                 'titulo' => $titulo,
-                'mensaje' => $mensaje,
-                'url' => $url,
-                'fecha_envio' => now(),
-                'leida' => false,
             ]);
+            return $existente;
+        }
 
-            $this->enviarCorreo($email, $nombre, $notificacion);
+        $notificacion = Notificacion::create([
+            'usuario_id' => null,
+            'tipo' => $tipo,
+            'titulo' => $titulo,
+            'mensaje' => $mensaje,
+            'url' => $url,
+            'fecha_envio' => now(),
+            'leida' => false,
+        ]);
 
-            Log::info('✅ Correo enviado a responsable externo', [
+        try {
+            Mail::to($email)->send(new NotificacionMail($notificacion, $nombre));
+
+            Log::info('📧 ✅ Correo enviado a responsable externo', [
                 'email' => $email,
                 'nombre' => $nombre,
                 'titulo' => $titulo,
@@ -109,13 +129,15 @@ class NotificacionService
             ]);
 
             return $notificacion;
-        } catch (\Exception $e) {
-            Log::error('Error al enviar correo a responsable externo: ' . $e->getMessage(), [
+        } catch (\Throwable $e) {
+            Log::error('❌ Error CRÍTICO al enviar correo a responsable externo: ' . $e->getMessage(), [
                 'email' => $email,
                 'nombre' => $nombre,
                 'titulo' => $titulo,
+                'error_clase' => get_class($e),
+                'trace' => $e->getTraceAsString(),
             ]);
-            return null;
+            throw $e;
         }
     }
 
@@ -134,14 +156,20 @@ class NotificacionService
         $usuarios = Usuario::whereIn('id', $usuarioIds)->with('trabajador')->get();
 
         foreach ($usuarios as $usuario) {
-            $notificaciones[] = $this->enviarAUsuario(
-                $usuario,
-                $titulo,
-                $mensaje,
-                $tipo,
-                $url,
-                $enviarCorreo
-            );
+            try {
+                $notificaciones[] = $this->enviarAUsuario(
+                    $usuario,
+                    $titulo,
+                    $mensaje,
+                    $tipo,
+                    $url,
+                    $enviarCorreo
+                );
+            } catch (\Throwable $e) {
+                Log::error('Error en envío múltiple: ' . $e->getMessage(), [
+                    'usuario_id' => $usuario->id,
+                ]);
+            }
         }
 
         return $notificaciones;
@@ -172,9 +200,6 @@ class NotificacionService
         );
     }
 
-    /**
-     * Obtener notificaciones no leídas de un usuario.
-     */
     public function getNoLeidas(Usuario $usuario): \Illuminate\Database\Eloquent\Collection
     {
         return Notificacion::porUsuario($usuario->id)
@@ -183,9 +208,6 @@ class NotificacionService
             ->get();
     }
 
-    /**
-     * Contar notificaciones no leídas de un usuario.
-     */
     public function countNoLeidas(Usuario $usuario): int
     {
         return Notificacion::porUsuario($usuario->id)
@@ -193,9 +215,6 @@ class NotificacionService
             ->count();
     }
 
-    /**
-     * Marcar notificación como leída.
-     */
     public function marcarComoLeida(int $notificacionId, Usuario $usuario): bool
     {
         $notificacion = Notificacion::porUsuario($usuario->id)
@@ -209,40 +228,10 @@ class NotificacionService
         return $notificacion->update(['leida' => true]);
     }
 
-    /**
-     * Marcar todas las notificaciones de un usuario como leídas.
-     */
     public function marcarTodasComoLeidas(Usuario $usuario): int
     {
         return Notificacion::porUsuario($usuario->id)
             ->noLeidas()
             ->update(['leida' => true]);
-    }
-
-    // ============================================================
-    // HELPER PRIVADO: Envío de correo
-    // ============================================================
-
-    /**
-     * Envía el correo de forma INMEDIATA (sync).
-     */
-    protected function enviarCorreo(string $email, string $nombre, Notificacion $notificacion): void
-    {
-        try {
-            Mail::to($email)->send(new NotificacionMail($notificacion, $nombre));
-
-            Log::info('📧 Correo enviado', [
-                'email' => $email,
-                'titulo' => $notificacion->titulo,
-                'tipo' => $notificacion->tipo,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('❌ Error al enviar correo: ' . $e->getMessage(), [
-                'email' => $email,
-                'titulo' => $notificacion->titulo,
-                'tipo' => $notificacion->tipo,
-            ]);
-            // No relanzar la excepción para no romper el flujo del controlador
-        }
     }
 }

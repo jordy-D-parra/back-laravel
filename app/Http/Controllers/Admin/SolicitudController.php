@@ -16,9 +16,12 @@ use App\Models\Usuario;
 use App\Models\CorreoRecibido;
 use App\Models\Marca;
 use App\Models\Modelo;
+use App\Models\Notificacion;
 use App\Services\NotificacionService;
 use App\Services\CorreoImapService;
 use App\Mail\ActaRetiroMail;
+use App\Mail\SolicitudRechazadaMail;
+use App\Mail\NotificacionMail;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -39,7 +42,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // INDEX - Lista de solicitudes
+    // INDEX
     // ============================================================
 
     public function index(Request $request)
@@ -150,7 +153,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // MARCAR SOLICITUD COMO LEÍDA
+    // MARCAR COMO LEÍDA
     // ============================================================
 
     public function marcarLeida($id)
@@ -176,7 +179,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // SOLICITUDES PARA PRÉSTAMO
+    // PARA PRÉSTAMO
     // ============================================================
 
     public function paraPrestamo(Request $request)
@@ -208,7 +211,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // OBTENER DETALLES
+    // GET DETALLES
     // ============================================================
 
     public function getDetalles($id)
@@ -389,14 +392,18 @@ class SolicitudController extends Controller
 
             $solicitud->load(['usuario.trabajador', 'responsable', 'departamento', 'institucion', 'detalles']);
 
+            // 📧 CORREO 1a: Al solicitante (En Proceso)
             $this->notificarSolicitanteSolicitudCreada($solicitud);
 
+            // 📧 CORREO 1b: Al responsable (En Proceso)
             $this->notificarResponsableSolicitudCreada($solicitud);
 
+            // 📧 CORREO 1c: Al correo origen (si aplica)
             if ($request->filled('correo_origen')) {
                 $this->notificarResponsableCorreoSolicitud($solicitud, $request->correo_origen);
             }
 
+            // Notificaciones internas a admins
             try {
                 $this->enviarNotificacionesSolicitud($solicitud);
             } catch (\Exception $e) {
@@ -431,7 +438,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // UPDATE - ACTUALIZAR SOLICITUD
+    // UPDATE
     // ============================================================
 
     public function update(Request $request, $id)
@@ -528,7 +535,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // APPROVE - APROBAR SOLICITUD (CON ACTA DE RETIRO)
+    // APPROVE - APROBAR CON ACTA
     // ============================================================
 
     public function approve(Request $request, $id)
@@ -563,10 +570,12 @@ class SolicitudController extends Controller
                 ]);
             });
 
-            // ✅ NOTIFICAR AL RESPONSABLE DE LA SOLICITUD (por correo)
+            $solicitud->refresh();
+
+            // 📧 CORREO 2a: Al responsable - APROBADO
             $this->notificarResponsableSolicitudEstado($solicitud, 'aprobada', $validated['observaciones'] ?? null);
 
-            // 🆕 GENERAR Y ENVIAR ACTA DE RETIRO POR CORREO
+            // 📧 CORREO 2b: Al responsable - ACTA DE RETIRO (PDF adjunto)
             try {
                 $this->generarYEnviarActaRetiro($solicitud);
             } catch (\Throwable $e) {
@@ -576,17 +585,33 @@ class SolicitudController extends Controller
                 ]);
             }
 
-            // Notificar internamente al solicitante
+            // 📧 CORREO 2c: Al solicitante - APROBADO (interno)
             try {
-                $this->notificacionService->enviarAUsuario(
-                    $solicitud->usuario,
-                    '✅ Solicitud Aprobada',
-                    "Tu solicitud #{$solicitud->id} ha sido aprobada.",
-                    'solicitud',
-                    route('admin.solicitudes.index')
-                );
-            } catch (\Exception $e) {
-                Log::error('Error al notificar aprobación al usuario: ' . $e->getMessage());
+                if ($solicitud->usuario && $solicitud->usuario->email) {
+                    $notificacion = Notificacion::create([
+                        'usuario_id' => $solicitud->usuario->id,
+                        'tipo' => 'solicitud',
+                        'titulo' => '✅ Solicitud Aprobada',
+                        'mensaje' => "Tu solicitud #{$solicitud->id} ha sido aprobada.",
+                        'url' => route('admin.solicitudes.index'),
+                        'fecha_envio' => now(),
+                        'leida' => false,
+                    ]);
+
+                    Mail::to($solicitud->usuario->email)->send(
+                        new NotificacionMail(
+                            $notificacion,
+                            $solicitud->usuario->trabajador?->nombre ?? $solicitud->usuario->usuario
+                        )
+                    );
+
+                    Log::info('📧 ✅ Correo de aprobación enviado al solicitante', [
+                        'solicitud_id' => $solicitud->id,
+                        'email' => $solicitud->usuario->email,
+                    ]);
+                }
+            } catch (\Throwable $e) {
+                Log::error('Error al notificar aprobación al solicitante: ' . $e->getMessage());
             }
 
             return response()->json([
@@ -611,7 +636,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // REJECT - RECHAZAR SOLICITUD
+    // REJECT - RECHAZAR
     // ============================================================
 
     public function reject(Request $request, $id)
@@ -642,18 +667,33 @@ class SolicitudController extends Controller
                 ]);
             });
 
+            $solicitud->refresh();
+
+            // 📧 CORREO 3: Al responsable - RECHAZADO (HTML formal)
             $this->notificarResponsableSolicitudEstado($solicitud, 'rechazada', $validated['motivo']);
 
+            // 📧 CORREO 3b: Al solicitante (interno)
             try {
-                $this->notificacionService->enviarAUsuario(
-                    $solicitud->usuario,
-                    '❌ Solicitud Rechazada',
-                    "Tu solicitud #{$solicitud->id} ha sido rechazada. Motivo: {$validated['motivo']}",
-                    'solicitud',
-                    route('admin.solicitudes.index')
-                );
-            } catch (\Exception $e) {
-                Log::error('Error al notificar rechazo al usuario: ' . $e->getMessage());
+                if ($solicitud->usuario && $solicitud->usuario->email) {
+                    $notificacion = Notificacion::create([
+                        'usuario_id' => $solicitud->usuario->id,
+                        'tipo' => 'solicitud',
+                        'titulo' => '❌ Solicitud Rechazada',
+                        'mensaje' => "Tu solicitud #{$solicitud->id} ha sido rechazada. Motivo: {$validated['motivo']}",
+                        'url' => route('admin.solicitudes.index'),
+                        'fecha_envio' => now(),
+                        'leida' => false,
+                    ]);
+
+                    Mail::to($solicitud->usuario->email)->send(
+                        new NotificacionMail(
+                            $notificacion,
+                            $solicitud->usuario->trabajador?->nombre ?? $solicitud->usuario->usuario
+                        )
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::error('Error al notificar rechazo al solicitante: ' . $e->getMessage());
             }
 
             return response()->json([
@@ -678,7 +718,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // CANCEL - CANCELAR SOLICITUD
+    // CANCEL
     // ============================================================
 
     public function cancel($id)
@@ -711,7 +751,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // DESTROY - ELIMINAR SOLICITUD
+    // DESTROY
     // ============================================================
 
     public function destroy($id)
@@ -758,7 +798,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // CORREOS DE SOLICITUD
+    // CORREOS
     // ============================================================
 
     public function correosIndex(Request $request)
@@ -985,10 +1025,8 @@ class SolicitudController extends Controller
             $usuario = $solicitud->usuario;
 
             if (!$usuario || !$usuario->email) {
-                Log::warning('⚠️ No se pudo notificar al solicitante de solicitud creada', [
+                Log::warning('⚠️ No se pudo notificar al solicitante: sin email', [
                     'solicitud_id' => $solicitud->id,
-                    'tiene_usuario' => (bool) $usuario,
-                    'tiene_email' => (bool) ($usuario?->email),
                 ]);
                 return;
             }
@@ -997,9 +1035,9 @@ class SolicitudController extends Controller
                 ? ($solicitud->departamento?->nombre ?? 'Departamento')
                 : ($solicitud->institucion?->nombre ?? 'Institución');
 
-            $solicitante = $solicitud->usuario?->trabajador
-                ? trim($solicitud->usuario->trabajador->nombre . ' ' . $solicitud->usuario->trabajador->apellido)
-                : ($solicitud->usuario?->usuario ?? 'Usuario');
+            $solicitante = $usuario->trabajador
+                ? trim($usuario->trabajador->nombre . ' ' . $usuario->trabajador->apellido)
+                : ($usuario->usuario ?? 'Usuario');
 
             $fechaRequerida = $solicitud->fecha_requerida
                 ? \Carbon\Carbon::parse($solicitud->fecha_requerida)->format('d/m/Y')
@@ -1034,30 +1072,34 @@ class SolicitudController extends Controller
                 "Le notificaremos por este mismo medio cuando su solicitud sea APROBADA o RECHAZADA.\n\n" .
                 "Gracias por usar nuestro sistema de préstamos.";
 
-            $this->notificacionService->enviarAResponsable(
-                $usuario->email,
-                $solicitante,
-                $titulo,
-                $mensaje,
-                'solicitud'
-            );
+            $notificacion = Notificacion::create([
+                'usuario_id' => $usuario->id,
+                'tipo' => 'solicitud',
+                'titulo' => $titulo,
+                'mensaje' => $mensaje,
+                'url' => null,
+                'fecha_envio' => now(),
+                'leida' => false,
+            ]);
 
-            Log::info('📧 Correo enviado al solicitante por solicitud creada (en proceso)', [
+            Mail::to($usuario->email)->send(new NotificacionMail($notificacion, $solicitante));
+
+            Log::info('📧 ✅ Correo "En Proceso" enviado al solicitante', [
                 'solicitud_id' => $solicitud->id,
-                'solicitante' => $solicitante,
                 'email' => $usuario->email,
             ]);
 
         } catch (\Throwable $e) {
-            Log::error('Error al notificar al solicitante por solicitud creada: ' . $e->getMessage(), [
+            Log::error('❌ Error al notificar al solicitante (En Proceso): ' . $e->getMessage(), [
                 'solicitud_id' => $solicitud->id,
+                'error_clase' => get_class($e),
                 'trace' => $e->getTraceAsString(),
             ]);
         }
     }
 
     // ============================================================
-    // NOTIFICAR AL RESPONSABLE - SOLICITUD CREADA
+    // NOTIFICAR AL RESPONSABLE - SOLICITUD CREADA (EN PROCESO)
     // ============================================================
 
     protected function notificarResponsableSolicitudCreada(Solicitud $solicitud): void
@@ -1068,10 +1110,8 @@ class SolicitudController extends Controller
             $responsable = $solicitud->responsable;
 
             if (!$responsable || !$responsable->email) {
-                Log::warning('⚠️ No se pudo notificar al responsable de solicitud creada', [
+                Log::warning('⚠️ No se pudo notificar al responsable: sin email', [
                     'solicitud_id' => $solicitud->id,
-                    'tiene_responsable' => (bool) $responsable,
-                    'tiene_email' => (bool) ($responsable?->email),
                 ]);
                 return;
             }
@@ -1118,23 +1158,27 @@ class SolicitudController extends Controller
                 "Le notificaremos por este mismo medio cuando la solicitud sea APROBADA o RECHAZADA.\n\n" .
                 "Gracias.";
 
-            $this->notificacionService->enviarAResponsable(
-                $responsable->email,
-                $responsable->nombre,
-                $titulo,
-                $mensaje,
-                'solicitud'
-            );
+            $notificacion = Notificacion::create([
+                'usuario_id' => null,
+                'tipo' => 'solicitud',
+                'titulo' => $titulo,
+                'mensaje' => $mensaje,
+                'url' => null,
+                'fecha_envio' => now(),
+                'leida' => false,
+            ]);
 
-            Log::info('📧 Correo enviado al responsable por solicitud creada (en proceso)', [
+            Mail::to($responsable->email)->send(new NotificacionMail($notificacion, $responsable->nombre));
+
+            Log::info('📧 ✅ Correo "En Proceso" enviado al responsable', [
                 'solicitud_id' => $solicitud->id,
-                'responsable' => $responsable->nombre,
                 'email' => $responsable->email,
             ]);
 
         } catch (\Throwable $e) {
-            Log::error('Error al notificar al responsable por solicitud creada: ' . $e->getMessage(), [
+            Log::error('❌ Error al notificar al responsable (En Proceso): ' . $e->getMessage(), [
                 'solicitud_id' => $solicitud->id,
+                'error_clase' => get_class($e),
                 'trace' => $e->getTraceAsString(),
             ]);
         }
@@ -1152,7 +1196,6 @@ class SolicitudController extends Controller
             if (!$responsable || !$responsable->email) {
                 Log::warning("No se pudo notificar al responsable: sin email", [
                     'solicitud_id' => $solicitud->id,
-                    'responsable_id' => $responsable?->id,
                 ]);
                 return;
             }
@@ -1203,25 +1246,24 @@ class SolicitudController extends Controller
                     "Gracias por usar nuestro sistema de préstamos.";
 
             } elseif ($estado === 'rechazada') {
-                $titulo = '❌ Solicitud de Préstamo RECHAZADA';
-                $mensaje =
-                    "❌ SOLICITUD DE PRÉSTAMO RECHAZADA\n\n" .
-                    "Estimado/a {$responsable->nombre},\n\n" .
-                    "Lamentamos informarle que su solicitud de préstamo ha sido RECHAZADA.\n\n" .
-                    "📌 Detalles de la solicitud:\n" .
-                    " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
-                    " • Entidad: {$entidad}\n" .
-                    " • Solicitante: {$solicitante}\n" .
-                    " • Fecha de solicitud: " . ($solicitud->fecha_solicitud ? \Carbon\Carbon::parse($solicitud->fecha_solicitud)->format('d/m/Y') : 'N/A') . "\n" .
-                    " • Fecha requerida: {$fechaRequerida}\n\n" .
-                    "📦 Items solicitados:\n" . ($itemsTexto ?: " • Sin items registrados\n") . "\n" .
-                    "❗ Motivo del rechazo:\n" .
-                    " " . ($motivo ?? 'No especificado') . "\n\n" .
-                    "📝 ¿Qué puede hacer?\n" .
-                    " 1. Revisar el motivo del rechazo.\n" .
-                    " 2. Corregir los aspectos mencionados.\n" .
-                    " 3. Realizar una nueva solicitud con la información corregida.\n\n" .
-                    "Si tiene dudas, contacte al Departamento de Informática.";
+                // Usar Mailable HTML formal
+                try {
+                    Mail::to($responsable->email)->send(
+                        new SolicitudRechazadaMail($solicitud, $motivo ?? 'No especificado')
+                    );
+
+                    Log::info("📧 ✅ Correo de rechazo (HTML) enviado al responsable", [
+                        'solicitud_id' => $solicitud->id,
+                        'email' => $responsable->email,
+                    ]);
+                } catch (\Throwable $e) {
+                    Log::error("❌ Error al enviar correo de rechazo: " . $e->getMessage(), [
+                        'solicitud_id' => $solicitud->id,
+                        'email' => $responsable->email,
+                    ]);
+                }
+
+                return;
 
             } elseif ($estado === 'cancelada') {
                 $titulo = '🚫 Solicitud de Préstamo CANCELADA';
@@ -1239,25 +1281,29 @@ class SolicitudController extends Controller
                 return;
             }
 
-            $this->notificacionService->enviarAResponsable(
-                $responsable->email,
-                $responsable->nombre,
-                $titulo,
-                $mensaje,
-                'solicitud'
-            );
+            $notificacion = Notificacion::create([
+                'usuario_id' => null,
+                'tipo' => 'solicitud',
+                'titulo' => $titulo,
+                'mensaje' => $mensaje,
+                'url' => null,
+                'fecha_envio' => now(),
+                'leida' => false,
+            ]);
 
-            Log::info("📧 Notificación enviada al responsable", [
+            Mail::to($responsable->email)->send(new NotificacionMail($notificacion, $responsable->nombre));
+
+            Log::info("📧 ✅ Notificación '{$estado}' enviada al responsable", [
                 'solicitud_id' => $solicitud->id,
                 'estado' => $estado,
-                'responsable' => $responsable->nombre,
                 'email' => $responsable->email,
             ]);
 
         } catch (\Throwable $e) {
-            Log::error('Error al notificar al responsable: ' . $e->getMessage(), [
+            Log::error('❌ Error al notificar al responsable: ' . $e->getMessage(), [
                 'solicitud_id' => $solicitud->id,
                 'estado' => $estado,
+                'error_clase' => get_class($e),
                 'trace' => $e->getTraceAsString(),
             ]);
         }
@@ -1300,21 +1346,25 @@ class SolicitudController extends Controller
                 "Le notificaremos por este mismo medio cuando su solicitud sea APROBADA o RECHAZADA.\n\n" .
                 "Gracias por usar nuestro sistema de préstamos.";
 
-            $this->notificacionService->enviarAResponsable(
-                $correoOrigen,
-                'Solicitante',
-                '📋 Solicitud de Préstamo Recibida - Pendiente de Aprobación',
-                $mensaje,
-                'solicitud'
-            );
+            $notificacion = Notificacion::create([
+                'usuario_id' => null,
+                'tipo' => 'solicitud',
+                'titulo' => '📋 Solicitud de Préstamo Recibida - Pendiente de Aprobación',
+                'mensaje' => $mensaje,
+                'url' => null,
+                'fecha_envio' => now(),
+                'leida' => false,
+            ]);
 
-            Log::info("📧 Confirmación de recepción enviada al correo origen", [
+            Mail::to($correoOrigen)->send(new NotificacionMail($notificacion, 'Solicitante'));
+
+            Log::info("📧 ✅ Confirmación enviada al correo origen", [
                 'solicitud_id' => $solicitud->id,
                 'correo_origen' => $correoOrigen,
             ]);
 
         } catch (\Throwable $e) {
-            Log::error('Error al notificar al correo origen: ' . $e->getMessage(), [
+            Log::error('❌ Error al notificar al correo origen: ' . $e->getMessage(), [
                 'solicitud_id' => $solicitud->id,
                 'correo_origen' => $correoOrigen,
             ]);
@@ -1322,7 +1372,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // ENVIAR NOTIFICACIONES A ADMINS/TÉCNICOS
+    // NOTIFICAR A ADMINS/TÉCNICOS
     // ============================================================
 
     protected function enviarNotificacionesSolicitud(Solicitud $solicitud): void
@@ -1354,13 +1404,28 @@ class SolicitudController extends Controller
 
             foreach ($admins as $admin) {
                 if ($admin->email) {
-                    $this->notificacionService->enviarAUsuario(
-                        $admin,
-                        '📋 Nueva Solicitud de Préstamo',
-                        $mensaje,
-                        'solicitud',
-                        route('admin.solicitudes.index')
-                    );
+                    try {
+                        $notificacion = Notificacion::create([
+                            'usuario_id' => $admin->id,
+                            'tipo' => 'solicitud',
+                            'titulo' => '📋 Nueva Solicitud de Préstamo',
+                            'mensaje' => $mensaje,
+                            'url' => route('admin.solicitudes.index'),
+                            'fecha_envio' => now(),
+                            'leida' => false,
+                        ]);
+
+                        Mail::to($admin->email)->send(
+                            new NotificacionMail(
+                                $notificacion,
+                                $admin->trabajador?->nombre ?? $admin->usuario
+                            )
+                        );
+                    } catch (\Throwable $e) {
+                        Log::error('Error al notificar admin: ' . $e->getMessage(), [
+                            'admin_id' => $admin->id,
+                        ]);
+                    }
                 }
             }
         } catch (\Throwable $e) {
@@ -1369,7 +1434,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // 🆕 GENERAR Y ENVIAR ACTA DE RETIRO
+    // GENERAR Y ENVIAR ACTA DE RETIRO
     // ============================================================
 
     protected function generarYEnviarActaRetiro(Solicitud $solicitud): void
@@ -1392,10 +1457,6 @@ class SolicitudController extends Controller
 
         $this->enviarActaRetiroPorCorreo($solicitud, $pdf);
     }
-
-    // ============================================================
-    // 🆕 PREPARAR DATOS ACTA DE RETIRO
-    // ============================================================
 
     protected function prepararDatosActaRetiro(Solicitud $solicitud): array
     {
@@ -1436,10 +1497,6 @@ class SolicitudController extends Controller
         ];
     }
 
-    // ============================================================
-    // 🆕 OBTENER ENCARGADO DE INFORMÁTICA
-    // ============================================================
-
     protected function obtenerEncargadoInformatica(): array
     {
         $deptoInformatica = Departamento::where('nombre', 'ILIKE', '%informatica%')
@@ -1467,10 +1524,6 @@ class SolicitudController extends Controller
         ];
     }
 
-    // ============================================================
-    // 🆕 ENVIAR ACTA DE RETIRO POR CORREO
-    // ============================================================
-
     protected function enviarActaRetiroPorCorreo(Solicitud $solicitud, $pdf): void
     {
         $responsable = $solicitud->responsable;
@@ -1478,7 +1531,6 @@ class SolicitudController extends Controller
         if (!$responsable || !$responsable->email) {
             Log::warning("No se pudo enviar acta de retiro: Responsable sin email", [
                 'solicitud_id' => $solicitud->id,
-                'responsable_id' => $responsable->id ?? null,
             ]);
             return;
         }
@@ -1504,7 +1556,6 @@ class SolicitudController extends Controller
 
             Log::info("✅ Acta de retiro enviada al responsable", [
                 'solicitud_id' => $solicitud->id,
-                'responsable' => $responsable->nombre,
                 'email' => $responsable->email,
             ]);
         } catch (\Throwable $e) {

@@ -1,4 +1,5 @@
 <?php
+
 // app/Http/Controllers/Admin/FichaSoporteController.php
 
 namespace App\Http\Controllers\Admin;
@@ -39,9 +40,9 @@ class FichaSoporteController extends Controller
             $buscar = $request->buscar;
             $query->where(function ($q) use ($buscar) {
                 $q->whereHas('activo', fn($q2) => $q2->where('serial', 'like', "%{$buscar}%"))
-                  ->orWhere('tecnico_nombre', 'like', "%{$buscar}%")
-                  ->orWhere('usuario_reporta_nombre', 'like', "%{$buscar}%")
-                  ->orWhere('diagnostico', 'like', "%{$buscar}%");
+                    ->orWhere('tecnico_nombre', 'like', "%{$buscar}%")
+                    ->orWhere('usuario_reporta_nombre', 'like', "%{$buscar}%")
+                    ->orWhere('diagnostico', 'like', "%{$buscar}%");
             });
         }
 
@@ -74,12 +75,11 @@ class FichaSoporteController extends Controller
         $totalFichas = FichaSoporte::count();
         $enProceso = FichaSoporte::where('estado', 'en_proceso')->count();
         $finalizados = FichaSoporte::where('estado', 'finalizado')->count();
-
         $equiposReparacion = Activo::whereHas('estatus', function ($q) {
             $q->where('descripcion', 'En reparación');
         })->count();
 
-        // ✅ CORRECCIÓN: SOLO correos de tipo SOPORTE
+        // Solo correos de tipo SOPORTE
         $correosNoLeidos = CorreoRecibido::deTipoSoporte()->where('leido', false)->count();
         $correosNoProcesados = CorreoRecibido::deTipoSoporte()->where('procesado', false)->count();
 
@@ -88,195 +88,6 @@ class FichaSoporteController extends Controller
             'enProceso', 'finalizados', 'equiposReparacion',
             'correosNoLeidos', 'correosNoProcesados'
         ));
-    }
-
-    // ============================================================
-    // STORE - Crear ficha manual
-    // ============================================================
-    public function store(Request $request)
-    {
-        if (!auth()->user()->hasPermission('crear-ficha-soporte')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-        }
-
-        try {
-            $validated = $request->validate([
-                'activo_id' => 'required|exists:activos,id',
-                'tecnico_id' => 'nullable|exists:usuarios,id',
-                'tecnico_nombre' => 'required|string|max:150',
-                'usuario_reporta_nombre' => 'required|string|max:150',
-                'diagnostico' => 'nullable|string',
-                'observaciones' => 'nullable|string',
-            ]);
-
-            DB::beginTransaction();
-
-            $activo = Activo::find($validated['activo_id']);
-            $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
-
-            if ($activo && $estatusReparacion) {
-                $activo->update(['id_estatus' => $estatusReparacion->id]);
-            }
-
-            $ficha = FichaSoporte::create([
-                'activo_id' => $validated['activo_id'],
-                'tecnico_id' => $validated['tecnico_id'] ?? null,
-                'tecnico_nombre' => $validated['tecnico_nombre'],
-                'usuario_reporta_id' => auth()->id(),
-                'usuario_reporta_nombre' => $validated['usuario_reporta_nombre'],
-                'fecha_ingreso' => now(),
-                'diagnostico' => $validated['diagnostico'] ?? null,
-                'observaciones' => $validated['observaciones'] ?? null,
-                'estado' => 'en_proceso',
-                'origen' => 'manual',
-            ]);
-
-            $componentes = Componente::where('activo_id', $validated['activo_id'])->get();
-
-            foreach ($componentes as $comp) {
-                FichaSoporteDetalle::create([
-                    'ficha_soporte_id' => $ficha->id,
-                    'componente_id' => $comp->id,
-                    'componente_nombre' => $comp->tipo . ' - ' . ($comp->marca ?? 'N/A'),
-                    'estado_ingreso' => $comp->estado === 'instalado' ? 'funcionando' : 'dañado',
-                    'observaciones' => null,
-                ]);
-            }
-
-            DB::commit();
-
-            // ✅ Notificar al responsable de la institución
-            try {
-                $this->notificarFichaSoporteCreada($ficha, null);
-            } catch (\Throwable $e) {
-                Log::error('Error al notificar ficha manual: ' . $e->getMessage());
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Ficha de soporte creada exitosamente',
-                'ficha_id' => $ficha->id,
-                'data' => $ficha->load(['activo', 'detalles'])
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al crear la ficha: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    // ============================================================
-    // STORE EQUIPO EXTERNO
-    // ============================================================
-    public function storeEquipoExterno(Request $request)
-    {
-        if (!auth()->user()->hasPermission('crear-ficha-soporte')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-        }
-
-        try {
-            $validated = $request->validate([
-                'serial' => 'required|string|max:100|unique:activos,serial',
-                'modelo_nombre' => 'required|string|max:100',
-                'marca' => 'required|string|max:100',
-                'categoria_id' => 'required|exists:categorias,id',
-                'institucion_id' => 'required|exists:instituciones,id',
-                'responsable_id' => 'required|exists:responsables,id',
-                'ubicacion' => 'nullable|string|max:100',
-                'fecha_adquisicion' => 'nullable|date',
-                'observaciones' => 'nullable|string',
-                'tecnico_id' => 'nullable|exists:usuarios,id',
-                'tecnico_nombre' => 'nullable|string|max:150',
-                'usuario_reporta_nombre' => 'required|string|max:150',
-                'diagnostico' => 'nullable|string',
-                'observaciones_ficha' => 'nullable|string',
-            ]);
-
-            DB::beginTransaction();
-
-            $marca = Marca::firstOrCreate(['nombre' => $validated['marca']], ['activo' => true]);
-
-            $modelo = Modelo::firstOrCreate(
-                ['marca_id' => $marca->id, 'nombre' => $validated['modelo_nombre']],
-                ['categoria_id' => $validated['categoria_id'], 'activo' => true]
-            );
-
-            $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
-            if (!$estatusReparacion) {
-                throw new \Exception('No se encontró el estatus "En reparación"');
-            }
-
-            $activo = Activo::create([
-                'serial' => $validated['serial'],
-                'modelo_id' => $modelo->id,
-                'id_estatus' => $estatusReparacion->id,
-                'institucion_id' => $validated['institucion_id'],
-                'responsable_id' => $validated['responsable_id'],
-                'ubicacion' => $validated['ubicacion'] ?? 'Taller de reparación',
-                'fecha_adquisicion' => $validated['fecha_adquisicion'] ?? null,
-                'observaciones' => $validated['observaciones'] ?? null,
-            ]);
-
-            $tecnicoNombre = $validated['tecnico_nombre'] ?? null;
-            if ($validated['tecnico_id']) {
-                $tecnico = Usuario::with('trabajador')->find($validated['tecnico_id']);
-                if ($tecnico && $tecnico->trabajador) {
-                    $tecnicoNombre = $tecnico->trabajador->nombre . ' ' . $tecnico->trabajador->apellido;
-                }
-            }
-
-            $ficha = FichaSoporte::create([
-                'activo_id' => $activo->id,
-                'tecnico_id' => $validated['tecnico_id'] ?? null,
-                'tecnico_nombre' => $tecnicoNombre ?? 'No asignado',
-                'usuario_reporta_id' => auth()->id(),
-                'usuario_reporta_nombre' => $validated['usuario_reporta_nombre'],
-                'fecha_ingreso' => now(),
-                'diagnostico' => $validated['diagnostico'] ?? null,
-                'observaciones' => $validated['observaciones_ficha'] ?? null,
-                'estado' => 'en_proceso',
-                'origen' => 'manual',
-            ]);
-
-            DB::commit();
-
-            try {
-                $this->notificarFichaSoporteCreada($ficha, null);
-            } catch (\Throwable $e) {
-                Log::error('Error al notificar ficha externa: ' . $e->getMessage());
-            }
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Equipo externo registrado en inventario y ficha de soporte creada exitosamente',
-                'data' => [
-                    'activo' => $activo,
-                    'ficha' => $ficha
-                ]
-            ]);
-
-        } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $e->errors()
-            ], 422);
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al registrar: ' . $e->getMessage()
-            ], 500);
-        }
     }
 
     // ============================================================
@@ -349,92 +160,113 @@ class FichaSoporteController extends Controller
     }
 
     // ============================================================
-    // ASIGNAR TÉCNICO
-    // ✅ CORRECCIÓN: Solo notifica al técnico, NO al responsable
-    //    (el responsable ya fue notificado al crear la ficha)
+    // ACEPTAR FICHA (en proceso → aceptada)
     // ============================================================
-    public function asignarTecnico(Request $request, $id)
+    public function aceptar(Request $request, $id)
     {
         if (!auth()->user()->hasPermission('editar-ficha-soporte')) {
             return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
         }
 
-        $request->validate([
-            'tecnico_id' => 'required|exists:usuarios,id',
-        ]);
+        try {
+            $ficha = FichaSoporte::with(['activo.institucion', 'activo.responsable', 'activo.modelo.marca'])->findOrFail($id);
+
+            if ($ficha->estado === 'finalizado') {
+                return response()->json(['success' => false, 'message' => 'No se puede aceptar una ficha finalizada'], 422);
+            }
+
+            if ($ficha->estado === 'aceptada') {
+                return response()->json(['success' => false, 'message' => 'La ficha ya está aceptada'], 422);
+            }
+
+            $validated = $request->validate([
+                'observaciones_aceptacion' => 'nullable|string',
+                'fecha_requerida_entrega' => 'nullable|date',
+            ]);
+
+            $ficha->update([
+                'estado' => 'aceptada',
+                'fecha_aceptacion' => now(),
+                'observaciones' => $validated['observaciones_aceptacion'] ?? $ficha->observaciones,
+                'fecha_requerida_entrega' => $validated['fecha_requerida_entrega'] ?? $ficha->fecha_requerida_entrega,
+            ]);
+
+            try {
+                $this->notificarFichaAceptada($ficha);
+            } catch (\Throwable $e) {
+                Log::error('Error al notificar ficha aceptada: ' . $e->getMessage());
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ficha aceptada exitosamente',
+                'data' => $ficha
+            ]);
+
+        } catch (\Throwable $e) {
+            Log::error('Error al aceptar ficha: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // ============================================================
+    // RECHAZAR FICHA (en proceso → rechazada)
+    // ============================================================
+    public function rechazar(Request $request, $id)
+    {
+        if (!auth()->user()->hasPermission('editar-ficha-soporte')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
 
         try {
             $ficha = FichaSoporte::with(['activo.institucion', 'activo.responsable', 'activo.modelo.marca'])->findOrFail($id);
 
             if ($ficha->estado === 'finalizado') {
-                return response()->json(['success' => false, 'message' => 'No se puede asignar técnico a una ficha finalizada'], 422);
+                return response()->json(['success' => false, 'message' => 'No se puede rechazar una ficha finalizada'], 422);
             }
 
-            $tecnicoAnteriorId = $ficha->tecnico_id;
+            if ($ficha->estado === 'rechazada') {
+                return response()->json(['success' => false, 'message' => 'La ficha ya está rechazada'], 422);
+            }
 
-            $ficha->update([
-                'tecnico_id' => $request->tecnico_id,
-                'estado' => 'en_proceso'
+            $validated = $request->validate([
+                'motivo_rechazo' => 'required|string|min:10',
             ]);
 
-            $ficha->load('tecnico.trabajador');
+            DB::beginTransaction();
 
-            // ✅ NOTIFICAR SOLO AL TÉCNICO (nunca al responsable externo)
-            if ($tecnicoAnteriorId !== (int) $request->tecnico_id) {
-                $this->notificarTecnicoAsignado($ficha);
+            $ficha->update([
+                'estado' => 'rechazada',
+                'fecha_rechazo' => now(),
+                'motivo_rechazo' => $validated['motivo_rechazo'],
+            ]);
+
+            $activo = Activo::find($ficha->activo_id);
+            if ($activo) {
+                $estatusDisponible = Estatus::where('descripcion', 'Disponible')->first();
+                if ($estatusDisponible) {
+                    $activo->update(['id_estatus' => $estatusDisponible->id]);
+                }
+            }
+
+            DB::commit();
+
+            try {
+                $this->notificarFichaRechazada($ficha);
+            } catch (\Throwable $e) {
+                Log::error('Error al notificar ficha rechazada: ' . $e->getMessage());
             }
 
             return response()->json([
                 'success' => true,
-                'message' => 'Técnico asignado exitosamente.',
+                'message' => 'Ficha rechazada exitosamente',
                 'data' => $ficha
             ]);
 
         } catch (\Throwable $e) {
-            Log::error('Error al asignar técnico: ' . $e->getMessage());
+            DB::rollBack();
+            Log::error('Error al rechazar ficha: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * ✅ NUEVO MÉTODO: Notifica ÚNICAMENTE al técnico asignado.
-     * NO notifica al responsable externo (evita duplicidad).
-     */
-    protected function notificarTecnicoAsignado(FichaSoporte $ficha): void
-    {
-        if (!$ficha->tecnico_id) return;
-
-        $notificacionService = app(NotificacionService::class);
-        $ficha->loadMissing(['activo.modelo.marca', 'activo.institucion', 'tecnico.trabajador']);
-
-        $tecnico = $ficha->tecnico;
-        if (!$tecnico) return;
-
-        $activo = $ficha->activo;
-        $serial = $activo?->serial ?? 'N/A';
-        $modelo = $activo?->modelo?->nombre ?? 'N/A';
-        $marca = $activo?->modelo?->marca?->nombre ?? 'N/A';
-        $institucion = $activo?->institucion?->nombre ?? 'No especificada';
-
-        $mensajeTecnico =
-            "Se te ha asignado la ficha de soporte técnico #{$ficha->id}.\n\n" .
-            "🔧 Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .
-            "🏢 Institución: {$institucion}\n" .
-            "👤 Reportado por: {$ficha->usuario_reporta_nombre}\n" .
-            "📝 Diagnóstico: " . substr($ficha->diagnostico ?? 'Sin diagnóstico', 0, 200) . "\n" .
-            "📅 Fecha requerida de entrega: " . ($ficha->fecha_requerida_entrega ? $ficha->fecha_requerida_entrega->format('d/m/Y') : 'No especificada') . "\n\n" .
-            "Por favor, revisa la ficha y procede con la reparación.";
-
-        try {
-            $notificacionService->enviarAUsuario(
-                $tecnico,
-                '🔧 Ficha de Soporte Asignada',
-                $mensajeTecnico,
-                'soporte',
-                route('admin.soporte.index')
-            );
-        } catch (\Throwable $e) {
-            Log::error("Error al notificar al técnico (Ficha #{$ficha->id}): " . $e->getMessage());
         }
     }
 
@@ -524,8 +356,17 @@ class FichaSoporteController extends Controller
 
         try {
             $ficha = FichaSoporte::findOrFail($id);
+            $estabaEnProceso = in_array($ficha->estado, ['en_proceso', 'aceptada']);
 
-            if ($ficha->estado === 'en_proceso') {
+            if ($estabaEnProceso) {
+                try {
+                    $this->notificarFichaEliminada($ficha);
+                } catch (\Throwable $e) {
+                    Log::error('Error al notificar ficha eliminada: ' . $e->getMessage());
+                }
+            }
+
+            if ($estabaEnProceso) {
                 $activo = Activo::find($ficha->activo_id);
                 if ($activo) {
                     $estatusDisponible = Estatus::where('descripcion', 'Disponible')->first();
@@ -542,6 +383,7 @@ class FichaSoporteController extends Controller
                 'success' => true,
                 'message' => 'Ficha eliminada correctamente'
             ]);
+
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -575,7 +417,6 @@ class FichaSoporteController extends Controller
     // ============================================================
     // ============ CORREOS DE SOPORTE TÉCNICO ====================
     // ============================================================
-
     public function correosIndex(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-fichas-soporte')) {
@@ -590,9 +431,9 @@ class FichaSoporteController extends Controller
             $buscar = $request->buscar;
             $query->where(function ($q) use ($buscar) {
                 $q->where('from_email', 'ILIKE', "%{$buscar}%")
-                  ->orWhere('from_name', 'ILIKE', "%{$buscar}%")
-                  ->orWhere('subject', 'ILIKE', "%{$buscar}%")
-                  ->orWhere('body_text', 'ILIKE', "%{$buscar}%");
+                    ->orWhere('from_name', 'ILIKE', "%{$buscar}%")
+                    ->orWhere('subject', 'ILIKE', "%{$buscar}%")
+                    ->orWhere('body_text', 'ILIKE', "%{$buscar}%");
             });
         }
 
@@ -729,7 +570,6 @@ class FichaSoporteController extends Controller
 
             if ($validated['tipo_equipo'] === 'nuevo' && !empty($validated['nuevo_equipo'])) {
                 $nuevo = $validated['nuevo_equipo'];
-
                 $marca = Marca::firstOrCreate(['nombre' => $nuevo['marca']], ['activo' => true]);
                 $modelo = Modelo::firstOrCreate(
                     ['marca_id' => $marca->id, 'nombre' => $nuevo['modelo_nombre']],
@@ -747,7 +587,6 @@ class FichaSoporteController extends Controller
                     'ubicacion' => $nuevo['ubicacion'] ?? 'Taller de reparación',
                     'fecha_adquisicion' => $nuevo['fecha_adquisicion'] ?? null,
                 ]);
-
                 $activoId = $activo->id;
             } else {
                 $activoId = $validated['activo_id'];
@@ -813,8 +652,76 @@ class FichaSoporteController extends Controller
     }
 
     // ============================================================
+    // HELPER: Obtener el responsable con email (del activo o de la institución)
+    // ============================================================
+    protected function obtenerResponsableConEmail(?Activo $activo): ?Responsable
+    {
+        if (!$activo) {
+            Log::warning('obtenerResponsableConEmail: activo es null');
+            return null;
+        }
+
+        // 1. Intentar con el responsable directo del activo
+        $responsable = $activo->responsable;
+        if ($responsable && $responsable->email) {
+            Log::info('obtenerResponsableConEmail: usando responsable directo del activo', [
+                'activo_id' => $activo->id,
+                'responsable_id' => $responsable->id,
+                'email' => $responsable->email,
+            ]);
+            return $responsable;
+        }
+
+        // 2. Si no tiene email, buscar el responsable de la institución
+        if ($activo->institucion_id) {
+            $responsableInstitucion = Responsable::where('institucion_id', $activo->institucion_id)
+                ->whereNull('departamento_id')
+                ->where('activo', true)
+                ->whereNotNull('email')
+                ->where('email', '!=', '')
+                ->first();
+
+            if ($responsableInstitucion) {
+                Log::info('obtenerResponsableConEmail: usando responsable de la institución', [
+                    'activo_id' => $activo->id,
+                    'institucion_id' => $activo->institucion_id,
+                    'responsable_id' => $responsableInstitucion->id,
+                    'email' => $responsableInstitucion->email,
+                ]);
+                return $responsableInstitucion;
+            }
+        }
+
+        // 3. Como último recurso, cualquier responsable activo de la institución (con departamento)
+        if ($activo->institucion_id) {
+            $responsableCualquiera = Responsable::where('institucion_id', $activo->institucion_id)
+                ->where('activo', true)
+                ->whereNotNull('email')
+                ->where('email', '!=', '')
+                ->first();
+
+            if ($responsableCualquiera) {
+                Log::info('obtenerResponsableConEmail: usando responsable alternativo de la institución', [
+                    'activo_id' => $activo->id,
+                    'responsable_id' => $responsableCualquiera->id,
+                    'email' => $responsableCualquiera->email,
+                ]);
+                return $responsableCualquiera;
+            }
+        }
+
+        Log::warning('obtenerResponsableConEmail: NO se encontró responsable con email', [
+            'activo_id' => $activo->id,
+            'institucion_id' => $activo->institucion_id,
+            'responsable_directo_id' => $activo->responsable_id,
+            'responsable_directo_email' => $activo->responsable?->email,
+        ]);
+
+        return null;
+    }
+
+    // ============================================================
     // NOTIFICAR FICHA DE SOPORTE CREADA
-    // (Esta es la ÚNICA notificación al responsable externo)
     // ============================================================
     protected function notificarFichaSoporteCreada(FichaSoporte $ficha, ?CorreoRecibido $correo = null): void
     {
@@ -826,9 +733,14 @@ class FichaSoporteController extends Controller
         $modelo = $activo?->modelo?->nombre ?? 'N/A';
         $marca = $activo?->modelo?->marca?->nombre ?? 'N/A';
 
-        // ============================================================
+        Log::info('🔔 [notificarFichaSoporteCreada] Iniciando notificaciones', [
+            'ficha_id' => $ficha->id,
+            'activo_id' => $activo?->id,
+            'tiene_tecnico' => !empty($ficha->tecnico_id),
+            'tiene_activo' => (bool) $activo,
+        ]);
+
         // 1. NOTIFICAR AL TÉCNICO ASIGNADO (si existe)
-        // ============================================================
         if ($ficha->tecnico_id) {
             $tecnico = Usuario::with('trabajador')->find($ficha->tecnico_id);
             if ($tecnico) {
@@ -841,40 +753,41 @@ class FichaSoporteController extends Controller
                     "📅 Fecha requerida de entrega: " . ($ficha->fecha_requerida_entrega ? $ficha->fecha_requerida_entrega->format('d/m/Y') : 'No especificada') . "\n\n" .
                     "Por favor, revisa la ficha y procede con la reparación.";
 
-                $notificacionService->enviarAUsuario(
-                    $tecnico,
-                    '🔧 Nueva Ficha de Soporte Técnico',
-                    $mensajeTecnico,
-                    'soporte',
-                    route('admin.soporte.index')
-                );
+                try {
+                    $notificacionService->enviarAUsuario(
+                        $tecnico,
+                        '🔧 Nueva Ficha de Soporte Técnico',
+                        $mensajeTecnico,
+                        'soporte',
+                        route('admin.soporte.index')
+                    );
+                } catch (\Throwable $e) {
+                    Log::error('Error al notificar al técnico: ' . $e->getMessage());
+                }
             }
         }
 
-        // ============================================================
-        // 2. NOTIFICAR AL RESPONSABLE DE LA INSTITUCIÓN
-        // ============================================================
-        $responsable = $activo?->responsable;
+        // 2. NOTIFICAR AL RESPONSABLE (con fallback a responsable de institución)
+        $responsable = $this->obtenerResponsableConEmail($activo);
         $institucion = $activo?->institucion;
 
         if ($responsable && $responsable->email) {
             $destino = $institucion?->nombre ?? 'No especificada';
-
             $tieneTecnico = !empty($ficha->tecnico_id) && $ficha->tecnico_nombre !== 'No asignado';
 
             if ($tieneTecnico) {
                 $estadoTecnico = "✅ TÉCNICO ASIGNADO\n" .
-                                 " • Nombre: {$ficha->tecnico_nombre}\n\n";
+                    " • Nombre: {$ficha->tecnico_nombre}\n\n";
             } else {
                 $estadoTecnico = "⚠️ NO HAY TÉCNICO ASIGNADO TODAVÍA\n" .
-                                 " Motivo: En este momento todos nuestros técnicos están ocupados con otras reparaciones.\n" .
-                                 " Acción: Su equipo será atendido en cuanto un técnico esté disponible. Por favor, lleve el equipo a la Gobernación igualmente para iniciar el proceso.\n\n";
+                    " Motivo: En este momento todos nuestros técnicos están ocupados con otras reparaciones.\n" .
+                    " Acción: Su equipo será atendido en cuanto un técnico esté disponible. Por favor, lleve el equipo a la Gobernación igualmente para iniciar el proceso.\n\n";
             }
 
             $mensajeResponsable =
-                "✅ SOLICITUD DE REPARACIÓN ACEPTADA\n\n" .
+                "🔄 SOLICITUD DE REPARACIÓN EN PROCESO\n\n" .
                 "Estimado/a {$responsable->nombre},\n\n" .
-                "Le informamos que su solicitud de reparación ha sido ACEPTADA y registrada en nuestro sistema.\n\n" .
+                "Le informamos que su solicitud de reparación ha sido recibida y está EN PROCESO de revisión.\n\n" .
                 "📌 Datos de la ficha de soporte:\n" .
                 " • Número de ficha: #{$ficha->id}\n" .
                 " • Equipo: {$marca} {$modelo}\n" .
@@ -893,39 +806,42 @@ class FichaSoporteController extends Controller
                 " 1. Lleve el equipo (o los equipos) a la dirección indicada.\n" .
                 " 2. Presente este correo o su cédula al momento de la entrega.\n" .
                 " 3. Nuestro personal recibirá el equipo y le dará seguimiento a la reparación.\n\n" .
-                "Le notificaremos por este mismo medio cuando la reparación haya finalizado.\n\n" .
+                "⏳ IMPORTANTE:\n" .
+                " Una vez que el equipo sea recibido y evaluado, le notificaremos si la solicitud es ACEPTADA o RECHAZADA.\n" .
+                " Si es aceptada, procederemos con la reparación.\n" .
+                " Si es rechazada, le indicaremos el motivo y podrá retirar el equipo.\n\n" .
+                "Le mantendremos informado por este mismo medio.\n\n" .
                 "Gracias por confiar en nuestro servicio.";
 
             try {
                 $notificacionService->enviarAResponsable(
                     $responsable->email,
                     $responsable->nombre,
-                    '✅ Solicitud de Reparación Aceptada - Llevar equipo a la Gobernación',
+                    '🔄 Solicitud de Reparación en Proceso - Llevar equipo a la Gobernación',
                     $mensajeResponsable,
                     'soporte'
                 );
-
-                Log::info("📧 Correo enviado al responsable institucional", [
+                Log::info("📧 Correo de EN PROCESO enviado al responsable", [
                     'ficha_id' => $ficha->id,
                     'responsable' => $responsable->nombre,
                     'email' => $responsable->email,
                     'tiene_tecnico' => $tieneTecnico,
                 ]);
             } catch (\Throwable $e) {
-                Log::error('Error al enviar correo al responsable institucional: ' . $e->getMessage());
+                Log::error('Error al enviar correo al responsable: ' . $e->getMessage(), [
+                    'ficha_id' => $ficha->id,
+                    'email' => $responsable->email,
+                ]);
             }
         } else {
-            Log::warning("⚠️ No se pudo notificar al responsable institucional", [
+            Log::warning("⚠️ No se pudo notificar al responsable: sin email disponible", [
                 'ficha_id' => $ficha->id,
                 'activo_id' => $activo?->id,
-                'tiene_responsable' => (bool) $responsable,
-                'tiene_email' => (bool) ($responsable?->email),
+                'institucion_id' => $activo?->institucion_id,
             ]);
         }
 
-        // ============================================================
         // 3. NOTIFICAR A LOS ADMINISTRADORES
-        // ============================================================
         $admins = Usuario::whereHas('rol', function ($q) {
             $q->where('nombre', 'admin');
         })->where('status', 'activo')->with('trabajador')->get();
@@ -941,13 +857,255 @@ class FichaSoporteController extends Controller
 
         foreach ($admins as $admin) {
             if ($admin->email) {
-                $notificacionService->enviarAUsuario(
-                    $admin,
-                    '🔧 Nueva Ficha de Soporte Técnico',
-                    $mensajeAdmin,
-                    'soporte',
-                    route('admin.soporte.index')
+                try {
+                    $notificacionService->enviarAUsuario(
+                        $admin,
+                        '🔧 Nueva Ficha de Soporte Técnico',
+                        $mensajeAdmin,
+                        'soporte',
+                        route('admin.soporte.index')
+                    );
+                } catch (\Throwable $e) {
+                    Log::error('Error al notificar admin: ' . $e->getMessage());
+                }
+            }
+        }
+    }
+
+    // ============================================================
+    // NOTIFICAR FICHA ACEPTADA
+    // ============================================================
+    protected function notificarFichaAceptada(FichaSoporte $ficha): void
+    {
+        $notificacionService = app(NotificacionService::class);
+        $ficha->loadMissing([
+            'activo.modelo.marca',
+            'activo.institucion',
+            'activo.responsable',
+            'tecnico.trabajador'
+        ]);
+
+        $activo = $ficha->activo;
+        $institucion = $activo?->institucion;
+        $serial = $activo?->serial ?? 'N/A';
+        $modelo = $activo?->modelo?->nombre ?? 'N/A';
+        $marca = $activo?->modelo?->marca?->nombre ?? 'N/A';
+
+        Log::info('🔔 [notificarFichaAceptada] Iniciando notificaciones', [
+            'ficha_id' => $ficha->id,
+            'activo_id' => $activo?->id,
+        ]);
+
+        // Notificar al responsable (con fallback)
+        $responsable = $this->obtenerResponsableConEmail($activo);
+
+        if ($responsable && $responsable->email) {
+            $tieneTecnico = !empty($ficha->tecnico_id) && $ficha->tecnico_nombre !== 'No asignado';
+            $infoTecnico = $tieneTecnico
+                ? " • Técnico asignado: {$ficha->tecnico_nombre}\n"
+                : " • Técnico asignado: Pendiente por asignar\n";
+
+            $mensaje =
+                "✅ SOLICITUD DE REPARACIÓN ACEPTADA\n\n" .
+                "Estimado/a {$responsable->nombre},\n\n" .
+                "Nos complace informarle que su solicitud de reparación ha sido ACEPTADA.\n\n" .
+                "📌 Datos de la ficha:\n" .
+                " • Número de ficha: #{$ficha->id}\n" .
+                " • Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .
+                " • Institución: " . ($institucion?->nombre ?? 'No especificada') . "\n" .
+                " • Fecha de aceptación: " . ($ficha->fecha_aceptacion ? $ficha->fecha_aceptacion->format('d/m/Y H:i') : now()->format('d/m/Y H:i')) . "\n" .
+                " • Fecha requerida de entrega: " . ($ficha->fecha_requerida_entrega ? $ficha->fecha_requerida_entrega->format('d/m/Y') : 'No especificada') . "\n" .
+                $infoTecnico . "\n" .
+                "📝 Diagnóstico:\n" .
+                " " . ($ficha->diagnostico ?? 'Sin diagnóstico específico') . "\n\n" .
+                "🔧 PRÓXIMOS PASOS:\n" .
+                " 1. El equipo será reparado por nuestro equipo técnico.\n" .
+                " 2. Le notificaremos cuando la reparación haya finalizado.\n" .
+                " 3. Una vez finalizada, podrá retirar el equipo en nuestras instalaciones.\n\n" .
+                "📍 LUGAR DE REPARACIÓN:\n" .
+                " Gobernación del Estado Yaracuy\n" .
+                " Departamento de Informática\n" .
+                " San Felipe, Edo. Yaracuy\n\n" .
+                "Gracias por confiar en nuestro servicio.";
+
+            try {
+                $notificacionService->enviarAResponsable(
+                    $responsable->email,
+                    $responsable->nombre,
+                    '✅ Solicitud de Reparación ACEPTADA',
+                    $mensaje,
+                    'soporte'
                 );
+                Log::info('📧 Correo de ACEPTACIÓN enviado al responsable', [
+                    'ficha_id' => $ficha->id,
+                    'responsable' => $responsable->nombre,
+                    'email' => $responsable->email,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Error al notificar aceptación al responsable: ' . $e->getMessage(), [
+                    'ficha_id' => $ficha->id,
+                    'email' => $responsable->email,
+                ]);
+            }
+        } else {
+            Log::warning('⚠️ No se pudo notificar ACEPTACIÓN: sin responsable con email', [
+                'ficha_id' => $ficha->id,
+                'activo_id' => $activo?->id,
+            ]);
+        }
+
+        // Notificar al técnico
+        if ($ficha->tecnico_id) {
+            $tecnico = Usuario::with('trabajador')->find($ficha->tecnico_id);
+            if ($tecnico) {
+                $mensajeTecnico =
+                    "La ficha de soporte #{$ficha->id} ha sido ACEPTADA.\n\n" .
+                    "🔧 Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .
+                    "🏢 Institución: " . ($institucion?->nombre ?? 'No especificada') . "\n" .
+                    "📅 Fecha requerida de entrega: " . ($ficha->fecha_requerida_entrega ? $ficha->fecha_requerida_entrega->format('d/m/Y') : 'No especificada') . "\n\n" .
+                    "Procede con la reparación del equipo.";
+
+                try {
+                    $notificacionService->enviarAUsuario(
+                        $tecnico,
+                        '✅ Ficha de Soporte ACEPTADA',
+                        $mensajeTecnico,
+                        'soporte',
+                        route('admin.soporte.index')
+                    );
+                } catch (\Throwable $e) {
+                    Log::error('Error al notificar aceptación al técnico: ' . $e->getMessage());
+                }
+            }
+        }
+
+        // Notificar a los administradores
+        $admins = Usuario::whereHas('rol', function ($q) {
+            $q->where('nombre', 'admin');
+        })->where('status', 'activo')->with('trabajador')->get();
+
+        $mensajeAdmin =
+            "La ficha de soporte #{$ficha->id} ha sido ACEPTADA.\n\n" .
+            "🔧 Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .
+            "👤 Reportado por: {$ficha->usuario_reporta_nombre}\n" .
+            "👨‍🔧 Técnico: " . ($ficha->tecnico_nombre ?? 'No asignado') . "\n" .
+            "📅 Fecha de aceptación: " . ($ficha->fecha_aceptacion ? $ficha->fecha_aceptacion->format('d/m/Y H:i') : now()->format('d/m/Y H:i'));
+
+        foreach ($admins as $admin) {
+            if ($admin->email) {
+                try {
+                    $notificacionService->enviarAUsuario(
+                        $admin,
+                        '✅ Ficha de Soporte ACEPTADA',
+                        $mensajeAdmin,
+                        'soporte',
+                        route('admin.soporte.index')
+                    );
+                } catch (\Throwable $e) {
+                    Log::error('Error al notificar aceptación a admin: ' . $e->getMessage());
+                }
+            }
+        }
+    }
+
+    // ============================================================
+    // NOTIFICAR FICHA RECHAZADA
+    // ============================================================
+    protected function notificarFichaRechazada(FichaSoporte $ficha): void
+    {
+        $notificacionService = app(NotificacionService::class);
+        $ficha->loadMissing([
+            'activo.modelo.marca',
+            'activo.institucion',
+            'activo.responsable'
+        ]);
+
+        $activo = $ficha->activo;
+        $institucion = $activo?->institucion;
+        $serial = $activo?->serial ?? 'N/A';
+        $modelo = $activo?->modelo?->nombre ?? 'N/A';
+        $marca = $activo?->modelo?->marca?->nombre ?? 'N/A';
+
+        Log::info('🔔 [notificarFichaRechazada] Iniciando notificaciones', [
+            'ficha_id' => $ficha->id,
+            'activo_id' => $activo?->id,
+        ]);
+
+        // Notificar al responsable (con fallback)
+        $responsable = $this->obtenerResponsableConEmail($activo);
+
+        if ($responsable && $responsable->email) {
+            $mensaje =
+                "❌ SOLICITUD DE REPARACIÓN RECHAZADA\n\n" .
+                "Estimado/a {$responsable->nombre},\n\n" .
+                "Lamentamos informarle que su solicitud de reparación ha sido RECHAZADA.\n\n" .
+                "📌 Datos de la ficha:\n" .
+                " • Número de ficha: #{$ficha->id}\n" .
+                " • Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .
+                " • Institución: " . ($institucion?->nombre ?? 'No especificada') . "\n" .
+                " • Fecha de rechazo: " . ($ficha->fecha_rechazo ? $ficha->fecha_rechazo->format('d/m/Y H:i') : now()->format('d/m/Y H:i')) . "\n\n" .
+                "📝 MOTIVO DEL RECHAZO:\n" .
+                " " . ($ficha->motivo_rechazo ?? 'No especificado') . "\n\n" .
+                "📍 INSTRUCCIONES:\n" .
+                " 1. Puede pasar a retirar su equipo en:\n" .
+                " Gobernación del Estado Yaracuy\n" .
+                " Departamento de Informática\n" .
+                " San Felipe, Edo. Yaracuy\n" .
+                " 2. Presente este correo o su cédula al momento del retiro.\n\n" .
+                "Si tiene alguna duda o desea más información, por favor comuníquese con el Departamento de Informática.\n\n" .
+                "Gracias por su comprensión.";
+
+            try {
+                $notificacionService->enviarAResponsable(
+                    $responsable->email,
+                    $responsable->nombre,
+                    '❌ Solicitud de Reparación RECHAZADA - Retirar Equipo',
+                    $mensaje,
+                    'soporte'
+                );
+                Log::info('📧 Correo de RECHAZO enviado al responsable', [
+                    'ficha_id' => $ficha->id,
+                    'responsable' => $responsable->nombre,
+                    'email' => $responsable->email,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Error al notificar rechazo al responsable: ' . $e->getMessage(), [
+                    'ficha_id' => $ficha->id,
+                    'email' => $responsable->email,
+                ]);
+            }
+        } else {
+            Log::warning('⚠️ No se pudo notificar RECHAZO: sin responsable con email', [
+                'ficha_id' => $ficha->id,
+                'activo_id' => $activo?->id,
+            ]);
+        }
+
+        // Notificar a los administradores
+        $admins = Usuario::whereHas('rol', function ($q) {
+            $q->where('nombre', 'admin');
+        })->where('status', 'activo')->with('trabajador')->get();
+
+        $mensajeAdmin =
+            "La ficha de soporte #{$ficha->id} ha sido RECHAZADA.\n\n" .
+            "🔧 Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .
+            "👤 Reportado por: {$ficha->usuario_reporta_nombre}\n" .
+            "📝 Motivo: " . ($ficha->motivo_rechazo ?? 'No especificado') . "\n" .
+            "📅 Fecha de rechazo: " . ($ficha->fecha_rechazo ? $ficha->fecha_rechazo->format('d/m/Y H:i') : now()->format('d/m/Y H:i'));
+
+        foreach ($admins as $admin) {
+            if ($admin->email) {
+                try {
+                    $notificacionService->enviarAUsuario(
+                        $admin,
+                        '❌ Ficha de Soporte RECHAZADA',
+                        $mensajeAdmin,
+                        'soporte',
+                        route('admin.soporte.index')
+                    );
+                } catch (\Throwable $e) {
+                    Log::error('Error al notificar rechazo a admin: ' . $e->getMessage());
+                }
             }
         }
     }
@@ -958,21 +1116,32 @@ class FichaSoporteController extends Controller
     protected function notificarFichaFinalizada(FichaSoporte $ficha): void
     {
         $notificacionService = app(NotificacionService::class);
-        $ficha->loadMissing(['activo.modelo.marca', 'activo.institucion', 'activo.responsable', 'tecnico.trabajador']);
+        $ficha->loadMissing([
+            'activo.modelo.marca',
+            'activo.institucion',
+            'activo.responsable',
+            'tecnico.trabajador'
+        ]);
 
         $activo = $ficha->activo;
-        $responsable = $activo?->responsable;
         $institucion = $activo?->institucion;
         $serial = $activo?->serial ?? 'N/A';
         $modelo = $activo?->modelo?->nombre ?? 'N/A';
         $marca = $activo?->modelo?->marca?->nombre ?? 'N/A';
 
-        // ===== Notificar al responsable de la institución =====
+        Log::info('🔔 [notificarFichaFinalizada] Iniciando notificaciones', [
+            'ficha_id' => $ficha->id,
+            'activo_id' => $activo?->id,
+        ]);
+
+        // Notificar al responsable de la institución (con fallback)
+        $responsable = $this->obtenerResponsableConEmail($activo);
+
         if ($responsable && $responsable->email) {
             $mensajeResponsable =
                 "✅ REPARACIÓN FINALIZADA\n\n" .
                 "Estimado/a {$responsable->nombre},\n\n" .
-                "Le informamos que la reparación de su equipo ha finalizado.\n\n" .
+                "Le informamos que la reparación de su equipo ha finalizado exitosamente.\n\n" .
                 "📌 Datos:\n" .
                 " • Ficha: #{$ficha->id}\n" .
                 " • Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .
@@ -980,43 +1149,64 @@ class FichaSoporteController extends Controller
                 " • Fecha de finalización: " . ($ficha->fecha_salida ? $ficha->fecha_salida->format('d/m/Y H:i') : now()->format('d/m/Y H:i')) . "\n\n" .
                 "📝 Trabajo realizado:\n" .
                 " " . ($ficha->trabajo_realizado ?? 'No especificado') . "\n\n" .
-                "📍 Puede retirar el equipo en:\n" .
+                "📍 PUEDE RETIRAR EL EQUIPO EN:\n" .
                 " Gobernación del Estado Yaracuy\n" .
                 " Departamento de Informática\n" .
                 " San Felipe, Edo. Yaracuy\n\n" .
-                "Presente este correo o su cédula al momento del retiro.\n\n" .
+                "📌 INSTRUCCIONES PARA EL RETIRO:\n" .
+                " 1. Presente este correo o su cédula al momento del retiro.\n" .
+                " 2. El horario de atención es de Lunes a Viernes de 8:00 AM a 4:00 PM.\n" .
+                " 3. Si no puede retirarlo personalmente, puede enviar a un representante con una autorización escrita.\n\n" .
                 "Gracias por confiar en nuestro servicio.";
 
             try {
                 $notificacionService->enviarAResponsable(
                     $responsable->email,
                     $responsable->nombre,
-                    '✅ Reparación Finalizada - Retirar Equipo',
+                    '✅ Reparación Finalizada - RETIRAR EQUIPO',
                     $mensajeResponsable,
                     'soporte'
                 );
+                Log::info('📧 Correo de finalización enviado al responsable', [
+                    'ficha_id' => $ficha->id,
+                    'responsable' => $responsable->nombre,
+                    'email' => $responsable->email,
+                ]);
             } catch (\Throwable $e) {
-                Log::error('Error al notificar finalización al responsable: ' . $e->getMessage());
+                Log::error('Error al notificar finalización al responsable: ' . $e->getMessage(), [
+                    'ficha_id' => $ficha->id,
+                    'email' => $responsable->email,
+                ]);
             }
+        } else {
+            Log::warning('⚠️ No se pudo notificar finalización al responsable (sin email)', [
+                'ficha_id' => $ficha->id,
+                'activo_id' => $activo?->id,
+            ]);
         }
 
-        // ===== Notificar internamente al técnico y admins =====
+        // Notificar internamente al técnico y admins
         $mensajeInterno =
             "La ficha de soporte #{$ficha->id} ha sido finalizada.\n\n" .
             "🔧 Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .
             "👨‍🔧 Técnico: " . ($ficha->tecnico_nombre ?? 'No asignado') . "\n" .
-            "📝 Trabajo realizado: " . substr($ficha->trabajo_realizado ?? 'N/A', 0, 200);
+            "📝 Trabajo realizado: " . substr($ficha->trabajo_realizado ?? 'N/A', 0, 200) . "\n" .
+            "📅 Fecha de finalización: " . ($ficha->fecha_salida ? $ficha->fecha_salida->format('d/m/Y H:i') : now()->format('d/m/Y H:i'));
 
         if ($ficha->tecnico_id) {
             $tecnico = Usuario::with('trabajador')->find($ficha->tecnico_id);
             if ($tecnico) {
-                $notificacionService->enviarAUsuario(
-                    $tecnico,
-                    '✅ Ficha de Soporte Finalizada',
-                    $mensajeInterno,
-                    'soporte',
-                    route('admin.soporte.index')
-                );
+                try {
+                    $notificacionService->enviarAUsuario(
+                        $tecnico,
+                        '✅ Ficha de Soporte Finalizada',
+                        $mensajeInterno,
+                        'soporte',
+                        route('admin.soporte.index')
+                    );
+                } catch (\Throwable $e) {
+                    Log::error('Error al notificar finalización al técnico: ' . $e->getMessage());
+                }
             }
         }
 
@@ -1026,14 +1216,87 @@ class FichaSoporteController extends Controller
 
         foreach ($admins as $admin) {
             if ($admin->email) {
-                $notificacionService->enviarAUsuario(
-                    $admin,
-                    '✅ Ficha de Soporte Finalizada',
-                    $mensajeInterno,
-                    'soporte',
-                    route('admin.soporte.index')
-                );
+                try {
+                    $notificacionService->enviarAUsuario(
+                        $admin,
+                        '✅ Ficha de Soporte Finalizada',
+                        $mensajeInterno,
+                        'soporte',
+                        route('admin.soporte.index')
+                    );
+                } catch (\Throwable $e) {
+                    Log::error('Error al notificar finalización a admin: ' . $e->getMessage());
+                }
             }
+        }
+    }
+
+    // ============================================================
+    // NOTIFICAR CUANDO LA FICHA ES ELIMINADA
+    // ============================================================
+    protected function notificarFichaEliminada(FichaSoporte $ficha): void
+    {
+        $notificacionService = app(NotificacionService::class);
+        $ficha->loadMissing([
+            'activo.modelo.marca',
+            'activo.institucion',
+            'activo.responsable'
+        ]);
+
+        $activo = $ficha->activo;
+        $institucion = $activo?->institucion;
+        $serial = $activo?->serial ?? 'N/A';
+        $modelo = $activo?->modelo?->nombre ?? 'N/A';
+        $marca = $activo?->modelo?->marca?->nombre ?? 'N/A';
+
+        Log::info('🔔 [notificarFichaEliminada] Iniciando notificaciones', [
+            'ficha_id' => $ficha->id,
+            'activo_id' => $activo?->id,
+        ]);
+
+        // Notificar al responsable (con fallback)
+        $responsable = $this->obtenerResponsableConEmail($activo);
+
+        if ($responsable && $responsable->email) {
+            $mensaje =
+                "⚠️ SOLICITUD DE REPARACIÓN CANCELADA\n\n" .
+                "Estimado/a {$responsable->nombre},\n\n" .
+                "Le informamos que la solicitud de reparación para su equipo ha sido CANCELADA.\n\n" .
+                "📌 Datos de la ficha:\n" .
+                " • Número de ficha: #{$ficha->id}\n" .
+                " • Equipo: {$marca} {$modelo} (Serial: {$serial})\n" .
+                " • Institución: " . ($institucion?->nombre ?? 'No especificada') . "\n\n" .
+                "📍 Si ya llevó el equipo a la Gobernación, puede pasar a retirarlo en:\n" .
+                " Gobernación del Estado Yaracuy\n" .
+                " Departamento de Informática\n" .
+                " San Felipe, Edo. Yaracuy\n\n" .
+                "Si tiene alguna duda, por favor comuníquese con el Departamento de Informática.\n\n" .
+                "Gracias por su comprensión.";
+
+            try {
+                $notificacionService->enviarAResponsable(
+                    $responsable->email,
+                    $responsable->nombre,
+                    '⚠️ Solicitud de Reparación CANCELADA',
+                    $mensaje,
+                    'soporte'
+                );
+                Log::info('📧 Correo de CANCELACIÓN enviado al responsable', [
+                    'ficha_id' => $ficha->id,
+                    'responsable' => $responsable->nombre,
+                    'email' => $responsable->email,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('Error al notificar cancelación al responsable: ' . $e->getMessage(), [
+                    'ficha_id' => $ficha->id,
+                    'email' => $responsable->email,
+                ]);
+            }
+        } else {
+            Log::warning('⚠️ No se pudo notificar CANCELACIÓN: sin responsable con email', [
+                'ficha_id' => $ficha->id,
+                'activo_id' => $activo?->id,
+            ]);
         }
     }
 }

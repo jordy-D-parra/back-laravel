@@ -1,11 +1,7 @@
 // resources/js/admin-soporte.js
-// ✅ VERSIÓN COMPLETA CORREGIDA: Fichas + Correos + Wizard + Pre-llenado automático
-// ✅ CORRECCIÓN PRINCIPAL: Se eliminó deshabilitarCamposPasosNoActivos porque
-//    los campos disabled NO se envían en el FormData, causando que el servidor
-//    recibiera tipo_equipo, usuario_reporta_nombre, diagnostico y
-//    fecha_requerida_entrega vacíos. Los pasos ocultos con display:none SÍ se envían.
-// ✅ CORRECCIÓN FECHA: Se normaliza la fecha del correo al formato Y-m-d que acepta input[type=date]
-// ✅ MEJORA VER DETALLE: Modal de detalle rediseñado con estructura profesional
+// ✅ VERSIÓN LIMPIA: Solo Fichas + Correos + Wizard de conversión
+// ✅ Se eliminó todo el código de "crear ficha manual" y "equipo externo"
+// ✅ El flujo de creación de fichas es ÚNICAMENTE por correo (wizard)
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -19,12 +15,6 @@ let timeoutBusqueda = null;
 let fichaAEliminar = null;
 let activosEnProceso = [];
 let todosActivos = [];
-
-// Buscador de técnicos
-let timeoutTecnicoBusqueda = null;
-let tecnicoSeleccionado = null;
-let timeoutExtTecnicoBusqueda = null;
-let extTecnicoSeleccionado = null;
 
 // Correos de soporte
 let correoSoporteActual = null;
@@ -55,14 +45,12 @@ function formatearFechaHora(fecha) {
     });
 }
 
-// ✅ NUEVA FUNCIÓN: Normaliza cualquier fecha al formato Y-m-d que acepta input[type=date]
+// ✅ Normaliza cualquier fecha al formato Y-m-d que acepta input[type=date]
 function normalizarFechaParaInput(fechaStr) {
     if (!fechaStr) return '';
 
-    // Si ya viene en Y-m-d (ej: 2026-10-15)
     if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) return fechaStr;
 
-    // Si viene en d/m/Y o d-m-Y (ej: 15/10/2026)
     const match = fechaStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
     if (match) {
         const dia = match[1].padStart(2, '0');
@@ -71,7 +59,6 @@ function normalizarFechaParaInput(fechaStr) {
         return `${anio}-${mes}-${dia}`;
     }
 
-    // Intentar con Date
     const d = new Date(fechaStr);
     if (!isNaN(d.getTime())) {
         return d.toISOString().split('T')[0];
@@ -302,467 +289,6 @@ function aplicarFiltrosConDebounce() {
 }
 
 // ============================================================
-// BUSCADOR DE ACTIVOS
-// ============================================================
-function cargarActivosParaBuscador() {
-    fetch('/admin/activos', {
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'
-    })
-    .then(r => r.json())
-    .then(response => {
-        if (response.success) {
-            todosActivos = response.data;
-            console.log('Activos cargados:', todosActivos.length);
-        }
-    })
-    .catch(error => console.error('Error cargando activos:', error));
-}
-
-function buscarActivos() {
-    const input = document.getElementById('activoBuscarInput');
-    const dropdown = document.getElementById('activoDropdown');
-    if (!input || !dropdown) return;
-
-    const buscar = input.value.toLowerCase().trim();
-    if (!buscar || buscar.length < 2) {
-        dropdown.style.display = 'none';
-        return;
-    }
-
-    const filtrados = todosActivos.filter(a => {
-        const texto = (a.serial + ' ' + (a.modelo?.nombre || '') + ' ' + (a.modelo?.marca?.nombre || '')).toLowerCase();
-        const estaEnProceso = activosEnProceso.includes(a.id);
-        return texto.indexOf(buscar) >= 0 && !estaEnProceso;
-    }).slice(0, 10);
-
-    if (filtrados.length === 0) {
-        dropdown.innerHTML = '<div class="list-group-item text-muted small">No se encontraron activos disponibles</div>';
-    } else {
-        dropdown.innerHTML = filtrados.map(a => {
-            const estado = a.estatus?.descripcion || 'N/A';
-            const serial = a.serial || 'Sin serial';
-            const modelo = a.modelo?.nombre || 'N/A';
-            const marca = a.modelo?.marca?.nombre || 'N/A';
-            const id = a.id;
-            return `<div class="list-group-item list-group-item-action" data-activo-id="${id}" onclick="window.seleccionarActivo(${id}, '${escapeHtml(serial)}', '${escapeHtml(modelo)}', '${escapeHtml(marca)}', '${escapeHtml(estado)}')">
-                <div class="activo-serial"><strong>${escapeHtml(serial)}</strong></div>
-                <div class="activo-info">${escapeHtml(marca)} ${escapeHtml(modelo)} - Estado: ${escapeHtml(estado)}</div>
-            </div>`;
-        }).join('');
-    }
-    dropdown.style.display = 'block';
-}
-
-window.seleccionarActivo = function (id, serial, modelo, marca, estado) {
-    const activoIdInput = document.getElementById('fichaActivoId');
-    const activoBuscarInput = document.getElementById('activoBuscarInput');
-    const dropdown = document.getElementById('activoDropdown');
-    const infoDiv = document.getElementById('activoSeleccionadoInfo');
-    const texto = document.getElementById('activoSeleccionadoTexto');
-    const estadoBadge = document.getElementById('activoSeleccionadoEstado');
-    const submitBtn = document.getElementById('btnGuardarFicha');
-
-    if (activoIdInput) activoIdInput.value = id;
-    if (activoBuscarInput) {
-        activoBuscarInput.value = serial;
-        activoBuscarInput.classList.remove('is-invalid');
-        activoBuscarInput.classList.add('is-valid');
-    }
-    if (dropdown) dropdown.style.display = 'none';
-    if (infoDiv) {
-        infoDiv.style.display = 'block';
-        if (texto) texto.textContent = `${serial} - ${marca} ${modelo}`;
-        if (estadoBadge) estadoBadge.textContent = estado;
-    }
-    if (submitBtn) submitBtn.disabled = false;
-};
-
-window.limpiarActivoSeleccionado = function () {
-    const activoIdInput = document.getElementById('fichaActivoId');
-    const activoBuscarInput = document.getElementById('activoBuscarInput');
-    const infoDiv = document.getElementById('activoSeleccionadoInfo');
-    const submitBtn = document.getElementById('btnGuardarFicha');
-
-    if (activoIdInput) activoIdInput.value = '';
-    if (activoBuscarInput) {
-        activoBuscarInput.value = '';
-        activoBuscarInput.classList.remove('is-valid');
-    }
-    if (infoDiv) infoDiv.style.display = 'none';
-    if (submitBtn) submitBtn.disabled = true;
-};
-
-// ============================================================
-// BUSCADOR DE TÉCNICOS (ficha manual)
-// ============================================================
-function buscarTecnicoPorCedula(cedula) {
-    const url = '/admin/api/tecnicos?search=' + encodeURIComponent(cedula);
-    fetch(url, {
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        credentials: 'same-origin'
-    })
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(tecnicos => {
-        const searchResults = document.getElementById('tecnicoSearchResults');
-        const infoTecnico = document.getElementById('tecnicoEncontrado');
-        if (!searchResults) return;
-
-        if (!tecnicos || tecnicos.length === 0) {
-            searchResults.innerHTML = `<div class="p-2 text-muted small">No se encontraron técnicos con esta búsqueda.</div>`;
-            searchResults.style.display = 'block';
-            if (infoTecnico) infoTecnico.style.display = 'none';
-            document.getElementById('fichaTecnicoId').value = '';
-            document.getElementById('fichaTecnicoNombre').value = '';
-            return;
-        }
-
-        if (tecnicos.length === 1) {
-            window.seleccionarTecnico(tecnicos[0]);
-            searchResults.style.display = 'none';
-            return;
-        }
-
-        let html = '';
-        tecnicos.forEach(t => {
-            const trabajador = t.trabajador || {};
-            const nombre = trabajador.nombre && trabajador.apellido
-                ? `${trabajador.nombre} ${trabajador.apellido}`.trim()
-                : t.usuario || 'Sin nombre';
-            const cedulaTecnico = trabajador.cedula || 'Sin cédula';
-            const usuario = t.usuario || 'Sin usuario';
-            const id = t.id;
-            html += `<div class="p-2 border-bottom" style="cursor:pointer;" onclick="window.seleccionarTecnicoPorId(${id})">
-                <strong>${escapeHtml(nombre)}</strong>
-                <br><small class="text-muted">${escapeHtml(cedulaTecnico)} - Usuario: ${escapeHtml(usuario)}</small>
-            </div>`;
-        });
-        searchResults.innerHTML = html;
-        searchResults.style.display = 'block';
-        if (infoTecnico) infoTecnico.style.display = 'none';
-    })
-    .catch(error => {
-        console.error('Error al buscar técnico:', error);
-        const searchResults = document.getElementById('tecnicoSearchResults');
-        if (searchResults) {
-            searchResults.innerHTML = `<div class="p-2 text-danger small">Error al buscar: ${error.message}</div>`;
-            searchResults.style.display = 'block';
-        }
-    });
-}
-
-window.seleccionarTecnicoPorId = function (id) {
-    fetch('/admin/api/tecnicos/' + id, {
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        credentials: 'same-origin'
-    })
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(response => {
-        if (response.success && response.data) {
-            window.seleccionarTecnico(response.data);
-        }
-    })
-    .catch(error => console.error('Error al obtener técnico:', error));
-};
-
-window.seleccionarTecnico = function (tecnico) {
-    const trabajador = tecnico.trabajador || {};
-    const nombre = trabajador.nombre && trabajador.apellido
-        ? `${trabajador.nombre} ${trabajador.apellido}`.trim()
-        : tecnico.usuario || 'Sin nombre';
-    const cedula = trabajador.cedula || 'Sin cédula';
-    const usuario = tecnico.usuario || 'Sin usuario';
-
-    document.getElementById('fichaTecnicoId').value = tecnico.id;
-    document.getElementById('fichaTecnicoNombre').value = nombre;
-    document.getElementById('tecnicoBuscarInput').value = nombre;
-    document.getElementById('tecnicoSearchResults').style.display = 'none';
-
-    const infoTecnico = document.getElementById('tecnicoEncontrado');
-    if (infoTecnico) {
-        document.getElementById('tecnicoEncontradoNombre').textContent = nombre;
-        document.getElementById('tecnicoEncontradoCedula').textContent = `Cédula: ${cedula}`;
-        document.getElementById('tecnicoEncontradoUsuario').textContent = `Usuario: ${usuario}`;
-        infoTecnico.style.display = 'block';
-    }
-    tecnicoSeleccionado = tecnico;
-};
-
-window.limpiarTecnicoSeleccionado = function () {
-    document.getElementById('fichaTecnicoId').value = '';
-    document.getElementById('fichaTecnicoNombre').value = '';
-    document.getElementById('tecnicoBuscarInput').value = '';
-    document.getElementById('tecnicoEncontrado').style.display = 'none';
-    document.getElementById('tecnicoSearchResults').style.display = 'none';
-    tecnicoSeleccionado = null;
-};
-
-// ============================================================
-// BUSCADOR DE TÉCNICOS (equipo externo)
-// ============================================================
-function buscarExtTecnicoPorCedula(cedula) {
-    const url = '/admin/api/tecnicos?search=' + encodeURIComponent(cedula);
-    fetch(url, {
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        credentials: 'same-origin'
-    })
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(tecnicos => {
-        const searchResults = document.getElementById('extTecnicoSearchResults');
-        const infoTecnico = document.getElementById('extTecnicoEncontrado');
-        if (!searchResults) return;
-
-        if (!tecnicos || tecnicos.length === 0) {
-            searchResults.innerHTML = `<div class="p-2 text-muted small">No se encontraron técnicos con esta búsqueda.</div>`;
-            searchResults.style.display = 'block';
-            if (infoTecnico) infoTecnico.style.display = 'none';
-            document.getElementById('ext_fichaTecnicoId').value = '';
-            document.getElementById('ext_fichaTecnicoNombre').value = '';
-            return;
-        }
-
-        if (tecnicos.length === 1) {
-            window.seleccionarExtTecnico(tecnicos[0]);
-            searchResults.style.display = 'none';
-            return;
-        }
-
-        let html = '';
-        tecnicos.forEach(t => {
-            const trabajador = t.trabajador || {};
-            const nombre = trabajador.nombre && trabajador.apellido
-                ? `${trabajador.nombre} ${trabajador.apellido}`.trim()
-                : t.usuario || 'Sin nombre';
-            const cedulaTecnico = trabajador.cedula || 'Sin cédula';
-            const usuario = t.usuario || 'Sin usuario';
-            const id = t.id;
-            html += `<div class="p-2 border-bottom" style="cursor:pointer;" onclick="window.seleccionarExtTecnicoPorId(${id})">
-                <strong>${escapeHtml(nombre)}</strong>
-                <br><small class="text-muted">${escapeHtml(cedulaTecnico)} - Usuario: ${escapeHtml(usuario)}</small>
-            </div>`;
-        });
-        searchResults.innerHTML = html;
-        searchResults.style.display = 'block';
-        if (infoTecnico) infoTecnico.style.display = 'none';
-    })
-    .catch(error => {
-        console.error('Error al buscar técnico externo:', error);
-        const searchResults = document.getElementById('extTecnicoSearchResults');
-        if (searchResults) {
-            searchResults.innerHTML = `<div class="p-2 text-danger small">Error al buscar: ${error.message}</div>`;
-            searchResults.style.display = 'block';
-        }
-    });
-}
-
-window.seleccionarExtTecnicoPorId = function (id) {
-    fetch('/admin/api/tecnicos/' + id, {
-        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
-        credentials: 'same-origin'
-    })
-    .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(response => {
-        if (response.success && response.data) {
-            window.seleccionarExtTecnico(response.data);
-        }
-    })
-    .catch(error => console.error('Error al obtener técnico externo:', error));
-};
-
-window.seleccionarExtTecnico = function (tecnico) {
-    const trabajador = tecnico.trabajador || {};
-    const nombre = trabajador.nombre && trabajador.apellido
-        ? `${trabajador.nombre} ${trabajador.apellido}`.trim()
-        : tecnico.usuario || 'Sin nombre';
-    const cedula = trabajador.cedula || 'Sin cédula';
-    const usuario = tecnico.usuario || 'Sin usuario';
-
-    document.getElementById('ext_fichaTecnicoId').value = tecnico.id;
-    document.getElementById('ext_fichaTecnicoNombre').value = nombre;
-    document.getElementById('ext_tecnicoBuscarInput').value = nombre;
-    document.getElementById('extTecnicoSearchResults').style.display = 'none';
-
-    const infoTecnico = document.getElementById('extTecnicoEncontrado');
-    if (infoTecnico) {
-        document.getElementById('extTecnicoEncontradoNombre').textContent = nombre;
-        document.getElementById('extTecnicoEncontradoCedula').textContent = `Cédula: ${cedula}`;
-        document.getElementById('extTecnicoEncontradoUsuario').textContent = `Usuario: ${usuario}`;
-        infoTecnico.style.display = 'block';
-    }
-    extTecnicoSeleccionado = tecnico;
-};
-
-window.limpiarExtTecnicoSeleccionado = function () {
-    const el = document.getElementById('ext_fichaTecnicoId');
-    if (el) el.value = '';
-    const el2 = document.getElementById('ext_fichaTecnicoNombre');
-    if (el2) el2.value = '';
-    const el3 = document.getElementById('ext_tecnicoBuscarInput');
-    if (el3) el3.value = '';
-    const el4 = document.getElementById('extTecnicoEncontrado');
-    if (el4) el4.style.display = 'none';
-    const el5 = document.getElementById('extTecnicoSearchResults');
-    if (el5) el5.style.display = 'none';
-    extTecnicoSeleccionado = null;
-};
-
-// ============================================================
-// MODALES DE CREACIÓN (ficha manual y equipo externo)
-// ============================================================
-window.abrirModalCrearFicha = function () {
-    const form = document.getElementById('formCrearFicha');
-    if (form) form.reset();
-    window.limpiarActivoSeleccionado();
-    window.limpiarTecnicoSeleccionado();
-    const errorDiv = document.getElementById('activoErrorMensaje');
-    if (errorDiv) errorDiv.style.display = 'none';
-    const submitBtn = document.getElementById('btnGuardarFicha');
-    if (submitBtn) submitBtn.disabled = true;
-    new bootstrap.Modal(document.getElementById('modalCrearFicha')).show();
-    if (todosActivos.length === 0) cargarActivosParaBuscador();
-};
-
-window.abrirModalEquipoExterno = function () {
-    const form = document.getElementById('formEquipoExterno');
-    if (form) form.reset();
-    window.limpiarExtTecnicoSeleccionado();
-    window.limpiarActivoSeleccionado();
-    const fechaInput = document.getElementById('ext_fecha_adquisicion');
-    if (fechaInput) fechaInput.value = new Date().toISOString().split('T')[0];
-    configurarValidacionSerial();
-    cargarCategoriasExterno();
-    cargarInstitucionesExterno();
-    new bootstrap.Modal(document.getElementById('modalEquipoExterno')).show();
-};
-
-// Validación de serial: se ejecuta UNA SOLA VEZ (no en cada apertura)
-function configurarValidacionSerial() {
-    const serialInput = document.getElementById('ext_serial');
-    if (!serialInput || serialInput.dataset.bound === '1') return;
-    serialInput.dataset.bound = '1';
-
-    serialInput.addEventListener('blur', function () {
-        const serial = this.value.trim();
-        let feedback = document.getElementById('ext_serial_feedback');
-        if (!feedback) {
-            feedback = document.createElement('small');
-            feedback.id = 'ext_serial_feedback';
-            feedback.className = 'text-muted d-block mt-1';
-            feedback.style.fontSize = '0.75rem';
-            this.parentNode.appendChild(feedback);
-        }
-
-        if (serial.length < 3) {
-            feedback.textContent = 'Ingrese al menos 3 caracteres para verificar';
-            feedback.className = 'text-muted d-block mt-1';
-            feedback.style.fontSize = '0.75rem';
-            this.classList.remove('is-valid', 'is-invalid');
-            return;
-        }
-
-        feedback.textContent = 'Verificando serial...';
-        feedback.className = 'text-muted d-block mt-1';
-        feedback.style.fontSize = '0.75rem';
-
-        fetch(`/admin/activos?buscar=${encodeURIComponent(serial)}`, {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'same-origin'
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const existe = data.data.some(a => a.serial === serial);
-                if (existe) {
-                    feedback.textContent = '⚠️ Este serial ya está registrado en el sistema.';
-                    feedback.className = 'text-danger d-block mt-1';
-                    feedback.style.fontSize = '0.75rem';
-                    serialInput.classList.add('is-invalid');
-                    serialInput.classList.remove('is-valid');
-                } else {
-                    feedback.textContent = '✓ Serial disponible';
-                    feedback.className = 'text-success d-block mt-1';
-                    feedback.style.fontSize = '0.75rem';
-                    serialInput.classList.add('is-valid');
-                    serialInput.classList.remove('is-invalid');
-                }
-            }
-        })
-        .catch(() => {
-            feedback.textContent = 'Error al verificar serial';
-            feedback.className = 'text-danger d-block mt-1';
-            feedback.style.fontSize = '0.75rem';
-        });
-    });
-}
-
-// ============================================================
-// SELECTS DE EQUIPO EXTERNO
-// ============================================================
-function cargarCategoriasExterno() {
-    fetch('/admin/equipos/categorias-list', {
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'
-    })
-    .then(r => r.json())
-    .then(response => {
-        if (response.success) {
-            const select = document.getElementById('ext_categoria_id');
-            if (select) {
-                select.innerHTML = '<option value="">Seleccionar categoría...</option>';
-                response.data.forEach(cat => {
-                    select.innerHTML += `<option value="${cat.id}">${escapeHtml(cat.nombre)}</option>`;
-                });
-            }
-        }
-    })
-    .catch(error => console.error('Error cargando categorías:', error));
-}
-
-function cargarInstitucionesExterno() {
-    fetch('/admin/instituciones?todos=1', {
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'
-    })
-    .then(r => r.json())
-    .then(response => {
-        const instituciones = response.data || response;
-        const select = document.getElementById('ext_institucion_id');
-        if (select && instituciones) {
-            select.innerHTML = '<option value="">Seleccionar institución...</option>';
-            instituciones.forEach(inst => {
-                select.innerHTML += `<option value="${inst.id}">${escapeHtml(inst.nombre)}</option>`;
-            });
-        }
-    })
-    .catch(error => console.error('Error cargando instituciones:', error));
-}
-
-function cargarResponsablesExterno(institucionId) {
-    const select = document.getElementById('ext_responsable_id');
-    if (!select) return;
-
-    if (!institucionId) {
-        select.innerHTML = '<option value="">Seleccionar responsable...</option>';
-        return;
-    }
-
-    fetch(`/admin/responsables?institucion_id=${institucionId}`, {
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'
-    })
-    .then(r => r.json())
-    .then(response => {
-        if (response.success) {
-            select.innerHTML = '<option value="">Seleccionar responsable...</option>';
-            response.data.forEach(resp => {
-                select.innerHTML += `<option value="${resp.id}">${escapeHtml(resp.nombre)} - ${escapeHtml(resp.cargo || 'Sin cargo')}</option>`;
-            });
-        }
-    })
-    .catch(error => console.error('Error cargando responsables:', error));
-}
-
-// ============================================================
 // ⭐ CORREOS DE SOPORTE TÉCNICO ⭐
 // ============================================================
 window.cargarCorreosSoporte = async function () {
@@ -940,7 +466,7 @@ window.abrirCorreoSoporte = async function (id) {
             if (el) el.value = datos.problema;
         }
 
-        // ✅ CORRECCIÓN: Normalizar la fecha al formato Y-m-d
+        // ✅ Normalizar la fecha al formato Y-m-d
         const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
         if (fechaRaw) {
             const el = document.getElementById('wzFechaRequeridaSoporte');
@@ -1004,7 +530,7 @@ window.iniciarWizardSoporte = function () {
         if (el) el.value = datos.problema;
     }
 
-    // ✅ CORRECCIÓN: Normalizar la fecha al formato Y-m-d
+    // ✅ Normalizar la fecha al formato Y-m-d
     const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
     if (fechaRaw) {
         const el = document.getElementById('wzFechaRequeridaSoporte');
@@ -1021,7 +547,7 @@ window.iniciarWizardSoporte = function () {
         if (el) el.value = correoSoporteActual.from_name;
     }
 
-    // *** Pre-llenar institución y responsable si están disponibles ***
+    // Pre-llenar institución y responsable si están disponibles
     if (datos.serial) {
         fetch(`/admin/activos?buscar=${encodeURIComponent(datos.serial)}`, {
             headers: { 'Accept': 'application/json' },
@@ -1217,170 +743,9 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ========== BUSCADOR DE ACTIVOS ==========
-    const activoInput = document.getElementById('activoBuscarInput');
-    if (activoInput) {
-        activoInput.addEventListener('input', buscarActivos);
-        activoInput.addEventListener('focus', function () {
-            if (this.value.length >= 2) buscarActivos();
-        });
-        activoInput.addEventListener('blur', function () {
-            setTimeout(() => {
-                const dropdown = document.getElementById('activoDropdown');
-                if (dropdown) dropdown.style.display = 'none';
-            }, 300);
-        });
-    }
-
-    // ========== BUSCADOR DE TÉCNICOS ==========
-    const tecnicoInput = document.getElementById('tecnicoBuscarInput');
-    if (tecnicoInput) {
-        tecnicoInput.addEventListener('input', function () {
-            const cedula = this.value.trim();
-            clearTimeout(timeoutTecnicoBusqueda);
-
-            if (cedula.length < 2) {
-                const el1 = document.getElementById('tecnicoSearchResults');
-                if (el1) el1.style.display = 'none';
-                const el2 = document.getElementById('tecnicoEncontrado');
-                if (el2) el2.style.display = 'none';
-                const el3 = document.getElementById('fichaTecnicoId');
-                if (el3) el3.value = '';
-                const el4 = document.getElementById('fichaTecnicoNombre');
-                if (el4) el4.value = '';
-                return;
-            }
-            timeoutTecnicoBusqueda = setTimeout(() => buscarTecnicoPorCedula(cedula), 400);
-        });
-    }
-
-    // ========== BUSCADOR DE TÉCNICOS (equipo externo) ==========
-    const extTecnicoInput = document.getElementById('ext_tecnicoBuscarInput');
-    if (extTecnicoInput) {
-        extTecnicoInput.addEventListener('input', function () {
-            const cedula = this.value.trim();
-            clearTimeout(timeoutExtTecnicoBusqueda);
-
-            if (cedula.length < 2) {
-                const el1 = document.getElementById('extTecnicoSearchResults');
-                if (el1) el1.style.display = 'none';
-                const el2 = document.getElementById('extTecnicoEncontrado');
-                if (el2) el2.style.display = 'none';
-                const el3 = document.getElementById('ext_fichaTecnicoId');
-                if (el3) el3.value = '';
-                const el4 = document.getElementById('ext_fichaTecnicoNombre');
-                if (el4) el4.value = '';
-                return;
-            }
-            timeoutExtTecnicoBusqueda = setTimeout(() => buscarExtTecnicoPorCedula(cedula), 400);
-        });
-    }
-
-    // ========== RESPONSABLES AL CAMBIAR INSTITUCIÓN ==========
-    const instSelect = document.getElementById('ext_institucion_id');
-    if (instSelect) {
-        instSelect.addEventListener('change', function () {
-            cargarResponsablesExterno(this.value);
-        });
-    }
-
     // ========== CARGA INICIAL ==========
     cargarPagina(1);
-    cargarActivosParaBuscador();
     actualizarBadgeCorreosSoporte();
-
-    // ========== SUBMIT FORM CREAR FICHA ==========
-    const formCrearFicha = document.getElementById('formCrearFicha');
-    if (formCrearFicha) {
-        formCrearFicha.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const activoId = document.getElementById('fichaActivoId').value;
-
-            if (!activoId) {
-                mostrarNotificacion('error', 'Debe seleccionar un activo válido');
-                document.getElementById('activoBuscarInput').classList.add('is-invalid');
-                return;
-            }
-            if (activosEnProceso.includes(parseInt(activoId))) {
-                mostrarNotificacion('error', 'Este activo ya tiene una ficha de soporte en proceso');
-                return;
-            }
-
-            const submitBtn = document.getElementById('btnGuardarFicha');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Creando...';
-            submitBtn.disabled = true;
-
-            const formData = new FormData(this);
-            const tecnicoNombre = document.getElementById('fichaTecnicoNombre').value;
-            if (tecnicoNombre) formData.set('tecnico_nombre', tecnicoNombre);
-
-            try {
-                const response = await fetch('/admin/soporte', {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                    body: formData
-                });
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    mostrarNotificacion('success', result.message || 'Ficha creada exitosamente');
-                    bootstrap.Modal.getInstance(document.getElementById('modalCrearFicha')).hide();
-                    cargarPagina(1);
-                    actualizarEstadisticas();
-                    cargarActivosParaBuscador();
-                } else {
-                    mostrarNotificacion('error', result.message || 'Error al crear la ficha');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                mostrarNotificacion('error', 'Error de conexión al servidor');
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-        });
-    }
-
-    // ========== SUBMIT FORM EQUIPO EXTERNO ==========
-    const formEquipoExterno = document.getElementById('formEquipoExterno');
-    if (formEquipoExterno) {
-        formEquipoExterno.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('btnGuardarEquipoExterno');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Registrando...';
-            submitBtn.disabled = true;
-
-            const formData = new FormData(this);
-
-            try {
-                const response = await fetch('/admin/soporte/equipo-externo', {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                    body: formData
-                });
-                const result = await response.json();
-
-                if (response.ok && result.success) {
-                    mostrarNotificacion('success', result.message || 'Equipo registrado');
-                    bootstrap.Modal.getInstance(document.getElementById('modalEquipoExterno')).hide();
-                    cargarPagina(1);
-                    cargarActivosParaBuscador();
-                } else {
-                    mostrarNotificacion('error', result.message || 'Error al registrar el equipo');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                mostrarNotificacion('error', 'Error de conexión al servidor');
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
-            }
-        });
-    }
 
     // ========== SUBMIT FORM CERRAR FICHA ==========
     const formCerrarFicha = document.getElementById('formCerrarFicha');
@@ -1407,7 +772,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     bootstrap.Modal.getInstance(document.getElementById('modalCerrarFicha')).hide();
                     cargarPagina(currentPage);
                     actualizarEstadisticas();
-                    cargarActivosParaBuscador();
                 } else {
                     mostrarNotificacion('error', result.message || 'Error al finalizar la ficha');
                 }
@@ -1427,7 +791,6 @@ document.addEventListener('DOMContentLoaded', function () {
         formWizardSoporte.addEventListener('submit', async function (e) {
             e.preventDefault();
 
-            // ✅ VALIDACIÓN FINAL antes de enviar
             if (!validarPasoSoporte1()) {
                 irPasoSoporte(1);
                 return;
@@ -1632,7 +995,6 @@ window.verDetalle = async function (id) {
 
         const f = result.data;
 
-        // ===== Formateo de fechas =====
         const fmtFecha = (fecha) => {
             if (!fecha) return null;
             const d = new Date(fecha);
@@ -1653,20 +1015,17 @@ window.verDetalle = async function (id) {
         const fechaSalida = fmtFechaHora(f.fecha_salida) || 'En proceso';
         const fechaRequerida = fmtFecha(f.fecha_requerida_entrega);
 
-        // ===== Estado =====
         const esEnProceso = f.estado === 'en_proceso';
         const estadoBg = esEnProceso ? 'linear-gradient(135deg, #f6c23e, #f4b619)' : 'linear-gradient(135deg, #1e7e34, #28a745)';
         const estadoIcono = esEnProceso ? '🔧' : '✅';
         const estadoTexto = esEnProceso ? 'En Proceso' : 'Finalizado';
 
-        // ===== Datos del activo =====
         const serial = f.activo?.serial || 'N/A';
         const modelo = f.activo?.modelo?.nombre || 'N/A';
         const marca = f.activo?.modelo?.marca?.nombre || 'N/A';
         const institucion = f.activo?.institucion?.nombre || 'No especificada';
         const responsable = f.activo?.responsable?.nombre || 'No especificado';
 
-        // ===== Componentes =====
         let componentesHtml = '';
         if (f.detalles && f.detalles.length > 0) {
             componentesHtml = f.detalles.map(det => {
@@ -1711,7 +1070,6 @@ window.verDetalle = async function (id) {
             `;
         }
 
-        // ===== HTML final =====
         const html = `
             <style>
                 .ficha-detalle-wrap { font-family: inherit; }
@@ -1867,7 +1225,6 @@ window.verDetalle = async function (id) {
             </style>
 
             <div class="ficha-detalle-wrap">
-                <!-- HEADER -->
                 <div class="ficha-header">
                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                         <div>
@@ -1885,7 +1242,6 @@ window.verDetalle = async function (id) {
                     </div>
                 </div>
 
-                <!-- INFO PRINCIPAL -->
                 <div class="info-grid">
                     <div class="info-card">
                         <div class="info-label">
@@ -1933,7 +1289,6 @@ window.verDetalle = async function (id) {
                     </div>
                 </div>
 
-                <!-- FECHAS -->
                 <div class="mb-4">
                     <div class="seccion-titulo">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
@@ -1971,7 +1326,6 @@ window.verDetalle = async function (id) {
                     </div>
                 </div>
 
-                <!-- DIAGNÓSTICO -->
                 <div class="mb-4">
                     <div class="seccion-titulo">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
@@ -1985,7 +1339,6 @@ window.verDetalle = async function (id) {
                     </div>
                 </div>
 
-                <!-- TRABAJO REALIZADO -->
                 ${f.trabajo_realizado ? `
                     <div class="mb-4">
                         <div class="seccion-titulo">
@@ -2000,7 +1353,6 @@ window.verDetalle = async function (id) {
                     </div>
                 ` : ''}
 
-                <!-- OBSERVACIONES -->
                 <div class="mb-4">
                     <div class="seccion-titulo">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
@@ -2013,7 +1365,6 @@ window.verDetalle = async function (id) {
                     </div>
                 </div>
 
-                <!-- COMPONENTES -->
                 <div class="mb-2">
                     <div class="seccion-titulo">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Componente;
 use App\Models\ModeloComponente;
+use App\Models\Responsable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -20,10 +21,10 @@ class ComponenteController extends Controller
         }
 
         try {
-            // ✅ Sin modeloComponente (esa tabla ya no se usa)
             $query = Componente::with([
                 'activo',
                 'institucion',
+                'departamento',
                 'responsable',
             ]);
 
@@ -125,6 +126,7 @@ class ComponenteController extends Controller
 
     // ============================================================
     // STORE — Crear componente
+    // ✅ RESPONSABLE AUTO-ASIGNADO desde institución/departamento
     // ============================================================
     public function store(Request $request)
     {
@@ -144,18 +146,38 @@ class ComponenteController extends Controller
                 'activo_id' => 'nullable|exists:activos,id',
                 'institucion_id' => 'required|exists:instituciones,id',
                 'departamento_id' => 'nullable|exists:departamentos,id',
-                'responsable_id' => 'required|exists:responsables,id',
+                'responsable_id' => 'nullable|exists:responsables,id',
                 'ubicacion' => 'nullable|string|max:100',
                 'fecha_instalacion' => 'nullable|date',
                 'fecha_retiro' => 'nullable|date',
                 'observaciones' => 'nullable|string',
             ]);
 
+            // ✅ RESOLVER RESPONSABLE AUTOMÁTICO
+            $responsableId = $this->resolverResponsable(
+                $request->departamento_id,
+                $request->institucion_id
+            );
+
+            if (!$responsableId) {
+                $entidad = $request->departamento_id
+                    ? 'El departamento seleccionado'
+                    : 'La institución seleccionada';
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "⚠️ {$entidad} no tiene un responsable asignado.\n\n" .
+                                 "Por favor, asígnalo primero en el módulo de Entidades antes de continuar."
+                ], 422);
+            }
+
+            $validated['responsable_id'] = $responsableId; // ✅ AUTO-ASIGNADO
+
             $componente = Componente::create($validated);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Componente creado exitosamente',
+                'message' => 'Componente creado exitosamente. Responsable asignado automáticamente.',
                 'data' => $componente->load(['activo', 'institucion', 'responsable']),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -201,6 +223,7 @@ class ComponenteController extends Controller
 
     // ============================================================
     // UPDATE — Editar componente
+    // ✅ RESPONSABLE AUTO-ASIGNADO desde institución/departamento
     // ============================================================
     public function update(Request $request, $id)
     {
@@ -222,18 +245,38 @@ class ComponenteController extends Controller
                 'activo_id' => 'nullable|exists:activos,id',
                 'institucion_id' => 'required|exists:instituciones,id',
                 'departamento_id' => 'nullable|exists:departamentos,id',
-                'responsable_id' => 'required|exists:responsables,id',
+                'responsable_id' => 'nullable|exists:responsables,id',
                 'ubicacion' => 'nullable|string|max:100',
                 'fecha_instalacion' => 'nullable|date',
                 'fecha_retiro' => 'nullable|date',
                 'observaciones' => 'nullable|string',
             ]);
 
+            // ✅ RESOLVER RESPONSABLE AUTOMÁTICO
+            $responsableId = $this->resolverResponsable(
+                $request->departamento_id,
+                $request->institucion_id
+            );
+
+            if (!$responsableId) {
+                $entidad = $request->departamento_id
+                    ? 'El departamento seleccionado'
+                    : 'La institución seleccionada';
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "⚠️ {$entidad} no tiene un responsable asignado.\n\n" .
+                                 "Por favor, asígnalo primero en el módulo de Entidades antes de continuar."
+                ], 422);
+            }
+
+            $validated['responsable_id'] = $responsableId; // ✅ AUTO-ASIGNADO
+
             $componente->update($validated);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Componente actualizado exitosamente',
+                'message' => 'Componente actualizado exitosamente. Responsable asignado automáticamente.',
                 'data' => $componente->fresh(['activo', 'institucion', 'responsable']),
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -356,5 +399,43 @@ class ComponenteController extends Controller
                 'message' => 'Error al cargar componentes'
             ], 500);
         }
+    }
+
+    // ============================================================
+    // HELPER: Resolver responsable automático
+    // ============================================================
+    /**
+     * ✅ NUEVO: Resolver responsable automático.
+     * Prioridad:
+     *   1. Si hay departamento → responsable del departamento
+     *   2. Si hay institución → responsable directo (sin departamento)
+     *   3. Si no hay ninguno → null (el controlador rechaza)
+     */
+    private function resolverResponsable(?int $departamentoId, ?int $institucionId): ?int
+    {
+        // Prioridad 1: Departamento
+        if ($departamentoId) {
+            $responsable = Responsable::where('departamento_id', $departamentoId)
+                ->where('activo', true)
+                ->first();
+
+            if ($responsable) {
+                return $responsable->id;
+            }
+        }
+
+        // Prioridad 2: Institución (responsable directo)
+        if ($institucionId) {
+            $responsable = Responsable::where('institucion_id', $institucionId)
+                ->whereNull('departamento_id')
+                ->where('activo', true)
+                ->first();
+
+            if ($responsable) {
+                return $responsable->id;
+            }
+        }
+
+        return null;
     }
 }

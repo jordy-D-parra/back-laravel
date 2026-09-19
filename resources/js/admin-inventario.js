@@ -1,7 +1,8 @@
 // resources/js/admin-inventario.js
 // ✅ Inventario con componentes dinámicos por activo
-// ✅ Los componentes se envían en UNA sola petición con el activo
-// ✅ Sistema de reportes integrado
+// ✅ RESPONSABLE AUTO-ASIGNADO desde institución/departamento
+// ✅ SIN sección de "Especificaciones Técnicas" en el detalle
+// ✅ FIX: listener de institución/departamento usa .onchange (sin cloneNode)
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -17,6 +18,7 @@ var componentesPerPage = 10;
 var todosModelos = [];
 var listaEstados = [];
 var todosActivosList = [];
+var todasInstituciones = [];
 
 var activoCambioEstado = null;
 var elementoAEliminar = null;
@@ -36,7 +38,6 @@ var SVG_ICONS = {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Módulo de inventario cargado');
 
-    // Cargar estados primero
     cargarEstados().then(function() {
         cargarActivos();
         cargarComponentes();
@@ -44,29 +45,24 @@ document.addEventListener('DOMContentLoaded', function() {
 
     cargarSelectsBase();
 
-    // Formulario de activo
     document.getElementById('formActivo')?.addEventListener('submit', function(e) {
         e.preventDefault();
         guardarActivo();
     });
 
-    // Formulario de componente
     document.getElementById('formComponente')?.addEventListener('submit', function(e) {
         e.preventDefault();
         guardarComponente();
     });
 
-    // Botón eliminar
     document.getElementById('btnConfirmarEliminar')?.addEventListener('click', function() {
         confirmarEliminacion();
     });
 
-    // Botón cambiar estado
     document.getElementById('btnConfirmarCambioEstado')?.addEventListener('click', function() {
         confirmarCambioEstado();
     });
 
-    // Filtros para activos
     var buscarActivos = document.getElementById('buscarActivos');
     if (buscarActivos) {
         buscarActivos.addEventListener('input', function() {
@@ -83,7 +79,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Filtros para componentes
     var buscarComponentes = document.getElementById('buscarComponentes');
     if (buscarComponentes) {
         buscarComponentes.addEventListener('input', function() {
@@ -108,13 +103,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Validar serial activo en tiempo real
     var serialInput = document.getElementById('activo_serial');
     if (serialInput) {
         serialInput.addEventListener('blur', function() { validarSerialActivo(); });
     }
 
-    // Cerrar dropdown de modelos al hacer clic fuera
     document.addEventListener('click', function(e) {
         var dropdown = document.getElementById('modeloDropdown');
         var input = document.getElementById('activo_modelo_buscar');
@@ -146,7 +139,7 @@ function mostrarToast(mensaje, tipo) {
     toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;background:' + colores[tipo] + ';color:white;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:slideIn 0.3s ease-out;cursor:pointer;max-width:400px;white-space:pre-line;font-size:0.9rem;';
     toast.textContent = mensaje;
     document.body.appendChild(toast);
-    setTimeout(function() { toast.remove(); }, 4000);
+    setTimeout(function() { toast.remove(); }, 4500);
 }
 
 function getEstadoBadge(estado) {
@@ -209,12 +202,192 @@ function debounce(func, wait) {
 }
 
 // ============================================================
+// ✅ RESPONSABLE AUTOMÁTICO
+// ============================================================
+function cargarResponsableAutomatico(tipo, id, displayId, hiddenId) {
+    var display = document.getElementById(displayId);
+    var hidden = document.getElementById(hiddenId);
+
+    if (!display || !hidden) return;
+
+    if (!id) {
+        display.innerHTML = '<span class="text-muted">Selecciona una institución para ver el responsable</span>';
+        hidden.value = '';
+        return;
+    }
+
+    display.innerHTML = '<span class="text-muted">🔍 Buscando responsable...</span>';
+
+    var url = tipo === 'departamento'
+        ? '/admin/api/departamento/' + id + '/responsable'
+        : '/admin/api/institucion/' + id + '/responsable';
+
+    fetch(url, {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        if (data.responsable) {
+            display.innerHTML = `
+                <div>
+                    <strong style="color:#1e3c72;">👤 ${escapeHtml(data.responsable.nombre)}</strong>
+                    <div class="small text-muted mt-1">
+                        ${data.responsable.cargo ? '💼 ' + escapeHtml(data.responsable.cargo) : ''}
+                        ${data.responsable.telefono ? ' &nbsp;📞 ' + escapeHtml(data.responsable.telefono) : ''}
+                        ${data.responsable.email ? ' &nbsp;✉️ ' + escapeHtml(data.responsable.email) : ''}
+                    </div>
+                </div>
+            `;
+            hidden.value = data.responsable.id;
+        } else {
+            display.innerHTML = `
+                <div class="text-danger">
+                    <strong>⚠️ Sin responsable asignado</strong>
+                    <div class="small mt-1">Ve al módulo de <strong>Entidades</strong> y asigna un responsable antes de guardar.</div>
+                </div>
+            `;
+            hidden.value = '';
+        }
+    })
+    .catch(function() {
+        display.innerHTML = '<span class="text-danger">Error al buscar responsable</span>';
+        hidden.value = '';
+    });
+}
+
+// ============================================================
+// ✅ CARGAR INSTITUCIONES + DEPARTAMENTOS (ÚNICA FUENTE DE VERDAD)
+// ✅ SIN cloneNode — usa .onchange = (sobrescribe sin acumular)
+// ============================================================
+function cargarInstituciones(selectId, seleccionada, departamentoSelectId, departamentoSeleccionado) {
+    var sel = document.getElementById(selectId);
+    if (!sel) return;
+
+    var esActivo = selectId === 'activo_institucion_id';
+    var respDisplay = esActivo ? 'activo_responsable_display' : 'comp_responsable_display';
+    var respHidden = esActivo ? 'activo_responsable_id' : 'comp_responsable_id';
+
+    sel.innerHTML = '<option value="">Cargando...</option>';
+
+    fetch('/admin/instituciones?todos=1', {
+        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(response) {
+        var instituciones = response.data || response || [];
+        todasInstituciones = instituciones;
+
+        sel.innerHTML = '<option value="">Seleccione una institución...</option>';
+        instituciones.forEach(function(i) {
+            sel.innerHTML += '<option value="' + i.id + '">' + escapeHtml(i.nombre) + '</option>';
+        });
+
+        // ✅ Usar .onchange = ... en lugar de cloneNode + addEventListener
+        sel.onchange = function() {
+            var instId = this.value;
+
+            // Reset departamento
+            if (departamentoSelectId) {
+                var deptoSelect = document.getElementById(departamentoSelectId);
+                if (deptoSelect) {
+                    deptoSelect.innerHTML = '<option value="">Sin departamento</option>';
+                }
+            }
+
+            if (!instId) {
+                cargarResponsableAutomatico('institucion', null, respDisplay, respHidden);
+                return;
+            }
+
+            // ✅ SIEMPRE cargar departamentos al cambiar institución
+            if (departamentoSelectId) {
+                cargarDepartamentos(instId, departamentoSelectId);
+            }
+
+            // Cargar responsable directo de la institución
+            cargarResponsableAutomatico('institucion', instId, respDisplay, respHidden);
+        };
+
+        // Modo edición: setear institución + cargar departamentos + setear departamento
+        if (seleccionada) {
+            sel.value = seleccionada;
+
+            if (departamentoSelectId) {
+                cargarDepartamentos(seleccionada, departamentoSelectId, departamentoSeleccionado);
+            }
+
+            if (departamentoSeleccionado) {
+                cargarResponsableAutomatico('departamento', departamentoSeleccionado, respDisplay, respHidden);
+            } else {
+                cargarResponsableAutomatico('institucion', seleccionada, respDisplay, respHidden);
+            }
+        }
+    })
+    .catch(function(err) {
+        console.error('Error al cargar instituciones:', err);
+        sel.innerHTML = '<option value="">Error al cargar</option>';
+    });
+}
+
+function cargarDepartamentos(institucionId, selectId, seleccionado) {
+    var sel = document.getElementById(selectId);
+    if (!sel) return;
+
+    if (!institucionId) {
+        sel.innerHTML = '<option value="">Sin departamento</option>';
+        return;
+    }
+
+    var esActivo = selectId === 'activo_departamento_id';
+    var respDisplay = esActivo ? 'activo_responsable_display' : 'comp_responsable_display';
+    var respHidden = esActivo ? 'activo_responsable_id' : 'comp_responsable_id';
+
+    sel.innerHTML = '<option value="">Cargando departamentos...</option>';
+
+    fetch('/admin/departamentos/por-institucion/' + institucionId, {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+        var lista = data.data || [];
+        sel.innerHTML = '<option value="">Sin departamento</option>';
+        lista.forEach(function(d) {
+            sel.innerHTML += '<option value="' + d.id + '">' + escapeHtml(d.nombre) + '</option>';
+        });
+
+        // ✅ Usar .onchange = ... (sobrescribe sin acumular)
+        sel.onchange = function() {
+            var deptoId = this.value;
+            var instId = esActivo
+                ? document.getElementById('activo_institucion_id')?.value
+                : document.getElementById('comp_institucion_id')?.value;
+
+            if (deptoId) {
+                cargarResponsableAutomatico('departamento', deptoId, respDisplay, respHidden);
+            } else if (instId) {
+                cargarResponsableAutomatico('institucion', instId, respDisplay, respHidden);
+            } else {
+                cargarResponsableAutomatico('institucion', null, respDisplay, respHidden);
+            }
+        };
+
+        // Modo edición: setear departamento
+        if (seleccionado) {
+            sel.value = seleccionado;
+        }
+    })
+    .catch(function(err) {
+        console.error('Error al cargar departamentos:', err);
+        sel.innerHTML = '<option value="">Error al cargar</option>';
+    });
+}
+
+// ============================================================
 // COMPONENTES DINÁMICOS EN EL FORMULARIO DE INVENTARIO
 // ============================================================
-
-/**
- * Agrega una nueva tarjeta de componente al formulario.
- */
 window.agregarComponenteFormulario = function(compData) {
     compData = compData || {};
 
@@ -317,9 +490,6 @@ window.agregarComponenteFormulario = function(compData) {
     }
 };
 
-/**
- * Elimina una tarjeta de componente del formulario.
- */
 window.eliminarComponenteFormulario = function(btn) {
     var item = btn.closest('.componente-activo-item');
     if (!item) return;
@@ -336,9 +506,6 @@ window.eliminarComponenteFormulario = function(btn) {
     verificarComponentesVacios();
 };
 
-/**
- * Verifica si quedan componentes y muestra el mensaje vacío si no hay.
- */
 function verificarComponentesVacios() {
     var container = document.getElementById('componentesActivoContainer');
     if (!container) return;
@@ -351,9 +518,6 @@ function verificarComponentesVacios() {
     }
 }
 
-/**
- * Renumera visualmente los componentes.
- */
 function renumerarComponentes() {
     var items = document.querySelectorAll('#componentesActivoContainer .componente-activo-item');
     items.forEach(function(item, idx) {
@@ -362,9 +526,6 @@ function renumerarComponentes() {
     });
 }
 
-/**
- * Recolecta los componentes del formulario.
- */
 function recolectarComponentesFormulario() {
     var componentes = [];
     var items = document.querySelectorAll('#componentesActivoContainer .componente-activo-item');
@@ -392,9 +553,6 @@ function recolectarComponentesFormulario() {
     return componentes;
 }
 
-/**
- * Limpia todos los componentes del formulario.
- */
 function limpiarComponentesFormulario() {
     var container = document.getElementById('componentesActivoContainer');
     if (!container) return;
@@ -407,9 +565,6 @@ function limpiarComponentesFormulario() {
     if (sinComponentes) sinComponentes.style.display = 'block';
 }
 
-/**
- * Carga los componentes existentes de un activo en el formulario.
- */
 function cargarComponentesEnFormulario(componentes) {
     limpiarComponentesFormulario();
     if (!componentes || componentes.length === 0) return;
@@ -646,7 +801,7 @@ function validarSerialActivo() {
 }
 
 // ============================================================
-// SELECTS BASE
+// SELECTS BASE (SOLO MODELOS, ESTATUS Y ACTIVOS DE COMPONENTES)
 // ============================================================
 function cargarSelectsBase() {
     // Cargar modelos
@@ -678,56 +833,6 @@ function cargarSelectsBase() {
         if (select) select.innerHTML = '<option value="">Seleccionar...</option><option value="1" selected>Disponible</option>';
     });
 
-    // Cargar instituciones
-    fetch('/admin/instituciones', { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            var select1 = document.getElementById('activo_institucion_id');
-            var select2 = document.getElementById('comp_institucion_id');
-
-            if (select1) {
-                select1.innerHTML = '<option value="">Seleccionar...</option>';
-                response.data.forEach(function(i) {
-                    select1.innerHTML += '<option value="' + i.id + '" data-representante="' + escapeHtml(i.representante || '') + '">' + escapeHtml(i.nombre) + '</option>';
-                });
-                var gob = response.data.find(function(i) {
-                    var n = i.nombre.toLowerCase();
-                    return n.indexOf('gobernacion') >= 0 || n.indexOf('informatica') >= 0;
-                });
-                if (gob) {
-                    select1.value = gob.id;
-                    cargarResponsablesPorInstitucion(gob.id, 'activo_responsable_id', gob.representante);
-                }
-                select1.addEventListener('change', function() {
-                    var opt = this.options[this.selectedIndex];
-                    var rep = opt.getAttribute('data-representante') || '';
-                    cargarResponsablesPorInstitucion(this.value, 'activo_responsable_id', rep);
-                });
-            }
-
-            if (select2) {
-                select2.innerHTML = '<option value="">Seleccionar...</option>';
-                response.data.forEach(function(i) {
-                    select2.innerHTML += '<option value="' + i.id + '" data-representante="' + escapeHtml(i.representante || '') + '">' + escapeHtml(i.nombre) + '</option>';
-                });
-                var gob = response.data.find(function(i) {
-                    var n = i.nombre.toLowerCase();
-                    return n.indexOf('gobernacion') >= 0 || n.indexOf('informatica') >= 0;
-                });
-                if (gob) {
-                    select2.value = gob.id;
-                    cargarResponsablesPorInstitucion(gob.id, 'comp_responsable_id', gob.representante);
-                }
-                select2.addEventListener('change', function() {
-                    var opt = this.options[this.selectedIndex];
-                    var rep = opt.getAttribute('data-representante') || '';
-                    cargarResponsablesPorInstitucion(this.value, 'comp_responsable_id', rep);
-                });
-            }
-        }
-    });
-
     // Cargar activos para el select de componentes
     fetch('/admin/activos', { headers: { 'Accept': 'application/json' } })
     .then(function(r) { return r.json(); })
@@ -741,27 +846,6 @@ function cargarSelectsBase() {
                     var modeloNombre = a.modelo ? a.modelo.nombre : 'N/A';
                     selectComp.innerHTML += '<option value="' + a.id + '">' + escapeHtml(a.serial) + ' - ' + escapeHtml(modeloNombre) + '</option>';
                 });
-            }
-        }
-    });
-}
-
-function cargarResponsablesPorInstitucion(institucionId, selectId, representanteSugerido) {
-    var select = document.getElementById(selectId);
-    if (!select || !institucionId) return;
-    fetch('/admin/responsables?institucion_id=' + institucionId, { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            select.innerHTML = '<option value="">Seleccionar...</option>';
-            response.data.forEach(function(r) {
-                select.innerHTML += '<option value="' + r.id + '">' + escapeHtml(r.nombre) + ' - ' + escapeHtml(r.cargo || 'Sin cargo') + '</option>';
-            });
-            if (representanteSugerido && response.data.length > 0) {
-                var encontrado = response.data.find(function(r) {
-                    return r.nombre.toLowerCase().indexOf(representanteSugerido.toLowerCase()) >= 0;
-                });
-                select.value = encontrado ? encontrado.id : response.data[0].id;
             }
         }
     });
@@ -956,13 +1040,23 @@ window.abrirModalActivo = function(id) {
     document.getElementById('modeloDropdown').style.display = 'none';
     document.getElementById('modeloInfoBadges').innerHTML = '';
     document.getElementById('modalActivoLabel').textContent = 'Nuevo Activo';
+
+    // Reset responsable
+    var respDisplay = document.getElementById('activo_responsable_display');
+    if (respDisplay) respDisplay.innerHTML = '<span class="text-muted">Selecciona una institución para ver el responsable</span>';
+    var respHidden = document.getElementById('activo_responsable_id');
+    if (respHidden) respHidden.value = '';
+
+    // Reset departamento
+    var deptoSelect = document.getElementById('activo_departamento_id');
+    if (deptoSelect) deptoSelect.innerHTML = '<option value="">Sin departamento</option>';
+
     limpiarComponentesFormulario();
     document.getElementById('activo_serial').style.borderColor = '';
     var feedback = document.getElementById('serialFeedback');
     if (feedback) feedback.innerHTML = '';
 
-    cargarSelectsBase();
-
+    // ✅ Cargar instituciones (con el select de departamento como 3er argumento)
     if (id) {
         document.getElementById('modalActivoLabel').textContent = 'Editar Activo';
         document.getElementById('activoId').value = id;
@@ -976,8 +1070,6 @@ window.abrirModalActivo = function(id) {
                 var modeloTexto = a.modelo ? ((a.modelo.marca ? a.modelo.marca.nombre + ' ' : '') + a.modelo.nombre) : '';
                 document.getElementById('activo_modelo_buscar').value = modeloTexto;
                 document.getElementById('activo_id_estatus').value = a.id_estatus || '';
-                document.getElementById('activo_institucion_id').value = a.institucion_id || '';
-                document.getElementById('activo_responsable_id').value = a.responsable_id || '';
                 document.getElementById('activo_ubicacion').value = a.ubicacion || '';
                 document.getElementById('activo_fecha_adquisicion').value = a.fecha_adquisicion || '';
                 document.getElementById('activo_fecha_fin_garantia').value = a.fecha_fin_garantia || '';
@@ -990,19 +1082,33 @@ window.abrirModalActivo = function(id) {
                     document.getElementById('modeloInfoBadges').innerHTML = '<span class="badge bg-primary-dark">' + escapeHtml(marca) + '</span> <span class="badge bg-secondary">' + escapeHtml(categoria) + '</span>';
                 }
 
-                // Cargar componentes existentes en el formulario
+                // ✅ Cargar instituciones CON seleccionada + departamento
+                cargarInstituciones('activo_institucion_id', a.institucion_id, 'activo_departamento_id', a.departamento_id);
+
+                // Cargar componentes existentes
                 if (a.componentes && a.componentes.length > 0) {
                     cargarComponentesEnFormulario(a.componentes);
                 }
+
+                // Cargar estatus (por si acaso)
+                var selEstatus = document.getElementById('activo_id_estatus');
+                if (selEstatus && a.id_estatus) selEstatus.value = a.id_estatus;
             }
         });
+    } else {
+        // ✅ MODO CREAR: solo cargar instituciones
+        cargarInstituciones('activo_institucion_id', null, 'activo_departamento_id');
     }
+
     modal.show();
     setTimeout(function() { document.getElementById('activo_serial').focus(); }, 500);
 };
 
 window.editarActivo = function(id) { window.abrirModalActivo(id); };
 
+// ============================================================
+// ✅ VER ACTIVO (SIN especificaciones técnicas, con componentes)
+// ============================================================
 window.verActivo = function(id) {
     fetch('/admin/activos/' + id, { headers: { 'Accept': 'application/json' } })
     .then(function(r) { return r.json(); })
@@ -1033,7 +1139,9 @@ window.verActivo = function(id) {
             var modeloNombre = a.modelo ? a.modelo.nombre : 'N/A';
             var categoriaNombre = a.modelo && a.modelo.categoria ? a.modelo.categoria.nombre : 'N/A';
             var institucionNombre = a.institucion ? a.institucion.nombre : 'N/A';
+            var departamentoNombre = a.departamento ? a.departamento.nombre : null;
             var responsableNombre = a.responsable ? a.responsable.nombre : 'No asignado';
+            var responsableCargo = a.responsable ? a.responsable.cargo : '';
 
             var html = `
                 <div class="detalle-activo-moderno">
@@ -1073,13 +1181,22 @@ window.verActivo = function(id) {
                                         <div class="detalle-label"><i class="fas fa-building"></i> Institución</div>
                                         <div class="detalle-valor">${escapeHtml(institucionNombre)}</div>
                                     </div>
+                                    ${departamentoNombre ? `
+                                    <div class="detalle-item">
+                                        <div class="detalle-label"><i class="fas fa-sitemap"></i> Departamento</div>
+                                        <div class="detalle-valor">${escapeHtml(departamentoNombre)}</div>
+                                    </div>
+                                    ` : ''}
                                     <div class="detalle-item">
                                         <div class="detalle-label"><i class="fas fa-map-marker-alt"></i> Ubicación</div>
                                         <div class="detalle-valor">${escapeHtml(a.ubicacion || 'No especificada')}</div>
                                     </div>
                                     <div class="detalle-item">
                                         <div class="detalle-label"><i class="fas fa-user"></i> Responsable</div>
-                                        <div class="detalle-valor">${escapeHtml(responsableNombre)}</div>
+                                        <div class="detalle-valor">
+                                            ${escapeHtml(responsableNombre)}
+                                            ${responsableCargo ? `<div class="small text-muted mt-1">${escapeHtml(responsableCargo)}</div>` : ''}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -1190,14 +1307,13 @@ window.verActivo = function(id) {
 };
 
 // ============================================================
-// GUARDAR ACTIVO (CON COMPONENTES EN UNA SOLA PETICIÓN)
+// GUARDAR ACTIVO
 // ============================================================
 function guardarActivo() {
     var id = document.getElementById('activoId').value;
     var url = id ? '/admin/activos/' + id : '/admin/activos';
     var formData = new FormData(document.getElementById('formActivo'));
 
-    // Validaciones mínimas del cliente
     if (!document.getElementById('activo_serial').value.trim()) {
         mostrarToast('El serial del activo es requerido', 'warning');
         return;
@@ -1207,10 +1323,13 @@ function guardarActivo() {
         return;
     }
 
-    // Recolectar componentes del formulario
-    var componentes = recolectarComponentesFormulario();
+    var responsableId = document.getElementById('activo_responsable_id')?.value;
+    if (!responsableId) {
+        mostrarToast('⚠️ La institución/departamento seleccionado no tiene un responsable asignado.\n\nAsígnalo primero en el módulo de Entidades.', 'error');
+        return;
+    }
 
-    // Enviar componentes como JSON dentro del FormData
+    var componentes = recolectarComponentesFormulario();
     formData.append('componentes', JSON.stringify(componentes));
 
     if (id) formData.append('_method', 'PUT');
@@ -1277,7 +1396,15 @@ window.abrirModalComponente = function(id) {
     document.getElementById('formComponente').reset();
     document.getElementById('componenteId').value = '';
     document.getElementById('modalComponenteLabel').textContent = 'Nuevo Componente';
-    cargarSelectsBase();
+
+    var respDisplay = document.getElementById('comp_responsable_display');
+    if (respDisplay) respDisplay.innerHTML = '<span class="text-muted">Selecciona una institución para ver el responsable</span>';
+    var respHidden = document.getElementById('comp_responsable_id');
+    if (respHidden) respHidden.value = '';
+
+    var deptoSelect = document.getElementById('comp_departamento_id');
+    if (deptoSelect) deptoSelect.innerHTML = '<option value="">Sin departamento</option>';
+
     if (id) {
         document.getElementById('modalComponenteLabel').textContent = 'Editar Componente';
         document.getElementById('componenteId').value = id;
@@ -1293,13 +1420,35 @@ window.abrirModalComponente = function(id) {
                 document.getElementById('comp_capacidad').value = c.capacidad || '';
                 document.getElementById('comp_estado').value = c.estado || '';
                 document.getElementById('comp_activo_id').value = c.activo_id || '';
-                document.getElementById('comp_institucion_id').value = c.institucion_id || '';
-                document.getElementById('comp_responsable_id').value = c.responsable_id || '';
                 document.getElementById('comp_ubicacion').value = c.ubicacion || '';
                 document.getElementById('comp_observaciones').value = c.observaciones || '';
+
+                // ✅ Cargar instituciones con institución + departamento seleccionados
+                cargarInstituciones('comp_institucion_id', c.institucion_id, 'comp_departamento_id', c.departamento_id);
+
+                // Mostrar responsable actual
+                if (c.responsable) {
+                    var display = document.getElementById('comp_responsable_display');
+                    var hidden = document.getElementById('comp_responsable_id');
+                    if (display) {
+                        display.innerHTML = `
+                            <div>
+                                <strong style="color:#1e3c72;">👤 ${escapeHtml(c.responsable.nombre)}</strong>
+                                <div class="small text-muted mt-1">
+                                    ${c.responsable.cargo ? '💼 ' + escapeHtml(c.responsable.cargo) : ''}
+                                </div>
+                            </div>
+                        `;
+                    }
+                    if (hidden) hidden.value = c.responsable_id;
+                }
             }
         });
+    } else {
+        // ✅ MODO CREAR: solo cargar instituciones
+        cargarInstituciones('comp_institucion_id', null, 'comp_departamento_id');
     }
+
     modal.show();
     setTimeout(function() { document.getElementById('comp_tipo').focus(); }, 500);
 };
@@ -1310,6 +1459,13 @@ function guardarComponente() {
     var id = document.getElementById('componenteId').value;
     var url = id ? '/admin/componentes/' + id : '/admin/componentes';
     var formData = new FormData(document.getElementById('formComponente'));
+
+    var responsableId = document.getElementById('comp_responsable_id')?.value;
+    if (!responsableId) {
+        mostrarToast('⚠️ La institución/departamento seleccionado no tiene un responsable asignado.\n\nAsígnalo primero en el módulo de Entidades.', 'error');
+        return;
+    }
+
     if (id) formData.append('_method', 'PUT');
     fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': getCsrfToken() }, body: formData })
     .then(function(r) { return r.json(); })

@@ -678,7 +678,8 @@ function cargarActivos() {
         id_estatus: filters.id_estatus
     });
 
-    fetch(`{{ route('inventario.data') }}?${params}`)
+    // ✅ CAMBIO ÚNICO: antes decía route('inventario.data')
+    fetch(`{{ route('admin.inventario.data') }}?${params}`)
         .then(response => response.json())
         .then(data => {
             renderTabla(data.data);
@@ -1118,7 +1119,7 @@ function confirmarEliminar() {
 // ========== GUARDAR ACTIVO ==========
 function guardarActivo() {
     const id = document.getElementById('activo_id').value;
-    const url = id ? `{{ url('inventario') }}/${id}` : `{{ route('inventario.store') }}`;
+    const url = id ? `{{ url('admin/activos') }}/${id}` : `{{ route('admin.inventario.store') }}`;
     const method = id ? 'PUT' : 'POST';
     
     // Recolectar campos específicos dinámicos

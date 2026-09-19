@@ -31,6 +31,7 @@ class ActivoController extends Controller
                 'modelo.categoria',
                 'estatus',
                 'institucion',
+                'departamento',
                 'responsable',
                 'componentes'
             ]);
@@ -77,6 +78,7 @@ class ActivoController extends Controller
 
     // ============================================================
     // STORE — Crear activo + componentes en una transacción
+    // ✅ RESPONSABLE AUTO-ASIGNADO desde institución/departamento
     // ============================================================
     public function store(Request $request)
     {
@@ -92,7 +94,7 @@ class ActivoController extends Controller
                 'id_estatus' => 'required|exists:estatus,id',
                 'institucion_id' => 'required|exists:instituciones,id',
                 'departamento_id' => 'nullable|exists:departamentos,id',
-                'responsable_id' => 'required|exists:responsables,id',
+                'responsable_id' => 'nullable|exists:responsables,id',
                 'ubicacion' => 'nullable|string|max:100',
                 'fecha_adquisicion' => 'nullable|date',
                 'fecha_fin_garantia' => 'nullable|date',
@@ -105,6 +107,24 @@ class ActivoController extends Controller
                 'componentes' => 'nullable',
             ]);
 
+            // ✅ RESOLVER RESPONSABLE AUTOMÁTICO
+            $responsableId = $this->resolverResponsable(
+                $request->departamento_id,
+                $request->institucion_id
+            );
+
+            if (!$responsableId) {
+                $entidad = $request->departamento_id
+                    ? 'El departamento seleccionado'
+                    : 'La institución seleccionada';
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "⚠️ {$entidad} no tiene un responsable asignado.\n\n" .
+                                 "Por favor, asígnalo primero en el módulo de Entidades antes de continuar."
+                ], 422);
+            }
+
             DB::beginTransaction();
 
             // 1. Crear el activo
@@ -114,7 +134,7 @@ class ActivoController extends Controller
                 'id_estatus' => $validated['id_estatus'],
                 'institucion_id' => $validated['institucion_id'],
                 'departamento_id' => $validated['departamento_id'] ?? null,
-                'responsable_id' => $validated['responsable_id'],
+                'responsable_id' => $responsableId, // ✅ AUTO-ASIGNADO
                 'ubicacion' => $validated['ubicacion'] ?? null,
                 'fecha_adquisicion' => $validated['fecha_adquisicion'] ?? null,
                 'fecha_fin_garantia' => $validated['fecha_fin_garantia'] ?? null,
@@ -137,7 +157,7 @@ class ActivoController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Activo creado exitosamente con {$componentesCreados} componente(s)",
+                'message' => "Activo creado exitosamente con {$componentesCreados} componente(s). Responsable asignado automáticamente.",
                 'data' => $activo->load([
                     'modelo.marca',
                     'modelo.categoria',
@@ -197,6 +217,7 @@ class ActivoController extends Controller
 
     // ============================================================
     // UPDATE — Actualizar activo + sincronizar componentes
+    // ✅ RESPONSABLE AUTO-ASIGNADO desde institución/departamento
     // ============================================================
     public function update(Request $request, $id)
     {
@@ -229,7 +250,7 @@ class ActivoController extends Controller
                 'id_estatus' => 'required|exists:estatus,id',
                 'institucion_id' => 'required|exists:instituciones,id',
                 'departamento_id' => 'nullable|exists:departamentos,id',
-                'responsable_id' => 'required|exists:responsables,id',
+                'responsable_id' => 'nullable|exists:responsables,id',
                 'ubicacion' => 'nullable|string|max:100',
                 'fecha_adquisicion' => 'nullable|date',
                 'fecha_fin_garantia' => 'nullable|date',
@@ -240,6 +261,24 @@ class ActivoController extends Controller
                 'componentes' => 'nullable',
             ]);
 
+            // ✅ RESOLVER RESPONSABLE AUTOMÁTICO
+            $responsableId = $this->resolverResponsable(
+                $request->departamento_id,
+                $request->institucion_id
+            );
+
+            if (!$responsableId) {
+                $entidad = $request->departamento_id
+                    ? 'El departamento seleccionado'
+                    : 'La institución seleccionada';
+
+                return response()->json([
+                    'success' => false,
+                    'message' => "⚠️ {$entidad} no tiene un responsable asignado.\n\n" .
+                                 "Por favor, asígnalo primero en el módulo de Entidades antes de continuar."
+                ], 422);
+            }
+
             DB::beginTransaction();
 
             // 1. Actualizar el activo
@@ -249,7 +288,7 @@ class ActivoController extends Controller
                 'id_estatus' => $validated['id_estatus'],
                 'institucion_id' => $validated['institucion_id'],
                 'departamento_id' => $validated['departamento_id'] ?? null,
-                'responsable_id' => $validated['responsable_id'],
+                'responsable_id' => $responsableId, // ✅ AUTO-ASIGNADO
                 'ubicacion' => $validated['ubicacion'] ?? null,
                 'fecha_adquisicion' => $validated['fecha_adquisicion'] ?? null,
                 'fecha_fin_garantia' => $validated['fecha_fin_garantia'] ?? null,
@@ -434,6 +473,41 @@ class ActivoController extends Controller
     // ============================================================
 
     /**
+     * ✅ NUEVO: Resolver responsable automático.
+     * Prioridad:
+     *   1. Si hay departamento → responsable del departamento
+     *   2. Si hay institución → responsable directo (sin departamento)
+     *   3. Si no hay ninguno → null (el controlador rechaza)
+     */
+    private function resolverResponsable(?int $departamentoId, ?int $institucionId): ?int
+    {
+        // Prioridad 1: Departamento
+        if ($departamentoId) {
+            $responsable = Responsable::where('departamento_id', $departamentoId)
+                ->where('activo', true)
+                ->first();
+
+            if ($responsable) {
+                return $responsable->id;
+            }
+        }
+
+        // Prioridad 2: Institución (responsable directo)
+        if ($institucionId) {
+            $responsable = Responsable::where('institucion_id', $institucionId)
+                ->whereNull('departamento_id')
+                ->where('activo', true)
+                ->first();
+
+            if ($responsable) {
+                return $responsable->id;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Parsea los componentes que pueden venir como string JSON (desde FormData)
      * o como array directo (desde JSON body).
      */
@@ -443,7 +517,6 @@ class ActivoController extends Controller
             return [];
         }
 
-        // Si viene como string JSON (desde FormData)
         if (is_string($componentes)) {
             $decoded = json_decode($componentes, true);
             return is_array($decoded) ? $decoded : [];
@@ -457,7 +530,6 @@ class ActivoController extends Controller
      */
     private function crearComponente(array $comp, Activo $activo): Componente
     {
-        // Validar serial duplicado si viene
         if (!empty($comp['serial'])) {
             $existe = Componente::where('serial', $comp['serial'])->exists();
             if ($existe) {
@@ -487,7 +559,6 @@ class ActivoController extends Controller
      */
     private function actualizarComponente(Componente $componente, array $comp, Activo $activo): void
     {
-        // Validar serial duplicado si viene (excluyendo el mismo componente)
         if (!empty($comp['serial'])) {
             $existe = Componente::where('serial', $comp['serial'])
                 ->where('id', '!=', $componente->id)
