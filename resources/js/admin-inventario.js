@@ -3,6 +3,7 @@
 // ✅ RESPONSABLE AUTO-ASIGNADO desde institución/departamento
 // ✅ SIN sección de "Especificaciones Técnicas" en el detalle
 // ✅ FIX: listener de institución/departamento usa .onchange (sin cloneNode)
+// ✅ FIX: Paginación fuera de la tabla (contenedores #paginacionActivos y #paginacionComponentes)
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -42,7 +43,6 @@ document.addEventListener('DOMContentLoaded', function() {
         cargarActivos();
         cargarComponentes();
     });
-
     cargarSelectsBase();
 
     document.getElementById('formActivo')?.addEventListener('submit', function(e) {
@@ -135,10 +135,12 @@ function escapeHtml(text) {
 function mostrarToast(mensaje, tipo) {
     tipo = tipo || 'success';
     var colores = { success: '#1e7e34', error: '#c5221f', warning: '#f6c23e', info: '#1e3c72' };
+
     var toast = document.createElement('div');
     toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:10000;background:' + colores[tipo] + ';color:white;padding:12px 20px;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.15);animation:slideIn 0.3s ease-out;cursor:pointer;max-width:400px;white-space:pre-line;font-size:0.9rem;';
     toast.textContent = mensaje;
     document.body.appendChild(toast);
+
     setTimeout(function() { toast.remove(); }, 4500);
 }
 
@@ -207,7 +209,6 @@ function debounce(func, wait) {
 function cargarResponsableAutomatico(tipo, id, displayId, hiddenId) {
     var display = document.getElementById(displayId);
     var hidden = document.getElementById(hiddenId);
-
     if (!display || !hidden) return;
 
     if (!id) {
@@ -258,7 +259,7 @@ function cargarResponsableAutomatico(tipo, id, displayId, hiddenId) {
 
 // ============================================================
 // ✅ CARGAR INSTITUCIONES + DEPARTAMENTOS (ÚNICA FUENTE DE VERDAD)
-// ✅ SIN cloneNode — usa .onchange = (sobrescribe sin acumular)
+// ✅ SIN cloneNode --- usa .onchange = (sobrescribe sin acumular)
 // ============================================================
 function cargarInstituciones(selectId, seleccionada, departamentoSelectId, departamentoSeleccionado) {
     var sel = document.getElementById(selectId);
@@ -313,11 +314,9 @@ function cargarInstituciones(selectId, seleccionada, departamentoSelectId, depar
         // Modo edición: setear institución + cargar departamentos + setear departamento
         if (seleccionada) {
             sel.value = seleccionada;
-
             if (departamentoSelectId) {
                 cargarDepartamentos(seleccionada, departamentoSelectId, departamentoSeleccionado);
             }
-
             if (departamentoSeleccionado) {
                 cargarResponsableAutomatico('departamento', departamentoSeleccionado, respDisplay, respHidden);
             } else {
@@ -390,10 +389,10 @@ function cargarDepartamentos(institucionId, selectId, seleccionado) {
 // ============================================================
 window.agregarComponenteFormulario = function(compData) {
     compData = compData || {};
-
     var container = document.getElementById('componentesActivoContainer');
     var sinComponentes = document.getElementById('sinComponentes');
     if (!container) return;
+
     if (sinComponentes) sinComponentes.style.display = 'none';
 
     var index = Date.now() + Math.floor(Math.random() * 1000);
@@ -405,6 +404,7 @@ window.agregarComponenteFormulario = function(compData) {
         'Ventilador', 'Tarjeta Madre', 'Procesador', 'Tarjeta Gráfica',
         'Tarjeta de Red', 'Cable', 'Adaptador', 'Webcam', 'Otro'
     ];
+
     var tiposOptions = tipos.map(function(t) {
         var sel = (compData.tipo === t) ? 'selected' : '';
         return '<option value="' + t + '" ' + sel + '>' + t + '</option>';
@@ -432,9 +432,7 @@ window.agregarComponenteFormulario = function(compData) {
                 </svg>
             </button>
         </div>
-
         <input type="hidden" class="comp-id" value="${compId}">
-
         <div class="row g-2">
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Tipo <span class="text-danger">*</span></label>
@@ -446,22 +444,22 @@ window.agregarComponenteFormulario = function(compData) {
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Marca</label>
                 <input type="text" class="form-control form-control-sm comp-marca"
-                       value="${escapeHtml(compData.marca || '')}" placeholder="Ej: Kingston">
+                    value="${escapeHtml(compData.marca || '')}" placeholder="Ej: Kingston">
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Modelo</label>
                 <input type="text" class="form-control form-control-sm comp-modelo"
-                       value="${escapeHtml(compData.modelo || '')}" placeholder="Ej: DDR4">
+                    value="${escapeHtml(compData.modelo || '')}" placeholder="Ej: DDR4">
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Serial</label>
                 <input type="text" class="form-control form-control-sm comp-serial"
-                       value="${escapeHtml(compData.serial || '')}" placeholder="Ej: SN-12345">
+                    value="${escapeHtml(compData.serial || '')}" placeholder="Ej: SN-12345">
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Capacidad</label>
                 <input type="text" class="form-control form-control-sm comp-capacidad"
-                       value="${escapeHtml(compData.capacidad || '')}" placeholder="Ej: 8GB, 512GB">
+                    value="${escapeHtml(compData.capacidad || '')}" placeholder="Ej: 8GB, 512GB">
             </div>
             <div class="col-md-4">
                 <label class="form-label small fw-semibold">Estado</label>
@@ -475,7 +473,7 @@ window.agregarComponenteFormulario = function(compData) {
             <div class="col-12">
                 <label class="form-label small fw-semibold">Observaciones</label>
                 <input type="text" class="form-control form-control-sm comp-observaciones"
-                       value="${escapeHtml(compData.observaciones || '')}" placeholder="Observaciones adicionales...">
+                    value="${escapeHtml(compData.observaciones || '')}" placeholder="Observaciones adicionales...">
             </div>
         </div>
     `;
@@ -509,8 +507,10 @@ window.eliminarComponenteFormulario = function(btn) {
 function verificarComponentesVacios() {
     var container = document.getElementById('componentesActivoContainer');
     if (!container) return;
+
     var items = container.querySelectorAll('.componente-activo-item');
     var sinComponentes = document.getElementById('sinComponentes');
+
     if (items.length === 0) {
         if (sinComponentes) sinComponentes.style.display = 'block';
     } else {
@@ -546,7 +546,6 @@ function recolectarComponentesFormulario() {
         };
 
         if (!comp.id || comp.id === '') comp.id = null;
-
         componentes.push(comp);
     });
 
@@ -653,60 +652,59 @@ function agregarEstilosDetalle() {
 
     var styles = `
         <style id="detalle-activo-styles">
-            .detalle-activo-moderno { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-            .detalle-seccion { background: #ffffff; border-radius: 16px; padding: 1rem; border: 1px solid #e9ecef; }
-            .detalle-seccion-titulo { font-size: 0.85rem; font-weight: 600; color: #1e3c72; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #eef2f6; display: flex; align-items: center; }
-            .detalle-seccion-titulo i { color: #1e3c72; }
-            .detalle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-            .detalle-item { padding: 0.5rem; background: #f8f9fc; border-radius: 12px; transition: all 0.2s ease; }
-            .detalle-item:hover { background: #eef3fc; transform: translateY(-1px); }
-            .detalle-label { font-size: 0.65rem; text-transform: uppercase; color: #6c757d; letter-spacing: 0.5px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.25rem; }
-            .detalle-label i { font-size: 0.7rem; color: #1e3c72; }
-            .detalle-valor { font-weight: 600; color: #1a1a1a; font-size: 0.9rem; word-break: break-word; }
-            .detalle-observaciones { background: #f8f9fc; padding: 1rem; border-radius: 12px; font-size: 0.85rem; color: #495057; line-height: 1.5; }
-            .nav-tabs-componentes { border-bottom: 2px solid #e9ecef; margin-bottom: 0; }
-            .nav-tabs-componentes .nav-link { border: none; background: transparent; padding: 0.6rem 1.2rem; font-weight: 500; color: #6c757d; position: relative; transition: all 0.2s ease; }
-            .nav-tabs-componentes .nav-link:hover { color: #1e3c72; background: #f8f9fc; }
-            .nav-tabs-componentes .nav-link.active { color: #1e3c72; background: transparent; }
-            .nav-tabs-componentes .nav-link.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: #1e3c72; border-radius: 2px; }
-            .badge-componentes { background: #e9ecef; color: #495057; padding: 0.15rem 0.5rem; border-radius: 20px; font-size: 0.65rem; margin-left: 0.5rem; }
-            .componentes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-            .componente-card { background: #ffffff; border: 1px solid #e9ecef; border-radius: 12px; overflow: hidden; transition: all 0.2s ease; }
-            .componente-card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
-            .componente-card-header { padding: 0.75rem 1rem; background: #f8f9fc; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center; }
-            .componente-tipo { font-weight: 600; color: #1e3c72; display: flex; align-items: center; gap: 0.5rem; }
-            .componente-tipo i { font-size: 0.9rem; }
-            .componente-estado { padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.65rem; font-weight: 600; }
-            .componente-estado-instalado { background: #d4edda; color: #155724; }
-            .componente-estado-bodega { background: #e2e3e5; color: #383d41; }
-            .componente-estado-prestado { background: #fff3cd; color: #856404; }
-            .componente-estado-reparacion { background: #f8d7da; color: #721c24; }
-            .componente-estado-desechado { background: #f8d7da; color: #721c24; }
-            .componente-card-body { padding: 0.75rem 1rem; }
-            .componente-info { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.8rem; }
-            .componente-label { color: #6c757d; }
-            .componente-value { font-weight: 500; color: #1a1a1a; }
-            .componente-serial { font-family: 'Courier New', monospace; font-size: 0.75rem; }
-            .componentes-modelo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
-            .componente-modelo-card { background: #f8f9fc; border-radius: 12px; padding: 1rem; text-align: center; transition: all 0.2s ease; border: 1px solid #e9ecef; }
-            .componente-modelo-card:hover { background: #eef3fc; transform: translateY(-2px); }
-            .componente-modelo-tipo { font-weight: 700; color: #1e3c72; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
-            .componente-modelo-descripcion { font-size: 0.75rem; color: #6c757d; margin-bottom: 0.5rem; }
-            .componente-modelo-capacidad { font-size: 0.7rem; color: #28a745; background: #d4edda; display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; }
-            .detalle-acciones .btn-editar-detalle { background: #1e3c72; border: none; color: white; padding: 0.5rem 1.2rem; border-radius: 30px; font-size: 0.8rem; font-weight: 500; transition: all 0.2s ease; }
-            .detalle-acciones .btn-editar-detalle:hover { background: #2a5298; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3); }
-            .detalle-acciones .btn-cerrar-detalle { background: #f8f9fa; border: 1px solid #dee2e6; color: #495057; padding: 0.5rem 1.2rem; border-radius: 30px; font-size: 0.8rem; font-weight: 500; transition: all 0.2s ease; }
-            .detalle-acciones .btn-cerrar-detalle:hover { background: #e9ecef; border-color: #ced4da; }
-            .badge-garantia-vencida { background: #f8d7da; color: #721c24; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem; }
-            .badge-garantia-vigente { background: #d4edda; color: #155724; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem; }
-            @media (max-width: 768px) {
-                .detalle-grid { grid-template-columns: 1fr; }
-                .componentes-grid, .componentes-modelo-grid { grid-template-columns: 1fr; }
-                .nav-tabs-componentes .nav-link { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
-            }
+        .detalle-activo-moderno { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        .detalle-seccion { background: #ffffff; border-radius: 16px; padding: 1rem; border: 1px solid #e9ecef; }
+        .detalle-seccion-titulo { font-size: 0.85rem; font-weight: 600; color: #1e3c72; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #eef2f6; display: flex; align-items: center; }
+        .detalle-seccion-titulo i { color: #1e3c72; }
+        .detalle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+        .detalle-item { padding: 0.5rem; background: #f8f9fc; border-radius: 12px; transition: all 0.2s ease; }
+        .detalle-item:hover { background: #eef3fc; transform: translateY(-1px); }
+        .detalle-label { font-size: 0.65rem; text-transform: uppercase; color: #6c757d; letter-spacing: 0.5px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.25rem; }
+        .detalle-label i { font-size: 0.7rem; color: #1e3c72; }
+        .detalle-valor { font-weight: 600; color: #1a1a1a; font-size: 0.9rem; word-break: break-word; }
+        .detalle-observaciones { background: #f8f9fc; padding: 1rem; border-radius: 12px; font-size: 0.85rem; color: #495057; line-height: 1.5; }
+        .nav-tabs-componentes { border-bottom: 2px solid #e9ecef; margin-bottom: 0; }
+        .nav-tabs-componentes .nav-link { border: none; background: transparent; padding: 0.6rem 1.2rem; font-weight: 500; color: #6c757d; position: relative; transition: all 0.2s ease; }
+        .nav-tabs-componentes .nav-link:hover { color: #1e3c72; background: #f8f9fc; }
+        .nav-tabs-componentes .nav-link.active { color: #1e3c72; background: transparent; }
+        .nav-tabs-componentes .nav-link.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: #1e3c72; border-radius: 2px; }
+        .badge-componentes { background: #e9ecef; color: #495057; padding: 0.15rem 0.5rem; border-radius: 20px; font-size: 0.65rem; margin-left: 0.5rem; }
+        .componentes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+        .componente-card { background: #ffffff; border: 1px solid #e9ecef; border-radius: 12px; overflow: hidden; transition: all 0.2s ease; }
+        .componente-card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
+        .componente-card-header { padding: 0.75rem 1rem; background: #f8f9fc; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center; }
+        .componente-tipo { font-weight: 600; color: #1e3c72; display: flex; align-items: center; gap: 0.5rem; }
+        .componente-tipo i { font-size: 0.9rem; }
+        .componente-estado { padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.65rem; font-weight: 600; }
+        .componente-estado-instalado { background: #d4edda; color: #155724; }
+        .componente-estado-bodega { background: #e2e3e5; color: #383d41; }
+        .componente-estado-prestado { background: #fff3cd; color: #856404; }
+        .componente-estado-reparacion { background: #f8d7da; color: #721c24; }
+        .componente-estado-desechado { background: #f8d7da; color: #721c24; }
+        .componente-card-body { padding: 0.75rem 1rem; }
+        .componente-info { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-size: 0.8rem; }
+        .componente-label { color: #6c757d; }
+        .componente-value { font-weight: 500; color: #1a1a1a; }
+        .componente-serial { font-family: 'Courier New', monospace; font-size: 0.75rem; }
+        .componentes-modelo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
+        .componente-modelo-card { background: #f8f9fc; border-radius: 12px; padding: 1rem; text-align: center; transition: all 0.2s ease; border: 1px solid #e9ecef; }
+        .componente-modelo-card:hover { background: #eef3fc; transform: translateY(-2px); }
+        .componente-modelo-tipo { font-weight: 700; color: #1e3c72; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .componente-modelo-descripcion { font-size: 0.75rem; color: #6c757d; margin-bottom: 0.5rem; }
+        .componente-modelo-capacidad { font-size: 0.7rem; color: #28a745; background: #d4edda; display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; }
+        .detalle-acciones .btn-editar-detalle { background: #1e3c72; border: none; color: white; padding: 0.5rem 1.2rem; border-radius: 30px; font-size: 0.8rem; font-weight: 500; transition: all 0.2s ease; }
+        .detalle-acciones .btn-editar-detalle:hover { background: #2a5298; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3); }
+        .detalle-acciones .btn-cerrar-detalle { background: #f8f9fa; border: 1px solid #dee2e6; color: #495057; padding: 0.5rem 1.2rem; border-radius: 30px; font-size: 0.8rem; font-weight: 500; transition: all 0.2s ease; }
+        .detalle-acciones .btn-cerrar-detalle:hover { background: #e9ecef; border-color: #ced4da; }
+        .badge-garantia-vencida { background: #f8d7da; color: #721c24; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem; }
+        .badge-garantia-vigente { background: #d4edda; color: #155724; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem; }
+        @media (max-width: 768px) {
+            .detalle-grid { grid-template-columns: 1fr; }
+            .componentes-grid, .componentes-modelo-grid { grid-template-columns: 1fr; }
+            .nav-tabs-componentes .nav-link { padding: 0.4rem 0.8rem; font-size: 0.75rem; }
+        }
         </style>
     `;
-
     document.head.insertAdjacentHTML('beforeend', styles);
 }
 
@@ -725,6 +723,7 @@ function cargarEstados() {
         .then(function(response) {
             if (response.success) {
                 listaEstados = response.data;
+
                 var filtroEstadoActivos = document.getElementById('filtroEstadoActivos');
                 if (filtroEstadoActivos) {
                     filtroEstadoActivos.innerHTML = '<option value="">Todos los estados</option>';
@@ -739,12 +738,15 @@ function cargarEstados() {
 }
 
 // ============================================================
-// PAGINACIÓN
+// PAGINACIÓN (FIX: se renderiza fuera de la tabla)
 // ============================================================
 function renderPaginacion(totalPages, currentPage, tipo) {
     if (totalPages <= 1) return '';
+
     var html = '<div class="pagination-bar"><div class="pagination-info">Página ' + currentPage + ' de ' + totalPages + '</div><div class="pagination-btns">';
+
     html += '<button class="pagination-btn' + (currentPage === 1 ? ' disabled' : '') + '" onclick="window.cambiarPaginaInv(\'' + tipo + '\',' + (currentPage - 1) + ')">«</button>';
+
     for (var i = 1; i <= totalPages; i++) {
         if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
             html += '<button class="pagination-btn' + (i === currentPage ? ' active' : '') + '" onclick="window.cambiarPaginaInv(\'' + tipo + '\',' + i + ')">' + i + '</button>';
@@ -752,7 +754,9 @@ function renderPaginacion(totalPages, currentPage, tipo) {
             html += '<span class="pagination-ellipsis">...</span>';
         }
     }
+
     html += '<button class="pagination-btn' + (currentPage === totalPages ? ' disabled' : '') + '" onclick="window.cambiarPaginaInv(\'' + tipo + '\',' + (currentPage + 1) + ')">»</button>';
+
     html += '</div></div>';
     return html;
 }
@@ -785,19 +789,19 @@ function validarSerialActivo() {
     feedback.innerHTML = '<span class="text-muted">Verificando...</span>';
 
     fetch('/admin/activos?buscar=' + encodeURIComponent(serial), { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            var existe = response.data.some(function(a) { return a.serial === serial && a.id != id; });
-            if (existe) {
-                feedback.innerHTML = '<span class="text-danger">Este serial ya existe</span>';
-                document.getElementById('activo_serial').style.borderColor = '#dc3545';
-            } else {
-                feedback.innerHTML = '<span class="text-success">Serial disponible</span>';
-                document.getElementById('activo_serial').style.borderColor = '#28a745';
+        .then(function(r) { return r.json(); })
+        .then(function(response) {
+            if (response.success) {
+                var existe = response.data.some(function(a) { return a.serial === serial && a.id != id; });
+                if (existe) {
+                    feedback.innerHTML = '<span class="text-danger">Este serial ya existe</span>';
+                    document.getElementById('activo_serial').style.borderColor = '#dc3545';
+                } else {
+                    feedback.innerHTML = '<span class="text-success">Serial disponible</span>';
+                    document.getElementById('activo_serial').style.borderColor = '#28a745';
+                }
             }
-        }
-    });
+        });
 }
 
 // ============================================================
@@ -806,49 +810,50 @@ function validarSerialActivo() {
 function cargarSelectsBase() {
     // Cargar modelos
     fetch('/admin/equipos/modelos', { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            todosModelos = response.data;
-        }
-    });
+        .then(function(r) { return r.json(); })
+        .then(function(response) {
+            if (response.success) {
+                todosModelos = response.data;
+            }
+        });
 
     // Cargar estatus
     fetch('/admin/estatus-list', { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            var select = document.getElementById('activo_id_estatus');
-            if (select) {
-                select.innerHTML = '<option value="">Seleccionar...</option>';
-                response.data.forEach(function(e) {
-                    select.innerHTML += '<option value="' + e.id + '">' + escapeHtml(e.descripcion) + '</option>';
-                });
-                var disponible = response.data.find(function(e) { return e.descripcion === 'Disponible'; });
-                if (disponible) select.value = disponible.id;
+        .then(function(r) { return r.json(); })
+        .then(function(response) {
+            if (response.success) {
+                var select = document.getElementById('activo_id_estatus');
+                if (select) {
+                    select.innerHTML = '<option value="">Seleccionar...</option>';
+                    response.data.forEach(function(e) {
+                        select.innerHTML += '<option value="' + e.id + '">' + escapeHtml(e.descripcion) + '</option>';
+                    });
+
+                    var disponible = response.data.find(function(e) { return e.descripcion === 'Disponible'; });
+                    if (disponible) select.value = disponible.id;
+                }
             }
-        }
-    }).catch(function() {
-        var select = document.getElementById('activo_id_estatus');
-        if (select) select.innerHTML = '<option value="">Seleccionar...</option><option value="1" selected>Disponible</option>';
-    });
+        }).catch(function() {
+            var select = document.getElementById('activo_id_estatus');
+            if (select) select.innerHTML = '<option value="">Seleccionar...</option><option value="1" selected>Disponible</option>';
+        });
 
     // Cargar activos para el select de componentes
     fetch('/admin/activos', { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            todosActivosList = response.data;
-            var selectComp = document.getElementById('comp_activo_id');
-            if (selectComp) {
-                selectComp.innerHTML = '<option value="">Sin activo</option>';
-                response.data.forEach(function(a) {
-                    var modeloNombre = a.modelo ? a.modelo.nombre : 'N/A';
-                    selectComp.innerHTML += '<option value="' + a.id + '">' + escapeHtml(a.serial) + ' - ' + escapeHtml(modeloNombre) + '</option>';
-                });
+        .then(function(r) { return r.json(); })
+        .then(function(response) {
+            if (response.success) {
+                todosActivosList = response.data;
+                var selectComp = document.getElementById('comp_activo_id');
+                if (selectComp) {
+                    selectComp.innerHTML = '<option value="">Sin activo</option>';
+                    response.data.forEach(function(a) {
+                        var modeloNombre = a.modelo ? a.modelo.nombre : 'N/A';
+                        selectComp.innerHTML += '<option value="' + a.id + '">' + escapeHtml(a.serial) + ' - ' + escapeHtml(modeloNombre) + '</option>';
+                    });
+                }
             }
-        }
-    });
+        });
 }
 
 // ============================================================
@@ -858,11 +863,14 @@ window.filtrarModelos = function() {
     var input = document.getElementById('activo_modelo_buscar');
     var dropdown = document.getElementById('modeloDropdown');
     var buscar = input.value.toLowerCase();
+
     if (!todosModelos.length) { dropdown.style.display = 'none'; return; }
+
     var filtrados = todosModelos.filter(function(m) {
         var texto = (m.marca ? m.marca.nombre + ' ' : '') + m.nombre + ' ' + (m.categoria ? m.categoria.nombre : '');
         return texto.toLowerCase().indexOf(buscar) >= 0;
     }).slice(0, 10);
+
     if (filtrados.length === 0) {
         dropdown.innerHTML = '<div class="list-group-item text-muted small">No se encontraron modelos</div>';
     } else {
@@ -872,7 +880,7 @@ window.filtrarModelos = function() {
             return '<a href="#" class="list-group-item list-group-item-action py-2 px-3" onclick="seleccionarModelo(' + m.id + ', \'' + escapeHtml(marcaNombre + ' ' + m.nombre) + '\', \'' + escapeHtml(marcaNombre) + '\', \'' + escapeHtml(categoriaNombre) + '\'); return false;">' +
                 '<strong>' + escapeHtml(marcaNombre + ' ' + m.nombre) + '</strong>' +
                 '<small class="d-block text-muted">' + escapeHtml(categoriaNombre) + '</small>' +
-            '</a>';
+                '</a>';
         }).join('');
     }
     dropdown.style.display = 'block';
@@ -898,9 +906,7 @@ function aplicarFiltrosActivos() {
             (a.serial && a.serial.toLowerCase().indexOf(buscar) >= 0) ||
             (a.modelo && a.modelo.nombre && a.modelo.nombre.toLowerCase().indexOf(buscar) >= 0) ||
             (a.modelo && a.modelo.marca && a.modelo.marca.nombre && a.modelo.marca.nombre.toLowerCase().indexOf(buscar) >= 0);
-
         var coincideEstado = !filtroEstado || (a.estatus && a.estatus.descripcion === filtroEstado);
-
         return coincideBuscar && coincideEstado;
     });
 
@@ -914,6 +920,7 @@ function aplicarFiltrosComponentes() {
 
     var tiposUnicos = [];
     componentesData.forEach(function(c) { if (c.tipo && tiposUnicos.indexOf(c.tipo) < 0) tiposUnicos.push(c.tipo); });
+
     var selectTipo = document.getElementById('filtroTipoComponentes');
     if (selectTipo && selectTipo.options.length <= 1) {
         selectTipo.innerHTML = '<option value="">Todos los tipos</option>';
@@ -925,10 +932,8 @@ function aplicarFiltrosComponentes() {
             (c.tipo && c.tipo.toLowerCase().indexOf(buscar) >= 0) ||
             (c.marca && c.marca.toLowerCase().indexOf(buscar) >= 0) ||
             (c.serial && c.serial.toLowerCase().indexOf(buscar) >= 0);
-
         var coincideTipo = !filtroTipo || (c.tipo === filtroTipo);
         var coincideEstado = !filtroEstado || (c.estado === filtroEstado);
-
         return coincideBuscar && coincideTipo && coincideEstado;
     });
 
@@ -945,12 +950,14 @@ function renderizarActivosFiltrados(filtrados) {
 
     if (pageData.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron activos</td></tr>';
+        var pag = document.getElementById('paginacionActivos');
+        if (pag) pag.innerHTML = '';
         return;
     }
 
     var puedeCambiarEstadoGlobal = typeof authUserHasPermission !== 'undefined' ? authUserHasPermission('cambiar-estatus-activo') : true;
-
     var html = '';
+
     for (var i = 0; i < pageData.length; i++) {
         var a = pageData[i];
         var garantiaBadge = '';
@@ -959,6 +966,7 @@ function renderizarActivosFiltrados(filtrados) {
                 '<span class="badge badge-garantia-vencida ms-1">Vencida</span>' :
                 '<span class="badge badge-garantia-vigente ms-1">Vigente</span>';
         }
+
         var compCount = a.componentes ? a.componentes.length : 0;
         var estadoDescripcion = a.estatus ? a.estatus.descripcion : 'N/A';
         var colorBadge = a.estatus ? a.estatus.color_badge : 'secondary';
@@ -966,21 +974,27 @@ function renderizarActivosFiltrados(filtrados) {
         var mostrarBotonEstado = puedeCambiarEstadoGlobal && !esTerminal;
 
         html += '<tr>' +
-            '<td><strong>' + escapeHtml(a.serial) + '</strong>' + garantiaBadge + '</td>' +
-            '<td>' + escapeHtml(a.modelo ? a.modelo.nombre : 'N/A') + (compCount > 0 ? ' <span class="badge bg-info text-dark">' + compCount + '</span>' : '') + '</td>' +
-            '<td>' + escapeHtml(a.modelo && a.modelo.marca ? a.modelo.marca.nombre : 'N/A') + '</td>' +
-            '<td><span class="badge bg-' + colorBadge + '">' + escapeHtml(estadoDescripcion) + '</span></td>' +
-            '<td>' + escapeHtml(a.ubicacion || (a.institucion ? a.institucion.nombre : 'N/A')) + '</td>' +
-            '<td class="text-end">' +
-                '<button class="btn btn-sm btn-outline-primary-dark" onclick="verActivo(' + a.id + ')" title="Ver detalle">' + SVG_ICONS.ver + '</button> ' +
-                (window.authUserHasPermission && authUserHasPermission('editar-activo') ? '<button class="btn btn-sm btn-outline-primary-dark" onclick="editarActivo(' + a.id + ')" title="Editar">' + SVG_ICONS.editar + '</button> ' : '') +
-                (mostrarBotonEstado ? '<button class="btn btn-sm btn-cambiar-estado" onclick="abrirModalCambiarEstado(' + a.id + ', \'' + escapeHtml(a.serial) + '\', \'' + estadoDescripcion + '\', ' + (a.estatus ? a.estatus.id : 'null') + ')" title="Cambiar estado">' + SVG_ICONS.cambiarEstado + '</button> ' : '') +
-                (window.authUserHasPermission && authUserHasPermission('eliminar-activo') ? '<button class="btn btn-sm btn-outline-danger" onclick="confirmarEliminarActivo(' + a.id + ')" title="Eliminar">' + SVG_ICONS.eliminar + '</button>' : '') +
+            '<td data-label="Serial"><strong>' + escapeHtml(a.serial) + '</strong>' + garantiaBadge + '</td>' +
+            '<td data-label="Modelo">' + escapeHtml(a.modelo ? a.modelo.nombre : 'N/A') + (compCount > 0 ? ' <span class="badge bg-info text-dark">' + compCount + '</span>' : '') + '</td>' +
+            '<td data-label="Marca">' + escapeHtml(a.modelo && a.modelo.marca ? a.modelo.marca.nombre : 'N/A') + '</td>' +
+            '<td data-label="Estado"><span class="badge bg-' + colorBadge + '">' + escapeHtml(estadoDescripcion) + '</span></td>' +
+            '<td data-label="Ubicación">' + escapeHtml(a.ubicacion || (a.institucion ? a.institucion.nombre : 'N/A')) + '</td>' +
+            '<td data-label="Acciones" class="text-end">' +
+            '<button class="btn btn-sm btn-outline-primary-dark" onclick="verActivo(' + a.id + ')" title="Ver detalle">' + SVG_ICONS.ver + '</button> ' +
+            (window.authUserHasPermission && authUserHasPermission('editar-activo') ? '<button class="btn btn-sm btn-outline-primary-dark" onclick="editarActivo(' + a.id + ')" title="Editar">' + SVG_ICONS.editar + '</button> ' : '') +
+            (mostrarBotonEstado ? '<button class="btn btn-sm btn-cambiar-estado" onclick="abrirModalCambiarEstado(' + a.id + ', \'' + escapeHtml(a.serial) + '\', \'' + estadoDescripcion + '\', ' + (a.estatus ? a.estatus.id : 'null') + ')" title="Cambiar estado">' + SVG_ICONS.cambiarEstado + '</button> ' : '') +
+            (window.authUserHasPermission && authUserHasPermission('eliminar-activo') ? '<button class="btn btn-sm btn-outline-danger" onclick="confirmarEliminarActivo(' + a.id + ')" title="Eliminar">' + SVG_ICONS.eliminar + '</button>' : '') +
             '</td>' +
-        '</tr>';
+            '</tr>';
     }
-    html += '<tr><td colspan="6">' + renderPaginacion(totalPages, activosPage, 'activos') + '</td></tr>';
+
     tbody.innerHTML = html;
+
+    // ✅ FIX: La paginación se renderiza FUERA de la tabla
+    var paginacionContainer = document.getElementById('paginacionActivos');
+    if (paginacionContainer) {
+        paginacionContainer.innerHTML = renderPaginacion(totalPages, activosPage, 'activos');
+    }
 }
 
 function renderizarComponentesFiltrados(filtrados) {
@@ -993,6 +1007,8 @@ function renderizarComponentesFiltrados(filtrados) {
 
     if (pageData.length === 0) {
         tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron componentes</td></tr>';
+        var pag = document.getElementById('paginacionComponentes');
+        if (pag) pag.innerHTML = '';
         return;
     }
 
@@ -1000,35 +1016,41 @@ function renderizarComponentesFiltrados(filtrados) {
     for (var i = 0; i < pageData.length; i++) {
         var c = pageData[i];
         html += '<tr>' +
-            '<td><strong>' + escapeHtml(c.tipo) + '</strong></td>' +
-            '<td>' + escapeHtml(c.marca || 'N/A') + '</td>' +
-            '<td>' + escapeHtml(c.serial || 'N/A') + '</td>' +
-            '<td>' + escapeHtml(c.capacidad || 'N/A') + '</td>' +
-            '<td><span class="badge ' + getEstadoBadge(c.estado) + '">' + getEstadoLabel(c.estado) + '</span></td>' +
-            '<td>' + (c.activo ? '<a href="#" onclick="verActivo(' + c.activo.id + '); return false;" class="text-decoration-none">' + escapeHtml(c.activo.serial) + '</a>' : '—') + '</td>' +
-            '<td class="text-end">' +
-                (window.authUserHasPermission && authUserHasPermission('editar-componente') ? '<button class="btn btn-sm btn-outline-primary-dark" onclick="editarComponente(' + c.id + ')" title="Editar">' + SVG_ICONS.editar + '</button> ' : '') +
-                (window.authUserHasPermission && authUserHasPermission('eliminar-componente') ? '<button class="btn btn-sm btn-outline-danger" onclick="confirmarEliminarComponente(' + c.id + ')" title="Eliminar">' + SVG_ICONS.eliminar + '</button>' : '') +
+            '<td data-label="Tipo"><strong>' + escapeHtml(c.tipo) + '</strong></td>' +
+            '<td data-label="Marca">' + escapeHtml(c.marca || 'N/A') + '</td>' +
+            '<td data-label="Serial">' + escapeHtml(c.serial || 'N/A') + '</td>' +
+            '<td data-label="Capacidad">' + escapeHtml(c.capacidad || 'N/A') + '</td>' +
+            '<td data-label="Estado"><span class="badge ' + getEstadoBadge(c.estado) + '">' + getEstadoLabel(c.estado) + '</span></td>' +
+            '<td data-label="Activo">' + (c.activo ? '<a href="#" onclick="verActivo(' + c.activo.id + '); return false;" class="text-decoration-none">' + escapeHtml(c.activo.serial) + '</a>' : '---') + '</td>' +
+            '<td data-label="Acciones" class="text-end">' +
+            (window.authUserHasPermission && authUserHasPermission('editar-componente') ? '<button class="btn btn-sm btn-outline-primary-dark" onclick="editarComponente(' + c.id + ')" title="Editar">' + SVG_ICONS.editar + '</button> ' : '') +
+            (window.authUserHasPermission && authUserHasPermission('eliminar-componente') ? '<button class="btn btn-sm btn-outline-danger" onclick="confirmarEliminarComponente(' + c.id + ')" title="Eliminar">' + SVG_ICONS.eliminar + '</button>' : '') +
             '</td>' +
-        '</tr>';
+            '</tr>';
     }
-    html += '<tr><td colspan="7">' + renderPaginacion(totalPages, componentesPage, 'componentes') + '</td></tr>';
+
     tbody.innerHTML = html;
+
+    // ✅ FIX: La paginación se renderiza FUERA de la tabla
+    var paginacionContainer = document.getElementById('paginacionComponentes');
+    if (paginacionContainer) {
+        paginacionContainer.innerHTML = renderPaginacion(totalPages, componentesPage, 'componentes');
+    }
 }
 
 // ============================================================
-// ACTIVOS — CRUD
+// ACTIVOS --- CRUD
 // ============================================================
 function cargarActivos() {
     fetch('/admin/activos', { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            activosData = response.data;
-            activosPage = 1;
-            aplicarFiltrosActivos();
-        }
-    });
+        .then(function(r) { return r.json(); })
+        .then(function(response) {
+            if (response.success) {
+                activosData = response.data;
+                activosPage = 1;
+                aplicarFiltrosActivos();
+            }
+        });
 }
 
 window.abrirModalActivo = function(id) {
@@ -1041,13 +1063,11 @@ window.abrirModalActivo = function(id) {
     document.getElementById('modeloInfoBadges').innerHTML = '';
     document.getElementById('modalActivoLabel').textContent = 'Nuevo Activo';
 
-    // Reset responsable
     var respDisplay = document.getElementById('activo_responsable_display');
     if (respDisplay) respDisplay.innerHTML = '<span class="text-muted">Selecciona una institución para ver el responsable</span>';
     var respHidden = document.getElementById('activo_responsable_id');
     if (respHidden) respHidden.value = '';
 
-    // Reset departamento
     var deptoSelect = document.getElementById('activo_departamento_id');
     if (deptoSelect) deptoSelect.innerHTML = '<option value="">Sin departamento</option>';
 
@@ -1056,47 +1076,45 @@ window.abrirModalActivo = function(id) {
     var feedback = document.getElementById('serialFeedback');
     if (feedback) feedback.innerHTML = '';
 
-    // ✅ Cargar instituciones (con el select de departamento como 3er argumento)
     if (id) {
         document.getElementById('modalActivoLabel').textContent = 'Editar Activo';
         document.getElementById('activoId').value = id;
+
         fetch('/admin/activos/' + id, { headers: { 'Accept': 'application/json' } })
-        .then(function(r) { return r.json(); })
-        .then(function(response) {
-            if (response.success) {
-                var a = response.data;
-                document.getElementById('activo_serial').value = a.serial || '';
-                document.getElementById('activo_modelo_id').value = a.modelo_id || '';
-                var modeloTexto = a.modelo ? ((a.modelo.marca ? a.modelo.marca.nombre + ' ' : '') + a.modelo.nombre) : '';
-                document.getElementById('activo_modelo_buscar').value = modeloTexto;
-                document.getElementById('activo_id_estatus').value = a.id_estatus || '';
-                document.getElementById('activo_ubicacion').value = a.ubicacion || '';
-                document.getElementById('activo_fecha_adquisicion').value = a.fecha_adquisicion || '';
-                document.getElementById('activo_fecha_fin_garantia').value = a.fecha_fin_garantia || '';
-                document.getElementById('activo_vida_util_anos').value = a.vida_util_anos || '';
-                document.getElementById('activo_observaciones').value = a.observaciones || '';
+            .then(function(r) { return r.json(); })
+            .then(function(response) {
+                if (response.success) {
+                    var a = response.data;
+                    document.getElementById('activo_serial').value = a.serial || '';
+                    document.getElementById('activo_modelo_id').value = a.modelo_id || '';
 
-                if (a.modelo) {
-                    var marca = a.modelo.marca ? a.modelo.marca.nombre : '';
-                    var categoria = a.modelo.categoria ? a.modelo.categoria.nombre : '';
-                    document.getElementById('modeloInfoBadges').innerHTML = '<span class="badge bg-primary-dark">' + escapeHtml(marca) + '</span> <span class="badge bg-secondary">' + escapeHtml(categoria) + '</span>';
+                    var modeloTexto = a.modelo ? ((a.modelo.marca ? a.modelo.marca.nombre + ' ' : '') + a.modelo.nombre) : '';
+                    document.getElementById('activo_modelo_buscar').value = modeloTexto;
+
+                    document.getElementById('activo_id_estatus').value = a.id_estatus || '';
+                    document.getElementById('activo_ubicacion').value = a.ubicacion || '';
+                    document.getElementById('activo_fecha_adquisicion').value = a.fecha_adquisicion || '';
+                    document.getElementById('activo_fecha_fin_garantia').value = a.fecha_fin_garantia || '';
+                    document.getElementById('activo_vida_util_anos').value = a.vida_util_anos || '';
+                    document.getElementById('activo_observaciones').value = a.observaciones || '';
+
+                    if (a.modelo) {
+                        var marca = a.modelo.marca ? a.modelo.marca.nombre : '';
+                        var categoria = a.modelo.categoria ? a.modelo.categoria.nombre : '';
+                        document.getElementById('modeloInfoBadges').innerHTML = '<span class="badge bg-primary-dark">' + escapeHtml(marca) + '</span> <span class="badge bg-secondary">' + escapeHtml(categoria) + '</span>';
+                    }
+
+                    cargarInstituciones('activo_institucion_id', a.institucion_id, 'activo_departamento_id', a.departamento_id);
+
+                    if (a.componentes && a.componentes.length > 0) {
+                        cargarComponentesEnFormulario(a.componentes);
+                    }
+
+                    var selEstatus = document.getElementById('activo_id_estatus');
+                    if (selEstatus && a.id_estatus) selEstatus.value = a.id_estatus;
                 }
-
-                // ✅ Cargar instituciones CON seleccionada + departamento
-                cargarInstituciones('activo_institucion_id', a.institucion_id, 'activo_departamento_id', a.departamento_id);
-
-                // Cargar componentes existentes
-                if (a.componentes && a.componentes.length > 0) {
-                    cargarComponentesEnFormulario(a.componentes);
-                }
-
-                // Cargar estatus (por si acaso)
-                var selEstatus = document.getElementById('activo_id_estatus');
-                if (selEstatus && a.id_estatus) selEstatus.value = a.id_estatus;
-            }
-        });
+            });
     } else {
-        // ✅ MODO CREAR: solo cargar instituciones
         cargarInstituciones('activo_institucion_id', null, 'activo_departamento_id');
     }
 
@@ -1111,199 +1129,199 @@ window.editarActivo = function(id) { window.abrirModalActivo(id); };
 // ============================================================
 window.verActivo = function(id) {
     fetch('/admin/activos/' + id, { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            var a = response.data;
+        .then(function(r) { return r.json(); })
+        .then(function(response) {
+            if (response.success) {
+                var a = response.data;
 
-            var fechaAdquisicion = a.fecha_adquisicion ? new Date(a.fecha_adquisicion).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'No registrada';
-            var fechaGarantia = a.fecha_fin_garantia ? new Date(a.fecha_fin_garantia).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'No registrada';
+                var fechaAdquisicion = a.fecha_adquisicion ? new Date(a.fecha_adquisicion).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'No registrada';
+                var fechaGarantia = a.fecha_fin_garantia ? new Date(a.fecha_fin_garantia).toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' }) : 'No registrada';
+                var garantiaVencidaFlag = a.fecha_fin_garantia && new Date(a.fecha_fin_garantia) < new Date();
 
-            var garantiaVencidaFlag = a.fecha_fin_garantia && new Date(a.fecha_fin_garantia) < new Date();
-            var garantiaBadge = garantiaVencidaFlag ?
-                '<span class="badge-garantia-vencida ms-2"><i class="fas fa-exclamation-triangle"></i> Vencida</span>' :
-                (a.fecha_fin_garantia ? '<span class="badge-garantia-vigente ms-2"><i class="fas fa-check-circle"></i> Vigente</span>' : '');
+                var garantiaBadge = garantiaVencidaFlag ?
+                    '<span class="badge-garantia-vencida ms-2"><i class="fas fa-exclamation-triangle"></i> Vencida</span>' :
+                    (a.fecha_fin_garantia ? '<span class="badge-garantia-vigente ms-2"><i class="fas fa-check-circle"></i> Vigente</span>' : '');
 
-            var estadoIcono = '';
-            switch(a.estatus?.descripcion) {
-                case 'Disponible': estadoIcono = '<i class="fas fa-check-circle"></i> '; break;
-                case 'Prestado': estadoIcono = '<i class="fas fa-hand-holding"></i> '; break;
-                case 'En reparación': estadoIcono = '<i class="fas fa-tools"></i> '; break;
-                case 'Desechado': estadoIcono = '<i class="fas fa-trash-alt"></i> '; break;
-                default: estadoIcono = '<i class="fas fa-circle"></i> ';
-            }
+                var estadoIcono = '';
+                switch(a.estatus?.descripcion) {
+                    case 'Disponible': estadoIcono = '<i class="fas fa-check-circle"></i> '; break;
+                    case 'Prestado': estadoIcono = '<i class="fas fa-hand-holding"></i> '; break;
+                    case 'En reparación': estadoIcono = '<i class="fas fa-tools"></i> '; break;
+                    case 'Desechado': estadoIcono = '<i class="fas fa-trash-alt"></i> '; break;
+                    default: estadoIcono = '<i class="fas fa-circle"></i> ';
+                }
 
-            agregarEstilosDetalle();
+                agregarEstilosDetalle();
 
-            var modeloMarca = a.modelo && a.modelo.marca ? a.modelo.marca.nombre : 'N/A';
-            var modeloNombre = a.modelo ? a.modelo.nombre : 'N/A';
-            var categoriaNombre = a.modelo && a.modelo.categoria ? a.modelo.categoria.nombre : 'N/A';
-            var institucionNombre = a.institucion ? a.institucion.nombre : 'N/A';
-            var departamentoNombre = a.departamento ? a.departamento.nombre : null;
-            var responsableNombre = a.responsable ? a.responsable.nombre : 'No asignado';
-            var responsableCargo = a.responsable ? a.responsable.cargo : '';
+                var modeloMarca = a.modelo && a.modelo.marca ? a.modelo.marca.nombre : 'N/A';
+                var modeloNombre = a.modelo ? a.modelo.nombre : 'N/A';
+                var categoriaNombre = a.modelo && a.modelo.categoria ? a.modelo.categoria.nombre : 'N/A';
+                var institucionNombre = a.institucion ? a.institucion.nombre : 'N/A';
+                var departamentoNombre = a.departamento ? a.departamento.nombre : null;
+                var responsableNombre = a.responsable ? a.responsable.nombre : 'No asignado';
+                var responsableCargo = a.responsable ? a.responsable.cargo : '';
 
-            var html = `
-                <div class="detalle-activo-moderno">
-                    <div class="detalle-header-moderno" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); margin: -1.5rem -1.5rem 1.5rem -1.5rem; padding: 1.5rem; border-radius: 12px 12px 0 0;">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <div>
-                                <div class="d-flex align-items-center gap-2 mb-2">
-                                    <i class="fas fa-microchip" style="font-size: 1.8rem; color: #ffcd3c;"></i>
-                                    <h4 class="mb-0 text-white">${escapeHtml(a.serial)}</h4>
+                var html = `
+                    <div class="detalle-activo-moderno">
+                        <div class="detalle-header-moderno" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); margin: -1.5rem -1.5rem 1.5rem -1.5rem; padding: 1.5rem; border-radius: 12px 12px 0 0;">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <i class="fas fa-microchip" style="font-size: 1.8rem; color: #ffcd3c;"></i>
+                                        <h4 class="mb-0 text-white">${escapeHtml(a.serial)}</h4>
+                                    </div>
+                                    <p class="mb-0 text-white-50">
+                                        <i class="fas fa-tag me-1"></i> ${escapeHtml(modeloMarca)} ${escapeHtml(modeloNombre)}
+                                        <span class="mx-2">•</span>
+                                        <i class="fas fa-folder me-1"></i> ${escapeHtml(categoriaNombre)}
+                                    </p>
                                 </div>
-                                <p class="mb-0 text-white-50">
-                                    <i class="fas fa-tag me-1"></i> ${escapeHtml(modeloMarca)} ${escapeHtml(modeloNombre)}
-                                    <span class="mx-2">•</span>
-                                    <i class="fas fa-folder me-1"></i> ${escapeHtml(categoriaNombre)}
-                                </p>
-                            </div>
-                            <div class="text-end">
-                                <span class="badge-estado-detalle" style="background: ${getColorByEstado(a.estatus?.descripcion)}; color: white; padding: 0.5rem 1rem; border-radius: 30px; font-size: 0.8rem;">
-                                    ${estadoIcono} ${escapeHtml(a.estatus?.descripcion || 'N/A')}
-                                </span>
+                                <div class="text-end">
+                                    <span class="badge-estado-detalle" style="background: ${getColorByEstado(a.estatus?.descripcion)}; color: white; padding: 0.5rem 1rem; border-radius: 30px; font-size: 0.8rem;">
+                                        ${estadoIcono} ${escapeHtml(a.estatus?.descripcion || 'N/A')}
+                                    </span>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    <div class="row g-4 mb-4">
-                        <div class="col-md-6">
-                            <div class="detalle-seccion">
-                                <h6 class="detalle-seccion-titulo">
-                                    <i class="fas fa-info-circle me-2"></i>Información General
-                                </h6>
-                                <div class="detalle-grid">
-                                    <div class="detalle-item">
-                                        <div class="detalle-label"><i class="fas fa-barcode"></i> Número de Serie</div>
-                                        <div class="detalle-valor">${escapeHtml(a.serial)}</div>
+                        <div class="row g-4 mb-4">
+                            <div class="col-md-6">
+                                <div class="detalle-seccion">
+                                    <h6 class="detalle-seccion-titulo">
+                                        <i class="fas fa-info-circle me-2"></i>Información General
+                                    </h6>
+                                    <div class="detalle-grid">
+                                        <div class="detalle-item">
+                                            <div class="detalle-label"><i class="fas fa-barcode"></i> Número de Serie</div>
+                                            <div class="detalle-valor">${escapeHtml(a.serial)}</div>
+                                        </div>
+                                        <div class="detalle-item">
+                                            <div class="detalle-label"><i class="fas fa-building"></i> Institución</div>
+                                            <div class="detalle-valor">${escapeHtml(institucionNombre)}</div>
+                                        </div>
+                                        ${departamentoNombre ? `
+                                        <div class="detalle-item">
+                                            <div class="detalle-label"><i class="fas fa-sitemap"></i> Departamento</div>
+                                            <div class="detalle-valor">${escapeHtml(departamentoNombre)}</div>
+                                        </div>
+                                        ` : ''}
+                                        <div class="detalle-item">
+                                            <div class="detalle-label"><i class="fas fa-map-marker-alt"></i> Ubicación</div>
+                                            <div class="detalle-valor">${escapeHtml(a.ubicacion || 'No especificada')}</div>
+                                        </div>
+                                        <div class="detalle-item">
+                                            <div class="detalle-label"><i class="fas fa-user"></i> Responsable</div>
+                                            <div class="detalle-valor">
+                                                ${escapeHtml(responsableNombre)}
+                                                ${responsableCargo ? `<div class="small text-muted mt-1">${escapeHtml(responsableCargo)}</div>` : ''}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="detalle-item">
-                                        <div class="detalle-label"><i class="fas fa-building"></i> Institución</div>
-                                        <div class="detalle-valor">${escapeHtml(institucionNombre)}</div>
-                                    </div>
-                                    ${departamentoNombre ? `
-                                    <div class="detalle-item">
-                                        <div class="detalle-label"><i class="fas fa-sitemap"></i> Departamento</div>
-                                        <div class="detalle-valor">${escapeHtml(departamentoNombre)}</div>
-                                    </div>
-                                    ` : ''}
-                                    <div class="detalle-item">
-                                        <div class="detalle-label"><i class="fas fa-map-marker-alt"></i> Ubicación</div>
-                                        <div class="detalle-valor">${escapeHtml(a.ubicacion || 'No especificada')}</div>
-                                    </div>
-                                    <div class="detalle-item">
-                                        <div class="detalle-label"><i class="fas fa-user"></i> Responsable</div>
-                                        <div class="detalle-valor">
-                                            ${escapeHtml(responsableNombre)}
-                                            ${responsableCargo ? `<div class="small text-muted mt-1">${escapeHtml(responsableCargo)}</div>` : ''}
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="detalle-seccion">
+                                    <h6 class="detalle-seccion-titulo">
+                                        <i class="fas fa-calendar-alt me-2"></i>Información de Adquisición
+                                    </h6>
+                                    <div class="detalle-grid">
+                                        <div class="detalle-item">
+                                            <div class="detalle-label"><i class="fas fa-shopping-cart"></i> Fecha Adquisición</div>
+                                            <div class="detalle-valor">${fechaAdquisicion}</div>
+                                        </div>
+                                        <div class="detalle-item">
+                                            <div class="detalle-label"><i class="fas fa-shield-alt"></i> Fin de Garantía</div>
+                                            <div class="detalle-valor">${fechaGarantia} ${garantiaBadge}</div>
+                                        </div>
+                                        <div class="detalle-item">
+                                            <div class="detalle-label"><i class="fas fa-hourglass-half"></i> Vida Útil Estimada</div>
+                                            <div class="detalle-valor">${a.vida_util_anos ? a.vida_util_anos + ' años' : 'No especificada'}</div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="col-md-6">
-                            <div class="detalle-seccion">
-                                <h6 class="detalle-seccion-titulo">
-                                    <i class="fas fa-calendar-alt me-2"></i>Información de Adquisición
-                                </h6>
-                                <div class="detalle-grid">
-                                    <div class="detalle-item">
-                                        <div class="detalle-label"><i class="fas fa-shopping-cart"></i> Fecha Adquisición</div>
-                                        <div class="detalle-valor">${fechaAdquisicion}</div>
-                                    </div>
-                                    <div class="detalle-item">
-                                        <div class="detalle-label"><i class="fas fa-shield-alt"></i> Fin de Garantía</div>
-                                        <div class="detalle-valor">${fechaGarantia} ${garantiaBadge}</div>
-                                    </div>
-                                    <div class="detalle-item">
-                                        <div class="detalle-label"><i class="fas fa-hourglass-half"></i> Vida Útil Estimada</div>
-                                        <div class="detalle-valor">${a.vida_util_anos ? a.vida_util_anos + ' años' : 'No especificada'}</div>
+
+                        ${a.observaciones ? `
+                        <div class="detalle-seccion mb-4">
+                            <h6 class="detalle-seccion-titulo">
+                                <i class="fas fa-sticky-note me-2"></i>Observaciones
+                            </h6>
+                            <div class="detalle-observaciones">
+                                ${escapeHtml(a.observaciones)}
+                            </div>
+                        </div>
+                        ` : ''}
+
+                        <div class="detalle-seccion">
+                            <ul class="nav nav-tabs nav-tabs-componentes" id="componentesTab" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active" id="instalados-tab" data-bs-toggle="tab" data-bs-target="#instalados" type="button" role="tab">
+                                        <i class="fas fa-microchip me-1"></i> Componentes Instalados
+                                        <span class="badge-componentes">${a.componentes ? a.componentes.length : 0}</span>
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link" id="modelo-tab" data-bs-toggle="tab" data-bs-target="#modelo" type="button" role="tab">
+                                        <i class="fas fa-cube me-1"></i> Componentes del Modelo
+                                    </button>
+                                </li>
+                            </ul>
+                            <div class="tab-content p-3">
+                                <div class="tab-pane fade show active" id="instalados" role="tabpanel">
+                                    ${renderComponentesInstalados(a.componentes)}
+                                </div>
+                                <div class="tab-pane fade" id="modelo" role="tabpanel">
+                                    <div id="detalleCompModeloContent" class="text-center py-4">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Cargando...</span>
+                                        </div>
+                                        <p class="mt-2 text-muted">Cargando componentes del modelo...</p>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
 
-                    ${a.observaciones ? `
-                    <div class="detalle-seccion mb-4">
-                        <h6 class="detalle-seccion-titulo">
-                            <i class="fas fa-sticky-note me-2"></i>Observaciones
-                        </h6>
-                        <div class="detalle-observaciones">
-                            ${escapeHtml(a.observaciones)}
-                        </div>
-                    </div>
-                    ` : ''}
-
-                    <div class="detalle-seccion">
-                        <ul class="nav nav-tabs nav-tabs-componentes" id="componentesTab" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="instalados-tab" data-bs-toggle="tab" data-bs-target="#instalados" type="button" role="tab">
-                                    <i class="fas fa-microchip me-1"></i> Componentes Instalados
-                                    <span class="badge-componentes">${a.componentes ? a.componentes.length : 0}</span>
+                        <div class="detalle-acciones mt-4 pt-3 border-top">
+                            <div class="d-flex justify-content-end gap-2">
+                                ${window.authUserHasPermission && authUserHasPermission('editar-activo') ?
+                                    `<button class="btn btn-editar-detalle" onclick="editarActivo(${a.id}); bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide();">
+                                        <i class="fas fa-edit"></i> Editar Activo
+                                    </button>` : ''}
+                                <button class="btn btn-cerrar-detalle" onclick="cerrarModalDetalleManual()">
+                                    <i class="fas fa-times"></i> Cerrar
                                 </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="modelo-tab" data-bs-toggle="tab" data-bs-target="#modelo" type="button" role="tab">
-                                    <i class="fas fa-cube me-1"></i> Componentes del Modelo
-                                </button>
-                            </li>
-                        </ul>
-                        <div class="tab-content p-3">
-                            <div class="tab-pane fade show active" id="instalados" role="tabpanel">
-                                ${renderComponentesInstalados(a.componentes)}
-                            </div>
-                            <div class="tab-pane fade" id="modelo" role="tabpanel">
-                                <div id="detalleCompModeloContent" class="text-center py-4">
-                                    <div class="spinner-border text-primary" role="status">
-                                        <span class="visually-hidden">Cargando...</span>
-                                    </div>
-                                    <p class="mt-2 text-muted">Cargando componentes del modelo...</p>
-                                </div>
                             </div>
                         </div>
                     </div>
+                `;
 
-                    <div class="detalle-acciones mt-4 pt-3 border-top">
-                        <div class="d-flex justify-content-end gap-2">
-                            ${window.authUserHasPermission && authUserHasPermission('editar-activo') ?
-                                `<button class="btn btn-editar-detalle" onclick="editarActivo(${a.id}); bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide();">
-                                    <i class="fas fa-edit"></i> Editar Activo
-                                </button>` : ''}
-                            <button class="btn btn-cerrar-detalle" onclick="cerrarModalDetalleManual()">
-                                <i class="fas fa-times"></i> Cerrar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `;
+                document.getElementById('modalDetalleLabel').textContent = 'Detalle del Activo';
+                document.getElementById('detalleContenido').innerHTML = html;
 
-            document.getElementById('modalDetalleLabel').textContent = 'Detalle del Activo';
-            document.getElementById('detalleContenido').innerHTML = html;
+                var modal = new bootstrap.Modal(document.getElementById('modalDetalle'));
+                modal.show();
 
-            var modal = new bootstrap.Modal(document.getElementById('modalDetalle'));
-            modal.show();
-
-            // Cargar componentes del modelo (plantilla)
-            if (a.modelo_id) {
-                fetch('/admin/equipos/modelos/' + a.modelo_id + '/componentes', { headers: { 'Accept': 'application/json' } })
-                .then(function(r) { return r.json(); })
-                .then(function(response) {
-                    if (response.success && response.data && response.data.length > 0) {
-                        var modelHtml = renderComponentesModelo(response.data);
-                        document.getElementById('detalleCompModeloContent').innerHTML = modelHtml;
-                    } else {
-                        document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-info-circle"></i> Este modelo no tiene componentes definidos</div>';
-                    }
-                })
-                .catch(function() {
-                    document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle"></i> Error al cargar componentes</div>';
-                });
-            } else {
-                document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-info-circle"></i> No hay modelo asignado</div>';
+                if (a.modelo_id) {
+                    fetch('/admin/equipos/modelos/' + a.modelo_id + '/componentes', { headers: { 'Accept': 'application/json' } })
+                        .then(function(r) { return r.json(); })
+                        .then(function(response) {
+                            if (response.success && response.data && response.data.length > 0) {
+                                var modelHtml = renderComponentesModelo(response.data);
+                                document.getElementById('detalleCompModeloContent').innerHTML = modelHtml;
+                            } else {
+                                document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-info-circle"></i> Este modelo no tiene componentes definidos</div>';
+                            }
+                        })
+                        .catch(function() {
+                            document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle"></i> Error al cargar componentes</div>';
+                        });
+                } else {
+                    document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-info-circle"></i> No hay modelo asignado</div>';
+                }
             }
-        }
-    });
+        });
 };
 
 // ============================================================
@@ -1318,6 +1336,7 @@ function guardarActivo() {
         mostrarToast('El serial del activo es requerido', 'warning');
         return;
     }
+
     if (!document.getElementById('activo_modelo_id').value) {
         mostrarToast('Debe seleccionar un modelo', 'warning');
         return;
@@ -1336,6 +1355,7 @@ function guardarActivo() {
 
     var btn = document.querySelector('#formActivo button[type="submit"]');
     var originalText = btn ? btn.innerHTML : 'Guardar';
+
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
@@ -1381,14 +1401,14 @@ function guardarActivo() {
 // ============================================================
 function cargarComponentes() {
     fetch('/admin/componentes', { headers: { 'Accept': 'application/json' } })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            componentesData = response.data;
-            componentesPage = 1;
-            aplicarFiltrosComponentes();
-        }
-    });
+        .then(function(r) { return r.json(); })
+        .then(function(response) {
+            if (response.success) {
+                componentesData = response.data;
+                componentesPage = 1;
+                aplicarFiltrosComponentes();
+            }
+        });
 }
 
 window.abrirModalComponente = function(id) {
@@ -1408,44 +1428,42 @@ window.abrirModalComponente = function(id) {
     if (id) {
         document.getElementById('modalComponenteLabel').textContent = 'Editar Componente';
         document.getElementById('componenteId').value = id;
+
         fetch('/admin/componentes/' + id, { headers: { 'Accept': 'application/json' } })
-        .then(function(r) { return r.json(); })
-        .then(function(response) {
-            if (response.success) {
-                var c = response.data;
-                document.getElementById('comp_tipo').value = c.tipo || '';
-                document.getElementById('comp_marca').value = c.marca || '';
-                document.getElementById('comp_modelo').value = c.modelo || '';
-                document.getElementById('comp_serial').value = c.serial || '';
-                document.getElementById('comp_capacidad').value = c.capacidad || '';
-                document.getElementById('comp_estado').value = c.estado || '';
-                document.getElementById('comp_activo_id').value = c.activo_id || '';
-                document.getElementById('comp_ubicacion').value = c.ubicacion || '';
-                document.getElementById('comp_observaciones').value = c.observaciones || '';
+            .then(function(r) { return r.json(); })
+            .then(function(response) {
+                if (response.success) {
+                    var c = response.data;
+                    document.getElementById('comp_tipo').value = c.tipo || '';
+                    document.getElementById('comp_marca').value = c.marca || '';
+                    document.getElementById('comp_modelo').value = c.modelo || '';
+                    document.getElementById('comp_serial').value = c.serial || '';
+                    document.getElementById('comp_capacidad').value = c.capacidad || '';
+                    document.getElementById('comp_estado').value = c.estado || '';
+                    document.getElementById('comp_activo_id').value = c.activo_id || '';
+                    document.getElementById('comp_ubicacion').value = c.ubicacion || '';
+                    document.getElementById('comp_observaciones').value = c.observaciones || '';
 
-                // ✅ Cargar instituciones con institución + departamento seleccionados
-                cargarInstituciones('comp_institucion_id', c.institucion_id, 'comp_departamento_id', c.departamento_id);
+                    cargarInstituciones('comp_institucion_id', c.institucion_id, 'comp_departamento_id', c.departamento_id);
 
-                // Mostrar responsable actual
-                if (c.responsable) {
-                    var display = document.getElementById('comp_responsable_display');
-                    var hidden = document.getElementById('comp_responsable_id');
-                    if (display) {
-                        display.innerHTML = `
-                            <div>
-                                <strong style="color:#1e3c72;">👤 ${escapeHtml(c.responsable.nombre)}</strong>
-                                <div class="small text-muted mt-1">
-                                    ${c.responsable.cargo ? '💼 ' + escapeHtml(c.responsable.cargo) : ''}
+                    if (c.responsable) {
+                        var display = document.getElementById('comp_responsable_display');
+                        var hidden = document.getElementById('comp_responsable_id');
+                        if (display) {
+                            display.innerHTML = `
+                                <div>
+                                    <strong style="color:#1e3c72;">👤 ${escapeHtml(c.responsable.nombre)}</strong>
+                                    <div class="small text-muted mt-1">
+                                        ${c.responsable.cargo ? '💼 ' + escapeHtml(c.responsable.cargo) : ''}
+                                    </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
+                        }
+                        if (hidden) hidden.value = c.responsable_id;
                     }
-                    if (hidden) hidden.value = c.responsable_id;
                 }
-            }
-        });
+            });
     } else {
-        // ✅ MODO CREAR: solo cargar instituciones
         cargarInstituciones('comp_institucion_id', null, 'comp_departamento_id');
     }
 
@@ -1467,18 +1485,19 @@ function guardarComponente() {
     }
 
     if (id) formData.append('_method', 'PUT');
+
     fetch(url, { method: 'POST', headers: { 'X-CSRF-TOKEN': getCsrfToken() }, body: formData })
-    .then(function(r) { return r.json(); })
-    .then(function(response) {
-        if (response.success) {
-            bootstrap.Modal.getInstance(document.getElementById('modalComponente')).hide();
-            mostrarToast(response.message, 'success');
-            cargarComponentes();
-            cargarActivos();
-        } else {
-            mostrarToast(response.message || 'Error', 'error');
-        }
-    });
+        .then(function(r) { return r.json(); })
+        .then(function(response) {
+            if (response.success) {
+                bootstrap.Modal.getInstance(document.getElementById('modalComponente')).hide();
+                mostrarToast(response.message, 'success');
+                cargarComponentes();
+                cargarActivos();
+            } else {
+                mostrarToast(response.message || 'Error', 'error');
+            }
+        });
 }
 
 // ============================================================
@@ -1565,6 +1584,7 @@ window.confirmarEliminarComponente = function(id) {
 
 function confirmarEliminacion() {
     if (!elementoAEliminar) return;
+
     var tipo = elementoAEliminar.tipo;
     var pluralTipo = tipo === 'activo' ? 'activos' : 'componentes';
     var url = '/admin/' + pluralTipo + '/' + elementoAEliminar.id;
