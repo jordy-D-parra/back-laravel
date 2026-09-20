@@ -1,8 +1,9 @@
 /* ============================================================
-   DARK MODE - Estilo Elegante y Profesional (Versión Final)
-   Corrige: sombras de modales + iconos de CRUDs + BADGES DE ESTADO
-   + FIX: Modal de Préstamos y sus componentes internos
-   ============================================================ */
+DARK MODE - Estilo Elegante y Profesional (Versión Optimizada)
+Corrige: sombras de modales + iconos de CRUDs + BADGES DE ESTADO
++ FIX: Modal de Préstamos y sus componentes internos
++ OPTIMIZACIÓN: Transiciones selectivas para mejorar rendimiento
+============================================================ */
 
 :root {
     /* Fondos */
@@ -36,19 +37,15 @@
     --dm-success: #22c55e;
     --dm-success-light: #86efac;
     --dm-success-bg: rgba(34, 197, 94, 0.18);
-
     --dm-danger: #ef4444;
     --dm-danger-light: #fca5a5;
     --dm-danger-bg: rgba(239, 68, 68, 0.18);
-
     --dm-warning: #f59e0b;
     --dm-warning-light: #fcd34d;
     --dm-warning-bg: rgba(245, 158, 11, 0.18);
-
     --dm-info: #3b82f6;
     --dm-info-light: #93c5fd;
     --dm-info-bg: rgba(59, 130, 246, 0.18);
-
     --dm-neutral: #64748b;
     --dm-neutral-light: #cbd5e1;
     --dm-neutral-bg: rgba(100, 116, 139, 0.25);
@@ -62,8 +59,8 @@
 }
 
 /* ============================================================
-   BOTÓN DE MODO OSCURO
-   ============================================================ */
+BOTÓN DE MODO OSCURO
+============================================================ */
 .dark-mode-toggle {
     position: fixed;
     top: 18px;
@@ -166,8 +163,8 @@ body.dark-mode .dark-mode-toggle::after {
 }
 
 /* ============================================================
-   🌟 FIX #1: SOMBRAS DE MODALES
-   ============================================================ */
+🌟 FIX #1: SOMBRAS DE MODALES
+============================================================ */
 .modal-content {
     box-shadow: var(--dm-shadow-modal-light) !important;
 }
@@ -213,8 +210,8 @@ body.dark-mode #modalMensaje .modal-content {
 }
 
 /* ============================================================
-   🌟 FIX #2: ICONOS DE CRUDs (BOTONES DE ACCIÓN) LEGIBLES
-   ============================================================ */
+🌟 FIX #2: ICONOS DE CRUDs (BOTONES DE ACCIÓN) LEGIBLES
+============================================================ */
 body.dark-mode .btn-action {
     background: transparent !important;
     border: 1px solid var(--dm-border) !important;
@@ -478,12 +475,11 @@ body.dark-mode .table-container .btn-success:hover {
 }
 
 /* ============================================================
-   🌟 FIX #3: BADGES DE ESTADO (Activo/Inactivo, Pendiente/Aprobada/Rechazada, etc.)
-   Mantienen el color semántico pero adaptados al modo oscuro
-   ============================================================ */
+🌟 FIX #3: BADGES DE ESTADO (Activo/Inactivo, Pendiente/Aprobada/Rechazada, etc.)
+Mantienen el color semántico pero adaptados al modo oscuro
+============================================================ */
 
 /* ========== BADGES DE ESTADO DE ACTIVOS/COMPONENTES ========== */
-
 /* Disponible / Activo - Verde */
 body.dark-mode .badge-estado-disponible,
 body.dark-mode .badge-estado-activo,
@@ -561,7 +557,6 @@ body.dark-mode .badge-estado-entregada {
 }
 
 /* ========== BADGES DE PRIORIDAD ========== */
-
 /* Prioridad Baja - Gris */
 body.dark-mode .badge-prioridad-baja,
 body.dark-mode .prioridad-baja,
@@ -694,49 +689,41 @@ body.dark-mode .badge-estado-finalizado {
 }
 
 /* ========== BADGES DE ESTADO EN TABLAS (ESTILO GENÉRICO) ========== */
-/* Todos los badges que contengan "bg-success", "bg-danger", etc. de Bootstrap */
 body.dark-mode .badge.bg-success {
     background: rgba(34, 197, 94, 0.20) !important;
     color: #86efac !important;
     border: 1px solid rgba(34, 197, 94, 0.4) !important;
 }
-
 body.dark-mode .badge.bg-danger {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
     border: 1px solid rgba(239, 68, 68, 0.4) !important;
 }
-
 body.dark-mode .badge.bg-warning {
     background: rgba(245, 158, 11, 0.20) !important;
     color: #fcd34d !important;
     border: 1px solid rgba(245, 158, 11, 0.4) !important;
 }
-
 body.dark-mode .badge.bg-info {
     background: rgba(59, 130, 246, 0.20) !important;
     color: #93c5fd !important;
     border: 1px solid rgba(59, 130, 246, 0.4) !important;
 }
-
 body.dark-mode .badge.bg-secondary {
     background: rgba(100, 116, 139, 0.25) !important;
     color: #cbd5e1 !important;
     border: 1px solid rgba(100, 116, 139, 0.4) !important;
 }
-
 body.dark-mode .badge.bg-primary {
     background: rgba(59, 130, 246, 0.20) !important;
     color: #93c5fd !important;
     border: 1px solid rgba(59, 130, 246, 0.4) !important;
 }
-
 body.dark-mode .badge.bg-dark {
     background: rgba(15, 23, 42, 0.5) !important;
     color: #cbd5e1 !important;
     border: 1px solid rgba(71, 85, 105, 0.5) !important;
 }
-
 body.dark-mode .badge.bg-light {
     background: rgba(203, 213, 225, 0.15) !important;
     color: #cbd5e1 !important;
@@ -749,21 +736,18 @@ body.dark-mode .detalle-badge.estado-pendiente {
     color: #fcd34d !important;
     border: 1px solid rgba(245, 158, 11, 0.4) !important;
 }
-
 body.dark-mode .detalle-badge.estado-aprobada,
 body.dark-mode .detalle-badge.estado-aprobado {
     background: rgba(34, 197, 94, 0.20) !important;
     color: #86efac !important;
     border: 1px solid rgba(34, 197, 94, 0.4) !important;
 }
-
 body.dark-mode .detalle-badge.estado-rechazada,
 body.dark-mode .detalle-badge.estado-rechazado {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
     border: 1px solid rgba(239, 68, 68, 0.4) !important;
 }
-
 body.dark-mode .detalle-badge.estado-cancelada,
 body.dark-mode .detalle-badge.estado-cancelado {
     background: rgba(100, 116, 139, 0.25) !important;
@@ -777,7 +761,6 @@ body.dark-mode .detalle-item-tipo.activo {
     color: #93c5fd !important;
     border: 1px solid rgba(59, 130, 246, 0.4) !important;
 }
-
 body.dark-mode .detalle-item-tipo.componente {
     background: rgba(139, 92, 246, 0.20) !important;
     color: #c4b5fd !important;
@@ -790,19 +773,16 @@ body.dark-mode .badge-prioridad.badge-prioridad-baja {
     color: #cbd5e1 !important;
     border: 1px solid rgba(100, 116, 139, 0.4) !important;
 }
-
 body.dark-mode .badge-prioridad.badge-prioridad-normal {
     background: rgba(59, 130, 246, 0.20) !important;
     color: #93c5fd !important;
     border: 1px solid rgba(59, 130, 246, 0.4) !important;
 }
-
 body.dark-mode .badge-prioridad.badge-prioridad-alta {
     background: rgba(245, 158, 11, 0.20) !important;
     color: #fcd34d !important;
     border: 1px solid rgba(245, 158, 11, 0.4) !important;
 }
-
 body.dark-mode .badge-prioridad.badge-prioridad-urgente {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
@@ -815,47 +795,40 @@ body.dark-mode .badge-estado.badge-estado-pendiente {
     color: #fcd34d !important;
     border: 1px solid rgba(245, 158, 11, 0.4) !important;
 }
-
 body.dark-mode .badge-estado.badge-estado-aprobada,
 body.dark-mode .badge-estado.badge-estado-aprobado {
     background: rgba(34, 197, 94, 0.20) !important;
     color: #86efac !important;
     border: 1px solid rgba(34, 197, 94, 0.4) !important;
 }
-
 body.dark-mode .badge-estado.badge-estado-rechazada,
 body.dark-mode .badge-estado.badge-estado-rechazado {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
     border: 1px solid rgba(239, 68, 68, 0.4) !important;
 }
-
 body.dark-mode .badge-estado.badge-estado-cancelada,
 body.dark-mode .badge-estado.badge-estado-cancelado {
     background: rgba(100, 116, 139, 0.25) !important;
     color: #cbd5e1 !important;
     border: 1px solid rgba(100, 116, 139, 0.4) !important;
 }
-
 body.dark-mode .badge-estado.badge-estado-entregado,
 body.dark-mode .badge-estado.badge-estado-entregada {
     background: rgba(59, 130, 246, 0.20) !important;
     color: #93c5fd !important;
     border: 1px solid rgba(59, 130, 246, 0.4) !important;
 }
-
 body.dark-mode .badge-estado.badge-estado-devuelto {
     background: rgba(34, 197, 94, 0.20) !important;
     color: #86efac !important;
     border: 1px solid rgba(34, 197, 94, 0.4) !important;
 }
-
 body.dark-mode .badge-estado.badge-estado-vencido {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
     border: 1px solid rgba(239, 68, 68, 0.4) !important;
 }
-
 body.dark-mode .badge-estado.badge-estado-extendido {
     background: rgba(139, 92, 246, 0.20) !important;
     color: #c4b5fd !important;
@@ -870,22 +843,18 @@ body.dark-mode .fecha-fin-badge,
 body.dark-mode .fecha-requerida-vencida {
     border: 1px solid var(--dm-border) !important;
 }
-
 body.dark-mode .fecha-solicitud-badge {
     background: rgba(100, 116, 139, 0.25) !important;
     color: #cbd5e1 !important;
 }
-
 body.dark-mode .fecha-requerida-badge {
     background: rgba(245, 158, 11, 0.20) !important;
     color: #fcd34d !important;
 }
-
 body.dark-mode .fecha-requerida-vencida {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
 }
-
 body.dark-mode .fecha-fin-badge {
     background: rgba(34, 197, 94, 0.20) !important;
     color: #86efac !important;
@@ -895,53 +864,44 @@ body.dark-mode .fecha-fin-badge {
 body.dark-mode .fecha-badge {
     border: 1px solid var(--dm-border) !important;
 }
-
 body.dark-mode .fecha-badge.ingreso {
     background: rgba(59, 130, 246, 0.20) !important;
     color: #93c5fd !important;
     border-color: rgba(59, 130, 246, 0.4) !important;
 }
-
 body.dark-mode .fecha-badge.salida {
     background: rgba(34, 197, 94, 0.20) !important;
     color: #86efac !important;
     border-color: rgba(34, 197, 94, 0.4) !important;
 }
-
 body.dark-mode .fecha-badge.requerida {
     background: rgba(245, 158, 11, 0.20) !important;
     color: #fcd34d !important;
     border-color: rgba(245, 158, 11, 0.4) !important;
 }
-
 body.dark-mode .fecha-badge.pendiente {
     background: rgba(100, 116, 139, 0.25) !important;
     color: #cbd5e1 !important;
     border-color: rgba(100, 116, 139, 0.4) !important;
 }
-
 body.dark-mode .badge-fecha-entrega {
     border: 1px solid var(--dm-border) !important;
 }
-
 body.dark-mode .badge-fecha-vigente {
     background: rgba(34, 197, 94, 0.20) !important;
     color: #86efac !important;
     border-color: rgba(34, 197, 94, 0.4) !important;
 }
-
 body.dark-mode .badge-fecha-proxima {
     background: rgba(245, 158, 11, 0.20) !important;
     color: #fcd34d !important;
     border-color: rgba(245, 158, 11, 0.4) !important;
 }
-
 body.dark-mode .badge-fecha-vencida {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
     border-color: rgba(239, 68, 68, 0.4) !important;
 }
-
 body.dark-mode .badge-fecha-sin {
     background: rgba(100, 116, 139, 0.25) !important;
     color: #cbd5e1 !important;
@@ -952,31 +912,26 @@ body.dark-mode .badge-fecha-sin {
 body.dark-mode .componente-estado {
     border: 1px solid var(--dm-border) !important;
 }
-
 body.dark-mode .componente-estado-instalado {
     background: rgba(59, 130, 246, 0.20) !important;
     color: #93c5fd !important;
     border-color: rgba(59, 130, 246, 0.4) !important;
 }
-
 body.dark-mode .componente-estado-bodega {
     background: rgba(100, 116, 139, 0.25) !important;
     color: #cbd5e1 !important;
     border-color: rgba(100, 116, 139, 0.4) !important;
 }
-
 body.dark-mode .componente-estado-prestado {
     background: rgba(245, 158, 11, 0.20) !important;
     color: #fcd34d !important;
     border-color: rgba(245, 158, 11, 0.4) !important;
 }
-
 body.dark-mode .componente-estado-reparacion {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
     border-color: rgba(239, 68, 68, 0.4) !important;
 }
-
 body.dark-mode .componente-estado-desechado {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
@@ -989,25 +944,21 @@ body.dark-mode .badge-en-bodega {
     color: #cbd5e1 !important;
     border: 1px solid rgba(100, 116, 139, 0.4) !important;
 }
-
 body.dark-mode .badge-instalado {
     background: rgba(59, 130, 246, 0.20) !important;
     color: #93c5fd !important;
     border: 1px solid rgba(59, 130, 246, 0.4) !important;
 }
-
 body.dark-mode .badge-prestado {
     background: rgba(245, 158, 11, 0.20) !important;
     color: #fcd34d !important;
     border: 1px solid rgba(245, 158, 11, 0.4) !important;
 }
-
 body.dark-mode .badge-en-reparacion {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
     border: 1px solid rgba(239, 68, 68, 0.4) !important;
 }
-
 body.dark-mode .badge-desechado {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
@@ -1020,98 +971,84 @@ body.dark-mode .badge-garantia-vencida {
     color: #fca5a5 !important;
     border: 1px solid rgba(239, 68, 68, 0.4) !important;
 }
-
 body.dark-mode .badge-garantia-vigente {
     background: rgba(34, 197, 94, 0.20) !important;
     color: #86efac !important;
     border: 1px solid rgba(34, 197, 94, 0.4) !important;
 }
 
-/* ========== BADGES DE ACCIÓN (auditoría) =========== */
+/* ========== BADGES DE ACCIÓN (auditoría) ========== */
 body.dark-mode .badge-accion {
     border: 1px solid var(--dm-border) !important;
 }
-
 body.dark-mode .badge-accion.crear {
     background: rgba(34, 197, 94, 0.20) !important;
     color: #86efac !important;
     border-color: rgba(34, 197, 94, 0.4) !important;
 }
-
 body.dark-mode .badge-accion.editar {
     background: rgba(59, 130, 246, 0.20) !important;
     color: #93c5fd !important;
     border-color: rgba(59, 130, 246, 0.4) !important;
 }
-
 body.dark-mode .badge-accion.eliminar {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
     border-color: rgba(239, 68, 68, 0.4) !important;
 }
-
 body.dark-mode .badge-accion.cambio_estado {
     background: rgba(245, 158, 11, 0.20) !important;
     color: #fcd34d !important;
     border-color: rgba(245, 158, 11, 0.4) !important;
 }
-
 body.dark-mode .badge-accion.login {
     background: rgba(59, 130, 246, 0.20) !important;
     color: #93c5fd !important;
     border-color: rgba(59, 130, 246, 0.4) !important;
 }
-
 body.dark-mode .badge-accion.logout {
     background: rgba(100, 116, 139, 0.25) !important;
     color: #cbd5e1 !important;
     border-color: rgba(100, 116, 139, 0.4) !important;
 }
-
 body.dark-mode .badge-accion.login_fallido {
     background: rgba(239, 68, 68, 0.20) !important;
     color: #fca5a5 !important;
     border-color: rgba(239, 68, 68, 0.4) !important;
 }
-
 body.dark-mode .badge-modulo {
     background: rgba(100, 116, 139, 0.25) !important;
     color: #cbd5e1 !important;
     border: 1px solid rgba(100, 116, 139, 0.4) !important;
 }
 
-/* ========== BADGES GENERALES DE BOOTSTRAP ============ */
+/* ========== BADGES GENERALES DE BOOTSTRAP ========== */
 body.dark-mode .badge {
     font-weight: 600;
 }
-
 body.dark-mode .badge.bg-white {
     background: rgba(203, 213, 225, 0.15) !important;
     color: #cbd5e1 !important;
 }
-
 body.dark-mode .badge.text-dark {
     color: #f1f5f9 !important;
 }
-
 body.dark-mode .badge.text-white {
     color: #f1f5f9 !important;
 }
 
 /* ============================================================
-   REGLAS ANTI-ESTILOS-EN-LÍNEA
-   ============================================================ */
+REGLAS ANTI-ESTILOS-EN-LÍNEA
+============================================================ */
 body.dark-mode [style*="background"],
 body.dark-mode [style*="background-color"] {
     background-color: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode [style*="background"] svg,
 body.dark-mode [style*="background-color"] svg {
     color: inherit;
 }
-
 body.dark-mode [style*="color: #1"],
 body.dark-mode [style*="color:#1"],
 body.dark-mode [style*="color: #0"],
@@ -1138,93 +1075,77 @@ body.dark-mode [style*="color: rgb(0"],
 body.dark-mode [style*="color:rgb(0"] {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode [style*="border"] {
     border-color: var(--dm-border) !important;
 }
 
 /* ============================================================
-   BASE
-   ============================================================ */
+BASE
+============================================================ */
 body.dark-mode {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .main-content,
 body.dark-mode .page-content {
     background: transparent !important;
 }
 
 /* ============================================================
-   SIDEBAR Y TOPBAR
-   ============================================================ */
+SIDEBAR Y TOPBAR
+============================================================ */
 body.dark-mode .sidebar {
     background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%) !important;
     box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5) !important;
     border-right: 1px solid var(--dm-border);
 }
-
 body.dark-mode .sidebar-header {
     border-bottom-color: rgba(255, 255, 255, 0.05);
 }
-
 body.dark-mode .nav-link {
     color: rgba(241, 245, 249, 0.85) !important;
 }
-
 body.dark-mode .nav-link:hover {
     background: rgba(59, 130, 246, 0.15) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .nav-link.active {
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.25) 0%, rgba(59, 130, 246, 0.1) 100%) !important;
     border: 1px solid rgba(59, 130, 246, 0.3) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .submenu .nav-link {
     background: rgba(0, 0, 0, 0.3) !important;
     color: rgba(241, 245, 249, 0.85) !important;
 }
-
 body.dark-mode .submenu .nav-link:hover {
     background: rgba(59, 130, 246, 0.2) !important;
 }
-
 body.dark-mode .submenu .nav-link.active {
     background: rgba(59, 130, 246, 0.25) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .nav-section {
     color: rgba(148, 163, 184, 0.7) !important;
 }
-
 body.dark-mode .topbar {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4) !important;
     border-bottom: 1px solid var(--dm-border);
 }
-
 body.dark-mode .datetime-panel {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .datetime-item:hover {
     background: rgba(59, 130, 246, 0.1);
 }
-
 body.dark-mode .datetime-item:not(:last-child)::after {
     background: linear-gradient(180deg, transparent, var(--dm-border), transparent);
 }
-
 body.dark-mode .datetime-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .datetime-value {
     background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
     -webkit-background-clip: text;
@@ -1232,37 +1153,31 @@ body.dark-mode .datetime-value {
     background-clip: text;
     color: #60a5fa !important;
 }
-
 body.dark-mode .toggle-btn {
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .toggle-btn svg {
     stroke: #60a5fa !important;
 }
-
 body.dark-mode .toggle-btn:hover {
     background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
 }
-
 body.dark-mode .user-name {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .notification-bell-btn {
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%) !important;
     border-color: var(--dm-border) !important;
     color: #60a5fa !important;
 }
-
 body.dark-mode .notification-bell-btn svg {
     stroke: #60a5fa !important;
 }
 
 /* ============================================================
-   TARJETAS Y CONTENEDORES
-   ============================================================ */
+TARJETAS Y CONTENEDORES
+============================================================ */
 body.dark-mode .stat-card,
 body.dark-mode .stat-card-mini,
 body.dark-mode .card,
@@ -1348,7 +1263,6 @@ body.dark-mode .card-footer {
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .stat-card,
 body.dark-mode .stat-card-mini,
 body.dark-mode .card,
@@ -1358,7 +1272,6 @@ body.dark-mode .detalle-info-card,
 body.dark-mode .componente-card {
     box-shadow: var(--dm-shadow-sm) !important;
 }
-
 body.dark-mode .stat-card:hover,
 body.dark-mode .stat-card-mini:hover,
 body.dark-mode .card:hover,
@@ -1374,57 +1287,47 @@ body.dark-mode .timeline-card:hover {
     border-color: var(--dm-accent) !important;
     box-shadow: var(--dm-shadow-md) !important;
 }
-
 body.dark-mode .stat-number,
 body.dark-mode .stat-card-mini .stat-info .stat-number,
 body.dark-mode .stat-card-modern .stat-number {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .stat-label,
 body.dark-mode .stat-card-mini .stat-info .stat-label,
 body.dark-mode .stat-card-modern .stat-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .stat-icon-circle {
     background: rgba(59, 130, 246, 0.15) !important;
 }
-
 body.dark-mode .stat-card-mini:hover .stat-icon-circle {
     background: var(--dm-accent) !important;
 }
-
 body.dark-mode .stat-icon-circle svg,
 body.dark-mode .stat-icon-circle i {
     stroke: var(--dm-accent-light) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .module-card svg {
     stroke: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .module-card {
     background: var(--dm-bg-tertiary) !important;
 }
-
 body.dark-mode .module-card:hover {
     background: var(--dm-bg-hover) !important;
 }
 
 /* ============================================================
-   HEADERS CON GRADIENTE
-   ============================================================ */
+HEADERS CON GRADIENTE
+============================================================ */
 body.dark-mode .page-header {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
     border: 1px solid var(--dm-border) !important;
 }
-
 body.dark-mode .welcome-card {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
 }
-
 body.dark-mode .page-header h4,
 body.dark-mode .page-header h2,
 body.dark-mode .page-header p {
@@ -1432,19 +1335,17 @@ body.dark-mode .page-header p {
 }
 
 /* ============================================================
-   TABLAS
-   ============================================================ */
+TABLAS
+============================================================ */
 body.dark-mode .table-container,
 body.dark-mode .table-responsive {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .table {
     color: var(--dm-text-primary) !important;
     background: transparent !important;
 }
-
 body.dark-mode .table thead th,
 body.dark-mode .table > thead > tr > th {
     background: var(--dm-bg-tertiary) !important;
@@ -1452,7 +1353,6 @@ body.dark-mode .table > thead > tr > th {
     color: var(--dm-accent-light) !important;
     border-bottom-color: var(--dm-accent) !important;
 }
-
 body.dark-mode .table tbody td,
 body.dark-mode .table > tbody > tr > td {
     background: var(--dm-bg-secondary) !important;
@@ -1460,30 +1360,26 @@ body.dark-mode .table > tbody > tr > td {
     color: var(--dm-text-primary) !important;
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .table-hover tbody tr:hover,
 body.dark-mode .table tbody tr:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .table-hover tbody tr:hover td {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .table-light thead th,
 body.dark-mode .table-light th {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode code {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-text-primary) !important;
 }
 
 /* ============================================================
-   FORMULARIOS
-   ============================================================ */
+FORMULARIOS
+============================================================ */
 body.dark-mode .form-control,
 body.dark-mode .form-select,
 body.dark-mode input:not([type="checkbox"]):not([type="radio"]),
@@ -1494,14 +1390,12 @@ body.dark-mode select {
     border: 1px solid var(--dm-input-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .form-control::placeholder,
 body.dark-mode input::placeholder,
 body.dark-mode textarea::placeholder {
     color: var(--dm-text-muted) !important;
     opacity: 1 !important;
 }
-
 body.dark-mode .form-control:focus,
 body.dark-mode .form-select:focus,
 body.dark-mode input:focus,
@@ -1512,7 +1406,6 @@ body.dark-mode select:focus {
     color: var(--dm-text-primary) !important;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
 }
-
 body.dark-mode .form-label,
 body.dark-mode label,
 body.dark-mode .form-check-label,
@@ -1522,30 +1415,25 @@ body.dark-mode .fw-bold,
 body.dark-mode .fw-medium {
     color: var(--dm-text-label) !important;
 }
-
 body.dark-mode .form-text,
 body.dark-mode small,
 body.dark-mode .text-muted.small,
 body.dark-mode .text-muted {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .input-group-text {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-input-border) !important;
     color: var(--dm-text-label) !important;
 }
-
 body.dark-mode .form-check-input {
     background-color: var(--dm-input-bg);
     border-color: var(--dm-input-border);
 }
-
 body.dark-mode .form-check-input:checked {
     background-color: var(--dm-accent);
     border-color: var(--dm-accent);
 }
-
 body.dark-mode input:disabled,
 body.dark-mode input[readonly],
 body.dark-mode textarea:disabled,
@@ -1555,42 +1443,36 @@ body.dark-mode select:disabled {
     color: var(--dm-text-muted) !important;
     opacity: 0.8;
 }
-
 body.dark-mode select option {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode input[type="date"]::-webkit-calendar-picker-indicator {
     filter: invert(0.8);
     cursor: pointer;
 }
 
 /* ============================================================
-   MODALES
-   ============================================================ */
+MODALES
+============================================================ */
 body.dark-mode .modal-content {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
     border: 1px solid var(--dm-border) !important;
 }
-
 body.dark-mode .modal-header {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
     border-bottom: 1px solid var(--dm-border) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .modal-header *,
 body.dark-mode .modal-title {
     color: #ffffff !important;
 }
-
 body.dark-mode .modal-body {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .modal-body h1,
 body.dark-mode .modal-body h2,
 body.dark-mode .modal-body h3,
@@ -1604,89 +1486,74 @@ body.dark-mode .modal-body strong,
 body.dark-mode .modal-body label {
     color: var(--dm-text-primary);
 }
-
 body.dark-mode .modal-body .text-muted,
 body.dark-mode .modal-body small.text-muted {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .modal-footer {
     background: var(--dm-bg-tertiary) !important;
     border-top: 1px solid var(--dm-border) !important;
 }
-
 body.dark-mode .btn-close,
 body.dark-mode .btn-close-white {
     filter: brightness(0) invert(1) !important;
 }
-
 body.dark-mode .modal-header.bg-danger {
     background: linear-gradient(135deg, #7f1d1d 0%, #991b1b 100%) !important;
 }
-
 body.dark-mode .modal-header.bg-info {
     background: linear-gradient(135deg, #155e75 0%, #0e7490 100%) !important;
 }
-
 body.dark-mode .modal-header.bg-success {
     background: linear-gradient(135deg, #14532d 0%, #166534 100%) !important;
 }
-
 body.dark-mode .modal-header.bg-warning {
     background: linear-gradient(135deg, #78350f 0%, #92400e 100%) !important;
 }
-
 body.dark-mode .modal-header.bg-primary,
 body.dark-mode .modal-header.bg-primary-dark {
     background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
 }
 
 /* ============================================================
-   DROPDOWNS
-   ============================================================ */
+DROPDOWNS
+============================================================ */
 body.dark-mode .dropdown-menu {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
     box-shadow: var(--dm-shadow-lg);
 }
-
 body.dark-mode .dropdown-item {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .dropdown-item:hover {
     background: var(--dm-bg-hover) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .dropdown-divider {
     border-color: var(--dm-border) !important;
 }
 
 /* ============================================================
-   BOTONES GENERALES
-   ============================================================ */
+BOTONES GENERALES
+============================================================ */
 body.dark-mode .btn-light {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .btn-light:hover {
     background: var(--dm-bg-hover) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .btn-outline-secondary {
     border-color: var(--dm-border);
     color: var(--dm-text-secondary) !important;
 }
-
 body.dark-mode .btn-outline-secondary:hover {
     background: var(--dm-bg-hover);
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .btn-secondary {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
@@ -1694,98 +1561,81 @@ body.dark-mode .btn-secondary {
 }
 
 /* ============================================================
-   ALERTAS
-   ============================================================ */
+ALERTAS
+============================================================ */
 body.dark-mode .alert {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .alert-success {
     background: rgba(34, 197, 94, 0.15) !important;
     border-left-color: #22c55e !important;
     color: #86efac !important;
 }
-
 body.dark-mode .alert-success * {
     color: #86efac !important;
 }
-
 body.dark-mode .alert-danger {
     background: rgba(239, 68, 68, 0.15) !important;
     border-left-color: #ef4444 !important;
     color: #fca5a5 !important;
 }
-
 body.dark-mode .alert-danger * {
     color: #fca5a5 !important;
 }
-
 body.dark-mode .alert-warning {
     background: rgba(245, 158, 11, 0.15) !important;
     border-left-color: #f59e0b !important;
     color: #fcd34d !important;
 }
-
 body.dark-mode .alert-warning * {
     color: #fcd34d !important;
 }
-
 body.dark-mode .alert-info {
     background: rgba(59, 130, 246, 0.15) !important;
     border-left-color: #3b82f6 !important;
     color: #93c5fd !important;
 }
-
 body.dark-mode .alert-info * {
     color: #93c5fd !important;
 }
 
 /* ============================================================
-   TABS
-   ============================================================ */
+TABS
+============================================================ */
 body.dark-mode .nav-tabs-custom {
     background: var(--dm-bg-secondary) !important;
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .nav-tabs-custom .nav-link {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .nav-tabs-custom .nav-link:hover {
     color: var(--dm-accent-light) !important;
     background: rgba(59, 130, 246, 0.1) !important;
 }
-
 body.dark-mode .nav-tabs-custom .nav-link.active {
     color: var(--dm-accent-light) !important;
     background: transparent !important;
 }
-
 body.dark-mode .nav-tabs-custom .nav-link.active::after {
     background: linear-gradient(90deg, var(--dm-accent), var(--dm-accent-light));
 }
-
 body.dark-mode .nav-tabs-custom .nav-link .tab-badge {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .nav-tabs-custom .nav-link.active .tab-badge {
     background: var(--dm-accent) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .nav-tabs {
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .nav-tabs .nav-link {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .nav-tabs .nav-link.active {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-accent-light) !important;
@@ -1793,31 +1643,27 @@ body.dark-mode .nav-tabs .nav-link.active {
 }
 
 /* ============================================================
-   PAGINACIÓN
-   ============================================================ */
+PAGINACIÓN
+============================================================ */
 body.dark-mode .pagination .page-link {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .pagination .page-link:hover {
     background: var(--dm-bg-hover) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .pagination .page-item.active .page-link {
     background: var(--dm-accent) !important;
     border-color: var(--dm-accent) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .pagination .page-item.disabled .page-link {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-text-muted) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .pagination-bar nav a,
 body.dark-mode .pagination-bar nav span,
 body.dark-mode .pagination-bar .page-link {
@@ -1825,13 +1671,11 @@ body.dark-mode .pagination-bar .page-link {
     border-color: var(--dm-border) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .pagination-bar nav a:hover,
 body.dark-mode .pagination-bar .page-link:hover {
     background: var(--dm-bg-hover) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .pagination-bar nav .active span,
 body.dark-mode .pagination-bar .page-item.active .page-link {
     background: var(--dm-accent) !important;
@@ -1840,8 +1684,8 @@ body.dark-mode .pagination-bar .page-item.active .page-link {
 }
 
 /* ============================================================
-   TEXTOS GLOBALES
-   ============================================================ */
+TEXTOS GLOBALES
+============================================================ */
 body.dark-mode h1,
 body.dark-mode h2,
 body.dark-mode h3,
@@ -1857,84 +1701,70 @@ body.dark-mode th,
 body.dark-mode li {
     color: var(--dm-text-primary);
 }
-
 body.dark-mode .text-dark {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode hr {
     border-color: var(--dm-border);
     opacity: 0.5;
 }
 
 /* ============================================================
-   FIX: MÓDULO USUARIOS
-   ============================================================ */
+FIX: MÓDULO USUARIOS
+============================================================ */
 body.dark-mode .detail-grid {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detail-grid .detail-item {
     background: var(--dm-bg-tertiary) !important;
     border: 1px solid var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detail-grid .detail-item:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .detail-grid .detail-item .detail-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detail-grid .detail-item .detail-value {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .password-display {
     background: var(--dm-bg-primary) !important;
     border: 2px dashed var(--dm-accent) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .password-hash-container {
     background: linear-gradient(135deg, var(--dm-bg-tertiary) 0%, var(--dm-bg-secondary) 100%) !important;
     border: 2px dashed var(--dm-accent) !important;
 }
-
 body.dark-mode .password-hash-container .hash-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .password-hash-container .hash-value {
     background: var(--dm-bg-primary) !important;
     border: 1px solid var(--dm-border) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode #cedulaSearchResults,
 body.dark-mode #infoTrabajadorEncontrado {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode #cedulaSearchResults *,
 body.dark-mode #infoTrabajadorEncontrado * {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .delete-warning {
     background: rgba(239, 68, 68, 0.15) !important;
     border-color: #7f1d1d !important;
 }
-
 body.dark-mode .delete-warning * {
     color: #fca5a5 !important;
 }
 
 /* ============================================================
-   FIX: MÓDULO BITÁCORA (auditoría)
-   ============================================================ */
+FIX: MÓDULO BITÁCORA (auditoría)
+============================================================ */
 body.dark-mode .detalle-header-card,
 body.dark-mode .detalle-cambios-container,
 body.dark-mode .detalle-item-moderno,
@@ -1944,416 +1774,334 @@ body.dark-mode .detalle-vacio {
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detalle-label,
 body.dark-mode .detail-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detalle-value,
 body.dark-mode .detail-value {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detalle-cambios-container .cambios-header {
     background: var(--dm-bg-tertiary) !important;
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .detalle-cambios-container .cambios-title {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .detalle-cambios-container .table-cambios thead th {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-accent-light) !important;
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .detalle-cambios-container .table-cambios tbody td {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
     border-bottom-color: var(--dm-border-light) !important;
 }
-
 body.dark-mode .detalle-cambios-container .table-cambios tbody tr:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .detalle-descripcion-usuario {
     background: rgba(245, 158, 11, 0.1) !important;
     border-color: rgba(245, 158, 11, 0.3) !important;
 }
-
 body.dark-mode .detalle-descripcion-usuario * {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detalle-descripcion-usuario .desc-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detalle-user-agent {
     background: var(--dm-bg-primary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detalle-user-agent .ua-label {
     color: var(--dm-text-secondary) !important;
 }
-
 body.dark-mode .valor-antiguo {
     color: #fca5a5 !important;
     background: rgba(239, 68, 68, 0.12) !important;
 }
-
 body.dark-mode .valor-nuevo {
     color: #86efac !important;
     background: rgba(34, 197, 94, 0.12) !important;
 }
-
 body.dark-mode .valor-sin-cambio {
     color: var(--dm-text-muted) !important;
     background: var(--dm-bg-tertiary) !important;
 }
 
 /* ============================================================
-   FIX: MÓDULO SOLICITUDES
-   ============================================================ */
+FIX: MÓDULO SOLICITUDES
+============================================================ */
 body.dark-mode .detalle-modal {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detalle-modal-header {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
 }
-
 body.dark-mode .detalle-header-title {
     color: #ffffff !important;
 }
-
 body.dark-mode .detalle-header-subtitle {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detalle-modal-body {
     background: var(--dm-bg-primary) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detalle-modal-footer {
     background: var(--dm-bg-tertiary) !important;
     border-top: 1px solid var(--dm-border) !important;
 }
-
 body.dark-mode .detalle-hero-card {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .detalle-hero-info h3 {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detalle-hero-info p {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detalle-section-title {
     color: var(--dm-text-muted) !important;
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .detalle-info-card {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .detalle-info-card:hover {
     border-color: var(--dm-accent) !important;
 }
-
 body.dark-mode .detalle-info-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detalle-info-value {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detalle-info-value.muted {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detalle-justificacion {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
     border-left-color: var(--dm-accent) !important;
     color: var(--dm-text-secondary) !important;
 }
-
 body.dark-mode .detalle-timeline-item {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .detalle-timeline-date {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detalle-timeline-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detalle-items-table {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .detalle-items-table thead {
     background: var(--dm-bg-tertiary) !important;
 }
-
 body.dark-mode .detalle-items-table th {
     color: var(--dm-text-muted) !important;
     border-bottom-color: var(--dm-border) !important;
     background: var(--dm-bg-tertiary) !important;
 }
-
 body.dark-mode .detalle-items-table td {
     color: var(--dm-text-primary) !important;
     border-bottom-color: var(--dm-border-light) !important;
     background: var(--dm-bg-secondary) !important;
 }
-
 body.dark-mode .detalle-items-table tr:hover td {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .detalle-empty {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .item-card {
     background: var(--dm-bg-tertiary) !important;
     border: 1px solid var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode #infoCorreo,
 body.dark-mode #wizardContainer,
 body.dark-mode .wizard-step {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode #infoCorreo .alert-info {
     background: rgba(59, 130, 246, 0.15) !important;
     border-color: rgba(59, 130, 246, 0.3) !important;
 }
-
 body.dark-mode #infoCorreo .alert-info * {
     color: #93c5fd !important;
 }
-
 body.dark-mode #correoCuerpo,
 body.dark-mode #correoCuerpoSoporte {
     background: var(--dm-bg-tertiary) !important;
     border: 1px solid var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .wizard-step h6,
 body.dark-mode .wizard-step h5 {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .step-circle {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .step-circle.active {
     background: var(--dm-accent) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .step-circle.completed {
     background: #22c55e !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .progress {
     background: var(--dm-bg-tertiary) !important;
 }
-
 body.dark-mode #listaCorreos {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
 }
 
 /* ============================================================
-   FIX: MÓDULO SOPORTE TÉCNICO
-   ============================================================ */
+FIX: MÓDULO SOPORTE TÉCNICO
+============================================================ */
 body.dark-mode .ficha-detalle-wrap {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .ficha-header {
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .ficha-header * {
     color: #ffffff !important;
 }
-
 body.dark-mode .info-grid {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .info-grid .info-card {
     background: var(--dm-bg-tertiary) !important;
     border-left-color: var(--dm-accent) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .info-grid .info-card:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .info-grid .info-card .info-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .info-grid .info-card .info-value {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .seccion-titulo {
     color: var(--dm-accent-light) !important;
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .texto-bloque {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-text-primary) !important;
     border-left-color: var(--dm-border) !important;
 }
-
 body.dark-mode .texto-bloque.vacio {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .componentes-grid {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .componente-card {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .componente-card:hover {
     border-color: var(--dm-accent) !important;
 }
-
 body.dark-mode .componente-nombre {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .componente-obs {
     color: var(--dm-text-muted) !important;
     border-top-color: var(--dm-border) !important;
 }
-
 body.dark-mode #infoCorreoSoporte {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode #infoCorreoSoporte .alert-info {
     background: rgba(59, 130, 246, 0.15) !important;
     border-color: rgba(59, 130, 246, 0.3) !important;
 }
-
 body.dark-mode #infoCorreoSoporte .alert-info * {
     color: #93c5fd !important;
 }
-
 body.dark-mode #wizardContainerSoporte {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .wizard-step-soporte h6 {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .correo-item {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .correo-item:hover {
     background: var(--dm-bg-hover) !important;
     border-left-color: var(--dm-accent) !important;
 }
-
 body.dark-mode .correo-item.no-leido {
     background: rgba(59, 130, 246, 0.1) !important;
     border-left-color: var(--dm-accent) !important;
 }
-
 body.dark-mode .correo-item.procesado {
     background: var(--dm-bg-tertiary) !important;
     opacity: 0.7;
 }
-
 body.dark-mode .equipo-externo-card {
     background: var(--dm-bg-tertiary) !important;
     border: 2px dashed var(--dm-accent) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .equipo-externo-card .card-title {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .componente-row {
     background: var(--dm-bg-tertiary) !important;
     border: 1px solid var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .componente-row .fw-bold {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .lista-faltantes {
     background: rgba(239, 68, 68, 0.1) !important;
     border-left-color: #dc3545 !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .lista-faltantes * {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .lista-faltantes .item-faltante .nombre {
     color: #fca5a5 !important;
 }
-
 body.dark-mode .lista-faltantes .item-faltante .detalles {
     color: var(--dm-text-muted) !important;
 }
 
 /* ============================================================
-   FIX GENERAL: MODAL DETALLE
-   ============================================================ */
+FIX GENERAL: MODAL DETALLE
+============================================================ */
 body.dark-mode #detalleContenido,
 body.dark-mode #detallePrestamoContenido,
 body.dark-mode #modalDetallesBody,
@@ -2367,7 +2115,6 @@ body.dark-mode #modalSolicitudesBody,
 body.dark-mode #modalModelosBody {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode #detalleContenido *,
 body.dark-mode #detallePrestamoContenido *,
 body.dark-mode #modalDetallesBody *,
@@ -2381,7 +2128,6 @@ body.dark-mode #modalSolicitudesBody *,
 body.dark-mode #modalModelosBody * {
     color: var(--dm-text-primary);
 }
-
 body.dark-mode #detalleContenido .text-muted,
 body.dark-mode #detallePrestamoContenido .text-muted,
 body.dark-mode #modalDetallesBody .text-muted,
@@ -2395,380 +2141,309 @@ body.dark-mode #modalSolicitudesBody .text-muted,
 body.dark-mode #modalModelosBody .text-muted {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detail-card {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detail-card-header {
     background: var(--dm-bg-tertiary) !important;
     border-bottom-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detail-card-body {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detail-card-footer {
     background: var(--dm-bg-tertiary) !important;
     border-top-color: var(--dm-border) !important;
 }
-
 body.dark-mode .detail-row {
     border-bottom-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .detail-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .detail-value {
     color: var(--dm-text-primary) !important;
 }
 
 /* ============================================================
-   WIZARD
-   ============================================================ */
+WIZARD
+============================================================ */
 body.dark-mode .step-content,
 body.dark-mode .institucion-card {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .institucion-card:hover {
     border-color: var(--dm-accent) !important;
 }
-
 body.dark-mode .institucion-card.active {
     border-color: var(--dm-accent) !important;
     background: rgba(59, 130, 246, 0.1) !important;
 }
-
 body.dark-mode .institucion-card h5,
 body.dark-mode .institucion-card p {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .step-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .ubicacion-selects {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
 }
 
 /* ============================================================
-   TIMELINE / KANBAN
-   ============================================================ */
+TIMELINE / KANBAN
+============================================================ */
 body.dark-mode .timeline-container,
 body.dark-mode .timeline-card {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .timeline-card:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .timeline-item .timeline-date {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .timeline-item .timeline-card .card-title {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .timeline-item::before {
     background: linear-gradient(to bottom, var(--dm-bg-tertiary), var(--dm-accent)) !important;
 }
-
 body.dark-mode .kanban-container,
 body.dark-mode .kanban-column,
 body.dark-mode .kanban-card {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .kanban-column {
     background: var(--dm-bg-tertiary) !important;
 }
-
 body.dark-mode .kanban-card {
     background: var(--dm-bg-secondary) !important;
 }
-
 body.dark-mode .kanban-column-header .column-title {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .kanban-column-header .column-count {
     background: var(--dm-bg-hover) !important;
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .kanban-card .card-title {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .kanban-card .card-subtitle {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .kanban-card .card-footer-custom {
     border-top-color: var(--dm-border) !important;
 }
 
 /* ============================================================
-   CALENDARIO
-   ============================================================ */
+CALENDARIO
+============================================================ */
 body.dark-mode .calendar-container,
 body.dark-mode .calendario-moderno,
 body.dark-mode .calendar-card {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .fc .fc-toolbar-title {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .fc .fc-button {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .fc .fc-button:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .fc-daygrid-day:hover {
     background: rgba(59, 130, 246, 0.08) !important;
 }
-
 body.dark-mode .fc-daygrid-day-number {
     color: var(--dm-text-secondary) !important;
 }
-
 body.dark-mode .fc-col-header-cell {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .fc-col-header-cell-cushion {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .fc-scrollgrid {
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .fc-theme-standard td,
 body.dark-mode .fc-theme-standard th {
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .fc-day-today {
     background: rgba(59, 130, 246, 0.1) !important;
 }
-
 body.dark-mode .fc-day-other .fc-daygrid-day-number {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .calendar-day {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .calendar-day:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .calendar-day.today {
     background: linear-gradient(135deg, #1e3c72 0%, #3b82f6 100%) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .calendar-day.today .day-number {
     color: #ffffff !important;
 }
-
 body.dark-mode .calendar-day.holiday {
     background: rgba(245, 158, 11, 0.15) !important;
     border-left-color: #f59e0b !important;
 }
-
 body.dark-mode .calendar-day.holiday .day-number {
     color: #fbbf24 !important;
 }
-
 body.dark-mode .calendar-day.weekend {
     background: var(--dm-bg-primary) !important;
 }
-
 body.dark-mode .calendar-weekday {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .calendar-month-year {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .calendar-legend {
     border-top-color: var(--dm-border) !important;
 }
-
 body.dark-mode .legend-item {
     color: var(--dm-text-muted) !important;
 }
 
 /* ============================================================
-   BANDEJA DE ENTRADA / NOTIFICACIONES
-   ============================================================ */
+BANDEJA DE ENTRADA / NOTIFICACIONES
+============================================================ */
 body.dark-mode .inbox-container,
 body.dark-mode .inbox-content {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .inbox-sidebar {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .folder-item {
     color: var(--dm-text-secondary) !important;
 }
-
 body.dark-mode .folder-item:hover {
     background: rgba(59, 130, 246, 0.1) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .folder-item.active {
     background: rgba(59, 130, 246, 0.15) !important;
     color: var(--dm-accent-light) !important;
     border-left-color: var(--dm-accent) !important;
 }
-
 body.dark-mode .message-item {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .message-item:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .message-item.unread {
     background: rgba(59, 130, 246, 0.1) !important;
 }
-
 body.dark-mode .message-item .message-sender {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .message-item .message-preview {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .message-item .message-date {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .inbox-toolbar .toolbar-title {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .inbox-toolbar .btn-toolbar {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-secondary) !important;
 }
-
 body.dark-mode .inbox-search input {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .notification-dropdown,
 body.dark-mode .user-avatar-dropdown {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .notification-item {
     background: var(--dm-bg-tertiary) !important;
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .notification-item:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .avatar-dropdown-item {
     color: var(--dm-text-secondary) !important;
 }
-
 body.dark-mode .avatar-dropdown-item:hover {
     background: var(--dm-bg-hover) !important;
     color: var(--dm-accent-light) !important;
 }
 
 /* ============================================================
-   MODAL DE PERFIL
-   ============================================================ */
+MODAL DE PERFIL
+============================================================ */
 body.dark-mode .perfil-modal-body {
     background: var(--dm-bg-tertiary) !important;
 }
-
 body.dark-mode .perfil-seccion {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .perfil-seccion-titulo {
     color: var(--dm-accent-light) !important;
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .perfil-input {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .perfil-tabs .nav-link {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .perfil-tabs .nav-link.active {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .perfil-info-banner {
     background: rgba(59, 130, 246, 0.1) !important;
     color: var(--dm-text-secondary) !important;
 }
-
 body.dark-mode .perfil-info-banner.warning {
     background: rgba(245, 158, 11, 0.1) !important;
     color: #fcd34d !important;
 }
 
 /* ============================================================
-   TOASTS
-   ============================================================ */
+TOASTS
+============================================================ */
 body.dark-mode .toast,
 body.dark-mode .toast-custom {
     background: var(--dm-bg-secondary) !important;
@@ -2777,103 +2452,83 @@ body.dark-mode .toast-custom {
 }
 
 /* ============================================================
-   KPI / STATS DE DASHBOARD
-   ============================================================ */
+KPI / STATS DE DASHBOARD
+============================================================ */
 body.dark-mode .stat-badge {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .stat-card-modern .stat-icon.blue { background: rgba(59, 130, 246, 0.15) !important; color: #60a5fa !important; }
 body.dark-mode .stat-card-modern .stat-icon.green { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80 !important; }
 body.dark-mode .stat-card-modern .stat-icon.orange { background: rgba(245, 158, 11, 0.15) !important; color: #fbbf24 !important; }
 body.dark-mode .stat-card-modern .stat-icon.red { background: rgba(239, 68, 68, 0.15) !important; color: #f87171 !important; }
 body.dark-mode .stat-card-modern .stat-icon.purple { background: rgba(139, 92, 246, 0.15) !important; color: #a78bfa !important; }
 body.dark-mode .stat-card-modern .stat-icon.cyan { background: rgba(6, 182, 212, 0.15) !important; color: #22d3ee !important; }
-
 body.dark-mode .stat-card-modern .stat-number {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .stat-card-modern .stat-label {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .quick-module .module-name {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .quick-module .module-desc {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .quick-module .module-icon {
     background: rgba(59, 130, 246, 0.15) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .quick-module:hover .module-icon {
     background: var(--dm-accent) !important;
     color: #ffffff !important;
 }
-
 body.dark-mode .activity-item .activity-text {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .activity-item .activity-text strong {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .activity-item .activity-time {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .activity-item {
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .activity-item:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .activity-section .section-header {
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode .activity-section .section-header h5 {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .activity-section .section-header .badge-count {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .welcome-card .welcome-icon {
     background: rgba(59, 130, 246, 0.2) !important;
     border-color: rgba(59, 130, 246, 0.3) !important;
 }
-
 body.dark-mode .welcome-card h2 {
     color: #ffffff !important;
 }
-
 body.dark-mode .welcome-card p {
     color: rgba(255, 255, 255, 0.8) !important;
 }
-
 body.dark-mode .responsable-display .resp-nombre {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .responsable-display .resp-info {
     color: var(--dm-text-muted) !important;
 }
 
 /* ============================================================
-   LOGIN / AUTH
-   ============================================================ */
+LOGIN / AUTH
+============================================================ */
 body.dark-mode .split-right-image,
 body.dark-mode .recover-card,
 body.dark-mode .register-card,
@@ -2881,94 +2536,125 @@ body.dark-mode .login-card-image {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .recover-card h3,
 body.dark-mode .register-card h3,
 body.dark-mode .login-card-image h3 {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .form-control.border-start-0,
 body.dark-mode .form-select.border-start-0 {
     border-left: none !important;
 }
 
 /* ============================================================
-   LIST-GROUP / ACORDEONES
-   ============================================================ */
+LIST-GROUP / ACORDEONES
+============================================================ */
 body.dark-mode .list-group-item {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode .list-group-item:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .list-group-item-action:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .accordion-item {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .accordion-button {
     background: var(--dm-bg-tertiary) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .accordion-button:not(.collapsed) {
     background: var(--dm-bg-hover) !important;
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode .accordion-body {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
 }
 
 /* ============================================================
-   SCROLLBARS
-   ============================================================ */
+SCROLLBARS
+============================================================ */
 body.dark-mode ::-webkit-scrollbar {
     width: 10px;
     height: 10px;
 }
-
 body.dark-mode ::-webkit-scrollbar-track {
     background: var(--dm-bg-primary);
 }
-
 body.dark-mode ::-webkit-scrollbar-thumb {
     background: var(--dm-bg-tertiary);
     border-radius: 5px;
 }
-
 body.dark-mode ::-webkit-scrollbar-thumb:hover {
     background: var(--dm-accent);
 }
 
 /* ============================================================
-   TRANSICIONES SUAVES
-   ============================================================ */
-body.dark-mode,
-body.dark-mode * {
-    transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+🌟 OPTIMIZACIÓN DE RENDIMIENTO: TRANSICIONES SELECTIVAS
+============================================================
+- Se ELIMINÓ la regla `body.dark-mode *` que causaba lentitud.
+- Ahora solo los componentes principales tienen transiciones suaves.
+- Los elementos con muchas instancias (inputs, celdas de tabla, spans)
+  no tienen transición, haciendo el cambio de tema mucho más rápido.
+============================================================ */
+
+/* Transición base para el body (fondo principal) */
+body.dark-mode {
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
 
+/* Componentes clave que SÍ necesitan transición */
 body.dark-mode .sidebar,
 body.dark-mode .topbar,
-body.dark-mode .page-header {
-    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+body.dark-mode .page-header,
+body.dark-mode .card,
+body.dark-mode .stat-card,
+body.dark-mode .stat-card-mini,
+body.dark-mode .stat-card-modern,
+body.dark-mode .module-card,
+body.dark-mode .quick-module,
+body.dark-mode .modal-content,
+body.dark-mode .dropdown-menu,
+body.dark-mode .btn,
+body.dark-mode .btn-action,
+body.dark-mode .table-container,
+body.dark-mode .filters-bar,
+body.dark-mode .list-group-item,
+body.dark-mode .nav-link,
+body.dark-mode .alert,
+body.dark-mode .form-control,
+body.dark-mode .form-select,
+body.dark-mode .badge,
+body.dark-mode .info-card,
+body.dark-mode .detalle-info-card,
+body.dark-mode .detail-item,
+body.dark-mode .correo-item,
+body.dark-mode .componente-card,
+body.dark-mode .kanban-card,
+body.dark-mode .timeline-card,
+body.dark-mode .calendar-day {
+    transition: background-color 0.25s ease,
+                border-color 0.25s ease,
+                color 0.25s ease,
+                box-shadow 0.25s ease;
+}
+
+/* El toggle y sus iconos mantienen su animación propia */
+body.dark-mode .dark-mode-toggle,
+body.dark-mode .dark-mode-toggle .dm-icon {
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================================
-   RESPONSIVE
-   ============================================================ */
+RESPONSIVE
+============================================================ */
 @media (max-width: 768px) {
     .dark-mode-toggle {
         top: 14px;
@@ -3000,119 +2686,94 @@ body.dark-mode .page-header {
 }
 
 /* ============================================================
-   🌟 FIX #4: MODAL DE PRÉSTAMOS (y sus componentes internos)
-   ============================================================ */
+🌟 FIX #4: MODAL DE PRÉSTAMOS (y sus componentes internos)
+============================================================ */
 body.dark-mode #modalPrestamo .modal-content {
     background: var(--dm-bg-secondary) !important;
     border: 1px solid var(--dm-border) !important;
 }
-
 body.dark-mode #modalPrestamo .modal-body {
     background: var(--dm-bg-primary) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode #modalPrestamo .modal-body h6 {
     color: var(--dm-accent-light) !important;
     border-bottom-color: var(--dm-border) !important;
 }
-
 body.dark-mode #modalPrestamo .modal-body hr {
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode #solicitudInfoSection {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode #solicitudInfoSection h6 {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode #solicitudInfoSection .fw-semibold {
     color: var(--dm-text-label) !important;
 }
-
 body.dark-mode #solicitudInfoSection .text-muted {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode #solicitudItemsContainer .list-group-item {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .estado-help-text {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode .estado-help-text.pendiente {
     color: #fcd34d !important;
 }
-
 body.dark-mode .estado-help-text.aprobado {
     color: #86efac !important;
 }
-
 body.dark-mode .estado-help-text.entregado {
     color: #93c5fd !important;
 }
-
 body.dark-mode #modalPrestamo .responsable-display {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode #modalPrestamo .responsable-display .resp-nombre {
     color: var(--dm-accent-light) !important;
 }
-
 body.dark-mode #modalPrestamo .responsable-display .resp-info {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode #modalPrestamo .item-card {
     background: var(--dm-bg-tertiary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode #modalPrestamo .item-card .item-nombre {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode #modalPrestamo .item-card .item-detalle {
     color: var(--dm-text-muted) !important;
 }
-
 body.dark-mode #resultadosBusqueda {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode #resultadosBusqueda .list-group-item {
     background: var(--dm-bg-secondary) !important;
     border-color: var(--dm-border) !important;
 }
-
 body.dark-mode #resultadosBusqueda .list-group-item:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .result-item {
     background: var(--dm-bg-secondary) !important;
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .result-item:hover {
     background: var(--dm-bg-hover) !important;
 }
-
 body.dark-mode .result-item .fw-semibold {
     color: var(--dm-text-primary) !important;
 }
-
 body.dark-mode .result-item .text-muted {
     color: var(--dm-text-muted) !important;
 }
