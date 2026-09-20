@@ -11,6 +11,10 @@ export default defineConfig({
                 'resources/js/app.js',
                 'resources/js/dashboard-layout.js',
 
+                // 🌙 MODO OSCURO
+                'resources/css/dark-mode.css',
+                'resources/js/dark-mode.js',
+
                 // Módulo de Perfil de Usuario
                 'resources/css/user-avatar.css',
                 'resources/js/user-avatar.js',
@@ -44,11 +48,11 @@ export default defineConfig({
                 'resources/css/admin-usuarios.css',
                 'resources/js/admin-usuarios.js',
 
-                // NUEVO: Módulo de Solicitudes
+                // Módulo de Solicitudes
                 'resources/css/admin-solicitudes.css',
                 'resources/js/admin-solicitudes.js',
 
-                // NUEVO: Módulo de Fichas de Soporte
+                // Módulo de Fichas de Soporte
                 'resources/css/admin-soporte.css',
                 'resources/js/admin-soporte.js',
 

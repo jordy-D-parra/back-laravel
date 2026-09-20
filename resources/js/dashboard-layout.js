@@ -1,9 +1,7 @@
 // ===========================
 // Dashboard Layout JavaScript
 // ===========================
-
 document.addEventListener('DOMContentLoaded', function() {
-
     // ===========================
     // Toggle Sidebar
     // ===========================
@@ -78,7 +76,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===========================
     function updateDateTime() {
         const now = new Date();
-
         const dateElement = document.getElementById('currentDate');
         const timeElement = document.getElementById('currentTime');
         const dayElement = document.getElementById('currentDay');
@@ -91,11 +88,14 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
+        // ✅ HORA EN FORMATO 12H CON AM/PM
         if (timeElement) {
             timeElement.textContent = now.toLocaleTimeString('es-ES', {
                 hour: '2-digit',
                 minute: '2-digit',
-                second: '2-digit'
+                second: '2-digit',
+                hour12: true,
+                hourCycle: 'h12'
             });
         }
 
@@ -118,9 +118,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
-
 });
-
 
 // ==================== CALENDARIO CON DÍAS FERIADOS ====================
 class ElegantCalendar {
@@ -159,7 +157,7 @@ class ElegantCalendar {
         tomorrow.setDate(today.getDate() + 2);
         const nextWeek = new Date(today);
         nextWeek.setDate(today.getDate() + 5);
-        
+
         return [
             { date: this.formatDate(today), title: 'Reunión de equipo', type: 'meeting' },
             { date: this.formatDate(tomorrow), title: 'Mantenimiento preventivo', type: 'work' },
@@ -194,18 +192,18 @@ class ElegantCalendar {
 
         const year = this.currentDate.getFullYear();
         const month = this.currentDate.getMonth();
-        
+
         const firstDayOfMonth = new Date(year, month, 1);
         let startDay = firstDayOfMonth.getDay();
         // Ajustar para que la semana comience el lunes (0 = domingo, 1 = lunes...)
         startDay = startDay === 0 ? 6 : startDay - 1;
-        
+
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const prevMonthDays = new Date(year, month, 0).getDate();
-        
+
         const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
         const weekdays = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-        
+
         let calendarHTML = `
             <div class="calendar-card">
                 <div class="calendar-header">
@@ -245,7 +243,7 @@ class ElegantCalendar {
                     </div>
                     <div class="calendar-days">
         `;
-        
+
         // Días del mes anterior
         for (let i = 0; i < startDay; i++) {
             const day = prevMonthDays - startDay + i + 1;
@@ -254,33 +252,35 @@ class ElegantCalendar {
                 <div class="day-events"></div>
             </div>`;
         }
-        
+
         // Días del mes actual
         const today = new Date();
         const isCurrentMonth = today.getMonth() === month && today.getFullYear() === year;
-        
+
         for (let day = 1; day <= daysInMonth; day++) {
             const currentDate = new Date(year, month, day);
             const isToday = isCurrentMonth && today.getDate() === day;
             const holiday = this.isHoliday(currentDate);
             const isWeekend = this.isWeekend(currentDate);
             const dayEvents = this.getEventsForDate(currentDate);
-            
+
             let dayClass = '';
             if (isToday) dayClass += ' today';
             if (holiday) dayClass += ' holiday';
             if (isWeekend && !holiday) dayClass += ' weekend';
-            
+
             let eventsHTML = '';
+
             if (holiday) {
                 eventsHTML += `<div class="event-badge event-holiday">🎉 ${holiday.name}</div>`;
             }
+
             dayEvents.forEach(event => {
                 let eventClass = event.type === 'meeting' ? 'event-meeting' : 'event-work';
                 let eventIcon = event.type === 'meeting' ? '👥' : '🔧';
                 eventsHTML += `<div class="event-badge ${eventClass}">${eventIcon} ${event.title}</div>`;
             });
-            
+
             calendarHTML += `
                 <div class="calendar-day${dayClass}" onclick="if(window.calendar) window.calendar.showDayEvents(${year}, ${month}, ${day})">
                     <div class="day-number">${day}</div>
@@ -288,17 +288,18 @@ class ElegantCalendar {
                 </div>
             `;
         }
-        
+
         // Días del mes siguiente
         const totalDaysShown = startDay + daysInMonth;
         const remainingDays = 42 - totalDaysShown;
+
         for (let day = 1; day <= remainingDays; day++) {
             calendarHTML += `<div class="calendar-day other-month">
                 <div class="day-number">${day}</div>
                 <div class="day-events"></div>
             </div>`;
         }
-        
+
         calendarHTML += `
                     </div>
                     <div class="calendar-legend">
@@ -326,16 +327,16 @@ class ElegantCalendar {
                 </div>
             </div>
         `;
-        
+
         this.container.innerHTML = calendarHTML;
     }
-    
+
     showDayEvents(year, month, day) {
         const date = new Date(year, month, day);
         const holiday = this.isHoliday(date);
         const isWeekend = this.isWeekend(date);
         const dayEvents = this.getEventsForDate(date);
-        
+
         let modalContent = `
             <div class="event-modal-content">
                 <h5 class="mb-3" style="color: #1e3c72;">
@@ -346,7 +347,7 @@ class ElegantCalendar {
                 </h5>
                 <div class="event-list">
         `;
-        
+
         if (holiday) {
             modalContent += `
                 <div class="event-item" style="padding: 10px; border-bottom: 1px solid #e9ecef;">
@@ -356,7 +357,7 @@ class ElegantCalendar {
                 </div>
             `;
         }
-        
+
         if (isWeekend && !holiday) {
             modalContent += `
                 <div class="event-item" style="padding: 10px; border-bottom: 1px solid #e9ecef;">
@@ -366,7 +367,7 @@ class ElegantCalendar {
                 </div>
             `;
         }
-        
+
         if (dayEvents.length === 0 && !holiday && !isWeekend) {
             modalContent += `
                 <div class="text-center text-muted py-4">
@@ -378,11 +379,11 @@ class ElegantCalendar {
                 </div>
             `;
         }
-        
+
         dayEvents.forEach(event => {
             let eventStyle = event.type === 'meeting' ? 'background: #17a2b8;' : 'background: #28a745;';
             let eventIcon = event.type === 'meeting' ? '👥' : '🔧';
-            
+
             modalContent += `
                 <div class="event-item" style="padding: 10px; border-bottom: 1px solid #e9ecef; display: flex; align-items: center; gap: 10px;">
                     <span style="${eventStyle} color: white; padding: 4px 10px; border-radius: 20px; font-size: 0.7rem;">${eventIcon} Evento</span>
@@ -390,18 +391,18 @@ class ElegantCalendar {
                 </div>
             `;
         });
-        
+
         modalContent += `
                 </div>
             </div>
         `;
-        
+
         // Verificar si ya existe un modal abierto
         const existingModal = document.getElementById('calendarEventModal');
         if (existingModal) {
             existingModal.remove();
         }
-        
+
         const modal = document.createElement('div');
         modal.className = 'modal fade';
         modal.id = 'calendarEventModal';
@@ -423,21 +424,21 @@ class ElegantCalendar {
                 </div>
             </div>
         `;
-        
+
         document.body.appendChild(modal);
         const bsModal = new bootstrap.Modal(modal);
         bsModal.show();
-        
+
         modal.addEventListener('hidden.bs.modal', function() {
             modal.remove();
         });
     }
-    
+
     prevMonth() {
         this.currentDate.setMonth(this.currentDate.getMonth() - 1);
         this.render();
     }
-    
+
     nextMonth() {
         this.currentDate.setMonth(this.currentDate.getMonth() + 1);
         this.render();
