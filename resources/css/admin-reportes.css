@@ -1,0 +1,421 @@
+/* ============================================================
+   ADMIN REPORTES - Estilos unificados con el sistema
+   ============================================================ */
+
+:root {
+    --primary-dark: #1e3c72;
+    --primary-light: #2a4a8a;
+    --primary-lighter: #eef3fc;
+    --success: #1e7e34;
+    --danger: #c5221f;
+    --warning: #f6c23e;
+    --gray-bg: #f8f9fc;
+    --border-light: #e9ecef;
+    --text-muted: #6c757d;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+    --radius-card: 1rem;
+    --radius-table: 0.75rem;
+}
+
+/* ============ HEADER ============ */
+.page-header {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.page-header h4 {
+    color: white;
+    font-weight: 700;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.page-header p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+/* ============ STATS CARDS ============ */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card-mini {
+    background: white;
+    border-radius: var(--radius-card);
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card-mini::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 80px;
+    height: 80px;
+    background: rgba(30, 60, 114, 0.03);
+    border-radius: 50%;
+    transform: translate(30%, -30%);
+}
+
+.stat-card-mini:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--primary-lighter);
+}
+
+.stat-card-mini .stat-info {
+    position: relative;
+    z-index: 1;
+}
+
+.stat-card-mini .stat-info .stat-number {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    line-height: 1.2;
+}
+
+.stat-card-mini .stat-info .stat-label {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 500;
+}
+
+.stat-card-mini .stat-icon-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-lighter);
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+}
+
+.stat-card-mini:hover .stat-icon-circle {
+    background: var(--primary-dark);
+    transform: scale(1.05) rotate(-5deg);
+}
+
+.stat-card-mini:hover .stat-icon-circle svg {
+    stroke: white;
+}
+
+.stat-card-mini .stat-icon-circle svg {
+    stroke: var(--primary-dark);
+    transition: stroke 0.3s ease;
+    width: 24px;
+    height: 24px;
+}
+
+/* ============ TABS ============ */
+.nav-tabs-custom {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 2px solid var(--border-light);
+    margin-bottom: 0;
+    background: white;
+    padding: 0 0.5rem;
+    border-radius: var(--radius-table) var(--radius-table) 0 0;
+}
+
+.nav-tabs-custom .nav-link {
+    border: none;
+    padding: 0.85rem 1.5rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 0;
+    background: transparent;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.nav-tabs-custom .nav-link:hover {
+    color: var(--primary-dark);
+    background: var(--primary-lighter);
+}
+
+.nav-tabs-custom .nav-link.active {
+    color: var(--primary-dark);
+    font-weight: 600;
+    background: transparent;
+}
+
+.nav-tabs-custom .nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+    border-radius: 3px 3px 0 0;
+}
+
+.tab-content-wrap {
+    background: white;
+    border-radius: 0 0 var(--radius-table) var(--radius-table);
+    border: 1px solid var(--border-light);
+    border-top: none;
+    padding: 1.25rem;
+}
+
+/* ============ FILTROS ============ */
+.filtros-reporte {
+    background: var(--gray-bg);
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--border-light);
+}
+
+.filtros-reporte .form-label {
+    color: var(--primary-dark);
+    font-size: 0.75rem;
+    margin-bottom: 0.25rem;
+}
+
+.filtros-reporte .form-control,
+.filtros-reporte .form-select {
+    border-radius: 8px;
+    border: 1px solid var(--border-light);
+    padding: 0.4rem 0.75rem;
+    font-size: 0.82rem;
+    background: white;
+    transition: all 0.2s ease;
+}
+
+.filtros-reporte .form-control:focus,
+.filtros-reporte .form-select:focus {
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
+}
+
+/* ============ BOTONES ============ */
+.btn-primary-dark {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+    border: none;
+    color: white;
+    font-weight: 500;
+    padding: 0.45rem 1.2rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.btn-primary-dark:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(30, 60, 114, 0.3);
+    color: white;
+}
+
+.btn-outline-primary-dark {
+    background: transparent;
+    border: 1.5px solid var(--primary-dark);
+    color: var(--primary-dark);
+    font-weight: 500;
+    padding: 0.4rem 1rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-outline-primary-dark:hover {
+    background: var(--primary-dark);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* ============ STATS MINI (internos del reporte) ============ */
+.stats-mini {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.stat-mini-card {
+    background: white;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 0.9rem 1rem;
+    border-left: 4px solid var(--primary-dark);
+    transition: all 0.2s ease;
+}
+
+.stat-mini-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(30, 60, 114, 0.1);
+}
+
+.stat-mini-card .num {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    line-height: 1.1;
+}
+
+.stat-mini-card .lbl {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.stat-mini-card.green { border-left-color: var(--success); }
+.stat-mini-card.green .num { color: var(--success); }
+
+.stat-mini-card.orange { border-left-color: var(--warning); }
+.stat-mini-card.orange .num { color: #b8860b; }
+
+.stat-mini-card.red { border-left-color: var(--danger); }
+.stat-mini-card.red .num { color: var(--danger); }
+
+.stat-mini-card.blue { border-left-color: #17a2b8; }
+.stat-mini-card.blue .num { color: #17a2b8; }
+
+.stat-mini-card.purple { border-left-color: #6f42c1; }
+.stat-mini-card.purple .num { color: #6f42c1; }
+
+/* ============ GRÁFICOS ============ */
+.chart-container {
+    background: white;
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    height: 280px;
+}
+
+/* ============ TABLAS ============ */
+.tabla-reporte {
+    font-size: 0.85rem;
+    margin-bottom: 0;
+}
+
+.tabla-reporte thead th {
+    background: var(--gray-bg);
+    color: var(--primary-dark);
+    font-weight: 600;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 2px solid var(--primary-dark);
+    padding: 0.75rem;
+    white-space: nowrap;
+}
+
+.tabla-reporte tbody td {
+    padding: 0.7rem 0.75rem;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.tabla-reporte tbody tr:hover {
+    background: var(--primary-lighter);
+    transition: background 0.15s ease;
+}
+
+/* ============ BADGES ============ */
+.badge-estado-mini {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+/* ============ ESTADOS DE CARGA ============ */
+.loading-reporte {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-muted);
+}
+
+.empty-reporte {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: #adb5bd;
+}
+
+.empty-reporte svg {
+    width: 48px;
+    height: 48px;
+    stroke: #adb5bd;
+    margin-bottom: 0.75rem;
+}
+
+/* ============ RESPONSIVE ============ */
+@media (max-width: 992px) {
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .nav-tabs-custom .nav-link {
+        padding: 0.5rem 1rem;
+        font-size: 0.75rem;
+    }
+
+    .stats-mini {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 576px) {
+    .stats-row {
+        grid-template-columns: 1fr;
+    }
+
+    .page-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem 1.25rem;
+    }
+
+    .stats-mini {
+        grid-template-columns: 1fr;
+    }
+}

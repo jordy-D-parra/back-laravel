@@ -255,15 +255,24 @@
             <li class="nav-divider"></li>
             <li class="nav-section">REPORTES</li>
 
-            <li class="nav-item">
-                <a href="#" class="nav-link pending">
-                    <span class="nav-icon">
-                        <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-9-9"/><path d="M21 3v6h-6"/></svg>
-                    </span>
-                    <span>Generar Reportes</span>
-                    <span class="badge-count">Pronto</span>
-                </a>
-            </li>
+            @if($user->hasPermission('ver-activos') ||
+            $user->hasPermission('ver-solicitudes') ||
+            $user->hasPermission('ver-fichas-soporte'))
+<li class="nav-item">
+    <a href="{{ route('admin.reportes.index') }}"
+       class="nav-link {{ request()->routeIs('admin.reportes.*') ? 'active' : '' }}">
+        <span class="nav-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <path d="M3 3v18h18"/>
+                <path d="M18 17V9"/>
+                <path d="M13 17V5"/>
+                <path d="M8 17v-3"/>
+            </svg>
+        </span>
+        <span>Reportes</span>
+    </a>
+</li>
+@endif
 
             @if(auth()->user()->hasPermission('ver-auditoria'))
                 <li class="nav-item">

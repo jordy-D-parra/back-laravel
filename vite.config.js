@@ -56,6 +56,10 @@ export default defineConfig({
                 'resources/css/admin-soporte.css',
                 'resources/js/admin-soporte.js',
 
+                //Modulo de Reportes
+                'resources/css/admin-reportes.css',
+                'resources/js/admin-reportes.js',
+
                 // Login y utilidades
                 'resources/css/auth/login.css',
                 'resources/js/auth/login.js',

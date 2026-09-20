@@ -418,12 +418,22 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
             Route::get('/devolucion/imprimir/{id}', [ActaDevolucionController::class, 'imprimir'])->name('devolucion.imprimir');
         });
 
-        // ============================================================
-        // 4. REPORTES
+                // ============================================================
+        // 4. REPORTES - MÓDULO COMPLETO (3 SECCIONES)
         // ============================================================
         Route::prefix('reportes')->name('reportes.')->group(function () {
-            Route::get('/inventario', [ReporteInventarioController::class, 'index'])->name('inventario');
-            Route::get('/inventario/exportar-pdf', [ReporteInventarioController::class, 'exportarPdf'])->name('inventario.exportar-pdf');
+            // Vista principal con tabs
+            Route::get('/', [\App\Http\Controllers\Admin\ReporteController::class, 'index'])->name('index');
+
+            // Reportes por sección (AJAX JSON)
+            Route::get('/inventario', [\App\Http\Controllers\Admin\ReporteController::class, 'inventario'])->name('inventario');
+            Route::get('/solicitudes', [\App\Http\Controllers\Admin\ReporteController::class, 'solicitudes'])->name('solicitudes');
+            Route::get('/soporte', [\App\Http\Controllers\Admin\ReporteController::class, 'soporte'])->name('soporte');
+
+            // Exportar PDF
+            Route::get('/exportar-pdf', [\App\Http\Controllers\Admin\ReporteController::class, 'exportarPdf'])->name('exportar.pdf');
+
+            // (Se mantienen los reportes antiguos de inventario por compatibilidad)
             Route::get('/inventario/exportar-excel', [ReporteInventarioController::class, 'exportarExcel'])->name('inventario.exportar-excel');
         });
 
