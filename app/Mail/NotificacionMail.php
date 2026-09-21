@@ -1,9 +1,7 @@
 <?php
-// app/Mail/NotificacionMail.php
 
 namespace App\Mail;
 
-use App\Models\Notificacion;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
@@ -15,14 +13,15 @@ class NotificacionMail extends Mailable
     use Queueable, SerializesModels;
 
     public function __construct(
-        public Notificacion $notificacion,
-        public string $destinatario
+        public string $titulo,
+        public string $mensaje,
+        public string $nombreDestinatario
     ) {}
 
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: $this->notificacion->titulo,
+            subject: $this->titulo,
         );
     }
 
@@ -31,9 +30,10 @@ class NotificacionMail extends Mailable
         return new Content(
             view: 'emails.notificacion',
             with: [
-                'notificacion' => $this->notificacion,
-                'destinatario' => $this->destinatario,
-            ]
+                'titulo' => $this->titulo,
+                'mensaje' => $this->mensaje,
+                'nombreDestinatario' => $this->nombreDestinatario,
+            ],
         );
     }
 }

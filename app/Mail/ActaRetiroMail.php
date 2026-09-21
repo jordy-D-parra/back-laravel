@@ -30,7 +30,7 @@ class ActaRetiroMail extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'emails.acta-retiro',
+            view: 'emails.acta-retiro-body',
             with: [
                 'solicitud' => $this->solicitud,
                 'mensaje' => $this->mensaje,

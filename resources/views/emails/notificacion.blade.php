@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $notificacion->titulo }}</title>
+    <title>{{ $titulo }}</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -106,19 +106,15 @@
             <h1>📬 Sistema de Inventario</h1>
             <p>Gobernación del Estado Yaracuy</p>
         </div>
-
         <div class="email-body">
             <p class="greeting">
-                Hola, <strong>{{ $destinatario }}</strong>
+                Hola, <strong>{{ $nombreDestinatario }}</strong>
             </p>
-
             <div class="notification-card">
-                <div class="titulo">{{ $notificacion->titulo }}</div>
-                <div class="mensaje">{{ $notificacion->mensaje }}</div>
-
+                <div class="titulo">{{ $titulo }}</div>
+                <div class="mensaje">{{ $mensaje }}</div>
                 <div class="notification-meta">
-                    <span>📅 {{ $notificacion->fecha_envio->format('d/m/Y H:i') }}</span>
-                    <span>🏷️ {{ ucfirst($notificacion->tipo) }}</span>
+                    <span>📅 {{ now()->format('d/m/Y H:i') }}</span>
                 </div>
             </div>
             <p style="margin-top: 20px; color: #6c757d; font-size: 14px;">
@@ -126,7 +122,6 @@
                 Por favor, no responda a este correo.
             </p>
         </div>
-
         <div class="email-footer">
             <p>
                 <span class="footer-logo">Sistema de Gestión de Inventario Tecnológico</span>
