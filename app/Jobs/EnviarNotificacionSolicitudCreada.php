@@ -1,7 +1,5 @@
 <?php
 
-// app/Jobs/EnviarNotificacionSolicitudCreada.php
-
 namespace App\Jobs;
 
 use App\Models\Solicitud;
@@ -10,24 +8,21 @@ use App\Models\Responsable;
 use App\Services\NotificacionService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class EnviarNotificacionSolicitudCreada implements ShouldQueue
+class EnviarNotificacionSolicitudCreada implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
     public array $backoff = [60, 300, 900];
     public int $timeout = 120;
+    public int $uniqueFor = 3600;
 
-    /**
-     * ⚠️ IMPORTANTE: NO usar "public string $evento" como promoted property
-     * porque los jobs viejos no lo tienen serializado y falla.
-     * En su lugar, declarar la propiedad con valor por defecto normal.
-     */
     public string $evento = 'creada';
 
     public function __construct(
@@ -37,9 +32,13 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
         $this->evento = $evento;
     }
 
+    public function uniqueId(): string
+    {
+        return 'solicitud-' . $this->solicitudId . '-' . $this->evento;
+    }
+
     public function handle(NotificacionService $notificacionService): void
     {
-        // ✅ FIX: Normalizar $evento siempre, por si viene vacío o null
         $evento = $this->evento ?? 'creada';
         if (empty($evento)) {
             $evento = 'creada';
@@ -136,7 +135,6 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
                 "⏳ Estado actual: EN PROCESO (pendiente de aprobación)\n\n" .
                 "Le notificaremos cuando la solicitud sea APROBADA o RECHAZADA.\n\n" .
                 "Gracias.";
-
         } elseif ($this->evento === 'aprobada') {
             $titulo = '✅ Solicitud de Préstamo APROBADA';
             $mensaje =
@@ -157,7 +155,6 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
                 " 2. Fírmela\n" .
                 " 3. Preséntese en el Departamento de Informática con su cédula\n\n" .
                 "Gracias.";
-
         } elseif ($this->evento === 'rechazada') {
             $titulo = '❌ Solicitud de Préstamo RECHAZADA';
             $mensaje =
@@ -171,7 +168,6 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
                 "📝 Motivo del rechazo:\n" . ($solicitud->observaciones ?? 'No especificado') . "\n\n" .
                 "Si tiene dudas, contacte al Departamento de Informática.\n\n" .
                 "Gracias.";
-
         } elseif ($this->evento === 'cancelada') {
             $titulo = '🚫 Solicitud de Préstamo CANCELADA';
             $mensaje =
@@ -183,7 +179,6 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
                 " • Entidad: {$entidad}\n" .
                 " • Motivo: " . ($solicitud->observaciones ?? 'Cancelada por el solicitante') . "\n\n" .
                 "Si no solicitó esta cancelación, contacte al Departamento de Informática.";
-
         } else {
             $titulo = '📋 Actualización de Solicitud';
             $mensaje = "Actualización de la solicitud #{$solicitud->id}";
@@ -204,7 +199,6 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
                 'email' => $responsable->email,
                 'evento' => $this->evento,
             ]);
-
         } catch (\Throwable $e) {
             Log::error("❌ [Job Solicitud] Error al enviar al responsable", [
                 'solicitud_id' => $solicitud->id,
@@ -294,6 +288,7 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
     protected function obtenerResponsableConEmail(Solicitud $solicitud): ?Responsable
     {
         $responsable = $solicitud->responsable;
+
         if ($responsable && !empty($responsable->email)) {
             Log::info("✅ [Job Solicitud] Usando responsable directo", [
                 'solicitud_id' => $solicitud->id,

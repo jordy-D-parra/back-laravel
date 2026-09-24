@@ -1,7 +1,5 @@
 <?php
 
-// app/Jobs/EnviarNotificacionFichaSoporte.php
-
 namespace App\Jobs;
 
 use App\Models\FichaSoporte;
@@ -11,26 +9,21 @@ use App\Models\Activo;
 use App\Services\NotificacionService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Support\Facades\Log;
 
-class EnviarNotificacionFichaSoporte implements ShouldQueue
+class EnviarNotificacionFichaSoporte implements ShouldQueue, ShouldBeUnique
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
     public int $tries = 3;
     public array $backoff = [60, 300];
     public int $timeout = 120;
+    public int $uniqueFor = 3600;
 
-    /**
-     * ⚠️ IMPORTANTE: NO usar "public string $evento" como promoted property
-     * porque los jobs viejos no lo tienen serializado y falla con:
-     * "Typed property ...::$evento must not be accessed before initialization"
-     *
-     * En su lugar, declarar la propiedad con valor por defecto.
-     */
     public string $evento = 'creada';
     public ?int $correoId = null;
 
@@ -43,9 +36,13 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
         $this->correoId = $correoId;
     }
 
+    public function uniqueId(): string
+    {
+        return 'ficha-' . $this->fichaId . '-' . $this->evento;
+    }
+
     public function handle(NotificacionService $notificacionService): void
     {
-        // ✅ FIX: Normalizar $evento siempre, por si viene vacío o null
         $evento = $this->evento ?? 'creada';
         if (empty($evento)) {
             $evento = 'creada';
@@ -74,13 +71,8 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
             return;
         }
 
-        // 1. Notificar al responsable (CRÍTICO)
         $this->notificarResponsable($ficha, $notificacionService);
-
-        // 2. Notificar al técnico
         $this->notificarTecnico($ficha, $notificacionService);
-
-        // 3. Notificar a los admins
         $this->notificarAdmins($ficha, $notificacionService);
 
         Log::info("✅ [Job Soporte] Notificación completada", [
@@ -127,7 +119,6 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
                 'evento' => $this->evento,
                 'email' => $responsable->email,
             ]);
-
         } catch (\Throwable $e) {
             Log::error("❌ [Job Soporte] Error al enviar al responsable", [
                 'ficha_id' => $ficha->id,
@@ -188,9 +179,6 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
         }
     }
 
-    /**
-     * Obtiene el responsable con email, con MÚLTIPLES fallbacks.
-     */
     protected function obtenerResponsableConEmail(?Activo $activo): ?Responsable
     {
         if (!$activo) {
@@ -198,7 +186,6 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
             return null;
         }
 
-        // 1. Responsable directo del activo
         if ($activo->responsable && !empty($activo->responsable->email)) {
             Log::info("✅ [Job Soporte] Usando responsable directo del activo", [
                 'activo_id' => $activo->id,
@@ -208,7 +195,6 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
             return $activo->responsable;
         }
 
-        // 2. Responsable del departamento del activo
         if ($activo->departamento_id) {
             $respDepto = Responsable::where('departamento_id', $activo->departamento_id)
                 ->where('activo', true)
@@ -226,7 +212,6 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
             }
         }
 
-        // 3. Responsable institucional (sin departamento)
         if ($activo->institucion_id) {
             $respInst = Responsable::where('institucion_id', $activo->institucion_id)
                 ->whereNull('departamento_id')
@@ -244,7 +229,6 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
                 return $respInst;
             }
 
-            // 4. Cualquier responsable de la institución
             $respCualquiera = Responsable::where('institucion_id', $activo->institucion_id)
                 ->where('activo', true)
                 ->whereNotNull('email')
@@ -352,11 +336,8 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
 
         return match ($this->evento) {
             'creada' => "Se te asignó la ficha #{$ficha->id}.\n\n🔧 Equipo: {$equipo}\n🏢 Institución: {$institucion}\n📝 Diagnóstico: " . substr($ficha->diagnostico ?? 'N/A', 0, 200) . "\n📅 Fecha requerida: " . ($ficha->fecha_requerida_entrega ? $ficha->fecha_requerida_entrega->format('d/m/Y') : 'N/A') . "\n\nProcede con la reparación.",
-
             'aceptada' => "Ficha #{$ficha->id} ACEPTADA. Procede con la reparación.",
-
             'finalizada' => "Ficha #{$ficha->id} FINALIZADA.\n\n🔧 Equipo: {$equipo}\n📝 Trabajo: " . substr($ficha->trabajo_realizado ?? 'N/A', 0, 200),
-
             default => "Actualización de la ficha #{$ficha->id}.",
         };
     }
@@ -367,15 +348,10 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
 
         return match ($this->evento) {
             'creada' => "Nueva ficha #{$ficha->id}.\n🔧 Equipo: {$equipo}\n👤 Reporta: {$ficha->usuario_reporta_nombre}\n👨‍🔧 Técnico: " . ($ficha->tecnico_nombre ?? 'No asignado'),
-
             'aceptada' => "Ficha #{$ficha->id} ACEPTADA.\n🔧 Equipo: {$equipo}",
-
             'rechazada' => "Ficha #{$ficha->id} RECHAZADA.\n🔧 Equipo: {$equipo}\n📝 Motivo: " . ($ficha->motivo_rechazo ?? 'N/A'),
-
             'finalizada' => "Ficha #{$ficha->id} FINALIZADA.\n🔧 Equipo: {$equipo}\n👨‍🔧 Técnico: " . ($ficha->tecnico_nombre ?? 'N/A'),
-
             'eliminada' => "Ficha #{$ficha->id} ELIMINADA.\n🔧 Equipo: {$equipo}",
-
             default => "Actualización ficha #{$ficha->id}.",
         };
     }

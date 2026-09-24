@@ -274,7 +274,6 @@ class SolicitudController extends Controller
 
     // ============================================================
     // STORE - CREAR SOLICITUD
-    // ✅ Usa Job EnviarNotificacionSolicitudCreada
     // ============================================================
     public function store(Request $request)
     {
@@ -358,7 +357,7 @@ class SolicitudController extends Controller
                 return $nuevaSolicitud;
             });
 
-            // ✅ Despachar Job (se ejecutará en background)
+            // ✅ Despachar Job
             EnviarNotificacionSolicitudCreada::dispatch($solicitud->id, 'creada')
                 ->onQueue('notifications');
 
@@ -366,7 +365,7 @@ class SolicitudController extends Controller
                 'solicitud_id' => $solicitud->id,
             ]);
 
-            // Notificar al correo origen si aplica (síncrono, caso especial)
+            // Notificar al correo origen si aplica
             if ($request->filled('correo_origen')) {
                 try {
                     $solicitud->load(['usuario.trabajador', 'responsable', 'departamento', 'institucion', 'detalles']);
@@ -492,7 +491,7 @@ class SolicitudController extends Controller
 
     // ============================================================
     // APPROVE - APROBAR CON ACTA
-    // ✅ CORREGIDO: Despacha Job con evento 'aprobada' para notificar al responsable
+    // ✅ CORREGIDO: Pasa los 3 argumentos a NotificacionMail
     // ============================================================
     public function approve(Request $request, $id)
     {
@@ -532,7 +531,7 @@ class SolicitudController extends Controller
 
             $solicitud->refresh();
 
-            // ✅ DESPACHAR JOB con evento 'aprobada' para notificar al responsable
+            // ✅ DESPACHAR JOB con evento 'aprobada'
             EnviarNotificacionSolicitudCreada::dispatch($solicitud->id, 'aprobada')
                 ->onQueue('notifications');
 
@@ -540,7 +539,7 @@ class SolicitudController extends Controller
                 'solicitud_id' => $solicitud->id,
             ]);
 
-            // Generar y enviar Acta de Retiro (envía su propio correo con PDF adjunto)
+            // Generar y enviar Acta de Retiro
             try {
                 $this->generarYEnviarActaRetiro($solicitud);
             } catch (\Throwable $e) {
@@ -553,7 +552,7 @@ class SolicitudController extends Controller
             // Notificar al solicitante interno (campanita + correo)
             try {
                 if ($solicitud->usuario && $solicitud->usuario->email) {
-                    $notificacion = Notificacion::create([
+                    Notificacion::create([
                         'usuario_id' => $solicitud->usuario->id,
                         'tipo' => 'solicitud',
                         'titulo' => '✅ Solicitud Aprobada',
@@ -563,9 +562,13 @@ class SolicitudController extends Controller
                         'leida' => false,
                     ]);
 
+                    // ✅ CORREGIDO: Se pasan los 3 argumentos (titulo, mensaje, nombreDestinatario)
                     Mail::to($solicitud->usuario->email)->send(
                         new NotificacionMail(
-                            $notificacion,
+                            '✅ Solicitud Aprobada',
+                            "Estimado/a " . ($solicitud->usuario->trabajador?->nombre ?? $solicitud->usuario->usuario) . ",\n\n" .
+                            "Tu solicitud #{$solicitud->id} ha sido APROBADA.\n\n" .
+                            "Pronto recibirás el Acta de Retiro.\n\nGracias.",
                             $solicitud->usuario->trabajador?->nombre ?? $solicitud->usuario->usuario
                         )
                     );
@@ -594,7 +597,7 @@ class SolicitudController extends Controller
 
     // ============================================================
     // REJECT - RECHAZAR
-    // ✅ CORREGIDO: Despacha Job con evento 'rechazada' para notificar al responsable
+    // ✅ CORREGIDO: Pasa los 3 argumentos a NotificacionMail
     // ============================================================
     public function reject(Request $request, $id)
     {
@@ -630,7 +633,7 @@ class SolicitudController extends Controller
 
             $solicitud->refresh();
 
-            // ✅ DESPACHAR JOB con evento 'rechazada' para notificar al responsable
+            // ✅ DESPACHAR JOB con evento 'rechazada'
             EnviarNotificacionSolicitudCreada::dispatch($solicitud->id, 'rechazada')
                 ->onQueue('notifications');
 
@@ -641,7 +644,7 @@ class SolicitudController extends Controller
             // Notificar al solicitante interno (campanita + correo)
             try {
                 if ($solicitud->usuario && $solicitud->usuario->email) {
-                    $notificacion = Notificacion::create([
+                    Notificacion::create([
                         'usuario_id' => $solicitud->usuario->id,
                         'tipo' => 'solicitud',
                         'titulo' => '❌ Solicitud Rechazada',
@@ -651,9 +654,13 @@ class SolicitudController extends Controller
                         'leida' => false,
                     ]);
 
+                    // ✅ CORREGIDO: Se pasan los 3 argumentos
                     Mail::to($solicitud->usuario->email)->send(
                         new NotificacionMail(
-                            $notificacion,
+                            '❌ Solicitud Rechazada',
+                            "Estimado/a " . ($solicitud->usuario->trabajador?->nombre ?? $solicitud->usuario->usuario) . ",\n\n" .
+                            "Tu solicitud #{$solicitud->id} ha sido RECHAZADA.\n\n" .
+                            "Motivo: {$validated['motivo']}\n\nGracias.",
                             $solicitud->usuario->trabajador?->nombre ?? $solicitud->usuario->usuario
                         )
                     );
@@ -682,7 +689,6 @@ class SolicitudController extends Controller
 
     // ============================================================
     // CANCEL
-    // ✅ CORREGIDO: Despacha Job con evento 'cancelada' para notificar al responsable
     // ============================================================
     public function cancel($id)
     {
@@ -702,7 +708,7 @@ class SolicitudController extends Controller
             $solicitud->update(['estado_solicitud' => 'cancelada']);
             $solicitud->refresh();
 
-            // ✅ DESPACHAR JOB con evento 'cancelada' para notificar al responsable
+            // ✅ DESPACHAR JOB con evento 'cancelada'
             if ($estadoAnterior === 'aprobada') {
                 EnviarNotificacionSolicitudCreada::dispatch($solicitud->id, 'cancelada')
                     ->onQueue('notifications');
@@ -851,7 +857,7 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // CONVERTIR CORREO EN FICHA (Wizard)
+    // CONVERTIR CORREO EN SOLICITUD (Wizard)
     // ============================================================
     public function correoConvertir(Request $request, $id)
     {
@@ -965,7 +971,8 @@ class SolicitudController extends Controller
     }
 
     // ============================================================
-    // NOTIFICAR AL RESPONSABLE - CAMBIO DE ESTADO (SÍNCRONO - FALLBACK)
+    // NOTIFICAR AL RESPONSABLE - CAMBIO DE ESTADO
+    // ✅ CORREGIDO: Pasa los 3 argumentos a NotificacionMail
     // ============================================================
     protected function notificarResponsableSolicitudEstado(Solicitud $solicitud, string $estado, ?string $motivo = null): void
     {
@@ -1049,7 +1056,7 @@ class SolicitudController extends Controller
                 return;
             }
 
-            $notificacion = Notificacion::create([
+            Notificacion::create([
                 'usuario_id' => null,
                 'tipo' => 'solicitud',
                 'titulo' => $titulo,
@@ -1059,7 +1066,14 @@ class SolicitudController extends Controller
                 'leida' => false,
             ]);
 
-            Mail::to($responsable->email)->send(new NotificacionMail($notificacion, $responsable->nombre));
+            // ✅ CORREGIDO: Se pasan los 3 argumentos
+            Mail::to($responsable->email)->send(
+                new NotificacionMail(
+                    $titulo,
+                    $mensaje,
+                    $responsable->nombre
+                )
+            );
 
             Log::info("📧 ✅ Notificación '{$estado}' enviada al responsable", [
                 'solicitud_id' => $solicitud->id,
@@ -1077,6 +1091,7 @@ class SolicitudController extends Controller
 
     // ============================================================
     // NOTIFICAR AL CORREO ORIGEN
+    // ✅ CORREGIDO: Pasa los 3 argumentos a NotificacionMail
     // ============================================================
     protected function notificarResponsableCorreoSolicitud(Solicitud $solicitud, string $correoOrigen): void
     {
@@ -1095,6 +1110,7 @@ class SolicitudController extends Controller
                 $itemsTexto .= " • " . ($det->descripcion_personalizada ?? 'Item') . " (Cant: {$det->cantidad_solicitada})\n";
             }
 
+            $titulo = '📋 Solicitud de Préstamo Recibida';
             $mensaje =
                 "✅ SOLICITUD DE PRÉSTAMO RECIBIDA\n\n" .
                 "Estimado/a usuario,\n\n" .
@@ -1108,17 +1124,24 @@ class SolicitudController extends Controller
                 "⏳ Estado: PENDIENTE DE APROBACIÓN\n\n" .
                 "Le notificaremos cuando sea APROBADA o RECHAZADA.\n\nGracias.";
 
-            $notificacion = Notificacion::create([
+            Notificacion::create([
                 'usuario_id' => null,
                 'tipo' => 'solicitud',
-                'titulo' => '📋 Solicitud de Préstamo Recibida',
+                'titulo' => $titulo,
                 'mensaje' => $mensaje,
                 'url' => null,
                 'fecha_envio' => now(),
                 'leida' => false,
             ]);
 
-            Mail::to($correoOrigen)->send(new NotificacionMail($notificacion, 'Solicitante'));
+            // ✅ CORREGIDO: Se pasan los 3 argumentos
+            Mail::to($correoOrigen)->send(
+                new NotificacionMail(
+                    $titulo,
+                    $mensaje,
+                    'Solicitante'
+                )
+            );
 
             Log::info("📧 ✅ Confirmación enviada al correo origen", [
                 'solicitud_id' => $solicitud->id,

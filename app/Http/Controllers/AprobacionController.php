@@ -12,13 +12,12 @@ use App\Models\NotificacionSistema;
 use App\Models\ExtensionPrestamo;
 use App\Models\Devolucion;
 use App\Models\DetalleDevolucion;
-use App\Mail\ActaRetiroMail;
+use App\Jobs\EnviarNotificacionSolicitudCreada;
+use App\Jobs\EnviarActaRetiroSolicitud;
 use App\Services\NotificacionService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Mail;
-use Barryvdh\DomPDF\Facade\Pdf;
 
 class AprobacionController extends Controller
 {
@@ -29,48 +28,41 @@ class AprobacionController extends Controller
         $this->notificacionService = $notificacionService;
     }
 
-    /**
-     * Mostrar panel de aprobaciones
-     */
     public function index()
     {
-        // Solicitudes pendientes de aprobación
         $solicitudesPendientes = Solicitud::with(['solicitante', 'detalles.activo', 'detalles.periferico', 'institucion'])
             ->where('estado_solicitud', 'pendiente')
-            ->orderByRaw("CASE prioridad 
-                WHEN 'urgente' THEN 1 
-                WHEN 'alta' THEN 2 
-                WHEN 'normal' THEN 3 
-                WHEN 'baja' THEN 4 
+            ->orderByRaw("CASE prioridad
+                WHEN 'urgente' THEN 1
+                WHEN 'alta' THEN 2
+                WHEN 'normal' THEN 3
+                WHEN 'baja' THEN 4
                 ELSE 5 END")
             ->orderBy('created_at', 'asc')
             ->get();
 
-        // Solicitudes aprobadas (sin préstamo asociado aún)
         $solicitudesAprobadas = Solicitud::with(['solicitante', 'detalles.activo', 'detalles.periferico'])
             ->where('estado_solicitud', 'aprobada')
             ->whereDoesntHave('prestamo')
             ->orderBy('fecha_aprobacion', 'desc')
             ->get();
 
-        // Préstamos activos
         $prestamosActivos = Prestamo::with(['solicitud.solicitante', 'detalles.activo', 'detalles.periferico', 'tecnico', 'responsable'])
             ->where('estado_prestamo', 'activo')
             ->orderBy('fecha_retorno_estimada', 'asc')
             ->get();
 
-        // Historial de préstamos completados
         $historial = Prestamo::with(['solicitud.solicitante', 'detalles'])
             ->where('estado_prestamo', 'completado')
             ->orderBy('fecha_retorno_real', 'desc')
             ->paginate(20);
 
-        // Contadores para el dashboard
         $totalPendientes = $solicitudesPendientes->count();
         $totalActivos = $prestamosActivos->count();
-        $prestamosVencidos = $prestamosActivos->filter(function($prestamo) {
-            return $prestamo->fecha_retorno_estimada && 
-                   $prestamo->fecha_retorno_estimada < now()->toDateString();
+
+        $prestamosVencidos = $prestamosActivos->filter(function ($prestamo) {
+            return $prestamo->fecha_retorno_estimada &&
+                $prestamo->fecha_retorno_estimada < now()->toDateString();
         })->count();
 
         return view('solicitudes.aprobaciones', compact(
@@ -86,7 +78,7 @@ class AprobacionController extends Controller
 
     /**
      * Aprobar una solicitud
-     * ✅ MODIFICADO: Ahora genera y envía el Acta de Retiro en PDF
+     * ✅ Ahora despacha el acta como job (no bloquea la respuesta)
      */
     public function approve(Request $request, Solicitud $solicitud)
     {
@@ -100,7 +92,6 @@ class AprobacionController extends Controller
         try {
             DB::beginTransaction();
 
-            // Verificar que no exceda lo solicitado
             foreach ($request->items_asignados as $item) {
                 $detalle = DetalleSolicitud::find($item['detalle_id']);
                 if ($detalle && $item['cantidad_asignada'] > $detalle->cantidad_solicitada) {
@@ -108,7 +99,6 @@ class AprobacionController extends Controller
                 }
             }
 
-            // Actualizar la solicitud
             $solicitud->update([
                 'estado_solicitud' => 'aprobada',
                 'aprobado_por' => auth()->id(),
@@ -116,12 +106,9 @@ class AprobacionController extends Controller
                 'observaciones_aprobacion' => $request->observaciones
             ]);
 
-            // Guardar la asignación en sesión
             session()->put("asignacion_{$solicitud->id}", $request->items_asignados);
 
-            DB::commit();
-
-            // Crear notificación en el sistema para el solicitante
+            // ✅ Notificación en el sistema (síncrona, es rápida)
             NotificacionSistema::create([
                 'usuario_id' => $solicitud->id_solicitante,
                 'tipo' => 'solicitud_aprobada',
@@ -132,8 +119,11 @@ class AprobacionController extends Controller
                 'leida' => false
             ]);
 
-            // ✅ NUEVO: Generación y envío del Acta de Retiro en PDF
-            $this->generarYEnviarActaRetiro($solicitud, $request->observaciones);
+            DB::commit();
+
+            // ✅ Después del commit, despachar los jobs (NO bloquean)
+            EnviarNotificacionSolicitudCreada::dispatch($solicitud->id, 'aprobada');
+            EnviarActaRetiroSolicitud::dispatch($solicitud->id);
 
             return response()->json([
                 'success' => true,
@@ -143,131 +133,11 @@ class AprobacionController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Error al aprobar solicitud: ' . $e->getMessage());
+
             return response()->json([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()
             ], 500);
-        }
-    }
-
-    /**
-     * ✅ NUEVO: Genera el PDF del Acta de Retiro y lo envía por correo
-     */
-    private function generarYEnviarActaRetiro(Solicitud $solicitud, ?string $observaciones = null): void
-    {
-        try {
-            // Refrescar la solicitud con las relaciones necesarias
-            $solicitud->load([
-                'responsable',
-                'departamento',
-                'institucion',
-                'usuario.trabajador',
-                'detalles.activo.modelo.marca',
-                'detalles.activo.modelo.categoria',
-                'detalles.componente',
-            ]);
-
-            $responsable = $solicitud->responsable;
-
-            if (!$responsable) {
-                Log::warning("No se pudo enviar el acta de retiro para la solicitud #{$solicitud->id}: La solicitud no tiene un responsable asignado.");
-                return;
-            }
-
-            if (!$responsable->email) {
-                Log::warning("No se pudo enviar el acta de retiro para la solicitud #{$solicitud->id}: El responsable '{$responsable->nombre}' no tiene un email registrado.");
-                return;
-            }
-
-            // ============ OBTENER EQUIPO PRINCIPAL ============
-            $detallePrincipal = $solicitud->detalles->first(fn ($d) => $d->activo !== null);
-            $activo = $detallePrincipal ? $detallePrincipal->activo : null;
-
-            // ============ AGRUPAR ACCESORIOS (componentes) ============
-            $accesoriosAgrupados = [];
-            foreach ($solicitud->detalles as $d) {
-                if ($d->componente) {
-                    $comp = $d->componente;
-                    $clave = trim(($comp->tipo ?? '') . ' ' . ($comp->marca ?? ''));
-                    if (!isset($accesoriosAgrupados[$clave])) {
-                        $accesoriosAgrupados[$clave] = 0;
-                    }
-                    $accesoriosAgrupados[$clave] += $d->cantidad_solicitada ?? 1;
-                }
-            }
-
-            $textoAccesorios = 'Sin accesorios adicionales';
-            if (count($accesoriosAgrupados) > 0) {
-                $lista = [];
-                foreach ($accesoriosAgrupados as $nombre => $cantidad) {
-                    $lista[] = $cantidad > 1 ? "{$nombre} ({$cantidad})" : $nombre;
-                }
-                if (count($lista) === 1) {
-                    $textoAccesorios = 'Con su respectivo ' . $lista[0];
-                } elseif (count($lista) === 2) {
-                    $textoAccesorios = 'Con su respectivo ' . implode(' y ', $lista);
-                } else {
-                    $ultimo = array_pop($lista);
-                    $textoAccesorios = 'Con su respectivo ' . implode(', ', $lista) . ' y ' . $ultimo;
-                }
-            }
-
-// ============ DATOS PARA LA VISTA DEL PDF ============
-            $data = [
-    'codigo'                  => $solicitud->codigo ?? ('SOL-' . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT)),
-    'numero_acta'             => 'ACTA-RETIRO-' . date('Ym') . '-' . str_pad($solicitud->id, 4, '0', STR_PAD_LEFT),
-    'fecha'                   => now()->format('d/m/Y'),
-    'institucion'             => $solicitud->nombre_entidad ?? 'No especificada',
-    'responsable_nombre'      => $responsable->nombre ?? 'No especificado',
-    'responsable_cargo'       => $responsable->cargo ?? 'Responsable',
-    'responsable_documento'   => $responsable->documento ?? 'N/A',
-    'encargado_nombre'        => 'Director de Informática',       
-    'encargado_cargo'         => 'Director de Informática',      
-    'equipo_nombre'           => $activo ? trim(($activo->modelo->marca->nombre ?? '') . ' ' . ($activo->modelo->nombre ?? '')) : 'Equipo no especificado',
-    'serial'                  => $activo->serial ?? 'N/A',
-    'marca'                   => $activo->modelo->marca->nombre ?? 'N/A',
-    'modelo'                  => $activo->modelo->nombre ?? 'N/A',
-    'accesorios'              => $textoAccesorios,
-    'fecha_solicitud'         => $solicitud->fecha_solicitud ? $solicitud->fecha_solicitud->format('d/m/Y') : now()->format('d/m/Y'),
-    'observaciones'           => $observaciones ?? $solicitud->observaciones ?? 'Sin observaciones adicionales.',
-    'items'                   => $solicitud->detalles->map(function ($detalle) {
-        return [
-            'tipo_item'   => $detalle->tipo_item,
-            'descripcion' => $detalle->descripcion_item ?? 'Item',
-            'cantidad'    => $detalle->cantidad_solicitada ?? 1,
-        ];
-    })->toArray(),
-];
-
-           // ============ GENERAR PDF ============
-            $pdf = Pdf::loadView('emails.acta-retiro', ['data' => $data]);
-            $pdf->setPaper('A4', 'portrait');
-            $pdf->setOptions([
-            'isRemoteEnabled' => true,
-            'isHtml5ParserEnabled' => true,
-            'defaultFont' => 'Times New Roman',
-            ]);
-
-
-            // ============ ENVIAR CORREO CON PDF ADJUNTO ============
-            Mail::to($responsable->email)
-                ->send(new ActaRetiroMail(
-                    $solicitud,
-                    $pdf,
-                    'Adjunto encontrará el Acta de Retiro correspondiente a su solicitud aprobada. Por favor imprímala, fírmela y preséntese en el Departamento de Informática para retirar los equipos.'
-                ));
-
-            Log::info("✅ Acta de Retiro enviada", [
-                'solicitud_id' => $solicitud->id,
-                'responsable' => $responsable->nombre,
-                'email' => $responsable->email,
-            ]);
-
-        } catch (\Throwable $e) {
-            Log::error('❌ Error al generar/enviar Acta de Retiro: ' . $e->getMessage(), [
-                'solicitud_id' => $solicitud->id,
-                'trace' => $e->getTraceAsString(),
-            ]);
         }
     }
 
@@ -281,6 +151,8 @@ class AprobacionController extends Controller
         ]);
 
         try {
+            DB::beginTransaction();
+
             $solicitud->update([
                 'estado_solicitud' => 'rechazada',
                 'observaciones_rechazo' => $request->motivo,
@@ -298,11 +170,18 @@ class AprobacionController extends Controller
                 'leida' => false
             ]);
 
+            DB::commit();
+
+            // ✅ Después del commit
+            EnviarNotificacionSolicitudCreada::dispatch($solicitud->id, 'rechazada');
+
             return response()->json([
                 'success' => true,
                 'message' => 'Solicitud rechazada'
             ]);
+
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()
@@ -320,6 +199,8 @@ class AprobacionController extends Controller
         ]);
 
         try {
+            DB::beginTransaction();
+
             $solicitud->update([
                 'estado_solicitud' => 'en_espera',
                 'observaciones_espera' => $request->motivo,
@@ -336,11 +217,15 @@ class AprobacionController extends Controller
                 'leida' => false
             ]);
 
+            DB::commit();
+
             return response()->json([
                 'success' => true,
                 'message' => 'Solicitud puesta en espera'
             ]);
+
         } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error: ' . $e->getMessage()
@@ -363,14 +248,12 @@ class AprobacionController extends Controller
         try {
             DB::beginTransaction();
 
-            // Obtener la asignación guardada
             $asignacion = session()->get("asignacion_{$solicitud->id}");
 
             if (!$asignacion) {
                 throw new \Exception("No hay asignación de equipos para esta solicitud");
             }
 
-            // Crear el préstamo
             $prestamo = Prestamo::create([
                 'id_solicitud' => $solicitud->id,
                 'id_tecnico' => $request->id_tecnico,
@@ -384,7 +267,6 @@ class AprobacionController extends Controller
                 'aprobado_por' => auth()->id()
             ]);
 
-            // Crear detalles del préstamo
             foreach ($asignacion as $item) {
                 $detalleSolicitud = DetalleSolicitud::find($item['detalle_id']);
 
@@ -398,7 +280,6 @@ class AprobacionController extends Controller
                         'devuelto' => false
                     ]);
 
-                    // Actualizar cantidades disponibles
                     if ($detalleSolicitud->tipo_item === 'activo') {
                         $activo = Activo::find($detalleSolicitud->id_activo);
                         if ($activo) {
@@ -413,10 +294,7 @@ class AprobacionController extends Controller
                 }
             }
 
-            // Limpiar la sesión
             session()->forget("asignacion_{$solicitud->id}");
-
-            DB::commit();
 
             NotificacionSistema::create([
                 'usuario_id' => $solicitud->id_solicitante,
@@ -427,6 +305,8 @@ class AprobacionController extends Controller
                 'fecha_envio' => now(),
                 'leida' => false
             ]);
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -456,7 +336,7 @@ class AprobacionController extends Controller
         try {
             DB::beginTransaction();
 
-            $extension = ExtensionPrestamo::create([
+            ExtensionPrestamo::create([
                 'prestamo_id' => $prestamo->id,
                 'solicitada_por' => auth()->id(),
                 'nueva_fecha_devolucion' => $request->nueva_fecha,
@@ -466,12 +346,9 @@ class AprobacionController extends Controller
                 'fecha_aprobacion' => now()
             ]);
 
-            $fechaAnterior = $prestamo->fecha_retorno_estimada;
             $prestamo->update([
                 'fecha_retorno_estimada' => $request->nueva_fecha
             ]);
-
-            DB::commit();
 
             NotificacionSistema::create([
                 'usuario_id' => $prestamo->solicitud->id_solicitante,
@@ -482,6 +359,8 @@ class AprobacionController extends Controller
                 'fecha_envio' => now(),
                 'leida' => false
             ]);
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -534,12 +413,10 @@ class AprobacionController extends Controller
                         'observaciones' => $request->observaciones
                     ]);
 
-                    // Marcar como devuelto si se devolvió todo
                     if ($item['cantidad'] >= $detallePrestamo->cantidad) {
                         $detallePrestamo->update(['devuelto' => true]);
                     }
 
-                    // Restaurar cantidades disponibles
                     if ($detallePrestamo->tipo_item === 'activo' && $detallePrestamo->id_activo) {
                         $activo = Activo::find($detallePrestamo->id_activo);
                         if ($activo) {
@@ -554,8 +431,7 @@ class AprobacionController extends Controller
                 }
             }
 
-            // Verificar si todos los items están devueltos
-            $todosDevueltos = $prestamo->detalles->every(function($detalle) {
+            $todosDevueltos = $prestamo->detalles->every(function ($detalle) {
                 return $detalle->devuelto == true;
             });
 
@@ -566,8 +442,6 @@ class AprobacionController extends Controller
                 ]);
             }
 
-            DB::commit();
-
             NotificacionSistema::create([
                 'usuario_id' => $prestamo->solicitud->id_solicitante,
                 'tipo' => 'devolucion',
@@ -577,6 +451,8 @@ class AprobacionController extends Controller
                 'fecha_envio' => now(),
                 'leida' => false
             ]);
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
@@ -627,7 +503,6 @@ class AprobacionController extends Controller
 
                     $detalle->update(['devuelto' => true]);
 
-                    // Restaurar cantidades
                     if ($detalle->tipo_item === 'activo' && $detalle->id_activo) {
                         $activo = Activo::find($detalle->id_activo);
                         if ($activo) $activo->increment('cantidad', $detalle->cantidad);
@@ -643,8 +518,6 @@ class AprobacionController extends Controller
                 'fecha_retorno_real' => now()->toDateString()
             ]);
 
-            DB::commit();
-
             NotificacionSistema::create([
                 'usuario_id' => $prestamo->solicitud->id_solicitante,
                 'tipo' => 'devolucion_completa',
@@ -654,6 +527,8 @@ class AprobacionController extends Controller
                 'fecha_envio' => now(),
                 'leida' => false
             ]);
+
+            DB::commit();
 
             return response()->json([
                 'success' => true,
