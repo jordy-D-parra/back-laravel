@@ -2,336 +2,521 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Acta de Retiro - {{ $data['numero_acta'] }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acta de Retiro - {{ $data['numero_acta'] ?? 'N/A' }}</title>
     <style>
-        @page {
-            size: letter portrait;
-            margin: 8mm 10mm 8mm 10mm;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-
         body {
             font-family: 'Times New Roman', Times, serif;
-            font-size: 10pt;
-            line-height: 1.25;
+            padding: 40px;
+            background: #fff;
+            font-size: 11pt;
+            line-height: 1.5;
             color: #1a1a1a;
         }
-
-        /* ============ HEADER CON LOGOS ============ */
-        .header-table {
+        .acta-container {
+            max-width: 210mm;
+            margin: 0 auto;
+            padding: 35px 40px;
+            border: 2px solid #28a745;
+            background: #fff;
+            position: relative;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            opacity: 0.04;
+            font-size: 60pt;
+            font-weight: 700;
+            color: #28a745;
+            letter-spacing: 10px;
+            pointer-events: none;
+            user-select: none;
+            white-space: nowrap;
             width: 100%;
-            border-collapse: collapse;
-            border-bottom: 2px solid #1e3c72;
-            margin-bottom: 5px;
-        }
-        .header-table td {
-            vertical-align: middle;
-            padding-bottom: 5px;
-        }
-        .header-table .td-logo {
-            width: 90px;
             text-align: center;
         }
-        .header-table .td-logo img {
-            height: 45px;
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 3px double #28a745;
+        }
+        .header .logos {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin-bottom: 12px;
+        }
+        .header .logos .logo-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .header .logos .logo-item img {
+            height: 60px;
             width: auto;
+            object-fit: contain;
         }
-        .header-table .td-logo .logo-label {
-            display: block;
-            font-size: 5.5pt;
-            font-weight: bold;
+        .header .logos .logo-item .logo-label {
+            font-size: 7pt;
+            font-weight: 600;
+            color: #1e3c72;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .header .logos .separator {
+            width: 2px;
+            height: 60px;
+            background: #28a745;
+            opacity: 0.3;
+        }
+        .header .titulo-pais {
+            font-size: 11pt;
+            font-weight: 700;
+            color: #1e3c72;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .header .titulo-gobierno {
+            font-size: 13pt;
+            font-weight: 700;
+            color: #1e3c72;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .header .titulo-depto {
+            font-size: 11pt;
+            font-weight: 600;
             color: #1e3c72;
             text-transform: uppercase;
-            margin-top: 1px;
-            line-height: 1.05;
+            letter-spacing: 1px;
         }
-        .header-table .td-center {
+        .header .titulo-acta {
+            font-size: 16pt;
+            font-weight: 700;
+            color: #28a745;
+            margin-top: 10px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            padding: 4px 20px;
+            border-top: 2px solid #28a745;
+            border-bottom: 2px solid #28a745;
+            display: inline-block;
+        }
+        .numero-acta {
             text-align: center;
-            padding: 0 6px;
+            font-size: 10pt;
+            font-weight: 600;
+            color: #1e3c72;
+            margin-bottom: 15px;
+            letter-spacing: 0.5px;
         }
-        .header-table .td-center .titulo-pais {
-            font-size: 9pt;
-            font-weight: bold;
+        .numero-acta span {
+            background: #f0f4f8;
+            padding: 2px 12px;
+            border-radius: 4px;
+            border: 1px solid #1e3c72;
+        }
+        .fecha {
+            text-align: center;
+            font-size: 11pt;
+            margin-bottom: 20px;
+            color: #333;
+            font-weight: 500;
+        }
+        .fecha strong {
+            color: #1e3c72;
+        }
+        .cuerpo {
+            margin-bottom: 20px;
+            text-align: justify;
+            font-size: 11pt;
+            line-height: 1.8;
+            padding: 0 5px;
+        }
+        .cuerpo .destacado {
+            font-weight: 600;
+            color: #1e3c72;
+        }
+        .cuerpo .estado-bueno {
+            color: #28a745;
+            font-weight: 700;
+        }
+        .cuerpo .estado-dano {
+            color: #dc3545;
+            font-weight: 700;
+        }
+        .datos-equipo {
+            background: #f8fafc;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin: 15px 0 18px 0;
+            border-left: 4px solid #28a745;
+            border-right: 1px solid #e9ecef;
+            border-top: 1px solid #e9ecef;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .datos-equipo .item {
+            display: flex;
+            margin-bottom: 4px;
+            padding: 3px 0;
+            border-bottom: 1px dashed #e9ecef;
+        }
+        .datos-equipo .item:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        .datos-equipo .label {
+            font-weight: 700;
+            min-width: 120px;
             color: #1e3c72;
             text-transform: uppercase;
-            letter-spacing: 0.6px;
+            font-size: 10pt;
         }
-        .header-table .td-center .titulo-gobierno {
-            font-size: 10.5pt;
-            font-weight: bold;
+        .datos-equipo .valor {
+            flex: 1;
+            font-weight: 500;
+        }
+        .datos-equipo .valor .serial {
+            font-weight: 700;
+            color: #1e3c72;
+            letter-spacing: 0.5px;
+        }
+        .observaciones {
+            padding: 10px 16px;
+            margin: 10px 0 20px 0;
+            background: #fffbf0;
+            border-radius: 4px;
+            border-left: 4px solid #f6c23e;
+            border-right: 1px solid #e9ecef;
+            border-top: 1px solid #e9ecef;
+            border-bottom: 1px solid #e9ecef;
+            font-style: italic;
+        }
+        .observaciones strong {
+            font-style: normal;
+            color: #1e3c72;
+        }
+        .firmas {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 35px;
+            padding-top: 25px;
+            border-top: 2px solid #28a745;
+        }
+        .firma-box {
+            text-align: center;
+            flex: 1;
+            padding: 0 10px;
+        }
+        .firma-box .linea {
+            border-top: 1.5px solid #000;
+            width: 80%;
+            margin: 35px auto 8px auto;
+        }
+        .firma-box .nombre {
+            font-weight: 700;
+            font-size: 11pt;
             color: #1e3c72;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        .header-table .td-center .titulo-depto {
-            font-size: 8.5pt;
-            font-weight: bold;
-            color: #1e3c72;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-        }
-
-        /* ============ TÍTULO DEL ACTA ============ */
-        .titulo-acta {
-            text-align: center;
-            margin: 4px 0 3px 0;
-        }
-        .titulo-acta span {
-            display: inline-block;
-            font-size: 11.5pt;
-            font-weight: bold;
-            color: #1e3c72;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-            padding: 2px 16px;
-            border-top: 1.5px solid #1e3c72;
-            border-bottom: 1.5px solid #1e3c72;
-        }
-
-        /* ============ NÚMERO Y FECHA ============ */
-        .numero-fecha-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 8.5pt;
-            color: #1e3c72;
-            font-weight: bold;
-            margin-bottom: 6px;
-        }
-        .numero-fecha-table .td-left { text-align: left; }
-        .numero-fecha-table .td-right { text-align: right; }
-
-        /* ============ CUERPO ============ */
-        .cuerpo {
-            text-align: justify;
-            font-size: 9.5pt;
-            line-height: 1.4;
-            margin-bottom: 6px;
-        }
-        .cuerpo .destacado {
-            font-weight: bold;
-            color: #1e3c72;
-        }
-
-        /* ============ DATOS DEL EQUIPO ============ */
-        .datos-equipo {
-            width: 100%;
-            border-collapse: collapse;
-            background: #f8fafc;
-            border-left: 3px solid #1e3c72;
-            border-top: 1px solid #e9ecef;
-            border-right: 1px solid #e9ecef;
-            border-bottom: 1px solid #e9ecef;
-            margin: 5px 0 6px 0;
+        .firma-box .cargo {
             font-size: 9pt;
-        }
-        .datos-equipo td {
-            padding: 2px 8px;
-            border-bottom: 1px dashed #e9ecef;
-        }
-        .datos-equipo tr:last-child td {
-            border-bottom: none;
-        }
-        .datos-equipo .label {
-            font-weight: bold;
-            color: #1e3c72;
-            text-transform: uppercase;
-            font-size: 8pt;
-            width: 110px;
-        }
-        .datos-equipo .valor {
-            font-weight: 500;
-            color: #1a1a1a;
-        }
-
-        /* ============ TABLA DE ITEMS ============ */
-        .items-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 5px 0 6px 0;
-            font-size: 9pt;
-        }
-        .items-table thead th {
-            background: #1e3c72;
-            color: white;
-            padding: 3px 8px;
-            text-align: left;
-            font-size: 8pt;
-            font-weight: bold;
-            text-transform: uppercase;
-            border: 1px solid #1e3c72;
-        }
-        .items-table tbody td {
-            padding: 3px 8px;
-            border: 1px solid #e9ecef;
-        }
-        .items-table tbody tr:nth-child(even) {
-            background: #f8fafc;
-        }
-        .items-table .text-center {
-            text-align: center;
-        }
-
-        /* ============ COMPROMISO ============ */
-        .compromiso {
-            font-size: 9pt;
-            text-align: justify;
-            line-height: 1.35;
-            margin-bottom: 6px;
-        }
-
-        /* ============ FIRMAS ============ */
-        .firmas-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 30px;
-        }
-        .firmas-table td {
-            width: 50%;
-            text-align: center;
-            vertical-align: bottom;
-            padding: 0 25px;
-        }
-        .firmas-table .linea {
-            border-top: 1.3px solid #000;
-            width: 100%;
-            height: 1px;
-            margin-bottom: 3px;
-        }
-        .firmas-table .nombre {
-            font-weight: bold;
-            font-size: 9pt;
-            color: #1e3c72;
-            text-transform: uppercase;
-        }
-        .firmas-table .cargo {
-            font-size: 7.5pt;
             color: #555;
-            text-transform: uppercase;
-            margin-top: 1px;
-        }
-        .firmas-table .rol {
-            font-size: 7.5pt;
-            font-weight: bold;
-            color: #1e3c72;
-            letter-spacing: 1px;
-            text-transform: uppercase;
             margin-top: 2px;
+            text-transform: uppercase;
         }
-
-        /* ============ FOOTER ============ */
+        .firma-box .rol {
+            font-size: 9pt;
+            font-weight: 700;
+            color: #28a745;
+            margin-top: 6px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .firma-box .rol.entrega {
+            color: #1e3c72;
+        }
         .footer {
-            margin-top: 12px;
-            padding-top: 4px;
+            margin-top: 30px;
+            padding-top: 15px;
             border-top: 1px solid #e9ecef;
             text-align: center;
-            font-size: 6.5pt;
-            color: #adb5bd;
+            font-size: 8pt;
+            color: #6c757d;
+            line-height: 1.8;
         }
-
+        .footer .footer-marca {
+            font-size: 7pt;
+            color: #adb5bd;
+            letter-spacing: 0.5px;
+        }
+        .no-print {
+            display: block !important;
+        }
+        .btn-print {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 999;
+            background: #28a745;
+            color: #fff;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-print:hover {
+            background: #1e7e34;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(40, 167, 69, 0.3);
+        }
+        .btn-print svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+        .btn-cerrar {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 999;
+            background: #6c757d;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-cerrar:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                padding: 15px;
+                background: #fff;
+            }
+            .acta-container {
+                border: none;
+                padding: 10px 15px;
+            }
+            .firma-box .linea {
+                margin-top: 25px;
+            }
+            .watermark {
+                opacity: 0.03;
+            }
+            .btn-print, .btn-cerrar {
+                display: none !important;
+            }
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+                font-size: 10pt;
+            }
+            .acta-container {
+                padding: 15px;
+            }
+            .header .logos {
+                flex-wrap: wrap;
+                gap: 15px;
+            }
+            .header .logos .logo-item img {
+                height: 40px;
+            }
+            .header .logos .separator {
+                display: none;
+            }
+            .firmas {
+                flex-direction: column;
+                gap: 20px;
+            }
+            .firma-box .linea {
+                width: 60%;
+            }
+            .datos-equipo .item {
+                flex-direction: column;
+            }
+            .datos-equipo .label {
+                min-width: auto;
+            }
+            .btn-print, .btn-cerrar {
+                padding: 8px 16px;
+                font-size: 12px;
+                bottom: 10px;
+            }
+            .btn-cerrar {
+                left: 10px;
+            }
+            .btn-print {
+                right: 10px;
+            }
+        }
     </style>
 </head>
 <body>
 
-    {{-- ============ HEADER CON LOGOS ============ --}}
-    <table class="header-table">
-        <tr>
-            <td class="td-logo">
-                <img src="{{ public_path('images/gobierno.jpeg') }}" alt="Gobierno">
-                <span class="logo-label">Gobierno<br>Bolivariano</span>
-            </td>
-            <td class="td-center">
-                <div class="titulo-pais">República Bolivariana de Venezuela</div>
-                <div class="titulo-gobierno">Gobernación del Estado Yaracuy</div>
-                <div class="titulo-depto">Dirección de Informática</div>
-            </td>
-            <td class="td-logo">
-                <img src="{{ public_path('images/escudo-yaracuy.jpeg') }}" alt="Escudo">
-                <span class="logo-label">Gobernación<br>del Estado Yaracuy</span>
-            </td>
-        </tr>
-    </table>
-
-    {{-- ============ TÍTULO ============ --}}
-    <div class="titulo-acta">
-        <span>Acta de Retiro</span>
+    <!-- ============================================ -->
+    <!-- BOTONES DE ACCIÓN (solo en pantalla) -->
+    <!-- ============================================ -->
+    <div class="no-print">
+        <button class="btn-print" onclick="window.print()">
+            <svg viewBox="0 0 24 24">
+                <polyline points="6 9 6 2 18 2 18 9"/>
+                <path d="M18 9H6"/>
+                <rect x="4" y="12" width="16" height="10" rx="1"/>
+                <line x1="8" y1="17" x2="16" y2="17"/>
+                <line x1="8" y1="21" x2="12" y2="21"/>
+                <line x1="16" y1="21" x2="16" y2="21"/>
+            </svg>
+            Imprimir / Guardar PDF
+        </button>
+        <button class="btn-cerrar" onclick="window.close()">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"/>
+                <line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+            Cerrar
+        </button>
     </div>
 
-    {{-- ============ NÚMERO Y FECHA ============ --}}
-    <table class="numero-fecha-table">
-        <tr>
-            <td class="td-left">Nº {{ $data['numero_acta'] }}</td>
-            <td class="td-right">San Felipe, {{ $data['fecha'] }}</td>
-        </tr>
-    </table>
+    <!-- ============================================ -->
+    <!-- ACTA DE RETIRO -->
+    <!-- ============================================ -->
+    <div class="acta-container">
+        <!-- Marca de agua -->
+        <div class="watermark">ACTA DE RETIRO</div>
 
-    {{-- ============ CUERPO ============ --}}
-    <div class="cuerpo">
-        Quien suscribe, <span class="destacado">{{ $data['encargado_nombre'] }}</span>,
-        en su carácter de <span class="destacado">{{ $data['encargado_cargo'] }}</span>
-        de la Dirección de Informática de la Gobernación del Estado Yaracuy,
-        hace constar que el/la ciudadano(a)
-        <span class="destacado">{{ $data['responsable_nombre'] }}</span>,
-        titular de la Cédula de Identidad
-        <span class="destacado">{{ $data['responsable_documento'] }}</span>,
-        en su carácter de <span class="destacado">{{ $data['responsable_cargo'] }}</span>
-        de la entidad <span class="destacado">{{ $data['institucion'] }}</span>,
-        ha retirado los siguientes equipos, cuyas características se detallan a continuación:
-    </div>
+        <!-- HEADER -->
+        <div class="header">
+            <div class="logos">
+                <div class="logo-item">
+                    <img style="width: 140px; height: auto;" src="{{ public_path('images/gobierno.jpeg') }}" alt="Gobierno Nacional" onerror="this.style.display='none'">
+                </div>
+                <div class="separator"></div>
+                <div class="logo-item">
+                    <img src="{{ public_path('images/escudo-yaracuy.jpeg') }}" alt="Gobernación de Yaracuy">
+                    <span class="logo-label">Gobernación del Estado Yaracuy</span>
+                </div>
+            </div>
+            <div class="titulo-pais">República Bolivariana de Venezuela</div>
+            <div class="titulo-gobierno">Gobernación del Estado Yaracuy</div>
+            <div class="titulo-depto">Dirección de Informática</div>
+            <div class="titulo-acta">Acta de Retiro</div>
+        </div>
 
-    {{-- ============ TABLA DE ITEMS ============ --}}
-    @if(!empty($data['items']))
-    <table class="items-table">
-        <thead>
-            <tr>
-                <th style="width: 20%;">Tipo</th>
-                <th style="width: 65%;">Descripción</th>
-                <th style="width: 15%;" class="text-center">Cantidad</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach($data['items'] as $item)
-            <tr>
-                <td>{{ ucfirst($item['tipo_item']) }}</td>
-                <td>{{ $item['descripcion'] }}</td>
-                <td class="text-center">{{ $item['cantidad'] }}</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    @endif
+        <!-- NÚMERO DE ACTA -->
+        <div class="numero-acta">
+            <span>Nº {{ $data['numero_acta'] ?? 'N/A' }}</span>
+        </div>
 
-    {{-- ============ COMPROMISO ============ --}}
-    <div class="compromiso">
-        El/la responsable arriba mencionado(a) se compromete a hacer uso adecuado
-        de los equipos recibidos, así como a devolverlos en las mismas condiciones
-        en que fueron entregados, en la fecha acordada. Cualquier daño, pérdida o
-        deterioro será responsabilidad del firmante.
-    </div>
+        <!-- FECHA -->
+        <div class="fecha">
+            <strong>San Felipe, {{ $data['fecha'] ?? date('d/m/Y') }}</strong>
+        </div>
 
-    {{-- ============ FIRMAS ============ --}}
-    <table class="firmas-table">
-        <tr>
-            {{-- FIRMA IZQUIERDA: ADMINISTRADOR / ENCARGADO DE INFORMÁTICA --}}
-            <td>
+        <!-- CUERPO -->
+        <div class="cuerpo">
+            <p>
+                Mediante el presente instrumento, se hace constar que el/la ciudadano(a)
+                <span class="destacado">{{ $data['responsable_nombre'] ?? 'No especificado' }}</span>,
+                titular de la Cédula de Identidad
+                <span class="destacado">{{ $data['responsable_documento'] ?? 'N/A' }}</span>,
+                en su carácter de <span class="destacado">{{ $data['responsable_cargo'] ?? 'Responsable' }}</span>
+                de la entidad <span class="destacado">{{ $data['institucion'] ?? 'No especificada' }}</span>,
+                ha retirado el/los siguiente(s) equipo(s) perteneciente(s) a la misma,
+                cuyas características técnicas se detallan a continuación:
+            </p>
+        </div>
+
+        <!-- DATOS DEL EQUIPO -->
+        <div class="datos-equipo">
+            <div class="item">
+                <span class="label">MARCA:</span>
+                <span class="valor">{{ $data['marca'] ?? 'N/A' }}</span>
+            </div>
+            <div class="item">
+                <span class="label">MODELO:</span>
+                <span class="valor">{{ $data['modelo'] ?? 'N/A' }}</span>
+            </div>
+            <div class="item">
+                <span class="label">NÚMERO DE SERIE:</span>
+                <span class="valor"><span class="serial">{{ $data['serial'] ?? 'N/A' }}</span></span>
+            </div>
+            <div class="item">
+                <span class="label">ACCESORIOS:</span>
+                <span class="valor">{{ $data['accesorios'] ?? 'Sin accesorios adicionales' }}</span>
+            </div>
+            <div class="item">
+                <span class="label">ESTADO DE RETIRO:</span>
+                <span class="valor estado-bueno">{{ $data['estado_retiro'] ?? 'Buen estado' }}</span>
+            </div>
+            <div class="item">
+                <span class="label">FECHA SOLICITUD:</span>
+                <span class="valor">{{ $data['fecha_solicitud'] ?? 'N/A' }}</span>
+            </div>
+        </div>
+
+        <!-- OBSERVACIONES -->
+        @if(!empty($data['observaciones']))
+        <div class="observaciones">
+            <strong>Observaciones:</strong> {{ $data['observaciones'] }}
+        </div>
+        @endif
+
+        <!-- FIRMAS -->
+        <div class="firmas">
+            <div class="firma-box">
                 <div class="linea"></div>
-                <div class="nombre">{{ strtoupper($data['encargado_nombre']) }}</div>
-                <div class="cargo">{{ strtoupper($data['encargado_cargo']) }}</div>
-                <div class="rol">Entrega</div>
-            </td>
-            {{-- FIRMA DERECHA: RESPONSABLE --}}
-            <td>
+                <div class="nombre">{{ strtoupper($data['encargado_nombre'] ?? 'Director de Informática') }}</div>
+                <div class="cargo">{{ strtoupper($data['encargado_cargo'] ?? 'Director de Informática') }}</div>
+                <div class="rol entrega">ENTREGA</div>
+            </div>
+            <div class="firma-box">
                 <div class="linea"></div>
-                <div class="nombre">{{ strtoupper($data['responsable_nombre']) }}</div>
-                <div class="cargo">{{ strtoupper($data['responsable_cargo']) }}</div>
-                <div class="rol">Recibe</div>
-            </td>
-        </tr>
-    </table>
+                <div class="nombre">{{ strtoupper($data['responsable_nombre'] ?? 'No especificado') }}</div>
+                <div class="cargo">{{ strtoupper($data['responsable_cargo'] ?? 'Responsable') }}</div>
+                <div class="rol">RETIRA</div>
+            </div>
+        </div>
 
-    {{-- ============ FOOTER ============ --}}
-    <div class="footer">
-        Documento generado por el Sistema de Gestión de Inventario Tecnológico - Gobernación del Estado Yaracuy
+        <!-- FOOTER -->
+        <div class="footer">
+            <div class="footer-marca">
+                Documento generado por el Sistema de Gestión de Inventario Tecnológico - Gobernación de Yaracuy
+            </div>
+        </div>
     </div>
 
 </body>

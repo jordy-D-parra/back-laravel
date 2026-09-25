@@ -1,5 +1,6 @@
 // resources/js/admin-solicitudes.js
 // VERSIÓN COMPLETA CORREGIDA - Paginación + Aprobar + Editar funcionales + Modal rediseñado
+// ✅ CORRECCIÓN: Al seleccionar institución/departamento, el select de responsable se actualiza con el responsable correcto.
 
 document.addEventListener('DOMContentLoaded', function() {
 
@@ -31,7 +32,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let itemWizardCount = 0;
 
     const searchInput = document.getElementById('searchInput');
-
     let filtros = {
         search: '',
         estado: '',
@@ -70,10 +70,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function mostrarNotificacion(tipo, mensaje) {
         const container = document.getElementById('notification-container');
         if (!container) return;
-
         const colores = { success: '#28a745', error: '#dc3545', warning: '#ffc107', info: '#17a2b8' };
         const iconos = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-
         const toast = document.createElement('div');
         toast.style.cssText = `
             background: ${colores[tipo]}; color: white;
@@ -84,7 +82,6 @@ document.addEventListener('DOMContentLoaded', function() {
             white-space: pre-line; font-size: 0.9rem;
         `;
         toast.innerHTML = `<span style="font-size:1.2rem;">${iconos[tipo] || 'ℹ️'}</span><span style="flex:1">${mensaje}</span>`;
-
         container.appendChild(toast);
         setTimeout(() => {
             toast.style.transition = 'opacity 0.3s';
@@ -99,19 +96,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderizarTabla() {
         const tbody = document.getElementById('tablaBody');
         if (!tbody) return;
-
         if (solicitudesData.length === 0) {
             tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-muted">No hay solicitudes registradas</td></tr>`;
             return;
         }
-
         let html = '';
         let contador = ((currentPage - 1) * perPage) + 1;
-
         for (const s of solicitudesData) {
             const fechaSolicitud = formatearFecha(s.fecha_solicitud || s.created_at);
             const fechaRequerida = formatearFecha(s.fecha_requerida);
-
             let nombreEntidad = 'No especificado';
             if (s.tipo_solicitante === 'interno' && s.departamento) nombreEntidad = s.departamento.nombre;
             else if (s.tipo_solicitante === 'externo' && s.institucion) nombreEntidad = s.institucion.nombre;
@@ -130,10 +123,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const puedeEliminar = window.authUserHasPermission('aprobar-solicitudes');
 
             html += `<tr class="${esNoLeida ? 'solicitud-no-leida' : ''}" data-id="${s.id}">
-                <td class="px-3 py-2">
-                    ${contador++}
-                    ${badgeNueva}
-                </td>
+                <td class="px-3 py-2">${contador++}${badgeNueva}</td>
                 <td class="px-3 py-2">${fechaSolicitud}</td>
                 <td class="px-3 py-2">${escapeHtml(nombreEntidad)}</td>
                 <td class="px-3 py-2">${escapeHtml(nombreResponsable)}</td>
@@ -151,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </td>
             </tr>`;
         }
-
         tbody.innerHTML = html;
     }
 
@@ -161,36 +150,22 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderizarPaginacion() {
         const container = document.getElementById('paginationContainer');
         if (!container) return;
-
         if (lastPage <= 1) { container.innerHTML = ''; return; }
-
-        let html = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
-            <a class="page-link" href="javascript:void(0)" onclick="cambiarPagina(${currentPage - 1})">«</a>
-        </li>`;
-
+        let html = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="javascript:void(0)" onclick="cambiarPagina(${currentPage - 1})">«</a></li>`;
         let startPage = Math.max(1, currentPage - 2);
         let endPage = Math.min(lastPage, currentPage + 2);
-
         if (startPage > 1) {
             html += `<li class="page-item ${currentPage === 1 ? 'active' : ''}"><a class="page-link" href="javascript:void(0)" onclick="cambiarPagina(1)">1</a></li>`;
             if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
         }
-
         for (let i = startPage; i <= endPage; i++) {
-            html += `<li class="page-item ${i === currentPage ? 'active' : ''}">
-                <a class="page-link" href="javascript:void(0)" onclick="cambiarPagina(${i})">${i}</a>
-            </li>`;
+            html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="javascript:void(0)" onclick="cambiarPagina(${i})">${i}</a></li>`;
         }
-
         if (endPage < lastPage) {
             if (endPage < lastPage - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
             html += `<li class="page-item ${currentPage === lastPage ? 'active' : ''}"><a class="page-link" href="javascript:void(0)" onclick="cambiarPagina(${lastPage})">${lastPage}</a></li>`;
         }
-
-        html += `<li class="page-item ${currentPage === lastPage ? 'disabled' : ''}">
-            <a class="page-link" href="javascript:void(0)" onclick="cambiarPagina(${currentPage + 1})">»</a>
-        </li>`;
-
+        html += `<li class="page-item ${currentPage === lastPage ? 'disabled' : ''}"><a class="page-link" href="javascript:void(0)" onclick="cambiarPagina(${currentPage + 1})">»</a></li>`;
         container.innerHTML = html;
     }
 
@@ -198,12 +173,8 @@ document.addEventListener('DOMContentLoaded', function() {
         page = page || 1;
         const tbody = document.getElementById('tablaBody');
         if (tbody) {
-            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4">
-                <div class="spinner-border spinner-border-sm text-primary" role="status"></div>
-                <span class="ms-2 text-muted">Cargando...</span>
-            </td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4"><div class="spinner-border spinner-border-sm text-primary" role="status"></div><span class="ms-2 text-muted">Cargando...</span></td></tr>`;
         }
-
         try {
             const params = new URLSearchParams({
                 page: page,
@@ -212,18 +183,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 estado: filtros.estado,
                 prioridad: filtros.prioridad
             });
-
             const response = await fetch(`/admin/solicitudes?${params.toString()}`, {
                 headers: {
                     'Accept': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             });
-
             if (!response.ok) throw new Error('Error al cargar datos');
-
             const data = await response.json();
-
             if (data.data && Array.isArray(data.data)) {
                 solicitudesData = data.data;
                 currentPage = data.current_page || 1;
@@ -246,22 +213,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 lastPage = 1;
                 totalRegistros = 0;
             }
-
             renderizarTabla();
             actualizarEstadisticas();
             renderizarPaginacion();
-
             const elResultados = document.getElementById('resultadosCount');
             const elTotal = document.getElementById('totalRegistrosCount');
             if (elResultados) elResultados.textContent = solicitudesData.length;
             if (elTotal) elTotal.textContent = totalRegistros;
-
         } catch (error) {
             console.error('Error:', error);
             if (tbody) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger">
-                    Error al cargar: ${escapeHtml(error.message)}
-                </td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center py-4 text-danger">Error al cargar: ${escapeHtml(error.message)}</td></tr>`;
             }
             mostrarNotificacion('error', 'No se pudieron cargar las solicitudes');
         }
@@ -280,19 +242,16 @@ document.addEventListener('DOMContentLoaded', function() {
     function actualizarEstadisticas() {
         const total = totalRegistros || solicitudesData.length;
         let pendientes = 0, aprobadas = 0, rechazadas = 0;
-
         solicitudesData.forEach(s => {
             const e = (s.estado_solicitud || s.estado || 'pendiente').toLowerCase();
             if (e === 'pendiente') pendientes++;
             else if (e === 'aprobada') aprobadas++;
             else if (e === 'rechazada') rechazadas++;
         });
-
         const elTotal = document.getElementById('statsTotal');
         const elPendientes = document.getElementById('statsPendientes');
         const elAprobadas = document.getElementById('statsAprobadas');
         const elRechazadas = document.getElementById('statsRechazadas');
-
         if (elTotal) elTotal.textContent = total;
         if (elPendientes) elPendientes.textContent = pendientes;
         if (elAprobadas) elAprobadas.textContent = aprobadas;
@@ -333,7 +292,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         }
-
         const instSelect = document.getElementById('institucionSelect');
         if (instSelect && !instSelect.dataset.bound) {
             instSelect.dataset.bound = '1';
@@ -357,7 +315,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const data = await response.json();
             const display = document.getElementById('responsableDisplay');
             const hiddenInput = document.getElementById('responsable_id_hidden');
-
             if (data.responsable) {
                 if (display) {
                     display.innerHTML = `
@@ -378,14 +335,33 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    // ⭐ FUNCIÓN MODIFICADA: Ahora actualiza el SELECT de responsable, no solo el display.
     async function cargarResponsablePorInstitucion(institucionId) {
         try {
             const response = await fetch(`/api/institucion/${institucionId}/responsable`);
             const data = await response.json();
+
+            const selectResponsable = document.getElementById('responsable_id');
             const display = document.getElementById('responsableDisplay');
             const hiddenInput = document.getElementById('responsable_id_hidden');
 
+            if (!selectResponsable) {
+                console.error("No se encontró el select de responsable con id 'responsable_id'");
+                return;
+            }
+
+            // Limpiar el select
+            selectResponsable.innerHTML = '';
+
             if (data.responsable) {
+                // Crear la opción para el responsable encontrado
+                const option = document.createElement('option');
+                option.value = data.responsable.id;
+                option.textContent = `${data.responsable.nombre} - ${data.responsable.cargo || 'Responsable'}`;
+                option.selected = true;
+                selectResponsable.appendChild(option);
+
+                // Actualizar el display y el hidden input también
                 if (display) {
                     display.innerHTML = `
                         <div>
@@ -396,12 +372,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     `;
                 }
                 if (hiddenInput) hiddenInput.value = data.responsable.id;
+
             } else {
+                // Si no hay responsable, añadir una opción que lo indique
+                const option = document.createElement('option');
+                option.value = '';
+                option.textContent = 'No hay responsable asignado a esta institución';
+                option.disabled = true;
+                option.selected = true;
+                selectResponsable.appendChild(option);
+
                 if (display) display.innerHTML = '<span class="text-warning">No hay responsable asignado a esta institución</span>';
                 if (hiddenInput) hiddenInput.value = '';
             }
         } catch (error) {
-            console.error('Error:', error);
+            console.error('Error al cargar responsable por institución:', error);
+            const selectResponsable = document.getElementById('responsable_id');
+            if (selectResponsable) {
+                selectResponsable.innerHTML = '<option value="">Error al cargar</option>';
+            }
         }
     }
 
@@ -416,6 +405,13 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('externo-fields').style.display = 'none';
         document.getElementById('responsableDisplay').innerHTML = '<span class="text-muted">Seleccione un departamento o institución</span>';
         document.getElementById('responsable_id_hidden').value = '';
+
+        // Limpiar el select de responsables
+        const selectResponsable = document.getElementById('responsable_id');
+        if (selectResponsable) {
+            selectResponsable.innerHTML = '<option value="">Seleccione un responsable</option>';
+        }
+
         itemCount = 1;
         const modal = new bootstrap.Modal(document.getElementById('modalCrear'));
         modal.show();
@@ -428,12 +424,9 @@ document.addEventListener('DOMContentLoaded', function() {
     window.verDetalles = async function(id) {
         const modalElement = document.getElementById('modalDetalles');
         if (!modalElement) return;
-
         const modalBody = document.getElementById('modalDetallesBody');
         const modalSubtitulo = document.getElementById('detalleSubtitulo');
         const modal = new bootstrap.Modal(modalElement);
-
-        // Estado de carga
         if (modalSubtitulo) modalSubtitulo.textContent = 'Cargando información...';
         if (modalBody) {
             modalBody.innerHTML = `
@@ -444,13 +437,11 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
         }
         modal.show();
-
         try {
             const response = await fetch(`/admin/solicitudes/${id}/detalles`, {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
             });
             const data = await response.json();
-
             if (!modalBody) return;
             if (data.error) {
                 modalBody.innerHTML = `
@@ -466,11 +457,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // ============ HELPERS LOCALES ============
             const estado = (data.estado_solicitud || 'pendiente').toLowerCase();
             const prioridad = (data.prioridad || 'normal').toLowerCase();
             const codigo = data.codigo || ('SOL-' + String(data.id).padStart(6, '0'));
-
             const tipoSolicitante = data.tipo_solicitante === 'interno' ? 'Interno' : 'Externo';
             let nombreEntidad = 'No especificado';
             if (data.tipo_solicitante === 'interno' && data.departamento) {
@@ -478,23 +467,19 @@ document.addEventListener('DOMContentLoaded', function() {
             } else if (data.tipo_solicitante === 'externo' && data.institucion) {
                 nombreEntidad = data.institucion.nombre;
             }
-
             const nombreResponsable = data.responsable?.nombre || 'No especificado';
             const cargoResponsable = data.responsable?.cargo || '';
             const telefonoResponsable = data.responsable?.telefono || '';
             const emailResponsable = data.responsable?.email || '';
-
             const usuarioNombre = data.usuario?.trabajador
                 ? `${data.usuario.trabajador.nombre || ''} ${data.usuario.trabajador.apellido || ''}`.trim()
                 : (data.usuario?.usuario || 'No especificado');
             const usuarioEmail = data.usuario?.trabajador?.email || '';
 
-            // Actualizar subtítulo del header
             if (modalSubtitulo) {
                 modalSubtitulo.textContent = `${codigo} · Creada el ${formatearFecha(data.fecha_solicitud)}`;
             }
 
-            // ============ HTML DE ITEMS ============
             let itemsHtml = '';
             if (data.detalles && data.detalles.length > 0) {
                 itemsHtml = `
@@ -533,7 +518,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 `;
             }
 
-            // ============ HTML COMPLETO ============
             const html = `
                 <div class="detalle-hero-card">
                     <div class="detalle-hero-left">
@@ -558,7 +542,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         </span>
                     </div>
                 </div>
-
                 <div class="detalle-section">
                     <div class="detalle-section-title">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -638,7 +621,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                 </div>
-
                 <div class="detalle-section">
                     <div class="detalle-section-title">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -664,7 +646,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         </div>
                     </div>
                 </div>
-
                 <div class="detalle-section">
                     <div class="detalle-section-title">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -677,7 +658,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="detalle-justificacion">${escapeHtml(data.justificacion || 'No especificada')}</div>
                 </div>
-
                 ${data.observaciones ? `
                 <div class="detalle-section">
                     <div class="detalle-section-title">
@@ -691,7 +671,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="detalle-justificacion" style="border-left-color: #f59e0b;">${escapeHtml(data.observaciones)}</div>
                 </div>
                 ` : ''}
-
                 <div class="detalle-section">
                     <div class="detalle-section-title">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -704,9 +683,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     ${itemsHtml}
                 </div>
             `;
-
             modalBody.innerHTML = html;
-
         } catch (error) {
             console.error('Error:', error);
             if (modalBody) {
@@ -733,7 +710,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('aprobarObservaciones').value = '';
         document.getElementById('aprobarFechaAdvertencia').style.display = 'none';
         document.getElementById('aprobarAlertaStock').style.display = 'none';
-
         fetch(`/admin/solicitudes/${id}/detalles`, {
             headers: { Accept: 'application/json' }
         })
@@ -745,7 +721,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.getElementById('aprobarPrioridad').textContent = d.prioridad || 'Normal';
                 document.getElementById('aprobarSolicitante').textContent =
                     d.usuario?.trabajador?.nombre || d.usuario?.usuario || d.responsable?.nombre || 'No especificado';
-
                 if (d.fecha_requerida) {
                     const fechaFormateada = String(d.fecha_requerida).substring(0, 10);
                     document.getElementById('aprobarFechaRequerida').value = fechaFormateada;
@@ -755,7 +730,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('aprobarFechaFin').value = String(d.fecha_fin_estimada).substring(0, 10);
                 }
                 document.getElementById('aprobarSolicitudId').value = d.id;
-
                 const modal = new bootstrap.Modal(document.getElementById('modalAprobarSolicitud'));
                 modal.show();
             } else {
@@ -789,21 +763,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 headers: { 'Accept': 'application/json' }
             });
             if (!response.ok) throw new Error('Error al obtener la solicitud');
-
             const data = await response.json();
             const s = data.solicitud || data;
-
             document.getElementById('editarSolicitudId').value = s.id;
             document.getElementById('editarPrioridad').value = s.prioridad || 'normal';
             document.getElementById('editarEstado').value = s.estado_solicitud || s.estado || 'pendiente';
-
             const fechaReq = s.fecha_requerida ? String(s.fecha_requerida).substring(0, 10) : '';
             const fechaFin = s.fecha_fin_estimada ? String(s.fecha_fin_estimada).substring(0, 10) : '';
             document.getElementById('editarFechaRequerida').value = fechaReq;
             document.getElementById('editarFechaFin').value = fechaFin;
             document.getElementById('editarJustificacion').value = s.justificacion || '';
             document.getElementById('editarObservaciones').value = s.observaciones || '';
-
             new bootstrap.Modal(document.getElementById('modalEditarSolicitud')).show();
         } catch (error) {
             console.error('Error:', error);
@@ -817,7 +787,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.rechazarSolicitud = async function(id) {
         const motivo = prompt('Motivo del rechazo:');
         if (!motivo) return;
-
         try {
             const response = await fetch(`/admin/solicitudes/${id}/reject`, {
                 method: 'POST',
@@ -932,6 +901,12 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             document.getElementById('responsableDisplay').innerHTML = '<span class="text-muted">Seleccione una opción</span>';
             document.getElementById('responsable_id_hidden').value = '';
+
+            // Limpiar el select de responsables al cambiar el tipo
+            const selectResponsable = document.getElementById('responsable_id');
+            if (selectResponsable) {
+                selectResponsable.innerHTML = '<option value="">Seleccione un responsable</option>';
+            }
         });
     }
 
@@ -983,7 +958,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const original = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Enviando...';
-
         fetch('/admin/solicitudes', {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
@@ -1015,12 +989,10 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const id = document.getElementById('aprobarSolicitudId').value;
         if (!id) { mostrarNotificacion('error', 'Error: No se encontró el ID de la solicitud'); return; }
-
         const submitBtn = document.getElementById('btnAprobarSolicitud');
         const originalText = submitBtn.innerHTML;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Procesando...';
         submitBtn.disabled = true;
-
         fetch(`/admin/solicitudes/${id}/approve`, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
@@ -1036,7 +1008,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 cargarPagina(currentPage);
             } else if (data.auto_rechazada) {
                 bootstrap.Modal.getInstance(document.getElementById('modalAprobarSolicitud'))?.hide();
-
                 const listaFaltantes = document.getElementById('listaFaltantes');
                 let htmlFaltantes = '';
                 if (data.faltantes) {
@@ -1051,7 +1022,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
                 listaFaltantes.innerHTML = htmlFaltantes || '<p class="text-muted">No hay detalles disponibles.</p>';
-
                 new bootstrap.Modal(document.getElementById('modalStockError')).show();
                 mostrarNotificacion('warning', 'Solicitud rechazada automáticamente por falta de stock');
                 cargarPagina(currentPage);
@@ -1078,12 +1048,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const original = btn.innerHTML;
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Guardando...';
-
         const formData = new FormData(this);
         const id = document.getElementById('editarSolicitudId').value;
-
         formData.append('_method', 'PUT');
-
         fetch(`/admin/solicitudes/${id}`, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
@@ -1114,11 +1081,9 @@ document.addEventListener('DOMContentLoaded', function() {
     async function cargarCorreos() {
         const buscar = document.getElementById('buscarCorreo')?.value || '';
         const filtro = document.getElementById('filtroCorreo')?.value || '';
-
         const params = new URLSearchParams();
         if (buscar) params.append('buscar', buscar);
         if (filtro) params.append('filtro', filtro);
-
         try {
             const response = await fetch(`/admin/solicitudes/correos/lista?${params}`, {
                 headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
@@ -1133,7 +1098,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderizarCorreos(correos) {
         const container = document.getElementById('listaCorreos');
         if (!container) return;
-
         if (!correos.length) {
             container.innerHTML = `
                 <div class="text-center py-5 text-muted">
@@ -1147,14 +1111,12 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             return;
         }
-
         let html = '';
         correos.forEach(c => {
             const clases = ['correo-item'];
             if (!c.leido) clases.push('no-leido');
             if (c.procesado) clases.push('procesado');
             const badge = !c.leido ? '<span class="badge-nueva">NUEVO</span>' : '';
-
             html += `
                 <div class="${clases.join(' ')}" onclick="abrirCorreo(${c.id})">
                     <div class="d-flex justify-content-between align-items-start">
@@ -1200,7 +1162,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const original = btn.innerHTML;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Revisando...';
         btn.disabled = true;
-
         try {
             const response = await fetch('/admin/solicitudes/correos/revisar', {
                 method: 'POST',
@@ -1225,14 +1186,11 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             const data = await response.json();
             if (!data.success) { mostrarNotificacion('error', 'Error al cargar el correo'); return; }
-
             correoActual = data.data;
-
             document.getElementById('correoFrom').textContent = `${correoActual.from_name || ''} <${correoActual.from_email}>`;
             document.getElementById('correoFecha').textContent = formatearFechaHora(correoActual.received_at);
             document.getElementById('correoAsunto').textContent = correoActual.subject || '(Sin asunto)';
             document.getElementById('correoCuerpo').textContent = correoActual.body_text || '(Sin contenido)';
-
             if (correoActual.procesado) {
                 document.getElementById('botonIniciarWizard').innerHTML = `
                     <div class="alert alert-success">
@@ -1249,11 +1207,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     </button>
                 `;
             }
-
             document.getElementById('wizardContainer').style.display = 'none';
             document.getElementById('infoCorreo').style.display = 'block';
             document.getElementById('botonIniciarWizard').style.display = 'block';
-
             new bootstrap.Modal(document.getElementById('modalCorreo')).show();
         } catch (error) {
             console.error('Error:', error);
@@ -1262,14 +1218,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     window.iniciarWizard = function() {
         if (!correoActual) return;
-
         document.getElementById('infoCorreo').style.display = 'none';
         document.getElementById('botonIniciarWizard').style.display = 'none';
         document.getElementById('wizardContainer').style.display = 'block';
         document.getElementById('wizardCorreoId').value = correoActual.id;
-
         const datos = correoActual.datos_extraidos || {};
-
         if (datos.prioridad) document.getElementById('wzPrioridad').value = datos.prioridad;
         if (datos.fecha_requerida) document.getElementById('wzFechaRequerida').value = datos.fecha_requerida;
         if (datos.fecha_fin_estimada) document.getElementById('wzFechaFin').value = datos.fecha_fin_estimada;
@@ -1278,7 +1231,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const itemsContainer = document.getElementById('wzItemsContainer');
         itemsContainer.innerHTML = '';
         itemWizardCount = 0;
-
         if (datos.items && datos.items.length > 0) {
             datos.items.forEach(item => {
                 agregarItemWizard(item.descripcion, item.cantidad, item.tipo_item);
@@ -1286,7 +1238,6 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             agregarItemWizard();
         }
-
         irPaso(1);
     };
 
@@ -1305,11 +1256,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                     <div class="col-md-7">
                         <input type="text" name="items[${idx}][item_descripcion]" class="form-control form-control-sm"
-                               placeholder="Descripción del item" value="${escapeHtml(descripcion)}" required>
+                            placeholder="Descripción del item" value="${escapeHtml(descripcion)}" required>
                     </div>
                     <div class="col-md-2">
                         <input type="number" name="items[${idx}][cantidad]" class="form-control form-control-sm"
-                               value="${cantidad}" min="1" required>
+                            value="${cantidad}" min="1" required>
                     </div>
                     <div class="col-md-1 text-end">
                         <button type="button" class="btn btn-sm btn-outline-danger" onclick="this.closest('.item-wizard-card').remove()">×</button>
@@ -1324,7 +1275,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.wizard-step').forEach(el => el.classList.remove('active'));
         const stepEl = document.getElementById('step' + paso);
         if (stepEl) stepEl.classList.add('active');
-
         [1, 2, 3].forEach(i => {
             const circle = document.getElementById('step' + i + 'Circle');
             if (!circle) return;
@@ -1333,7 +1283,6 @@ document.addEventListener('DOMContentLoaded', function() {
             else if (i === paso) { circle.classList.add('active'); circle.textContent = i; }
             else { circle.textContent = i; }
         });
-
         const progreso = ((paso - 1) / 2) * 100 + 33;
         const bar = document.getElementById('wizardProgress');
         if (bar) bar.style.width = Math.min(progreso, 100) + '%';
@@ -1356,7 +1305,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const original = submitBtn.innerHTML;
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Guardando...';
-
         try {
             const response = await fetch(`/admin/solicitudes/correos/${correoId}/convertir`, {
                 method: 'POST',
@@ -1364,7 +1312,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 body: new FormData(this)
             });
             const data = await response.json();
-
             if (data.success) {
                 mostrarNotificacion('success', data.message || 'Solicitud creada desde correo');
                 bootstrap.Modal.getInstance(document.getElementById('modalCorreo'))?.hide();
@@ -1398,6 +1345,7 @@ document.addEventListener('DOMContentLoaded', function() {
             t = setTimeout(cargarCorreos, 400);
         };
     })());
+
     document.getElementById('filtroCorreo')?.addEventListener('change', cargarCorreos);
 
     document.getElementById('tab-correos')?.addEventListener('shown.bs.tab', function() {
@@ -1409,217 +1357,195 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('✅ Módulo de solicitudes inicializado correctamente');
 
-
     // ============================================================
-// CORREOS DE SOLICITUDES (SOLO TIPO SOLICITUD)
-// ============================================================
-async function cargarCorreosSolicitudes() {
-    const container = document.getElementById('listaCorreos');
-    if (!container) return;
-
-    const buscar = document.getElementById('buscarCorreo')?.value || '';
-    const filtro = document.getElementById('filtroCorreo')?.value || '';
-
-    const params = new URLSearchParams();
-    if (buscar) params.append('buscar', buscar);
-    if (filtro) params.append('filtro', filtro);
-
-    container.innerHTML = `
-        <div class="text-center py-5 text-muted">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">Cargando correos...</p>
-        </div>
-    `;
-
-    try {
-        const response = await fetch(`/admin/solicitudes/correos/lista?${params}`, {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            credentials: 'same-origin'
-        });
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const data = await response.json();
-        renderizarCorreosSolicitudes(data.data || []);
-    } catch (error) {
-        console.error('Error al cargar correos:', error);
-        container.innerHTML = `
-            <div class="text-center py-5 text-danger">
-                <p>Error al cargar correos: ${escapeHtml(error.message)}</p>
-                <button class="btn btn-sm btn-primary-dark mt-2" onclick="cargarCorreosSolicitudes()">Reintentar</button>
-            </div>
-        `;
-    }
-}
-
-function renderizarCorreosSolicitudes(correos) {
-    const container = document.getElementById('listaCorreos');
-    if (!container) return;
-
-    if (!correos.length) {
+    // CORREOS DE SOLICITUDES (SOLO TIPO SOLICITUD)
+    // ============================================================
+    async function cargarCorreosSolicitudes() {
+        const container = document.getElementById('listaCorreos');
+        if (!container) return;
+        const buscar = document.getElementById('buscarCorreo')?.value || '';
+        const filtro = document.getElementById('filtroCorreo')?.value || '';
+        const params = new URLSearchParams();
+        if (buscar) params.append('buscar', buscar);
+        if (filtro) params.append('filtro', filtro);
         container.innerHTML = `
             <div class="text-center py-5 text-muted">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5">
-                    <rect x="2" y="4" width="20" height="16" rx="2"/>
-                    <path d="M22 7l-10 7L2 7"/>
-                </svg>
-                <p class="mt-3">No hay correos de solicitudes recibidos</p>
-                <p class="small">Haz clic en "Revisar ahora" para buscar nuevos correos</p>
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">Cargando correos...</p>
             </div>
         `;
-        return;
-    }
-
-    let html = '';
-    correos.forEach(c => {
-        const clases = ['correo-item'];
-        if (!c.leido) clases.push('no-leido');
-        if (c.procesado) clases.push('procesado');
-
-        const badge = !c.leido ? '<span class="badge-nueva">NUEVO</span>' : '';
-
-        html += `
-            <div class="${clases.join(' ')}" onclick="abrirCorreoSolicitud(${c.id})">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div style="flex:1">
-                        <div class="fw-bold">${escapeHtml(c.from_name || c.from_email)} ${badge}</div>
-                        <div class="text-muted small">${escapeHtml(c.from_email)}</div>
-                        <div class="fw-semibold mt-1">${escapeHtml(c.subject || '(Sin asunto)')}</div>
-                        <div class="text-muted small mt-1">${escapeHtml((c.body_text || '').substring(0, 150))}...</div>
-                    </div>
-                    <div class="text-end ms-3">
-                        <div class="small text-muted">${formatearFechaHora(c.received_at)}</div>
-                    </div>
+        try {
+            const response = await fetch(`/admin/solicitudes/correos/lista?${params}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            renderizarCorreosSolicitudes(data.data || []);
+        } catch (error) {
+            console.error('Error al cargar correos:', error);
+            container.innerHTML = `
+                <div class="text-center py-5 text-danger">
+                    <p>Error al cargar correos: ${escapeHtml(error.message)}</p>
+                    <button class="btn btn-sm btn-primary-dark mt-2" onclick="cargarCorreosSolicitudes()">Reintentar</button>
                 </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-}
-
-async function actualizarBadgeCorreosSolicitudes() {
-    try {
-        const response = await fetch('/admin/solicitudes/correos/contador', {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'same-origin'
-        });
-        const data = await response.json();
-
-        if (data.success) {
-            const badge = document.getElementById('tabCorreosBadge');
-            if (badge && data.no_procesados > 0) {
-                badge.textContent = data.no_procesados;
-                badge.style.display = 'inline-block';
-            } else if (badge) {
-                badge.style.display = 'none';
-            }
+            `;
         }
-    } catch (error) {
-        console.error('Error al actualizar badge:', error);
     }
-}
 
-window.revisarCorreos = async function () {
-    const btn = document.getElementById('btnRevisarCorreos');
-    if (!btn) return;
-
-    const original = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Revisando...';
-    btn.disabled = true;
-
-    try {
-        const response = await fetch('/admin/solicitudes/correos/revisar', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json'
-            },
-            credentials: 'same-origin'
-        });
-
-        const data = await response.json();
-        mostrarNotificacion('info', data.message || 'Revisión completada');
-        cargarCorreosSolicitudes();
-        actualizarBadgeCorreosSolicitudes();
-    } catch (error) {
-        mostrarNotificacion('error', 'Error al revisar correos: ' + error.message);
-    } finally {
-        btn.innerHTML = original;
-        btn.disabled = false;
-    }
-};
-
-window.abrirCorreoSolicitud = async function (id) {
-    try {
-        const response = await fetch(`/admin/solicitudes/correos/${id}`, {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'same-origin'
-        });
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const data = await response.json();
-        if (!data.success) {
-            mostrarNotificacion('error', 'Error al cargar el correo');
+    function renderizarCorreosSolicitudes(correos) {
+        const container = document.getElementById('listaCorreos');
+        if (!container) return;
+        if (!correos.length) {
+            container.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="M22 7l-10 7L2 7"/>
+                    </svg>
+                    <p class="mt-3">No hay correos de solicitudes recibidos</p>
+                    <p class="small">Haz clic en "Revisar ahora" para buscar nuevos correos</p>
+                </div>
+            `;
             return;
         }
-
-        correoActual = data.data;
-
-        document.getElementById('correoFrom').textContent =
-            `${correoActual.from_name || ''} <${correoActual.from_email}>`;
-        document.getElementById('correoFecha').textContent = formatearFechaHora(correoActual.received_at);
-        document.getElementById('correoAsunto').textContent = correoActual.subject || '(Sin asunto)';
-        document.getElementById('correoCuerpo').textContent = correoActual.body_text || '(Sin contenido)';
-
-        if (correoActual.procesado) {
-            document.getElementById('botonIniciarWizard').innerHTML = `
-                <div class="alert alert-success">
-                    ✅ Este correo ya fue convertido en la solicitud #${correoActual.solicitud_id}
+        let html = '';
+        correos.forEach(c => {
+            const clases = ['correo-item'];
+            if (!c.leido) clases.push('no-leido');
+            if (c.procesado) clases.push('procesado');
+            const badge = !c.leido ? '<span class="badge-nueva">NUEVO</span>' : '';
+            html += `
+                <div class="${clases.join(' ')}" onclick="abrirCorreoSolicitud(${c.id})">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div style="flex:1">
+                            <div class="fw-bold">${escapeHtml(c.from_name || c.from_email)} ${badge}</div>
+                            <div class="text-muted small">${escapeHtml(c.from_email)}</div>
+                            <div class="fw-semibold mt-1">${escapeHtml(c.subject || '(Sin asunto)')}</div>
+                            <div class="text-muted small mt-1">${escapeHtml((c.body_text || '').substring(0, 150))}...</div>
+                        </div>
+                        <div class="text-end ms-3">
+                            <div class="small text-muted">${formatearFechaHora(c.received_at)}</div>
+                        </div>
+                    </div>
                 </div>
             `;
-        } else {
-            document.getElementById('botonIniciarWizard').innerHTML = `
-                <button class="btn btn-success btn-lg" onclick="iniciarWizard()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:6px;">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                    </svg>
-                    Convertir en Solicitud (Wizard)
-                </button>
-            `;
-        }
-
-        document.getElementById('wizardContainer').style.display = 'none';
-        document.getElementById('infoCorreo').style.display = 'block';
-        document.getElementById('botonIniciarWizard').style.display = 'block';
-
-        new bootstrap.Modal(document.getElementById('modalCorreo')).show();
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarNotificacion('error', 'Error al cargar el correo: ' + error.message);
+        });
+        container.innerHTML = html;
     }
-};
 
-// Inicialización al cargar el tab de correos
-document.getElementById('tab-correos')?.addEventListener('shown.bs.tab', function () {
-    cargarCorreosSolicitudes();
-    actualizarBadgeCorreosSolicitudes();
-});
+    async function actualizarBadgeCorreosSolicitudes() {
+        try {
+            const response = await fetch('/admin/solicitudes/correos/contador', {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            });
+            const data = await response.json();
+            if (data.success) {
+                const badge = document.getElementById('tabCorreosBadge');
+                if (badge && data.no_procesados > 0) {
+                    badge.textContent = data.no_procesados;
+                    badge.style.display = 'inline-block';
+                } else if (badge) {
+                    badge.style.display = 'none';
+                }
+            }
+        } catch (error) {
+            console.error('Error al actualizar badge:', error);
+        }
+    }
 
-// Buscador de correos
-document.getElementById('buscarCorreo')?.addEventListener('input', (() => {
-    let t;
-    return function () {
-        clearTimeout(t);
-        t = setTimeout(cargarCorreosSolicitudes, 400);
+    window.revisarCorreos = async function () {
+        const btn = document.getElementById('btnRevisarCorreos');
+        if (!btn) return;
+        const original = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Revisando...';
+        btn.disabled = true;
+        try {
+            const response = await fetch('/admin/solicitudes/correos/revisar', {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+            const data = await response.json();
+            mostrarNotificacion('info', data.message || 'Revisión completada');
+            cargarCorreosSolicitudes();
+            actualizarBadgeCorreosSolicitudes();
+        } catch (error) {
+            mostrarNotificacion('error', 'Error al revisar correos: ' + error.message);
+        } finally {
+            btn.innerHTML = original;
+            btn.disabled = false;
+        }
     };
-})());
 
-document.getElementById('filtroCorreo')?.addEventListener('change', cargarCorreosSolicitudes);
+    window.abrirCorreoSolicitud = async function (id) {
+        try {
+            const response = await fetch(`/admin/solicitudes/correos/${id}`, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            if (!data.success) {
+                mostrarNotificacion('error', 'Error al cargar el correo');
+                return;
+            }
+            correoActual = data.data;
+            document.getElementById('correoFrom').textContent =
+                `${correoActual.from_name || ''} <${correoActual.from_email}>`;
+            document.getElementById('correoFecha').textContent = formatearFechaHora(correoActual.received_at);
+            document.getElementById('correoAsunto').textContent = correoActual.subject || '(Sin asunto)';
+            document.getElementById('correoCuerpo').textContent = correoActual.body_text || '(Sin contenido)';
+            if (correoActual.procesado) {
+                document.getElementById('botonIniciarWizard').innerHTML = `
+                    <div class="alert alert-success">
+                        ✅ Este correo ya fue convertido en la solicitud #${correoActual.solicitud_id}
+                    </div>
+                `;
+            } else {
+                document.getElementById('botonIniciarWizard').innerHTML = `
+                    <button class="btn btn-success btn-lg" onclick="iniciarWizard()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:6px;">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        Convertir en Solicitud (Wizard)
+                    </button>
+                `;
+            }
+            document.getElementById('wizardContainer').style.display = 'none';
+            document.getElementById('infoCorreo').style.display = 'block';
+            document.getElementById('botonIniciarWizard').style.display = 'block';
+            new bootstrap.Modal(document.getElementById('modalCorreo')).show();
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarNotificacion('error', 'Error al cargar el correo: ' + error.message);
+        }
+    };
 
-// Actualizar badge periódicamente
-setInterval(actualizarBadgeCorreosSolicitudes, 30000);
+    // Inicialización al cargar el tab de correos
+    document.getElementById('tab-correos')?.addEventListener('shown.bs.tab', function () {
+        cargarCorreosSolicitudes();
+        actualizarBadgeCorreosSolicitudes();
+    });
+
+    // Buscador de correos
+    document.getElementById('buscarCorreo')?.addEventListener('input', (() => {
+        let t;
+        return function () {
+            clearTimeout(t);
+            t = setTimeout(cargarCorreosSolicitudes, 400);
+        };
+    })());
+
+    document.getElementById('filtroCorreo')?.addEventListener('change', cargarCorreosSolicitudes);
+
+    // Actualizar badge periódicamente
+    setInterval(actualizarBadgeCorreosSolicitudes, 30000);
 });

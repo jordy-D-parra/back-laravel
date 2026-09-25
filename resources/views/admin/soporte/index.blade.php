@@ -136,6 +136,7 @@
         {{-- PANEL 1: FICHAS DE SOPORTE --}}
         {{-- ============================================ --}}
         <div class="tab-pane fade show active" id="panel-fichas" role="tabpanel">
+
             <div class="filters-bar">
                 <div class="filtro-busqueda">
                     <div class="input-group">
@@ -180,15 +181,15 @@
                             <tr>
                                 <td>
                                     @if($ficha->activo)
-                                    <span class="fw-medium" style="color:#1e3c72;">
-                                        {{ $ficha->activo->serial }}
-                                    </span>
-                                    <br>
-                                    <small class="text-muted">
-                                        {{ $ficha->activo->modelo?->nombre ?? 'N/A' }}
-                                    </small>
+                                        <span class="fw-medium" style="color:#1e3c72;">
+                                            {{ $ficha->activo->serial }}
+                                        </span>
+                                        <br>
+                                        <small class="text-muted">
+                                            {{ $ficha->activo->modelo?->nombre ?? 'N/A' }}
+                                        </small>
                                     @else
-                                    <span class="text-muted">Equipo externo</span>
+                                        <span class="text-muted">Equipo externo</span>
                                     @endif
                                 </td>
                                 <td>{{ $ficha->tecnico_nombre ?? '---' }}</td>
@@ -198,23 +199,23 @@
                                 </td>
                                 <td>
                                     @if($ficha->fecha_requerida_entrega)
-                                    @php
-                                    $dias = $ficha->dias_restantes;
-                                    $clase = 'badge-fecha-vigente';
-                                    $texto = $ficha->fecha_requerida_entrega->format('d/m/Y');
-                                    if ($ficha->esta_vencida) {
-                                        $clase = 'badge-fecha-vencida';
-                                        $texto .= ' (Vencida)';
-                                    } elseif ($dias !== null && $dias <= 3) {
-                                        $clase = 'badge-fecha-proxima';
-                                        $texto .= " ({$dias} d)";
-                                    }
-                                    @endphp
-                                    <span class="badge-fecha-entrega {{ $clase }}">
-                                        {{ $texto }}
-                                    </span>
+                                        @php
+                                            $dias = $ficha->dias_restantes;
+                                            $clase = 'badge-fecha-vigente';
+                                            $texto = $ficha->fecha_requerida_entrega->format('d/m/Y');
+                                            if ($ficha->esta_vencida) {
+                                                $clase = 'badge-fecha-vencida';
+                                                $texto .= ' (Vencida)';
+                                            } elseif ($dias !== null && $dias <= 3) {
+                                                $clase = 'badge-fecha-proxima';
+                                                $texto .= " ({$dias} d)";
+                                            }
+                                        @endphp
+                                        <span class="badge-fecha-entrega {{ $clase }}">
+                                            {{ $texto }}
+                                        </span>
                                     @else
-                                    <span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>
+                                        <span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>
                                     @endif
                                 </td>
                                 <td>
@@ -222,9 +223,9 @@
                                 </td>
                                 <td>
                                     @if($ficha->estado === 'en_proceso')
-                                    <span class="badge-estado-en-proceso">En Proceso</span>
+                                        <span class="badge-estado-en-proceso">En Proceso</span>
                                     @else
-                                    <span class="badge-estado-finalizado">Finalizado</span>
+                                        <span class="badge-estado-finalizado">Finalizado</span>
                                     @endif
                                 </td>
                                 <td class="text-end">
@@ -265,8 +266,9 @@
                 </div>
             </div>
 
+            {{-- PAGINACIÓN --}}
             @if($fichas->hasPages())
-            <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
                 <div class="text-muted small" id="paginationInfo">
                     Mostrando {{ $fichas->firstItem() }} a {{ $fichas->lastItem() }}
                     de {{ $fichas->total() }} registros
@@ -276,6 +278,7 @@
                 </nav>
             </div>
             @endif
+
         </div>
 
         {{-- ============================================ --}}
@@ -315,6 +318,7 @@
             </div>
         </div>
         @endif
+
     </div>
 </div>
 
@@ -436,6 +440,7 @@
                             Datos del Equipo Externo
                         </div>
                         <p class="text-muted small">Complete los datos del equipo que ingresa a reparación. Se creará automáticamente en el inventario.</p>
+
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Serial <span class="text-danger">*</span></label>
@@ -496,6 +501,7 @@
                             </svg>
                             Datos de la Ficha de Soporte
                         </h6>
+
                         <div class="mb-3">
                             <label class="form-label">Técnico Responsable</label>
                             <div class="tecnico-search-container">
@@ -526,14 +532,17 @@
                                 <input type="hidden" id="ext_fichaTecnicoNombre" name="tecnico_nombre" value="">
                             </div>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label">Usuario que Reporta <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="ext_usuario_reporta" name="usuario_reporta_nombre" required>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label">Diagnóstico</label>
                             <textarea name="diagnostico" id="ext_diagnostico" rows="3" class="form-control" placeholder="Describa el problema del equipo..."></textarea>
                         </div>
+
                         <div class="mb-3">
                             <label class="form-label">Observaciones</label>
                             <textarea name="observaciones_ficha" id="ext_observaciones_ficha" rows="2" class="form-control" placeholder="Observaciones adicionales..."></textarea>
@@ -675,6 +684,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 this.classList.remove('is-valid', 'is-invalid');
                 return;
             }
+
             feedback.textContent = 'Verificando serial...';
             feedback.className = 'text-muted';
 

@@ -672,6 +672,100 @@
         fill: none !important;
     }
 
+    /* ============================================================
+       PAGINACIÓN ESTILIZADA - BANDEJA DE ENTRADA
+       ============================================================ */
+    .inbox-pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0.25rem 0.25rem 0.25rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+        border-top: 1px solid #f1f5f9;
+    }
+
+    .inbox-pagination .pagination-info-text {
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+
+    .inbox-pagination nav,
+    .inbox-pagination .pagination,
+    .inbox-pagination ul.pagination {
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+        flex-wrap: wrap;
+    }
+
+    .inbox-pagination nav a,
+    .inbox-pagination nav span,
+    .inbox-pagination .pagination a,
+    .inbox-pagination .pagination span,
+    .inbox-pagination .page-link,
+    .inbox-pagination ul li a,
+    .inbox-pagination ul li span {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px !important;
+        height: 34px !important;
+        padding: 0 0.6rem !important;
+        font-size: 0.8rem !important;
+        font-weight: 600 !important;
+        color: #1e3c72 !important;
+        background: white !important;
+        border: 1.5px solid #e9ecef !important;
+        border-radius: 8px !important;
+        text-decoration: none !important;
+        transition: all 0.25s ease !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    }
+
+    .inbox-pagination nav a:hover,
+    .inbox-pagination .page-link:hover,
+    .inbox-pagination ul li a:hover {
+        background: #eef3fc !important;
+        border-color: #1e3c72 !important;
+        color: #1e3c72 !important;
+        transform: translateY(-2px);
+    }
+
+    .inbox-pagination nav .active span,
+    .inbox-pagination .page-item.active .page-link,
+    .inbox-pagination ul li.active span,
+    .inbox-pagination [aria-current="page"] span,
+    .inbox-pagination [aria-current="page"] {
+        background: linear-gradient(135deg, #1e3c72, #2a5298) !important;
+        color: white !important;
+        border-color: #1e3c72 !important;
+        font-weight: 700 !important;
+    }
+
+    .inbox-pagination nav .disabled span,
+    .inbox-pagination .page-item.disabled .page-link,
+    .inbox-pagination ul li.disabled span {
+        background: #f8f9fc !important;
+        color: #adb5bd !important;
+        cursor: not-allowed !important;
+        opacity: 0.6 !important;
+        box-shadow: none !important;
+    }
+
+    .inbox-pagination svg {
+        width: 14px !important;
+        height: 14px !important;
+        max-width: 14px !important;
+        max-height: 14px !important;
+        flex-shrink: 0 !important;
+    }
+
     /* RESPONSIVE */
     @media (max-width: 992px) {
         .inbox-container {
@@ -764,6 +858,11 @@
 
         .page-header {
             padding: 1rem 1.25rem !important;
+        }
+
+        .inbox-pagination {
+            flex-direction: column;
+            align-items: center;
         }
     }
 
@@ -1002,10 +1101,16 @@
                 @endif
             </div>
 
-            <!-- PAGINACIÓN -->
+            <!-- PAGINACIÓN ESTILIZADA -->
             @if($notificaciones->hasPages())
-                <div class="mt-3">
-                    {{ $notificaciones->appends(request()->query())->links() }}
+                <div class="inbox-pagination">
+                    <div class="pagination-info-text">
+                        Mostrando {{ $notificaciones->firstItem() }} a {{ $notificaciones->lastItem() }}
+                        de {{ $notificaciones->total() }} mensajes
+                    </div>
+                    <nav>
+                        {{ $notificaciones->appends(request()->query())->links() }}
+                    </nav>
                 </div>
             @endif
         </div>

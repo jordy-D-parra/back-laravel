@@ -1,7 +1,7 @@
 // resources/js/admin-soporte.js
 // ✅ VERSIÓN LIMPIA: Solo Fichas + Correos + Wizard de conversión
-// ✅ Se eliminó todo el código de "crear ficha manual" y "equipo externo"
-// ✅ El flujo de creación de fichas es ÚNICAMENTE por correo (wizard)
+// ✅ Columnas alineadas con el thead del blade
+// ✅ Paginación estilizada
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -45,12 +45,17 @@ function formatearFechaHora(fecha) {
     });
 }
 
-// ✅ Normaliza cualquier fecha al formato Y-m-d que acepta input[type=date]
+function formatearFechaCorta(fecha) {
+    if (!fecha) return '---';
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return fecha;
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+// Normaliza cualquier fecha al formato Y-m-d que acepta input[type=date]
 function normalizarFechaParaInput(fechaStr) {
     if (!fechaStr) return '';
-
     if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) return fechaStr;
-
     const match = fechaStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
     if (match) {
         const dia = match[1].padStart(2, '0');
@@ -58,12 +63,10 @@ function normalizarFechaParaInput(fechaStr) {
         const anio = match[3];
         return `${anio}-${mes}-${dia}`;
     }
-
     const d = new Date(fechaStr);
     if (!isNaN(d.getTime())) {
         return d.toISOString().split('T')[0];
     }
-
     return '';
 }
 
@@ -89,8 +92,8 @@ function mostrarNotificacion(tipo, mensaje) {
         white-space: pre-line; font-size: 0.9rem;
     `;
     toast.innerHTML = `<span style="font-size:1.2rem;">${iconos[tipo] || 'ℹ️'}</span><span style="flex:1">${mensaje}</span>`;
-
     container.appendChild(toast);
+
     setTimeout(() => {
         toast.style.transition = 'opacity 0.3s';
         toast.style.opacity = '0';
@@ -107,6 +110,65 @@ function mostrarNotificacion(tipo, mensaje) {
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
             to { transform: translateX(0); opacity: 1; }
+        }
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 0;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .pagination-info {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .pagination-btns {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .pagination-btn {
+            min-width: 34px;
+            height: 34px;
+            padding: 0 0.6rem;
+            border: 1px solid #dee2e6;
+            background: #fff;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: #1e3c72;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .pagination-btn:hover:not(.disabled):not(.active) {
+            background: #1e3c72;
+            color: #fff;
+            border-color: #1e3c72;
+            transform: translateY(-1px);
+        }
+        .pagination-btn.active {
+            background: #1e3c72;
+            color: #fff;
+            border-color: #1e3c72;
+            font-weight: 700;
+        }
+        .pagination-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .pagination-ellipsis {
+            min-width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            font-weight: 600;
         }
     `;
     document.head.appendChild(style);
@@ -136,91 +198,154 @@ function actualizarEstadisticas() {
 }
 
 // ============================================================
-// FICHAS: RENDERIZADO
+// FICHAS: RENDERIZADO (8 columnas exactas)
 // ============================================================
 function renderizarTabla() {
     const tbody = document.getElementById('tablaFichas');
     if (!tbody) return;
 
     if (fichasData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No hay fichas de soporte registradas</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No hay fichas de soporte registradas</td></tr>`;
         return;
     }
 
     let html = '';
-    for (const f of fichasData) {
-        const fechaIngreso = f.fecha_ingreso ? new Date(f.fecha_ingreso).toLocaleDateString() : 'N/A';
-        const fechaSalida = f.fecha_salida ? new Date(f.fecha_salida).toLocaleDateString() : '---';
-        const activoInfo = f.activo ? `${f.activo.serial} - ${f.activo.modelo?.nombre || 'N/A'}` : 'N/A';
-        const estadoClass = f.estado === 'en_proceso' ? 'badge-estado-en-proceso' : 'badge-estado-finalizado';
-        const estadoText = f.estado === 'en_proceso' ? 'En Proceso' : 'Finalizado';
 
-        html += `<tr>
-            <td class="px-3 py-2">${escapeHtml(activoInfo)}</td>
-            <td class="px-3 py-2">${escapeHtml(f.tecnico_nombre || '---')}</td>
-            <td class="px-3 py-2">${escapeHtml(f.usuario_reporta_nombre || '---')}</td>
-            <td class="px-3 py-2">${fechaIngreso}</td>
-            <td class="px-3 py-2">${fechaSalida}</td>
-            <td class="px-3 py-2"><span class="${estadoClass}">${estadoText}</span></td>
-            <td class="px-3 py-2 text-end">
-                <button type="button" class="btn-action btn-outline-primary-dark" onclick="verDetalle(${f.id})" title="Ver detalle">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 8v4"/>
-                        <path d="M12 16h.01"/>
-                    </svg>
-                </button>`;
+    for (const f of fichasData) {
+        const fechaIngreso = formatearFechaCorta(f.fecha_ingreso);
+        const fechaSalida = f.fecha_salida ? formatearFechaCorta(f.fecha_salida) : '---';
+
+        // Activo
+        let activoHtml = '<span class="text-muted">Equipo externo</span>';
+        if (f.activo) {
+            activoHtml = `<span class="fw-medium" style="color:#1e3c72;">${escapeHtml(f.activo.serial)}</span>
+                          <br><small class="text-muted">${escapeHtml(f.activo.modelo?.nombre || 'N/A')}</small>`;
+        }
+
+        // Fecha requerida con badge
+        let fechaReqHtml = '<span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>';
+        if (f.fecha_requerida_entrega) {
+            const d = new Date(f.fecha_requerida_entrega);
+            const hoy = new Date();
+            hoy.setHours(0,0,0,0);
+            const fechaNorm = new Date(f.fecha_requerida_entrega);
+            fechaNorm.setHours(0,0,0,0);
+            const diffDias = Math.ceil((fechaNorm - hoy) / (1000 * 60 * 60 * 24));
+
+            let clase = 'badge-fecha-vigente';
+            let texto = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+            if (f.estado === 'en_proceso' && diffDias < 0) {
+                clase = 'badge-fecha-vencida';
+                texto += ' (Vencida)';
+            } else if (f.estado === 'en_proceso' && diffDias <= 3 && diffDias >= 0) {
+                clase = 'badge-fecha-proxima';
+                texto += ` (${diffDias} d)`;
+            }
+            fechaReqHtml = `<span class="badge-fecha-entrega ${clase}">${texto}</span>`;
+        }
+
+        // Estado
+        const estadoHtml = f.estado === 'en_proceso'
+            ? '<span class="badge-estado-en-proceso">En Proceso</span>'
+            : '<span class="badge-estado-finalizado">Finalizado</span>';
+
+        // Acciones
+        let accionesHtml = `
+            <button type="button" class="btn-action btn-outline-primary-dark" onclick="verDetalle(${f.id})" title="Ver detalle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M12 8v4"/>
+                    <path d="M12 16h.01"/>
+                </svg>
+            </button>`;
 
         if (f.estado === 'en_proceso') {
-            html += `
+            accionesHtml += `
                 <button type="button" class="btn-cerrar-ficha ms-1" onclick="abrirModalCerrarFicha(${f.id})" title="Cerrar ficha">
                     ✓ Cerrar
                 </button>`;
         }
 
-        html += `
-                <button type="button" class="btn-action text-danger ms-1" onclick="confirmarEliminar(${f.id})" title="Eliminar">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"/>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                    </svg>
-                </button>
-            </td>
+        accionesHtml += `
+            <button type="button" class="btn-action text-danger ms-1" onclick="confirmarEliminar(${f.id})" title="Eliminar">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"/>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                </svg>
+            </button>`;
+
+        html += `<tr>
+            <td>${activoHtml}</td>
+            <td>${escapeHtml(f.tecnico_nombre || '---')}</td>
+            <td>${escapeHtml(f.usuario_reporta_nombre || '---')}</td>
+            <td><small>${fechaIngreso}</small></td>
+            <td>${fechaReqHtml}</td>
+            <td><small>${fechaSalida}</small></td>
+            <td>${estadoHtml}</td>
+            <td class="text-end">${accionesHtml}</td>
         </tr>`;
     }
+
     tbody.innerHTML = html;
 }
 
+// ============================================================
+// FICHAS: PAGINACIÓN ESTILIZADA
+// ============================================================
 function renderizarPaginacion() {
-    const container = document.getElementById('paginationContainer');
+    let container = document.getElementById('paginationContainer');
+    if (!container) {
+        // Crear contenedor si no existe, al lado del paginationInfo
+        const infoDiv = document.getElementById('paginationInfo');
+        if (infoDiv && infoDiv.parentElement) {
+            container = document.createElement('div');
+            container.id = 'paginationContainer';
+            infoDiv.parentElement.appendChild(container);
+        }
+    }
     if (!container) return;
-    if (lastPage <= 1) { container.innerHTML = ''; return; }
 
-    let html = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(${currentPage - 1}); return false;">«</a></li>`;
+    if (lastPage <= 1) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = `<div class="pagination-bar">
+        <div class="pagination-info">Página ${currentPage} de ${lastPage}</div>
+        <div class="pagination-btns">`;
+
+    // Botón anterior
+    html += `<button class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}"
+                     onclick="cambiarPagina(${currentPage - 1})">«</button>`;
+
+    // Páginas
     let startPage = Math.max(1, currentPage - 2);
     let endPage = Math.min(lastPage, currentPage + 2);
 
     if (startPage > 1) {
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="cambiarPagina(1); return false;">1</a></li>`;
-        if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+        html += `<button class="pagination-btn ${currentPage === 1 ? 'active' : ''}"
+                         onclick="cambiarPagina(1)">1</button>`;
+        if (startPage > 2) html += `<span class="pagination-ellipsis">...</span>`;
     }
 
     for (let i = startPage; i <= endPage; i++) {
-        html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(${i}); return false;">${i}</a></li>`;
+        html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}"
+                         onclick="cambiarPagina(${i})">${i}</button>`;
     }
 
     if (endPage < lastPage) {
-        if (endPage < lastPage - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="cambiarPagina(${lastPage}); return false;">${lastPage}</a></li>`;
+        if (endPage < lastPage - 1) html += `<span class="pagination-ellipsis">...</span>`;
+        html += `<button class="pagination-btn ${currentPage === lastPage ? 'active' : ''}"
+                         onclick="cambiarPagina(${lastPage})">${lastPage}</button>`;
     }
 
-    html += `<li class="page-item ${currentPage === lastPage ? 'disabled' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(${currentPage + 1}); return false;">»</a></li>`;
+    // Botón siguiente
+    html += `<button class="pagination-btn ${currentPage === lastPage ? 'disabled' : ''}"
+                     onclick="cambiarPagina(${currentPage + 1})">»</button>`;
+
+    html += `</div></div>`;
     container.innerHTML = html;
-
-    const infoDiv = document.getElementById('paginationInfo');
-    if (infoDiv) {
-        infoDiv.innerHTML = `Mostrando ${fichasData.length} de ${totalRegistros} registros`;
-    }
 }
 
 window.cambiarPagina = function (page) {
@@ -250,8 +375,8 @@ async function cargarPagina(page) {
         });
 
         if (!response.ok) throw new Error('Error al cargar datos');
-        const data = await response.json();
 
+        const data = await response.json();
         fichasData = data.data || [];
         currentPage = data.current_page || 1;
         lastPage = data.last_page || 1;
@@ -261,6 +386,13 @@ async function cargarPagina(page) {
         renderizarTabla();
         actualizarEstadisticas();
         renderizarPaginacion();
+
+        const infoDiv = document.getElementById('paginationInfo');
+        if (infoDiv) {
+            const desde = ((currentPage - 1) * perPage) + 1;
+            const hasta = Math.min(desde + fichasData.length - 1, totalRegistros);
+            infoDiv.innerHTML = `Mostrando ${desde} a ${hasta} de ${totalRegistros} registros`;
+        }
 
     } catch (error) {
         console.error('Error:', error);
@@ -275,10 +407,12 @@ async function cargarPagina(page) {
 function aplicarFiltros() {
     const buscarInput = document.getElementById('buscarFichas');
     const estadoSelect = document.getElementById('filtroEstadoFichas');
+
     filtros = {
         search: buscarInput?.value || '',
         estado: estadoSelect?.value || ''
     };
+
     currentPage = 1;
     cargarPagina(1);
 }
@@ -293,13 +427,11 @@ function aplicarFiltrosConDebounce() {
 // ============================================================
 window.cargarCorreosSoporte = async function () {
     const container = document.getElementById('listaCorreos');
-    if (!container) {
-        console.warn('No se encontró #listaCorreos');
-        return;
-    }
+    if (!container) return;
 
     const buscar = document.getElementById('buscarCorreo')?.value || '';
     const filtro = document.getElementById('filtroCorreo')?.value || '';
+
     const params = new URLSearchParams();
     if (buscar) params.append('buscar', buscar);
     if (filtro) params.append('filtro', filtro);
@@ -308,8 +440,7 @@ window.cargarCorreosSoporte = async function () {
         <div class="text-center py-5 text-muted">
             <div class="spinner-border text-primary" role="status"></div>
             <p class="mt-2">Cargando correos...</p>
-        </div>
-    `;
+        </div>`;
 
     try {
         const response = await fetch(`/admin/soporte/correos/lista?${params}`, {
@@ -321,9 +452,9 @@ window.cargarCorreosSoporte = async function () {
         });
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
         const data = await response.json();
-        console.log('Correos recibidos:', data);
-        renderizarCorreosSoporte(data.data || []);
+        renderizarCorreosSoporte(data.data || [], data.current_page, data.last_page, data.total);
 
     } catch (error) {
         console.error('Error al cargar correos:', error);
@@ -336,12 +467,11 @@ window.cargarCorreosSoporte = async function () {
                 </svg>
                 <p class="mt-2">Error al cargar correos: ${escapeHtml(error.message)}</p>
                 <button class="btn btn-sm btn-primary-dark mt-2" onclick="cargarCorreosSoporte()">Reintentar</button>
-            </div>
-        `;
+            </div>`;
     }
 };
 
-function renderizarCorreosSoporte(correos) {
+function renderizarCorreosSoporte(correos, currentPageCorreos, lastPageCorreos, totalCorreos) {
     const container = document.getElementById('listaCorreos');
     if (!container) return;
 
@@ -354,8 +484,7 @@ function renderizarCorreosSoporte(correos) {
                 </svg>
                 <p class="mt-3">No hay correos de soporte recibidos</p>
                 <p class="small">Haz clic en "Revisar ahora" para buscar nuevos correos</p>
-            </div>
-        `;
+            </div>`;
         return;
     }
 
@@ -379,11 +508,42 @@ function renderizarCorreosSoporte(correos) {
                         <div class="small text-muted">${formatearFechaHora(c.received_at)}</div>
                     </div>
                 </div>
-            </div>
-        `;
+            </div>`;
     });
+
+    // Paginación de correos (si el backend la envía)
+    if (lastPageCorreos && lastPageCorreos > 1) {
+        html += `<div class="pagination-bar mt-3">
+            <div class="pagination-info">Página ${currentPageCorreos} de ${lastPageCorreos} (${totalCorreos} correos)</div>
+            <div class="pagination-btns">`;
+
+        html += `<button class="pagination-btn ${currentPageCorreos === 1 ? 'disabled' : ''}"
+                         onclick="cambiarPaginaCorreos(${currentPageCorreos - 1})">«</button>`;
+
+        for (let i = 1; i <= lastPageCorreos; i++) {
+            if (i === 1 || i === lastPageCorreos || (i >= currentPageCorreos - 1 && i <= currentPageCorreos + 1)) {
+                html += `<button class="pagination-btn ${i === currentPageCorreos ? 'active' : ''}"
+                                 onclick="cambiarPaginaCorreos(${i})">${i}</button>`;
+            } else if (i === currentPageCorreos - 2 || i === currentPageCorreos + 2) {
+                html += `<span class="pagination-ellipsis">...</span>`;
+            }
+        }
+
+        html += `<button class="pagination-btn ${currentPageCorreos === lastPageCorreos ? 'disabled' : ''}"
+                         onclick="cambiarPaginaCorreos(${currentPageCorreos + 1})">»</button>`;
+
+        html += `</div></div>`;
+    }
+
     container.innerHTML = html;
 }
+
+window.cambiarPaginaCorreos = function(page) {
+    // Se puede implementar si el backend acepta ?page=
+    console.log('Cambiar página correos a:', page);
+    // Por ahora recarga completa manteniendo filtros
+    cargarCorreosSoporte();
+};
 
 window.actualizarBadgeCorreosSoporte = async function () {
     try {
@@ -442,14 +602,12 @@ window.abrirCorreoSoporte = async function (id) {
         });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-
         if (!data.success) {
             mostrarNotificacion('error', 'Error al cargar el correo');
             return;
         }
 
         correoSoporteActual = data.data;
-
         document.getElementById('correoFromSoporte').textContent =
             `${correoSoporteActual.from_name || ''} <${correoSoporteActual.from_email}>`;
         document.getElementById('correoFechaSoporte').textContent =
@@ -466,15 +624,12 @@ window.abrirCorreoSoporte = async function (id) {
             if (el) el.value = datos.problema;
         }
 
-        // ✅ Normalizar la fecha al formato Y-m-d
         const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
         if (fechaRaw) {
             const el = document.getElementById('wzFechaRequeridaSoporte');
             if (el) {
                 const fechaNormalizada = normalizarFechaParaInput(fechaRaw);
-                if (fechaNormalizada) {
-                    el.value = fechaNormalizada;
-                }
+                if (fechaNormalizada) el.value = fechaNormalizada;
             }
         }
 
@@ -487,8 +642,7 @@ window.abrirCorreoSoporte = async function (id) {
             document.getElementById('botonIniciarWizardSoporte').innerHTML = `
                 <div class="alert alert-success">
                     ✅ Este correo ya fue convertido en la ficha de soporte #${correoSoporteActual.ficha_soporte_id}
-                </div>
-            `;
+                </div>`;
         } else {
             document.getElementById('botonIniciarWizardSoporte').innerHTML = `
                 <button class="btn btn-success btn-lg" onclick="iniciarWizardSoporte()">
@@ -496,8 +650,7 @@ window.abrirCorreoSoporte = async function (id) {
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                     </svg>
                     Convertir en Ficha de Soporte (Wizard)
-                </button>
-            `;
+                </button>`;
         }
 
         document.getElementById('wizardContainerSoporte').style.display = 'none';
@@ -505,7 +658,6 @@ window.abrirCorreoSoporte = async function (id) {
         document.getElementById('botonIniciarWizardSoporte').style.display = 'block';
 
         new bootstrap.Modal(document.getElementById('modalCorreoSoporte')).show();
-
     } catch (error) {
         console.error('Error:', error);
         mostrarNotificacion('error', 'Error al cargar el correo: ' + error.message);
@@ -523,22 +675,19 @@ window.iniciarWizardSoporte = function () {
     document.getElementById('wizardContainerSoporte').style.display = 'block';
     document.getElementById('wizardCorreoSoporteId').value = correoSoporteActual.id;
 
-    // Pre-llenar campos desde datos_extraidos
     const datos = correoSoporteActual.datos_extraidos || {};
+
     if (datos.problema) {
         const el = document.getElementById('wzDiagnostico');
         if (el) el.value = datos.problema;
     }
 
-    // ✅ Normalizar la fecha al formato Y-m-d
     const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
     if (fechaRaw) {
         const el = document.getElementById('wzFechaRequeridaSoporte');
         if (el) {
             const fechaNormalizada = normalizarFechaParaInput(fechaRaw);
-            if (fechaNormalizada) {
-                el.value = fechaNormalizada;
-            }
+            if (fechaNormalizada) el.value = fechaNormalizada;
         }
     }
 
@@ -547,7 +696,7 @@ window.iniciarWizardSoporte = function () {
         if (el) el.value = correoSoporteActual.from_name;
     }
 
-    // Pre-llenar institución y responsable si están disponibles
+    // Buscar activo por serial
     if (datos.serial) {
         fetch(`/admin/activos?buscar=${encodeURIComponent(datos.serial)}`, {
             headers: { 'Accept': 'application/json' },
@@ -607,7 +756,6 @@ function cargarActivosEnWizard() {
             resolve();
             return;
         }
-
         fetch('/admin/activos', {
             headers: { 'Accept': 'application/json' },
             credentials: 'same-origin'
@@ -699,6 +847,7 @@ function generarResumenSoporte() {
     if (!lista) return;
 
     let items = [];
+
     if (tipo === 'existente') {
         const sel = document.getElementById('wzActivoId');
         if (sel && sel.selectedIndex >= 0) {
@@ -728,7 +877,6 @@ function generarResumenSoporte() {
 document.addEventListener('DOMContentLoaded', function () {
     console.log('✅ Módulo de fichas de soporte inicializado');
 
-    // ========== FILTROS DE FICHAS ==========
     const buscarInput = document.getElementById('buscarFichas');
     const estadoSelect = document.getElementById('filtroEstadoFichas');
     const limpiarBtn = document.getElementById('limpiarFiltros');
@@ -743,11 +891,10 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ========== CARGA INICIAL ==========
     cargarPagina(1);
     actualizarBadgeCorreosSoporte();
 
-    // ========== SUBMIT FORM CERRAR FICHA ==========
+    // SUBMIT FORM CERRAR FICHA
     const formCerrarFicha = document.getElementById('formCerrarFicha');
     if (formCerrarFicha) {
         formCerrarFicha.addEventListener('submit', async function (e) {
@@ -766,7 +913,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     body: new FormData(this)
                 });
                 const result = await response.json();
-
                 if (response.ok && result.success) {
                     mostrarNotificacion('success', result.message || 'Ficha finalizada');
                     bootstrap.Modal.getInstance(document.getElementById('modalCerrarFicha')).hide();
@@ -785,20 +931,13 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ========== SUBMIT FORM WIZARD SOPORTE ==========
+    // SUBMIT FORM WIZARD SOPORTE
     const formWizardSoporte = document.getElementById('formWizardSoporte');
     if (formWizardSoporte) {
         formWizardSoporte.addEventListener('submit', async function (e) {
             e.preventDefault();
-
-            if (!validarPasoSoporte1()) {
-                irPasoSoporte(1);
-                return;
-            }
-            if (!validarPasoSoporte2()) {
-                irPasoSoporte(2);
-                return;
-            }
+            if (!validarPasoSoporte1()) { irPasoSoporte(1); return; }
+            if (!validarPasoSoporte2()) { irPasoSoporte(2); return; }
 
             const btn = document.getElementById('btnGuardarWizardSoporte');
             const original = btn.innerHTML;
@@ -815,7 +954,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     body: new FormData(this)
                 });
                 const data = await response.json();
-
                 if (data.success) {
                     mostrarNotificacion('success', data.message || 'Ficha de soporte creada');
                     bootstrap.Modal.getInstance(document.getElementById('modalCorreoSoporte'))?.hide();
@@ -837,7 +975,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ========== CONFIRMAR ELIMINAR ==========
+    // CONFIRMAR ELIMINAR
     const btnConfirmarEliminar = document.getElementById('btnConfirmarEliminar');
     if (btnConfirmarEliminar) {
         btnConfirmarEliminar.addEventListener('click', async function () {
@@ -865,17 +1003,16 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ========== TAB DE CORREOS (Lazy Loading) ==========
+    // TAB DE CORREOS (Lazy Loading)
     const tabCorreos = document.getElementById('tab-correos');
     if (tabCorreos) {
         tabCorreos.addEventListener('shown.bs.tab', function () {
-            console.log('Tab de correos activado, cargando correos...');
             cargarCorreosSoporte();
             actualizarBadgeCorreosSoporte();
         });
     }
 
-    // ========== BUSCADOR DE CORREOS ==========
+    // BUSCADOR DE CORREOS
     const buscarCorreo = document.getElementById('buscarCorreo');
     if (buscarCorreo) {
         let t;
@@ -890,7 +1027,7 @@ document.addEventListener('DOMContentLoaded', function () {
         filtroCorreo.addEventListener('change', cargarCorreosSoporte);
     }
 
-    // ========== TOGGLE EQUIPO EXISTENTE/NUEVO (Wizard) ==========
+    // TOGGLE EQUIPO EXISTENTE/NUEVO (Wizard)
     document.querySelectorAll('input[name="tipo_equipo"]').forEach(radio => {
         radio.addEventListener('change', function () {
             const valor = this.value;
@@ -901,7 +1038,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // ========== REFRESCO AUTOMÁTICO DEL BADGE ==========
     setInterval(actualizarBadgeCorreosSoporte, 30000);
 });
 
@@ -915,9 +1051,9 @@ window.abrirModalCerrarFicha = async function (id) {
             credentials: 'same-origin'
         });
         const result = await response.json();
-
         if (result.success && result.data) {
             document.getElementById('cerrarFichaId').value = id;
+
             let componentesHtml = '';
             for (const det of result.data) {
                 componentesHtml += `
@@ -945,8 +1081,7 @@ window.abrirModalCerrarFicha = async function (id) {
                                 <input type="text" name="detalles[${det.id}][observaciones]" class="form-control form-control-sm" placeholder="Observaciones del componente...">
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             }
             document.getElementById('componentesContainer').innerHTML = componentesHtml;
             new bootstrap.Modal(document.getElementById('modalCerrarFicha')).show();
@@ -968,8 +1103,7 @@ window.verDetalle = async function (id) {
         <div class="text-center py-5">
             <div class="spinner-border text-primary" role="status"></div>
             <p class="mt-2 text-muted">Cargando detalles de la ficha...</p>
-        </div>
-    `;
+        </div>`;
     new bootstrap.Modal(document.getElementById('modalDetalle')).show();
 
     try {
@@ -988,13 +1122,11 @@ window.verDetalle = async function (id) {
                         <line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
                     <p class="mt-2">Error al cargar el detalle de la ficha</p>
-                </div>
-            `;
+                </div>`;
             return;
         }
 
         const f = result.data;
-
         const fmtFecha = (fecha) => {
             if (!fecha) return null;
             const d = new Date(fecha);
@@ -1014,7 +1146,6 @@ window.verDetalle = async function (id) {
         const fechaIngreso = fmtFechaHora(f.fecha_ingreso) || 'No registrada';
         const fechaSalida = fmtFechaHora(f.fecha_salida) || 'En proceso';
         const fechaRequerida = fmtFecha(f.fecha_requerida_entrega);
-
         const esEnProceso = f.estado === 'en_proceso';
         const estadoBg = esEnProceso ? 'linear-gradient(135deg, #f6c23e, #f4b619)' : 'linear-gradient(135deg, #1e7e34, #28a745)';
         const estadoIcono = esEnProceso ? '🔧' : '✅';
@@ -1054,10 +1185,8 @@ window.verDetalle = async function (id) {
                         ${det.observaciones ? `
                             <div class="componente-obs">
                                 <strong>Observaciones:</strong> ${escapeHtml(det.observaciones)}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
+                            </div>` : ''}
+                    </div>`;
             }).join('');
         } else {
             componentesHtml = `
@@ -1066,8 +1195,7 @@ window.verDetalle = async function (id) {
                         <rect x="2" y="6" width="20" height="12" rx="2"/>
                     </svg>
                     <p class="mb-0 mt-2">No hay componentes registrados para esta ficha</p>
-                </div>
-            `;
+                </div>`;
         }
 
         const html = `
@@ -1092,16 +1220,8 @@ window.verDetalle = async function (id) {
                     background: rgba(255,255,255,0.05);
                     border-radius: 50%;
                 }
-                .ficha-header h4 {
-                    font-size: 1.35rem;
-                    font-weight: 700;
-                    margin: 0;
-                }
-                .ficha-header .subtitulo {
-                    font-size: 0.85rem;
-                    opacity: 0.85;
-                    margin-top: 4px;
-                }
+                .ficha-header h4 { font-size: 1.35rem; font-weight: 700; margin: 0; }
+                .ficha-header .subtitulo { font-size: 0.85rem; opacity: 0.85; margin-top: 4px; }
                 .estado-badge {
                     background: ${estadoBg};
                     color: white;
@@ -1115,115 +1235,28 @@ window.verDetalle = async function (id) {
                     box-shadow: 0 2px 8px rgba(0,0,0,0.15);
                     white-space: nowrap;
                 }
-                .info-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                    gap: 1rem;
-                    margin-bottom: 1.5rem;
-                }
-                .info-card {
-                    background: #f8f9fc;
-                    border-radius: 10px;
-                    padding: 0.85rem 1rem;
-                    border-left: 4px solid #1e3c72;
-                    transition: all 0.2s ease;
-                }
-                .info-card:hover {
-                    background: #eef2ff;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 10px rgba(30,60,114,0.08);
-                }
-                .info-card .info-label {
-                    font-size: 0.7rem;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    color: #6c757d;
-                    font-weight: 700;
-                    margin-bottom: 4px;
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                }
-                .info-card .info-value {
-                    font-size: 0.92rem;
-                    font-weight: 600;
-                    color: #2c3e50;
-                    word-break: break-word;
-                }
-                .seccion-titulo {
-                    font-size: 0.95rem;
-                    font-weight: 700;
-                    color: #1e3c72;
-                    margin-bottom: 0.75rem;
-                    padding-bottom: 0.5rem;
-                    border-bottom: 2px solid #e9ecef;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-                .seccion-titulo svg { flex-shrink: 0; }
-                .texto-bloque {
-                    background: #f8f9fc;
-                    border-radius: 8px;
-                    padding: 0.85rem 1rem;
-                    font-size: 0.9rem;
-                    color: #2c3e50;
-                    line-height: 1.55;
-                    white-space: pre-wrap;
-                    word-break: break-word;
-                    min-height: 44px;
-                    border-left: 3px solid #dee2e6;
-                }
-                .texto-bloque.vacio {
-                    color: #adb5bd;
-                    font-style: italic;
-                }
+                .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+                .info-card { background: #f8f9fc; border-radius: 10px; padding: 0.85rem 1rem; border-left: 4px solid #1e3c72; transition: all 0.2s ease; }
+                .info-card:hover { background: #eef2ff; transform: translateY(-2px); box-shadow: 0 4px 10px rgba(30,60,114,0.08); }
+                .info-card .info-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; color: #6c757d; font-weight: 700; margin-bottom: 4px; display: flex; align-items: center; gap: 5px; }
+                .info-card .info-value { font-size: 0.92rem; font-weight: 600; color: #2c3e50; word-break: break-word; }
+                .seccion-titulo { font-size: 0.95rem; font-weight: 700; color: #1e3c72; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e9ecef; display: flex; align-items: center; gap: 8px; }
+                .texto-bloque { background: #f8f9fc; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.9rem; color: #2c3e50; line-height: 1.55; white-space: pre-wrap; word-break: break-word; min-height: 44px; border-left: 3px solid #dee2e6; }
+                .texto-bloque.vacio { color: #adb5bd; font-style: italic; }
                 .texto-bloque.diagnostico { border-left-color: #f6c23e; }
                 .texto-bloque.trabajo { border-left-color: #1e7e34; }
                 .texto-bloque.observaciones { border-left-color: #17a2b8; }
-                .componentes-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-                    gap: 0.75rem;
-                }
-                .componente-card {
-                    background: #f8f9fc;
-                    border: 1px solid #e9ecef;
-                    border-radius: 10px;
-                    padding: 0.85rem 1rem;
-                    transition: all 0.2s ease;
-                }
-                .componente-card:hover {
-                    border-color: #1e3c72;
-                    box-shadow: 0 4px 10px rgba(30,60,114,0.08);
-                }
-                .componente-nombre {
-                    font-weight: 600;
-                    color: #1e3c72;
-                    font-size: 0.88rem;
-                }
-                .componente-obs {
-                    font-size: 0.8rem;
-                    color: #6c757d;
-                    margin-top: 6px;
-                    padding-top: 6px;
-                    border-top: 1px dashed #dee2e6;
-                }
-                .fecha-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                    padding: 0.3rem 0.75rem;
-                    border-radius: 20px;
-                    font-size: 0.78rem;
-                    font-weight: 600;
-                }
+                .componentes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem; }
+                .componente-card { background: #f8f9fc; border: 1px solid #e9ecef; border-radius: 10px; padding: 0.85rem 1rem; transition: all 0.2s ease; }
+                .componente-card:hover { border-color: #1e3c72; box-shadow: 0 4px 10px rgba(30,60,114,0.08); }
+                .componente-nombre { font-weight: 600; color: #1e3c72; font-size: 0.88rem; }
+                .componente-obs { font-size: 0.8rem; color: #6c757d; margin-top: 6px; padding-top: 6px; border-top: 1px dashed #dee2e6; }
+                .fecha-badge { display: inline-flex; align-items: center; gap: 6px; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
                 .fecha-badge.ingreso { background: #e7f1ff; color: #1e3c72; }
                 .fecha-badge.salida { background: #e8f5e9; color: #1e7e34; }
                 .fecha-badge.requerida { background: #fff8e1; color: #a67c00; }
                 .fecha-badge.pendiente { background: #f0f0f0; color: #6c757d; }
             </style>
-
             <div class="ficha-detalle-wrap">
                 <div class="ficha-header">
                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
@@ -1241,7 +1274,6 @@ window.verDetalle = async function (id) {
                         <span class="estado-badge">${estadoIcono} ${estadoTexto}</span>
                     </div>
                 </div>
-
                 <div class="info-grid">
                     <div class="info-card">
                         <div class="info-label">
@@ -1253,7 +1285,6 @@ window.verDetalle = async function (id) {
                         </div>
                         <div class="info-value">${escapeHtml(f.tecnico_nombre || 'No asignado')}</div>
                     </div>
-
                     <div class="info-card">
                         <div class="info-label">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -1264,7 +1295,6 @@ window.verDetalle = async function (id) {
                         </div>
                         <div class="info-value">${escapeHtml(f.usuario_reporta_nombre || 'No especificado')}</div>
                     </div>
-
                     <div class="info-card">
                         <div class="info-label">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -1276,7 +1306,6 @@ window.verDetalle = async function (id) {
                         </div>
                         <div class="info-value">${escapeHtml(institucion)}</div>
                     </div>
-
                     <div class="info-card">
                         <div class="info-label">
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -1288,7 +1317,6 @@ window.verDetalle = async function (id) {
                         <div class="info-value">${escapeHtml(responsable)}</div>
                     </div>
                 </div>
-
                 <div class="mb-4">
                     <div class="seccion-titulo">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
@@ -1315,17 +1343,15 @@ window.verDetalle = async function (id) {
                             Salida: ${fechaSalida}
                         </span>
                         ${fechaRequerida ? `
-                            <span class="fecha-badge requerida">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <polyline points="12 6 12 12 16 14"/>
-                                </svg>
-                                Requerida: ${fechaRequerida}
-                            </span>
-                        ` : ''}
+                        <span class="fecha-badge requerida">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <circle cx="12" cy="12" r="10"/>
+                                <polyline points="12 6 12 12 16 14"/>
+                            </svg>
+                            Requerida: ${fechaRequerida}
+                        </span>` : ''}
                     </div>
                 </div>
-
                 <div class="mb-4">
                     <div class="seccion-titulo">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
@@ -1338,21 +1364,18 @@ window.verDetalle = async function (id) {
                         ${escapeHtml(f.diagnostico || 'No se registró diagnóstico inicial.')}
                     </div>
                 </div>
-
                 ${f.trabajo_realizado ? `
-                    <div class="mb-4">
-                        <div class="seccion-titulo">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
-                                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-                            </svg>
-                            Trabajo Realizado
-                        </div>
-                        <div class="texto-bloque trabajo">
-                            ${escapeHtml(f.trabajo_realizado)}
-                        </div>
+                <div class="mb-4">
+                    <div class="seccion-titulo">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
+                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                        </svg>
+                        Trabajo Realizado
                     </div>
-                ` : ''}
-
+                    <div class="texto-bloque trabajo">
+                        ${escapeHtml(f.trabajo_realizado)}
+                    </div>
+                </div>` : ''}
                 <div class="mb-4">
                     <div class="seccion-titulo">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
@@ -1364,7 +1387,6 @@ window.verDetalle = async function (id) {
                         ${escapeHtml(f.observaciones || 'Sin observaciones registradas.')}
                     </div>
                 </div>
-
                 <div class="mb-2">
                     <div class="seccion-titulo">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
@@ -1399,8 +1421,7 @@ window.verDetalle = async function (id) {
                     <line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
                 <p class="mt-2">Error de conexión al cargar el detalle</p>
-            </div>
-        `;
+            </div>`;
     }
 };
 
@@ -1411,6 +1432,24 @@ window.confirmarEliminar = function (id) {
     fichaAEliminar = id;
     document.getElementById('deleteNombre').textContent = `Ficha #${id}`;
     new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+};
+
+// ============================================================
+// MODAL CREAR FICHA MANUAL (stubs para evitar errores)
+// ============================================================
+window.abrirModalCrearFicha = function () {
+    new bootstrap.Modal(document.getElementById('modalCrearFicha')).show();
+};
+window.abrirModalEquipoExterno = function () {
+    new bootstrap.Modal(document.getElementById('modalEquipoExterno')).show();
+};
+window.limpiarActivoSeleccionado = function () {
+    const info = document.getElementById('activoSeleccionadoInfo');
+    if (info) info.style.display = 'none';
+    const hidden = document.getElementById('fichaActivoId');
+    if (hidden) hidden.value = '';
+    const input = document.getElementById('activoBuscarInput');
+    if (input) input.value = '';
 };
 
 console.log('✅ Código de soporte técnico cargado completamente');
