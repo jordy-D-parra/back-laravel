@@ -1,7 +1,5 @@
 <?php
 
-// routes/web.php
-
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\DashboardController;
@@ -29,49 +27,41 @@ use App\Http\Controllers\Admin\ActaDevolucionController;
 use App\Http\Controllers\Admin\NotificacionController;
 use App\Http\Controllers\Admin\AuditoriaController;
 use App\Http\Controllers\Admin\ReporteInventarioController;
+use App\Http\Controllers\Admin\ReporteController;
 use App\Http\Controllers\Admin\UbicacionController;
-use App\Http\Controllers\ProfileController; // 🆕 AÑADIDO: Perfil de usuario
+use App\Http\Controllers\ProfileController;
 use App\Models\Estatus;
 
 // ==================== RUTA PRINCIPAL ====================
-
-Route::get('/', function () {
-    return redirect('/login');
-});
+Route::get('/', fn() => redirect('/login'));
 
 // ==================== AUTENTICACIÓN ====================
-
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// Primer registro
 Route::get('/primer-registro', [PrimerRegistroController::class, 'showForm'])->name('primer.registro');
 Route::post('/primer-registro', [PrimerRegistroController::class, 'register']);
 
-// Cambio de contraseña
 Route::middleware(['auth'])->group(function () {
     Route::get('/password/change', [CambiarPasswordController::class, 'showChangeForm'])->name('password.change');
     Route::post('/password/change', [CambiarPasswordController::class, 'change']);
 });
 
 // ==================== RUTAS PROTEGIDAS ====================
-
 Route::middleware(['auth', 'prevent-back-history'])->group(function () {
 
     // ========== DASHBOARD ==========
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ========== CALENDARIO ==========
-    Route::prefix('calendario')->name('calendario.')->group(function () {
+    Route::prefix('calendario')->name('calendario.')->middleware('permission:ver-calendario')->group(function () {
         Route::get('/', [CalendarioController::class, 'index'])->name('index');
         Route::get('/eventos', [CalendarioController::class, 'getEventos'])->name('eventos');
         Route::get('/evento', [CalendarioController::class, 'getEventoDetalle'])->name('evento.detalle');
     });
 
-    // 🆕 ============================================================
-    // 🆕 PERFIL DE USUARIO
-    // 🆕 ============================================================
+    // ========== PERFIL ==========
     Route::prefix('perfil')->name('profile.')->group(function () {
         Route::get('/', [ProfileController::class, 'index'])->name('index');
         Route::get('/data', [ProfileController::class, 'getData'])->name('data');
@@ -86,126 +76,158 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
     Route::prefix('admin')->middleware(['auditoria'])->name('admin.')->group(function () {
 
         // ========== AUDITORÍA ==========
-        Route::post('auditoria/limpiar', [AuditoriaController::class, 'limpiar'])->name('auditoria.limpiar');
-        Route::resource('auditoria', AuditoriaController::class)->only(['index', 'show', 'destroy']);
-
-        // ============================================================
-        // 1. MAESTROS
-        // ============================================================
-
-        // ------ ENTIDADES (vista unificada) ------
-        Route::get('/entidades', [EntidadController::class, 'index'])->name('entidades.index');
-
-        // ------ INSTITUCIONES ------
-        Route::get('instituciones', [InstitucionController::class, 'index'])->name('instituciones.index');
-        Route::post('instituciones', [InstitucionController::class, 'store'])->name('instituciones.store');
-        Route::get('instituciones/{institucione}', [InstitucionController::class, 'show'])->name('instituciones.show');
-        Route::put('instituciones/{institucione}', [InstitucionController::class, 'update'])->name('instituciones.update');
-        Route::delete('instituciones/{institucione}', [InstitucionController::class, 'destroy'])->name('instituciones.destroy');
-        Route::patch('instituciones/{institucione}/toggle-status', [InstitucionController::class, 'toggleStatus'])->name('instituciones.toggle-status');
-
-        // ------ DEPARTAMENTOS ------
-        Route::get('departamentos/por-institucion/{institucionId}', [DepartamentoController::class, 'porInstitucion'])->name('departamentos.por-institucion');
-        Route::get('departamentos', [DepartamentoController::class, 'index'])->name('departamentos.index');
-        Route::post('departamentos', [DepartamentoController::class, 'store'])->name('departamentos.store');
-        Route::get('departamentos/{departamento}', [DepartamentoController::class, 'show'])->name('departamentos.show');
-        Route::put('departamentos/{departamento}', [DepartamentoController::class, 'update'])->name('departamentos.update');
-        Route::delete('departamentos/{departamento}', [DepartamentoController::class, 'destroy'])->name('departamentos.destroy');
-        Route::patch('departamentos/{departamento}/toggle-status', [DepartamentoController::class, 'toggleStatus'])->name('departamentos.toggle-status');
-
-        // ------ RESPONSABLES ------
-        Route::get('responsables', [ResponsableController::class, 'index'])->name('responsables.index');
-        Route::post('responsables', [ResponsableController::class, 'store'])->name('responsables.store');
-        Route::get('responsables/{responsable}', [ResponsableController::class, 'show'])->name('responsables.show');
-        Route::put('responsables/{responsable}', [ResponsableController::class, 'update'])->name('responsables.update');
-        Route::delete('responsables/{responsable}', [ResponsableController::class, 'destroy'])->name('responsables.destroy');
-        Route::patch('responsables/{responsable}/toggle-status', [ResponsableController::class, 'toggleStatus'])->name('responsables.toggle-status');
-
-        // ============================================================
-        // 1.2 CATÁLOGO DE EQUIPOS
-        // ============================================================
-        Route::get('/equipos', [EquipoController::class, 'index'])->name('equipos.index');
-
-        Route::prefix('equipos')->group(function () {
-
-            // ------ MARCAS ------
-            Route::get('/marcas-list', [EquipoController::class, 'getMarcasList']);
-            Route::get('/marcas', [EquipoController::class, 'getMarcas']);
-            Route::post('/marcas', [EquipoController::class, 'storeMarca']);
-            Route::get('/marcas/{id}', [EquipoController::class, 'showMarca']);
-            Route::put('/marcas/{id}', [EquipoController::class, 'updateMarca']);
-            Route::delete('/marcas/{id}', [EquipoController::class, 'deleteMarca']);
-            Route::patch('/marcas/{id}/toggle', [EquipoController::class, 'toggleMarca']);
-
-            // ------ CATEGORÍAS ------
-            Route::get('/categorias-list', [EquipoController::class, 'getCategoriasList']);
-            Route::get('/categorias-por-marca/{marcaId}', [EquipoController::class, 'getCategoriasPorMarca']);
-            Route::get('/categorias', [EquipoController::class, 'getCategorias']);
-            Route::post('/categorias', [EquipoController::class, 'storeCategoria']);
-            Route::get('/categorias/{id}', [EquipoController::class, 'showCategoria']);
-            Route::put('/categorias/{id}', [EquipoController::class, 'updateCategoria']);
-            Route::delete('/categorias/{id}', [EquipoController::class, 'deleteCategoria']);
-            Route::patch('/categorias/{id}/toggle', [EquipoController::class, 'toggleCategoria']);
-
-            // ------ MODELOS ------
-            Route::get('/modelos', [EquipoController::class, 'getModelos']);
-            Route::post('/modelos', [EquipoController::class, 'storeModelo']);
-            Route::get('/modelos/{id}', [EquipoController::class, 'showModelo']);
-            Route::put('/modelos/{id}', [EquipoController::class, 'updateModelo']);
-            Route::delete('/modelos/{id}', [EquipoController::class, 'deleteModelo']);
-            Route::patch('/modelos/{id}/toggle', [EquipoController::class, 'toggleModelo']);
-
-            // ------ COMPONENTES POR MODELO ------
-            Route::get('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'index']);
-            Route::post('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'store']);
-            Route::get('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'show']);
-            Route::put('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'update']);
-            Route::delete('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'destroy']);
+        Route::middleware('permission:ver-auditoria')->group(function () {
+            Route::post('auditoria/limpiar', [AuditoriaController::class, 'limpiar'])->name('auditoria.limpiar');
+            Route::resource('auditoria', AuditoriaController::class)->only(['index', 'show', 'destroy']);
         });
 
         // ============================================================
-        // 2. GESTIÓN DE USUARIOS
+        // MAESTROS
+        // ============================================================
+
+        // ------ ENTIDADES (vista unificada) ------
+        Route::get('/entidades', [EntidadController::class, 'index'])
+            ->middleware('permission:ver-instituciones,ver-departamentos,ver-responsables')
+            ->name('entidades.index');
+
+        // ------ INSTITUCIONES ------
+        Route::middleware('permission:ver-instituciones')->group(function () {
+            Route::get('instituciones', [InstitucionController::class, 'index'])->name('instituciones.index');
+            Route::get('instituciones/{institucione}', [InstitucionController::class, 'show'])->name('instituciones.show');
+        });
+        Route::middleware('permission:crear-institucion')->group(function () {
+            Route::post('instituciones', [InstitucionController::class, 'store'])->name('instituciones.store');
+        });
+        Route::middleware('permission:editar-institucion')->group(function () {
+            Route::put('instituciones/{institucione}', [InstitucionController::class, 'update'])->name('instituciones.update');
+            Route::patch('instituciones/{institucione}/toggle-status', [InstitucionController::class, 'toggleStatus'])->name('instituciones.toggle-status');
+        });
+        Route::middleware('permission:eliminar-institucion')->group(function () {
+            Route::delete('instituciones/{institucione}', [InstitucionController::class, 'destroy'])->name('instituciones.destroy');
+        });
+
+        // ------ DEPARTAMENTOS ------
+        Route::get('departamentos/por-institucion/{institucionId}', [DepartamentoController::class, 'porInstitucion'])->name('departamentos.por-institucion');
+        Route::middleware('permission:ver-departamentos')->group(function () {
+            Route::get('departamentos', [DepartamentoController::class, 'index'])->name('departamentos.index');
+            Route::get('departamentos/{departamento}', [DepartamentoController::class, 'show'])->name('departamentos.show');
+        });
+        Route::middleware('permission:crear-departamento')->group(function () {
+            Route::post('departamentos', [DepartamentoController::class, 'store'])->name('departamentos.store');
+        });
+        Route::middleware('permission:editar-departamento')->group(function () {
+            Route::put('departamentos/{departamento}', [DepartamentoController::class, 'update'])->name('departamentos.update');
+            Route::patch('departamentos/{departamento}/toggle-status', [DepartamentoController::class, 'toggleStatus'])->name('departamentos.toggle-status');
+        });
+        Route::middleware('permission:eliminar-departamento')->group(function () {
+            Route::delete('departamentos/{departamento}', [DepartamentoController::class, 'destroy'])->name('departamentos.destroy');
+        });
+
+        // ------ RESPONSABLES ------
+        Route::middleware('permission:ver-responsables')->group(function () {
+            Route::get('responsables', [ResponsableController::class, 'index'])->name('responsables.index');
+            Route::get('responsables/{responsable}', [ResponsableController::class, 'show'])->name('responsables.show');
+        });
+        Route::middleware('permission:crear-responsable')->group(function () {
+            Route::post('responsables', [ResponsableController::class, 'store'])->name('responsables.store');
+        });
+        Route::middleware('permission:editar-responsable')->group(function () {
+            Route::put('responsables/{responsable}', [ResponsableController::class, 'update'])->name('responsables.update');
+            Route::patch('responsables/{responsable}/toggle-status', [ResponsableController::class, 'toggleStatus'])->name('responsables.toggle-status');
+        });
+        Route::middleware('permission:eliminar-responsable')->group(function () {
+            Route::delete('responsables/{responsable}', [ResponsableController::class, 'destroy'])->name('responsables.destroy');
+        });
+
+        // ============================================================
+        // CATÁLOGO DE EQUIPOS
+        // ============================================================
+        Route::get('/equipos', [EquipoController::class, 'index'])
+            ->middleware('permission:ver-marcas,ver-categorias-equipos,ver-modelos')
+            ->name('equipos.index');
+
+        Route::prefix('equipos')->group(function () {
+            // MARCAS
+            Route::get('/marcas-list', [EquipoController::class, 'getMarcasList']);
+            Route::get('/marcas', [EquipoController::class, 'getMarcas'])->middleware('permission:ver-marcas');
+            Route::post('/marcas', [EquipoController::class, 'storeMarca'])->middleware('permission:crear-marca');
+            Route::get('/marcas/{id}', [EquipoController::class, 'showMarca'])->middleware('permission:ver-marcas');
+            Route::put('/marcas/{id}', [EquipoController::class, 'updateMarca'])->middleware('permission:editar-marca');
+            Route::delete('/marcas/{id}', [EquipoController::class, 'deleteMarca'])->middleware('permission:eliminar-marca');
+            Route::patch('/marcas/{id}/toggle', [EquipoController::class, 'toggleMarca'])->middleware('permission:editar-marca');
+
+            // CATEGORÍAS
+            Route::get('/categorias-list', [EquipoController::class, 'getCategoriasList']);
+            Route::get('/categorias-por-marca/{marcaId}', [EquipoController::class, 'getCategoriasPorMarca']);
+            Route::get('/categorias', [EquipoController::class, 'getCategorias'])->middleware('permission:ver-categorias-equipos');
+            Route::post('/categorias', [EquipoController::class, 'storeCategoria'])->middleware('permission:crear-categoria-equipo');
+            Route::get('/categorias/{id}', [EquipoController::class, 'showCategoria'])->middleware('permission:ver-categorias-equipos');
+            Route::put('/categorias/{id}', [EquipoController::class, 'updateCategoria'])->middleware('permission:editar-categoria-equipo');
+            Route::delete('/categorias/{id}', [EquipoController::class, 'deleteCategoria'])->middleware('permission:eliminar-categoria-equipo');
+            Route::patch('/categorias/{id}/toggle', [EquipoController::class, 'toggleCategoria'])->middleware('permission:editar-categoria-equipo');
+
+            // MODELOS
+            Route::get('/modelos', [EquipoController::class, 'getModelos'])->middleware('permission:ver-modelos');
+            Route::post('/modelos', [EquipoController::class, 'storeModelo'])->middleware('permission:crear-modelo');
+            Route::get('/modelos/{id}', [EquipoController::class, 'showModelo'])->middleware('permission:ver-modelos');
+            Route::put('/modelos/{id}', [EquipoController::class, 'updateModelo'])->middleware('permission:editar-modelo');
+            Route::delete('/modelos/{id}', [EquipoController::class, 'deleteModelo'])->middleware('permission:eliminar-modelo');
+            Route::patch('/modelos/{id}/toggle', [EquipoController::class, 'toggleModelo'])->middleware('permission:editar-modelo');
+
+            // COMPONENTES POR MODELO
+            Route::get('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'index'])->middleware('permission:ver-modelos');
+            Route::post('/modelos/{modeloId}/componentes', [ModeloComponenteController::class, 'store'])->middleware('permission:editar-modelo');
+            Route::get('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'show'])->middleware('permission:ver-modelos');
+            Route::put('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'update'])->middleware('permission:editar-modelo');
+            Route::delete('/modelos/{modeloId}/componentes/{id}', [ModeloComponenteController::class, 'destroy'])->middleware('permission:eliminar-modelo');
+        });
+
+        // ============================================================
+        // GESTIÓN DE USUARIOS
         // ============================================================
 
         // ------ ROLES ------
-        Route::get('/roles/list', [RoleController::class, 'getRoles'])->name('roles.list');
-        Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
-        Route::post('/roles', [RoleController::class, 'store'])->name('roles.store');
-        Route::get('/roles/{id}', [RoleController::class, 'show'])->name('roles.show');
-        Route::put('/roles/{id}', [RoleController::class, 'update'])->name('roles.update');
-        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('roles.destroy');
-        Route::get('/permisos/todos', [RoleController::class, 'getPermisos'])->name('permisos.todos');
+        Route::middleware('permission:ver-roles')->group(function () {
+            Route::get('/roles/list', [RoleController::class, 'getRoles'])->name('roles.list');
+            Route::get('/roles', [RoleController::class, 'index'])->name('roles.index');
+            Route::get('/roles/{id}', [RoleController::class, 'show'])->name('roles.show');
+            Route::get('/permisos/todos', [RoleController::class, 'getPermisos'])->name('permisos.todos');
+        });
+        Route::post('/roles', [RoleController::class, 'store'])->middleware('permission:crear-rol')->name('roles.store');
+        Route::put('/roles/{id}', [RoleController::class, 'update'])->middleware('permission:editar-rol')->name('roles.update');
+        Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->middleware('permission:eliminar-rol')->name('roles.destroy');
 
         // ------ TRABAJADORES ------
-        Route::get('trabajadores/buscar-cedula/{cedula}', [TrabajadorController::class, 'buscarPorCedula'])
-            ->name('trabajadores.buscar-cedula');
-        Route::get('/trabajadores/{trabajador}/detalle', [TrabajadorController::class, 'show'])
-            ->name('trabajadores.show');
-        Route::resource('trabajadores', TrabajadorController::class)
-            ->parameters(['trabajadores' => 'trabajador']);
+        Route::get('trabajadores/buscar-cedula/{cedula}', [TrabajadorController::class, 'buscarPorCedula'])->middleware('permission:ver-trabajadores')->name('trabajadores.buscar-cedula');
+        Route::get('/trabajadores/{trabajador}/detalle', [TrabajadorController::class, 'show'])->middleware('permission:ver-trabajadores')->name('trabajadores.show');
+        Route::middleware('permission:ver-trabajadores')->group(function () {
+            Route::get('/trabajadores', [TrabajadorController::class, 'index'])->name('trabajadores.index');
+        });
+        Route::post('/trabajadores', [TrabajadorController::class, 'store'])->middleware('permission:crear-trabajador')->name('trabajadores.store');
+        Route::put('/trabajadores/{trabajador}', [TrabajadorController::class, 'update'])->middleware('permission:editar-trabajador')->name('trabajadores.update');
+        Route::delete('/trabajadores/{trabajador}', [TrabajadorController::class, 'destroy'])->middleware('permission:eliminar-trabajador')->name('trabajadores.destroy');
 
         // ------ USUARIOS ------
-        Route::patch('usuarios/{usuario}/toggle-status', [UsuarioController::class, 'toggleStatus'])->name('usuarios.toggle-status');
-        Route::patch('usuarios/{usuario}/reset-password', [UsuarioController::class, 'resetPassword'])->name('usuarios.reset-password');
-        Route::get('usuarios/{usuario}/detalle', [UsuarioController::class, 'show'])->name('usuarios.show');
-        Route::resource('usuarios', UsuarioController::class)->except(['show']);
+        Route::middleware('permission:ver-usuarios')->group(function () {
+            Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios.index');
+            Route::get('usuarios/{usuario}/detalle', [UsuarioController::class, 'show'])->name('usuarios.show');
+        });
+        Route::post('/usuarios', [UsuarioController::class, 'store'])->middleware('permission:crear-usuario')->name('usuarios.store');
+        Route::put('/usuarios/{usuario}', [UsuarioController::class, 'update'])->middleware('permission:editar-usuario')->name('usuarios.update');
+        Route::delete('/usuarios/{usuario}', [UsuarioController::class, 'destroy'])->middleware('permission:eliminar-usuario')->name('usuarios.destroy');
+        Route::patch('usuarios/{usuario}/toggle-status', [UsuarioController::class, 'toggleStatus'])->middleware('permission:activar-desactivar-usuario')->name('usuarios.toggle-status');
+        Route::patch('usuarios/{usuario}/reset-password', [UsuarioController::class, 'resetPassword'])->middleware('permission:resetear-password-usuario')->name('usuarios.reset-password');
 
         // ============================================================
-        // 3. PROCESOS OPERATIVOS
+        // INVENTARIO
         // ============================================================
+        Route::get('/inventario', [InventarioController::class, 'index'])
+            ->middleware('permission:ver-activos,ver-componentes')
+            ->name('inventario.index');
 
-        // ------ INVENTARIO ------
-        Route::get('/inventario', [InventarioController::class, 'index'])->name('inventario.index');
-
-        // ✅ RUTA: data paginada para activos (la que usa tu JS)
+        // Activos - DATA (JSON)
         Route::get('/inventario/data', function (Request $request) {
-            $query = \App\Models\Activo::with([
-                'modelo.marca',
-                'modelo.categoria',
-                'estatus',
-                'institucion',
-                'responsable',
-            ]);
+            $query = \App\Models\Activo::with(['modelo.marca', 'modelo.categoria', 'estatus', 'institucion', 'responsable']);
 
             if ($request->filled('search')) {
                 $buscar = $request->search;
@@ -217,26 +239,16 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
                 });
             }
 
-            if ($request->filled('id_tipo_activo')) {
-                $query->whereHas('modelo', fn($q) => $q->where('categoria_id', $request->id_tipo_activo));
-            }
-
             if ($request->filled('id_estatus')) {
                 $query->where('id_estatus', $request->id_estatus);
             }
 
-            return response()->json(
-                $query->orderBy('created_at', 'desc')->paginate(10)
-            );
-        })->name('inventario.data');
+            return response()->json($query->orderBy('created_at', 'desc')->paginate(10));
+        })->middleware('permission:ver-activos')->name('inventario.data');
 
-        // ✅ RUTA: data paginada para componentes
+        // Componentes - DATA (JSON)
         Route::get('/componentes/data', function (Request $request) {
-            $query = \App\Models\Componente::with([
-                'activo',
-                'institucion',
-                'responsable',
-            ]);
+            $query = \App\Models\Componente::with(['activo', 'institucion', 'responsable']);
 
             if ($request->filled('search')) {
                 $buscar = $request->search;
@@ -248,204 +260,144 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
                 });
             }
 
-            if ($request->filled('tipo')) {
-                $query->where('tipo', $request->tipo);
-            }
+            if ($request->filled('tipo')) $query->where('tipo', $request->tipo);
+            if ($request->filled('estado')) $query->where('estado', $request->estado);
 
-            if ($request->filled('estado')) {
-                $query->where('estado', $request->estado);
-            }
+            return response()->json($query->orderBy('created_at', 'desc')->paginate(10));
+        })->middleware('permission:ver-componentes')->name('componentes.data');
 
-            return response()->json(
-                $query->orderBy('created_at', 'desc')->paginate(10)
-            );
-        })->name('componentes.data');
+        // Activos - CRUD
+        Route::get('/activos/por-modelo/{modeloId}', [ActivoController::class, 'porModelo'])->middleware('permission:ver-activos')->name('activos.por-modelo');
+        Route::middleware('permission:ver-activos')->group(function () {
+            Route::get('/activos', [ActivoController::class, 'index'])->name('inventario.index');
+            Route::get('/activos/{activo}', [ActivoController::class, 'show'])->name('inventario.show');
+        });
+        Route::post('/activos', [ActivoController::class, 'store'])->middleware('permission:crear-activo')->name('inventario.store');
+        Route::put('/activos/{activo}', [ActivoController::class, 'update'])->middleware('permission:editar-activo')->name('inventario.update');
+        Route::delete('/activos/{activo}', [ActivoController::class, 'destroy'])->middleware('permission:eliminar-activo')->name('inventario.destroy');
+        Route::patch('/activos/{activo}/toggle-status', [ActivoController::class, 'toggleStatus'])->middleware('permission:cambiar-estatus-activo')->name('inventario.toggle-status');
 
-        // ------ ACTIVOS ------
-        Route::get('/activos/por-modelo/{modeloId}', [ActivoController::class, 'porModelo'])->name('activos.por-modelo');
-        Route::get('/activos', [ActivoController::class, 'index'])->name('inventario.index');
-        Route::post('/activos', [ActivoController::class, 'store'])->name('inventario.store');
-        Route::get('/activos/{activo}', [ActivoController::class, 'show'])->name('inventario.show');
-        Route::put('/activos/{activo}', [ActivoController::class, 'update'])->name('inventario.update');
-        Route::delete('/activos/{activo}', [ActivoController::class, 'destroy'])->name('inventario.destroy');
-        Route::patch('/activos/{activo}/toggle-status', [ActivoController::class, 'toggleStatus'])->name('inventario.toggle-status');
-
-        // ------ COMPONENTES ------
-        Route::get('/componentes/disponibles', [ComponenteController::class, 'disponibles'])->name('componentes.disponibles');
-        Route::get('/componentes/en-bodega', [ComponenteController::class, 'enBodega']);
-        Route::get('/componentes/por-tipo/{tipo}', [ComponenteController::class, 'porTipo']);
-        Route::get('/componentes', [ComponenteController::class, 'index']);
-        Route::post('/componentes', [ComponenteController::class, 'store']);
-        Route::get('/componentes/{componente}', [ComponenteController::class, 'show']);
-        Route::put('/componentes/{componente}', [ComponenteController::class, 'update']);
-        Route::delete('/componentes/{componente}', [ComponenteController::class, 'destroy']);
-        Route::patch('/componentes/{componente}/toggle-status', [ComponenteController::class, 'toggleStatus']);
+        // Componentes - CRUD
+        Route::get('/componentes/disponibles', [ComponenteController::class, 'disponibles'])->middleware('permission:ver-componentes')->name('componentes.disponibles');
+        Route::get('/componentes/en-bodega', [ComponenteController::class, 'enBodega'])->middleware('permission:ver-componentes');
+        Route::get('/componentes/por-tipo/{tipo}', [ComponenteController::class, 'porTipo'])->middleware('permission:ver-componentes');
+        Route::get('/componentes', [ComponenteController::class, 'index'])->middleware('permission:ver-componentes');
+        Route::post('/componentes', [ComponenteController::class, 'store'])->middleware('permission:crear-componente');
+        Route::get('/componentes/{componente}', [ComponenteController::class, 'show'])->middleware('permission:ver-componentes');
+        Route::put('/componentes/{componente}', [ComponenteController::class, 'update'])->middleware('permission:editar-componente');
+        Route::delete('/componentes/{componente}', [ComponenteController::class, 'destroy'])->middleware('permission:eliminar-componente');
+        Route::patch('/componentes/{componente}/toggle-status', [ComponenteController::class, 'toggleStatus'])->middleware('permission:editar-componente');
 
         // ============================================================
         // PRÉSTAMOS
         // ============================================================
         Route::prefix('prestamos')->name('prestamos.')->group(function () {
+            Route::middleware('permission:ver-prestamos')->group(function () {
+                Route::get('/listar', [PrestamoController::class, 'listar'])->name('listar');
+                Route::get('/buscar-responsable', [PrestamoController::class, 'buscarResponsableDestino'])->name('buscar-responsable');
+                Route::get('/buscar-items', [PrestamoController::class, 'buscarItems'])->name('buscar-items');
+                Route::get('/para-prestamo', [PrestamoController::class, 'paraPrestamo'])->name('para-prestamo');
+                Route::get('/', [PrestamoController::class, 'index'])->name('index');
+                Route::get('/{prestamo}', [PrestamoController::class, 'show'])->name('show');
+            });
 
-            // Rutas específicas PRIMERO
-            Route::get('/listar', [PrestamoController::class, 'listar'])->name('listar');
-            Route::get('/buscar-responsable', [PrestamoController::class, 'buscarResponsableDestino'])->name('buscar-responsable');
-            Route::get('/buscar-items', [PrestamoController::class, 'buscarItems'])->name('buscar-items');
-            Route::get('/para-prestamo', [PrestamoController::class, 'paraPrestamo'])->name('para-prestamo');
+            Route::post('/', [PrestamoController::class, 'store'])->middleware('permission:crear-prestamo')->name('store');
+            Route::put('/{prestamo}', [PrestamoController::class, 'update'])->middleware('permission:editar-prestamo')->name('update');
 
-            // CRUD
-            Route::get('/', [PrestamoController::class, 'index'])->name('index');
-            Route::post('/', [PrestamoController::class, 'store'])->name('store');
-            Route::get('/{prestamo}', [PrestamoController::class, 'show'])->name('show');
-            Route::put('/{prestamo}', [PrestamoController::class, 'update'])->name('update');
-
-            // Acciones
-            Route::post('/{prestamo}/aprobar', [PrestamoController::class, 'aprobar'])->name('aprobar');
-            Route::post('/{prestamo}/rechazar', [PrestamoController::class, 'rechazar'])->name('rechazar');
-            Route::post('/{prestamo}/entregar', [PrestamoController::class, 'entregar'])->name('entregar');
-            Route::post('/{prestamo}/devolver', [PrestamoController::class, 'devolver'])->name('devolver');
-            Route::post('/{prestamo}/cancelar', [PrestamoController::class, 'cancelar'])->name('cancelar');
-            Route::post('/{prestamo}/extender', [PrestamoController::class, 'extender'])->name('extender');
+            Route::post('/{prestamo}/aprobar', [PrestamoController::class, 'aprobar'])->middleware('permission:aprobar-prestamo')->name('aprobar');
+            Route::post('/{prestamo}/rechazar', [PrestamoController::class, 'rechazar'])->middleware('permission:aprobar-prestamo')->name('rechazar');
+            Route::post('/{prestamo}/entregar', [PrestamoController::class, 'entregar'])->middleware('permission:editar-prestamo')->name('entregar');
+            Route::post('/{prestamo}/devolver', [PrestamoController::class, 'devolver'])->middleware('permission:devolver-prestamo')->name('devolver');
+            Route::post('/{prestamo}/cancelar', [PrestamoController::class, 'cancelar'])->middleware('permission:cancelar-prestamo')->name('cancelar');
+            Route::post('/{prestamo}/extender', [PrestamoController::class, 'extender'])->middleware('permission:extender-prestamo')->name('extender');
         });
 
         // ============================================================
         // SOLICITUDES
-        // ⚠️ IMPORTANTE: Las rutas /correos/ van ANTES del CRUD
         // ============================================================
         Route::prefix('solicitudes')->name('solicitudes.')->group(function () {
-
-            // ========== CORREOS DE SOLICITUD (PRIMERO) ==========
-            Route::prefix('correos')->name('correos.')->group(function () {
-                // ✅ Rutas específicas PRIMERO (lista, contador, revisar)
+            // CORREOS
+            Route::prefix('correos')->name('correos.')->middleware('permission:aprobar-solicitudes')->group(function () {
                 Route::get('/lista', [SolicitudController::class, 'correosIndex'])->name('index');
                 Route::get('/contador', [SolicitudController::class, 'correosContador'])->name('contador');
                 Route::post('/revisar', [SolicitudController::class, 'correosRevisar'])->name('revisar');
-
-                // ✅ Luego las rutas con {id}
-                Route::get('/{id}', [SolicitudController::class, 'correoShow'])
-                    ->where('id', '[0-9]+')
-                    ->name('show');
-                Route::post('/{id}/convertir', [SolicitudController::class, 'correoConvertir'])
-                    ->where('id', '[0-9]+')
-                    ->name('convertir');
+                Route::get('/{id}', [SolicitudController::class, 'correoShow'])->where('id', '[0-9]+')->name('show');
+                Route::post('/{id}/convertir', [SolicitudController::class, 'correoConvertir'])->where('id', '[0-9]+')->name('convertir');
             });
 
-            // ========== RUTAS ESPECÍFICAS (ANTES DE {solicitud}) ==========
-            Route::get('/pendientes-prestamo', [SolicitudController::class, 'paraPrestamo'])->name('pendientes-prestamo');
-            Route::get('/no-leidas', [SolicitudController::class, 'noLeidasAdmin'])->name('no-leidas');
-            Route::post('/store', [SolicitudController::class, 'store'])->name('store');
+            Route::middleware('permission:ver-solicitudes')->group(function () {
+                Route::get('/', [SolicitudController::class, 'index'])->name('index');
+                Route::get('/pendientes-prestamo', [SolicitudController::class, 'paraPrestamo'])->name('pendientes-prestamo');
+                Route::get('/no-leidas', [SolicitudController::class, 'noLeidasAdmin'])->name('no-leidas');
+                Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])->where('solicitud', '[0-9]+')->name('detalles');
+            });
 
-            // ========== CRUD ==========
-            Route::get('/', [SolicitudController::class, 'index'])->name('index');
-            Route::get('/{solicitud}/detalles', [SolicitudController::class, 'getDetalles'])
-                ->where('solicitud', '[0-9]+')
-                ->name('detalles');
-            Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])
-                ->where('solicitud', '[0-9]+')
-                ->name('update');
-            Route::delete('/{solicitud}', [SolicitudController::class, 'destroy'])
-                ->where('solicitud', '[0-9]+')
-                ->name('destroy');
-            Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])
-                ->where('solicitud', '[0-9]+')
-                ->name('cancel');
-            Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])
-                ->where('solicitud', '[0-9]+')
-                ->name('approve');
-            Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])
-                ->where('solicitud', '[0-9]+')
-                ->name('reject');
-            Route::post('/{solicitud}/leer', [SolicitudController::class, 'marcarLeida'])
-                ->where('solicitud', '[0-9]+')
-                ->name('leer');
+            Route::post('/store', [SolicitudController::class, 'store'])->middleware('permission:crear-solicitud')->name('store');
+            Route::post('/{solicitud}/update', [SolicitudController::class, 'update'])->middleware('permission:editar-solicitud')->where('solicitud', '[0-9]+')->name('update');
+            Route::delete('/{solicitud}', [SolicitudController::class, 'destroy'])->middleware('permission:eliminar-solicitud')->where('solicitud', '[0-9]+')->name('destroy');
+            Route::post('/{solicitud}/cancel', [SolicitudController::class, 'cancel'])->middleware('permission:cancelar-solicitud')->where('solicitud', '[0-9]+')->name('cancel');
+            Route::post('/{solicitud}/approve', [SolicitudController::class, 'approve'])->middleware('permission:aprobar-solicitudes')->where('solicitud', '[0-9]+')->name('approve');
+            Route::post('/{solicitud}/reject', [SolicitudController::class, 'reject'])->middleware('permission:aprobar-solicitudes')->where('solicitud', '[0-9]+')->name('reject');
+            Route::post('/{solicitud}/leer', [SolicitudController::class, 'marcarLeida'])->middleware('permission:aprobar-solicitudes')->where('solicitud', '[0-9]+')->name('leer');
         });
 
         // ============================================================
         // SOPORTE TÉCNICO
-        // ⚠️ IMPORTANTE: Las rutas /soporte/correos/ van ANTES del resource
         // ============================================================
         Route::prefix('soporte')->name('soporte.')->group(function () {
-
-            // ========== CORREOS DE SOPORTE (PRIMERO) ==========
-            Route::prefix('correos')->name('correos.')->group(function () {
-                // ✅ Rutas específicas PRIMERO
+            // CORREOS
+            Route::prefix('correos')->name('correos.')->middleware('permission:ver-fichas-soporte')->group(function () {
                 Route::get('/lista', [FichaSoporteController::class, 'correosIndex'])->name('index');
                 Route::get('/contador', [FichaSoporteController::class, 'correosContador'])->name('contador');
                 Route::post('/revisar', [FichaSoporteController::class, 'correosRevisar'])->name('revisar');
-
-                // ✅ Luego las rutas con {id}
-                Route::get('/{id}', [FichaSoporteController::class, 'correoShow'])
-                    ->where('id', '[0-9]+')
-                    ->name('show');
-                Route::post('/{id}/convertir', [FichaSoporteController::class, 'correoConvertir'])
-                    ->where('id', '[0-9]+')
-                    ->name('convertir');
+                Route::get('/{id}', [FichaSoporteController::class, 'correoShow'])->where('id', '[0-9]+')->name('show');
+                Route::post('/{id}/convertir', [FichaSoporteController::class, 'correoConvertir'])->middleware('permission:crear-ficha-soporte')->where('id', '[0-9]+')->name('convertir');
             });
 
-            // ========== RUTAS ESPECÍFICAS (ANTES DE {soporte}) ==========
-            Route::post('/equipo-externo', [FichaSoporteController::class, 'storeEquipoExterno'])->name('equipo-externo');
+            Route::middleware('permission:ver-fichas-soporte')->group(function () {
+                Route::get('/', [FichaSoporteController::class, 'index'])->name('index');
+                Route::get('/{id}', [FichaSoporteController::class, 'show'])->where('id', '[0-9]+')->name('show');
+                Route::get('/{id}/componentes', [FichaSoporteController::class, 'getComponentesDetalle'])->where('id', '[0-9]+')->name('componentes');
+            });
 
-            // ========== CRUD ==========
-            Route::get('/', [FichaSoporteController::class, 'index'])->name('index');
-            Route::post('/', [FichaSoporteController::class, 'store'])->name('store');
-            Route::get('/{id}', [FichaSoporteController::class, 'show'])
-                ->where('id', '[0-9]+')
-                ->name('show');
-            Route::put('/{id}', [FichaSoporteController::class, 'update'])
-                ->where('id', '[0-9]+')
-                ->name('update');
-            Route::delete('/{id}', [FichaSoporteController::class, 'destroy'])
-                ->where('id', '[0-9]+')
-                ->name('destroy');
-            Route::get('/{id}/componentes', [FichaSoporteController::class, 'getComponentesDetalle'])
-                ->where('id', '[0-9]+')
-                ->name('componentes');
-            Route::post('/{id}/close', [FichaSoporteController::class, 'close'])
-                ->where('id', '[0-9]+')
-                ->name('close');
+            Route::post('/', [FichaSoporteController::class, 'store'])->middleware('permission:crear-ficha-soporte')->name('store');
+            Route::post('/equipo-externo', [FichaSoporteController::class, 'storeEquipoExterno'])->middleware('permission:crear-ficha-soporte')->name('equipo-externo');
+            Route::put('/{id}', [FichaSoporteController::class, 'update'])->middleware('permission:editar-ficha-soporte')->where('id', '[0-9]+')->name('update');
+            Route::delete('/{id}', [FichaSoporteController::class, 'destroy'])->middleware('permission:eliminar-ficha-soporte')->where('id', '[0-9]+')->name('destroy');
+            Route::post('/{id}/close', [FichaSoporteController::class, 'close'])->middleware('permission:cerrar-ficha-soporte')->where('id', '[0-9]+')->name('close');
         });
 
         // ============================================================
         // ACTAS
         // ============================================================
-        Route::prefix('actas')->name('actas.')->group(function () {
-
-            // Acta de Entrega
+        Route::prefix('actas')->name('actas.')->middleware('permission:ver-prestamos')->group(function () {
             Route::get('/generar', [ActaEntregaController::class, 'generarDesdePrestamo'])->name('generar');
             Route::get('/imprimir/{id}', [ActaEntregaController::class, 'imprimir'])->name('imprimir');
-
-            // Acta de Devolución
             Route::get('/devolucion/generar', [ActaDevolucionController::class, 'generarDesdePrestamo'])->name('devolucion.generar');
             Route::get('/devolucion/imprimir/{id}', [ActaDevolucionController::class, 'imprimir'])->name('devolucion.imprimir');
         });
 
-                // ============================================================
-        // 4. REPORTES - MÓDULO COMPLETO (3 SECCIONES)
         // ============================================================
-        Route::prefix('reportes')->name('reportes.')->group(function () {
-            // Vista principal con tabs
-            Route::get('/', [\App\Http\Controllers\Admin\ReporteController::class, 'index'])->name('index');
-
-            // Reportes por sección (AJAX JSON)
-            Route::get('/inventario', [\App\Http\Controllers\Admin\ReporteController::class, 'inventario'])->name('inventario');
-            Route::get('/solicitudes', [\App\Http\Controllers\Admin\ReporteController::class, 'solicitudes'])->name('solicitudes');
-            Route::get('/soporte', [\App\Http\Controllers\Admin\ReporteController::class, 'soporte'])->name('soporte');
-
-            // Exportar PDF
-            Route::get('/exportar-pdf', [\App\Http\Controllers\Admin\ReporteController::class, 'exportarPdf'])->name('exportar.pdf');
-
-            // (Se mantienen los reportes antiguos de inventario por compatibilidad)
-            Route::get('/inventario/exportar-excel', [ReporteInventarioController::class, 'exportarExcel'])->name('inventario.exportar-excel');
+        // REPORTES
+        // ============================================================
+        Route::prefix('reportes')->name('reportes.')->middleware('permission:ver-reportes')->group(function () {
+            Route::get('/', [ReporteController::class, 'index'])->name('index');
+            Route::get('/inventario', [ReporteController::class, 'inventario'])->name('inventario');
+            Route::get('/solicitudes', [ReporteController::class, 'solicitudes'])->name('solicitudes');
+            Route::get('/soporte', [ReporteController::class, 'soporte'])->name('soporte');
+            Route::get('/exportar-pdf', [ReporteController::class, 'exportarPdf'])->middleware('permission:exportar-reportes')->name('exportar.pdf');
+            Route::get('/inventario/exportar-excel', [ReporteInventarioController::class, 'exportarExcel'])->middleware('permission:exportar-reportes')->name('inventario.exportar-excel');
         });
 
         // ============================================================
-        // 5. UTILIDADES
+        // UTILIDADES (sin permiso específico, solo auth)
         // ============================================================
         Route::get('/estatus-list', function () {
             $estatus = Estatus::select('id', 'descripcion', 'color_badge')->orderBy('descripcion')->get();
             return response()->json(['success' => true, 'data' => $estatus]);
         });
 
-        // ------ UBICACIONES ------
+        // UBICACIONES
         Route::get('/ubicaciones/estados', [UbicacionController::class, 'getEstados'])->name('ubicaciones.estados');
         Route::get('/ubicaciones/estados/{estadoId}/municipios', [UbicacionController::class, 'getMunicipios'])->name('ubicaciones.municipios');
         Route::get('/ubicaciones/municipios/{municipioId}/parroquias', [UbicacionController::class, 'getParroquias'])->name('ubicaciones.parroquias');
@@ -453,18 +405,11 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
         // ============================================================
         // NOTIFICACIONES
         // ============================================================
-        Route::prefix('notificaciones')->name('notificaciones.')->group(function () {
-
-            // Rutas específicas PRIMERO
+        Route::prefix('notificaciones')->name('notificaciones.')->middleware('permission:ver-notificaciones')->group(function () {
             Route::post('/marcar-todas-leidas', [NotificacionController::class, 'marcarTodasComoLeidas'])->name('marcar-todas');
             Route::get('/no-leidas', [NotificacionController::class, 'obtenerNoLeidas'])->name('no-leidas');
-
-            // CRUD
             Route::get('/', [NotificacionController::class, 'index'])->name('index');
-            Route::post('/{id}/leer', [NotificacionController::class, 'marcarComoLeida'])
-                ->where('id', '[0-9]+')
-                ->name('leer');
-
+            Route::post('/{id}/leer', [NotificacionController::class, 'leer'])->where('id', '[0-9]+')->name('leer');
             Route::get('/{id}/detalle', function ($id) {
                 $notificacion = App\Models\Notificacion::findOrFail($id);
                 return response()->json([
@@ -483,10 +428,8 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
         });
 
         // ============================================================
-        // API PARA RESPONSABLES
+        // API RESPONSABLES (sin permiso, solo auth)
         // ============================================================
-
-        // --- GET: Obtener responsable de departamento ---
         Route::get('/api/departamento/{id}/responsable', function ($id) {
             $departamento = App\Models\Departamento::with('responsables')->find($id);
             $responsable = $departamento ? $departamento->responsables->first() : null;
@@ -504,7 +447,6 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
             ]);
         });
 
-        // --- GET: Obtener responsable de institución ---
         Route::get('/api/institucion/{id}/responsable', function ($id) {
             $institucion = App\Models\Institucion::with('responsablesDirectos')->find($id);
             $responsable = $institucion ? $institucion->responsablesDirectos->first() : null;
@@ -522,7 +464,6 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
             ]);
         });
 
-        // --- POST: Actualizar/Crear responsable de departamento ---
         Route::post('/api/departamento/{id}/responsable', function (Request $request, $id) {
             $departamento = App\Models\Departamento::findOrFail($id);
 
@@ -563,7 +504,6 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
             return response()->json(['success' => true, 'responsable' => $responsable]);
         });
 
-        // --- POST: Actualizar/Crear responsable de institución ---
         Route::post('/api/institucion/{id}/responsable', function (Request $request, $id) {
             $institucion = App\Models\Institucion::findOrFail($id);
 
@@ -605,16 +545,13 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
         });
 
         // ============================================================
-        // API PARA TÉCNICOS (SOPORTE)
-        // ✅ Incluye admin, ingeniero y tecnico
+        // API TÉCNICOS
         // ============================================================
         Route::prefix('api')->group(function () {
-
             Route::get('/tecnicos', function (Request $request) {
                 $search = $request->get('search');
 
                 $query = App\Models\Usuario::whereHas('rol', function ($q) {
-                    // ✅ Incluye los 3 roles que pueden ser técnicos
                     $q->whereIn('nombre', ['tecnico', 'admin', 'ingeniero']);
                 })->with('trabajador');
 
@@ -629,13 +566,11 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
                     });
                 }
 
-                $tecnicos = $query->limit(15)->get();
-                return response()->json($tecnicos);
+                return response()->json($query->limit(15)->get());
             });
 
             Route::get('/tecnicos/{id}', function ($id) {
                 $tecnico = App\Models\Usuario::whereHas('rol', function ($q) {
-                    // ✅ Incluye los 3 roles que pueden ser técnicos
                     $q->whereIn('nombre', ['tecnico', 'admin', 'ingeniero']);
                 })->with('trabajador')->find($id);
 

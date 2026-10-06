@@ -12,11 +12,14 @@ class RoleController extends Controller
 {
     public function index(Request $request)
     {
+        if (!auth()->user()->hasPermission('ver-roles')) {
+            abort(403, 'No tienes permiso para ver roles');
+        }
+
         $roles = Rol::withCount('usuarios')->orderBy('nombre')->get();
         $permisos = Permiso::orderBy('categoria')->orderBy('nombre')->get();
         $permisosAgrupados = $permisos->groupBy('categoria');
 
-        // Estadísticas para las tarjetas (sin Usuario)
         $totalRoles = Rol::count();
         $totalPermisos = Permiso::count();
 
@@ -28,36 +31,31 @@ class RoleController extends Controller
         ));
     }
 
-    /**
-     * Obtener lista de roles (API)
-     */
     public function getRoles(Request $request)
     {
+        if (!auth()->user()->hasPermission('ver-roles')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
         try {
             $roles = Rol::withCount('usuarios')->orderBy('nombre')->get();
 
-            // Agregar conteo de permisos manualmente
             foreach ($roles as $rol) {
                 $rol->permisos_count = DB::table('permiso_rol')->where('rol_id', $rol->id)->count();
             }
 
-            return response()->json([
-                'success' => true,
-                'data' => $roles
-            ]);
+            return response()->json(['success' => true, 'data' => $roles]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Obtener detalle de un rol
-     */
     public function show($id)
     {
+        if (!auth()->user()->hasPermission('ver-roles')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
         try {
             $rol = Rol::with('permisos')->withCount('usuarios')->findOrFail($id);
 
@@ -72,18 +70,16 @@ class RoleController extends Controller
                 ]
             ]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Rol no encontrado'
-            ], 404);
+            return response()->json(['success' => false, 'message' => 'Rol no encontrado'], 404);
         }
     }
 
-    /**
-     * Crear nuevo rol
-     */
     public function store(Request $request)
     {
+        if (!auth()->user()->hasPermission('crear-rol')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
         try {
             $validated = $request->validate([
                 'nombre' => 'required|string|max:50|unique:roles,nombre',
@@ -101,38 +97,25 @@ class RoleController extends Controller
                 $rol->permisos()->sync($validated['permisos']);
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Rol creado exitosamente',
-                'data' => $rol
-            ]);
+            return response()->json(['success' => true, 'message' => 'Rol creado exitosamente', 'data' => $rol]);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $e->errors()
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Error de validación', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al crear: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error al crear: ' . $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Actualizar rol
-     */
     public function update(Request $request, $id)
     {
+        if (!auth()->user()->hasPermission('editar-rol')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
         try {
             $rol = Rol::findOrFail($id);
 
             if ($rol->nombre === 'admin' && $request->nombre !== 'admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede cambiar el nombre del rol Administrador'
-                ], 403);
+                return response()->json(['success' => false, 'message' => 'No se puede cambiar el nombre del rol Administrador'], 403);
             }
 
             $validated = $request->validate([
@@ -149,79 +132,53 @@ class RoleController extends Controller
 
             $rol->permisos()->sync($validated['permisos'] ?? []);
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Rol actualizado exitosamente'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Rol actualizado exitosamente']);
         } catch (\Illuminate\Validation\ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error de validación',
-                'errors' => $e->errors()
-            ], 422);
+            return response()->json(['success' => false, 'message' => 'Error de validación', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al actualizar: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error al actualizar: ' . $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Eliminar rol
-     */
     public function destroy($id)
     {
+        if (!auth()->user()->hasPermission('eliminar-rol')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
         try {
             $rol = Rol::findOrFail($id);
 
             if ($rol->nombre === 'admin') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede eliminar el rol Administrador'
-                ], 403);
+                return response()->json(['success' => false, 'message' => 'No se puede eliminar el rol Administrador'], 403);
             }
 
             if ($rol->usuarios()->count() > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No se puede eliminar porque tiene usuarios asignados'
-                ], 400);
+                return response()->json(['success' => false, 'message' => 'No se puede eliminar porque tiene usuarios asignados'], 400);
             }
 
             $rol->permisos()->detach();
             $rol->delete();
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Rol eliminado exitosamente'
-            ]);
+            return response()->json(['success' => true, 'message' => 'Rol eliminado exitosamente']);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al eliminar: ' . $e->getMessage()
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error al eliminar: ' . $e->getMessage()], 500);
         }
     }
 
-    /**
-     * Obtener todos los permisos
-     */
     public function getPermisos()
     {
+        if (!auth()->user()->hasPermission('ver-roles')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
         try {
             $permisos = Permiso::orderBy('categoria')->orderBy('nombre')->get();
             $agrupados = $permisos->groupBy('categoria');
 
-            return response()->json([
-                'success' => true,
-                'data' => $agrupados
-            ]);
+            return response()->json(['success' => true, 'data' => $agrupados]);
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error al cargar permisos'
-            ], 500);
+            return response()->json(['success' => false, 'message' => 'Error al cargar permisos'], 500);
         }
     }
 }

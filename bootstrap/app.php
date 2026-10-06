@@ -14,11 +14,12 @@ return Application::configure(basePath: dirname(__DIR__))
         // Alias
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+            'permission' => \App\Http\Middleware\PermissionMiddleware::class,
             'auditoria' => \App\Http\Middleware\AuditoriaMiddleware::class,
             'prevent-back-history' => \App\Http\Middleware\PreventBackHistory::class,
         ]);
 
-        // ✅ Añadir el middleware GLOBALMENTE al grupo 'web'
+        // Middleware global en el grupo 'web'
         $middleware->appendToGroup('web', \App\Http\Middleware\PreventBackHistory::class);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
