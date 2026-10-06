@@ -70,6 +70,10 @@ export default defineConfig({
                 'resources/css/skeleton-loading.css',
                 'resources/css/smooth-modals.css',
                 'resources/js/validations.js',
+
+                // Animación de introducción del robot
+                'resources/css/auth/robot-intro.css',
+                'resources/js/auth/robot-intro.js',
             ],
             refresh: true,
         }),

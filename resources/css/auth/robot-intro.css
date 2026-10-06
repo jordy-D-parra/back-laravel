@@ -1,0 +1,1014 @@
+/* ============================================================
+ROBOT INTRO ANIMATION - Gobernación de Yaracuy
+============================================================ */
+.robot-intro-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 999999;
+    background: linear-gradient(135deg, #0f172a 0%, #1e3c72 50%, #2a5298 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+}
+
+.robot-intro-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.robot-intro-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(246, 194, 62, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+/* Estrellas de fondo */
+.robot-intro-stars {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.robot-intro-star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+    animation: starTwinkle 3s infinite ease-in-out;
+}
+
+@keyframes starTwinkle {
+    0%, 100% { opacity: 0; transform: scale(0.5); }
+    50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* ============================================================
+ESCENARIO
+============================================================ */
+.robot-stage {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    perspective: 1800px;
+}
+
+/* ============================================================
+ROBOT
+============================================================ */
+.robot {
+    position: absolute;
+    bottom: 20%;
+    left: -200px;
+    width: 140px;
+    height: 200px;
+    z-index: 20;
+    animation: robotWalkIn 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes robotWalkIn {
+    0% { left: -200px; }
+    70% { left: calc(50% - 70px); }
+    85% { left: calc(50% - 75px); }
+    100% { left: calc(50% - 70px); }
+}
+
+/* ============================================================
+CUERPO DEL ROBOT
+============================================================ */
+.robot-body-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Cabeza */
+.robot-head {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 90px;
+    height: 75px;
+    background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%);
+    border-radius: 20px 20px 15px 15px;
+    box-shadow:
+        inset 0 -4px 8px rgba(0, 0, 0, 0.1),
+        inset 0 4px 8px rgba(255, 255, 255, 0.6),
+        0 4px 12px rgba(0, 0, 0, 0.3);
+    border: 2px solid #94a3b8;
+    z-index: 5;
+}
+
+/* Antena */
+.robot-antenna {
+    position: absolute;
+    top: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 3px;
+    height: 22px;
+    background: linear-gradient(180deg, #64748b, #94a3b8);
+    border-radius: 2px;
+}
+
+.robot-antenna-ball {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 12px;
+    height: 12px;
+    background: radial-gradient(circle at 30% 30%, #fbbf24, #f59e0b);
+    border-radius: 50%;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+    animation: antennaPulse 1.5s infinite ease-in-out;
+}
+
+@keyframes antennaPulse {
+    0%, 100% { box-shadow: 0 0 12px rgba(251, 191, 36, 0.6); }
+    50% { box-shadow: 0 0 20px rgba(251, 191, 36, 1); }
+}
+
+/* Cara */
+.robot-face {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70px;
+    height: 40px;
+    background: #0f172a;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+    overflow: hidden;
+}
+
+.robot-face::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.2), transparent);
+    animation: faceGlow 3s infinite;
+}
+
+@keyframes faceGlow {
+    0%, 100% { transform: translateX(-100%); }
+    50% { transform: translateX(100%); }
+}
+
+.robot-eye {
+    width: 14px;
+    height: 14px;
+    background: radial-gradient(circle at 30% 30%, #60a5fa, #1e40af);
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(96, 165, 250, 0.8);
+    position: relative;
+    z-index: 1;
+    animation: eyeBlink 4s infinite;
+}
+
+@keyframes eyeBlink {
+    0%, 92%, 100% { transform: scaleY(1); }
+    95% { transform: scaleY(0.1); }
+}
+
+/* Cuello */
+.robot-neck {
+    position: absolute;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: 12px;
+    background: linear-gradient(180deg, #94a3b8, #64748b);
+    border-radius: 4px;
+    z-index: 4;
+}
+
+/* Torso */
+.robot-torso {
+    position: absolute;
+    top: 78px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100px;
+    height: 85px;
+    background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%);
+    border-radius: 15px 15px 12px 12px;
+    box-shadow:
+        inset 0 -4px 8px rgba(0, 0, 0, 0.1),
+        inset 0 4px 8px rgba(255, 255, 255, 0.5),
+        0 4px 12px rgba(0, 0, 0, 0.2);
+    border: 2px solid #94a3b8;
+    z-index: 3;
+}
+
+/* Panel del pecho */
+.robot-chest-panel {
+    position: absolute;
+    top: 15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 40px;
+    background: #0f172a;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.robot-chest-line {
+    width: 40px;
+    height: 3px;
+    background: #3b82f6;
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
+}
+
+.robot-chest-line:nth-child(1) { animation: chestLine 2s infinite 0s; }
+.robot-chest-line:nth-child(2) { animation: chestLine 2s infinite 0.3s; }
+.robot-chest-line:nth-child(3) { animation: chestLine 2s infinite 0.6s; }
+
+@keyframes chestLine {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; box-shadow: 0 0 12px rgba(59, 130, 246, 1); }
+}
+
+/* Luces del pecho */
+.robot-chest-leds {
+    position: absolute;
+    bottom: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+}
+
+.robot-led {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #22c55e;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+}
+
+.robot-led:nth-child(1) { animation: ledBlink 1.5s infinite 0s; }
+.robot-led:nth-child(2) { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.8); animation: ledBlink 1.5s infinite 0.5s; }
+.robot-led:nth-child(3) { background: #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.8); animation: ledBlink 1.5s infinite 1s; }
+
+@keyframes ledBlink {
+    0%, 100% { opacity: 0.3; transform: scale(0.8); }
+    50% { opacity: 1; transform: scale(1.1); }
+}
+
+/* ============================================================
+BRAZOS
+============================================================ */
+.robot-arm {
+    position: absolute;
+    top: 88px;
+    width: 18px;
+    height: 70px;
+    background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%);
+    border-radius: 10px;
+    border: 2px solid #94a3b8;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transform-origin: top center;
+    z-index: 6;
+}
+
+.robot-arm-left {
+    left: 0;
+    transform: rotate(0deg);
+}
+
+.robot-arm-right {
+    right: 0;
+    transform: rotate(0deg);
+}
+
+/* Manos */
+.robot-hand {
+    position: absolute;
+    bottom: -14px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 22px;
+    height: 22px;
+    background: linear-gradient(145deg, #cbd5e1, #94a3b8);
+    border-radius: 50%;
+    border: 2px solid #64748b;
+    box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* Animación de caminar - brazos */
+.robot.walking .robot-arm-left {
+    animation: armSwingLeft 0.5s infinite alternate ease-in-out;
+}
+
+.robot.walking .robot-arm-right {
+    animation: armSwingRight 0.5s infinite alternate ease-in-out;
+}
+
+@keyframes armSwingLeft {
+    from { transform: rotate(15deg); }
+    to { transform: rotate(-15deg); }
+}
+
+@keyframes armSwingRight {
+    from { transform: rotate(-15deg); }
+    to { transform: rotate(15deg); }
+}
+
+/* Animación de saludar (brazo derecho levantado) */
+.robot.waving .robot-arm-right {
+    animation: waveArm 0.4s infinite alternate ease-in-out;
+    transform-origin: top center;
+}
+
+@keyframes waveArm {
+    from { transform: rotate(-140deg); }
+    to { transform: rotate(-120deg); }
+}
+
+/* Animación de jalar (brazo izquierdo extendido) */
+.robot.pulling-left .robot-arm-left {
+    animation: pullLeft 1.5s ease-in-out forwards;
+}
+
+@keyframes pullLeft {
+    0% { transform: rotate(0deg); }
+    30% { transform: rotate(90deg); }
+    60% { transform: rotate(85deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* Animación de jalar (brazo derecho extendido) */
+.robot.pulling-right .robot-arm-right {
+    animation: pullRight 1.5s ease-in-out forwards;
+}
+
+@keyframes pullRight {
+    0% { transform: rotate(0deg); }
+    30% { transform: rotate(-90deg); }
+    60% { transform: rotate(-85deg); }
+    100% { transform: rotate(0deg); }
+}
+
+/* Despedida con la mano */
+.robot.goodbye .robot-arm-right {
+    animation: waveGoodbye 0.5s infinite alternate ease-in-out;
+    transform-origin: top center;
+}
+
+@keyframes waveGoodbye {
+    from { transform: rotate(-150deg); }
+    to { transform: rotate(-110deg); }
+}
+
+/* ============================================================
+PIERNAS
+============================================================ */
+.robot-leg {
+    position: absolute;
+    top: 160px;
+    width: 20px;
+    height: 45px;
+    background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%);
+    border-radius: 6px;
+    border: 2px solid #94a3b8;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transform-origin: top center;
+    z-index: 2;
+}
+
+.robot-leg-left {
+    left: 25px;
+}
+
+.robot-leg-right {
+    right: 25px;
+}
+
+/* Pies */
+.robot-foot {
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 28px;
+    height: 12px;
+    background: linear-gradient(145deg, #64748b, #475569);
+    border-radius: 6px;
+    border: 2px solid #334155;
+}
+
+/* Animación de caminar - piernas */
+.robot.walking .robot-leg-left {
+    animation: legSwingLeft 0.5s infinite alternate ease-in-out;
+}
+
+.robot.walking .robot-leg-right {
+    animation: legSwingRight 0.5s infinite alternate ease-in-out;
+}
+
+@keyframes legSwingLeft {
+    from { transform: rotate(-12deg); }
+    to { transform: rotate(12deg); }
+}
+
+@keyframes legSwingRight {
+    from { transform: rotate(12deg); }
+    to { transform: rotate(-12deg); }
+}
+
+/* Rebote al caminar */
+.robot.walking .robot-body-wrapper {
+    animation: robotBounce 0.5s infinite alternate ease-in-out;
+}
+
+@keyframes robotBounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-4px); }
+}
+
+/* ============================================================
+PANELES QUE EL ROBOT JALA
+============================================================ */
+/* Panel del sistema (lado izquierdo) */
+.panel-sistema {
+    position: absolute;
+    left: 5%;
+    top: 50%;
+    transform: translateY(-50%) translateX(-500px);
+    width: 320px;
+    z-index: 10;
+    opacity: 0;
+    transition: none;
+}
+
+.panel-sistema.pulled {
+    animation: pullPanelLeft 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes pullPanelLeft {
+    0% {
+        transform: translateY(-50%) translateX(-500px);
+        opacity: 0;
+    }
+    30% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-50%) translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Panel del login (lado derecho) */
+.panel-login-intro {
+    position: absolute;
+    right: 5%;
+    top: 50%;
+    transform: translateY(-50%) translateX(500px);
+    width: 380px;
+    z-index: 10;
+    opacity: 0;
+    transition: none;
+}
+
+.panel-login-intro.pulled {
+    animation: pullPanelRight 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes pullPanelRight {
+    0% {
+        transform: translateY(-50%) translateX(500px);
+        opacity: 0;
+    }
+    30% {
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-50%) translateX(0);
+        opacity: 1;
+    }
+}
+
+/* Tarjetas de los paneles */
+.intro-card {
+    background: rgba(255, 255, 255, 0.98);
+    border-radius: 24px;
+    padding: 32px 28px;
+    box-shadow:
+        0 25px 60px rgba(0, 0, 0, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Panel sistema - contenido */
+.intro-logo-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.intro-logo {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    padding: 12px;
+    box-shadow: 0 12px 30px rgba(30, 60, 114, 0.35);
+}
+
+.intro-title {
+    text-align: center;
+    color: #1e3c72;
+    font-weight: 800;
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    letter-spacing: 0.5px;
+}
+
+.intro-subtitle {
+    text-align: center;
+    color: #64748b;
+    font-size: 0.85rem;
+    margin-bottom: 20px;
+}
+
+.intro-features {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.intro-feature {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f8fafc, #eef3fc);
+    border-radius: 12px;
+    border-left: 3px solid #1e3c72;
+    opacity: 0;
+    transform: translateX(-20px);
+    animation: fadeInFeature 0.5s ease forwards;
+}
+
+.intro-feature:nth-child(1) { animation-delay: 0.4s; }
+.intro-feature:nth-child(2) { animation-delay: 0.6s; }
+.intro-feature:nth-child(3) { animation-delay: 0.8s; }
+
+@keyframes fadeInFeature {
+    to { opacity: 1; transform: translateX(0); }
+}
+
+.intro-feature-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.intro-feature-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke: white;
+    fill: none;
+    stroke-width: 2.5;
+}
+
+.intro-feature-text {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #334155;
+}
+
+/* Panel login - contenido */
+.intro-login-title {
+    text-align: center;
+    color: #1e3c72;
+    font-weight: 800;
+    font-size: 1.2rem;
+    margin-bottom: 6px;
+}
+
+.intro-login-subtitle {
+    text-align: center;
+    color: #64748b;
+    font-size: 0.8rem;
+    margin-bottom: 22px;
+}
+
+.intro-input-group {
+    margin-bottom: 16px;
+}
+
+.intro-input-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #1e3c72;
+    margin-bottom: 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.intro-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    background: #f8fafc;
+    color: #334155;
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+.intro-input::placeholder {
+    color: #94a3b8;
+}
+
+.intro-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(30, 60, 114, 0.3);
+    margin-top: 8px;
+}
+
+.intro-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(30, 60, 114, 0.4);
+}
+
+/* ============================================================
+BURBUJAS DE TEXTO DEL ROBOT
+============================================================ */
+.robot-bubble {
+    position: absolute;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%) scale(0);
+    background: white;
+    color: #1e3c72;
+    padding: 10px 18px;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 30;
+}
+
+.robot-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid white;
+}
+
+.robot-bubble.show {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+}
+
+/* ============================================================
+PARTÍCULAS DE "MAGIA" CUANDO JALA LOS PANELES
+============================================================ */
+.magic-particle {
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: radial-gradient(circle, #fbbf24, #f59e0b);
+    pointer-events: none;
+    z-index: 15;
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
+}
+
+/* ============================================================
+BOTÓN SALTAR INTRO
+============================================================ */
+.skip-intro-btn {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 1000001;
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    padding: 10px 20px;
+    border-radius: 30px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(10px);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.skip-intro-btn:hover {
+    background: rgba(255, 255, 255, 0.25);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+}
+
+.skip-intro-btn svg {
+    width: 14px;
+    height: 14px;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2.5;
+}
+
+/* ============================================================
+RESPONSIVE
+============================================================ */
+@media (max-width: 992px) {
+    .panel-sistema,
+    .panel-login-intro {
+        width: 280px;
+    }
+    .panel-sistema { left: 3%; }
+    .panel-login-intro { right: 3%; }
+    .robot {
+        transform: scale(0.85);
+        transform-origin: bottom center;
+    }
+}
+
+@media (max-width: 768px) {
+    .panel-sistema,
+    .panel-login-intro {
+        display: none;
+    }
+    .robot-stage::after {
+        content: 'Bienvenido';
+        position: absolute;
+        bottom: 35%;
+        left: 50%;
+        transform: translateX(-50%);
+        color: white;
+        font-size: 1.5rem;
+        font-weight: 800;
+        letter-spacing: 2px;
+        animation: fadeInFeature 1s ease 1.5s forwards;
+        opacity: 0;
+    }
+}
+
+/* ============================================================
+FASE FINAL: EL ROBOT LEVANTA EL LOGIN REAL DESDE ABAJO
+============================================================
+El login real se posiciona FUERA de la pantalla (abajo) con
+transform: translateY(100vh). Luego el robot lo "levanta" y el
+login se revela de abajo hacia arriba (efecto PowerPoint).
+El robot se mantiene SIEMPRE CENTRADO (left: calc(50% - 70px))
+mientras sube, hasta que llega arriba y desaparece sin moverse
+de lado.
+============================================================ */
+
+/* ---- LOGIN REAL: posición inicial FUERA de pantalla (abajo) ---- */
+body.intro-active #loginReal {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 1000000 !important; /* ENCIMA del overlay (que es 999999) */
+    transform: translateY(100vh);
+    transition: none !important;
+    overflow: hidden;
+    will-change: transform;
+}
+
+/* El login real sube desde abajo hacia arriba */
+body.intro-active #loginReal.lifting {
+    animation: liftLoginReal 3s cubic-bezier(0.5, 0, 0.35, 1) forwards;
+}
+
+@keyframes liftLoginReal {
+    0%   { transform: translateY(100vh); }
+    70%  { transform: translateY(15vh); }
+    100% { transform: translateY(0); }
+}
+
+/* Cuando termina, el login queda fijo en su lugar normal */
+body.intro-active #loginReal.done {
+    position: relative !important;
+    inset: auto !important;
+    transform: translateY(0) !important;
+    animation: none !important;
+    z-index: 1 !important;
+    overflow: visible;
+}
+
+/* ============================================================
+ROBOT: SE MUEVE ABAJO AL CENTRO (se agacha)
+============================================================ */
+.robot.moving-to-center-bottom {
+    animation: moveToCenterBottom 0.8s cubic-bezier(0.45, 0, 0.3, 1) forwards;
+}
+
+@keyframes moveToCenterBottom {
+    0% {
+        left: calc(50% - 70px);
+        bottom: 20%;
+        transform: scale(1);
+    }
+    100% {
+        left: calc(50% - 70px);
+        bottom: 0%;
+        transform: scale(1);
+    }
+}
+
+/* ============================================================
+ROBOT: BRAZOS
+============================================================ */
+
+/* Brazos a reposo (cuando se agacha) */
+.robot.arms-down .robot-arm-left {
+    animation: armsDownLeft 0.4s ease-out forwards;
+    transform-origin: top center;
+}
+.robot.arms-down .robot-arm-right {
+    animation: armsDownRight 0.4s ease-out forwards;
+    transform-origin: top center;
+}
+@keyframes armsDownLeft  { 0% { transform: rotate(0deg); }  100% { transform: rotate(10deg);  } }
+@keyframes armsDownRight { 0% { transform: rotate(0deg); }  100% { transform: rotate(-10deg); } }
+
+/* Brazos agarran el login (se extienden hacia arriba) */
+.robot.grabbing-login .robot-arm-left {
+    animation: armGrabLoginLeft 0.6s ease-out forwards;
+    transform-origin: top center;
+}
+.robot.grabbing-login .robot-arm-right {
+    animation: armGrabLoginRight 0.6s ease-out forwards;
+    transform-origin: top center;
+}
+@keyframes armGrabLoginLeft  { 0% { transform: rotate(10deg);  } 100% { transform: rotate(100deg);  } }
+@keyframes armGrabLoginRight { 0% { transform: rotate(-10deg); } 100% { transform: rotate(-100deg); } }
+
+/* Brazos mantienen la posición mientras sube */
+.robot.lifting-up .robot-arm-left {
+    animation: armKeepLeft 0.3s ease-out forwards;
+    transform-origin: top center;
+}
+.robot.lifting-up .robot-arm-right {
+    animation: armKeepRight 0.3s ease-out forwards;
+    transform-origin: top center;
+}
+@keyframes armKeepLeft  { 0% { transform: rotate(100deg);  } 100% { transform: rotate(110deg);  } }
+@keyframes armKeepRight { 0% { transform: rotate(-100deg); } 100% { transform: rotate(-110deg); } }
+
+/* ============================================================
+ROBOT: SUBE JUNTO CON EL LOGIN (SINCRONIZADO Y CENTRADO)
+============================================================
+⭐ FIX CLAVE: Se incluye `left: calc(50% - 70px)` DENTRO de cada
+keyframe para forzar que el robot se mantenga SIEMPRE centrado
+mientras sube. Antes, la animación sobrescribía el `left` y el
+robot se iba hacia la izquierda.
+============================================================ */
+.robot.lifting-up {
+    animation: robotLiftUp 3s cubic-bezier(0.5, 0, 0.35, 1) forwards;
+}
+
+@keyframes robotLiftUp {
+    0% {
+        left: calc(50% - 70px);
+        bottom: 0%;
+        opacity: 1;
+        transform: scale(1);
+    }
+    70% {
+        left: calc(50% - 70px);
+        bottom: 85%;
+        opacity: 1;
+        transform: scale(0.95);
+    }
+    100% {
+        left: calc(50% - 70px);
+        bottom: 100%;
+        opacity: 1;
+        transform: scale(0.9);
+    }
+}
+
+/* ============================================================
+ROBOT: DESAPARECE AL LLEGAR ARRIBA (CENTRADO)
+============================================================
+⭐ FIX CLAVE: Se incluye `left: calc(50% - 70px)` DENTRO de cada
+keyframe para que el robot NO se mueva lateralmente al
+desvanecerse. Se desvanece en el sitio.
+============================================================ */
+.robot.vanished {
+    animation: robotVanish 0.5s ease-in forwards;
+    pointer-events: none;
+}
+
+@keyframes robotVanish {
+    0% {
+        left: calc(50% - 70px);
+        bottom: 100%;
+        opacity: 1;
+        transform: scale(0.9) translateY(0);
+        filter: blur(0);
+    }
+    60% {
+        left: calc(50% - 70px);
+        bottom: 100%;
+        opacity: 0.5;
+        transform: scale(1) translateY(-30px);
+        filter: blur(4px);
+    }
+    100% {
+        left: calc(50% - 70px);
+        bottom: 100%;
+        opacity: 0;
+        transform: scale(1.1) translateY(-60px);
+        filter: blur(10px);
+        visibility: hidden;
+    }
+}
+
+/* ============================================================
+PANELES: SE DESVANECEN
+============================================================ */
+
+/* Panel del sistema se desvanece */
+.panel-sistema.fading-out {
+    animation: fadeSistemaPanel 1.2s ease forwards;
+}
+@keyframes fadeSistemaPanel {
+    0%   { opacity: 1; transform: translateY(-50%) translateZ(0)      scale(1);   }
+    100% { opacity: 0; transform: translateY(-50%) translateZ(-100px) scale(0.9); }
+}
+
+/* Panel de intro del login sube y se desvanece */
+.panel-login-intro.lifting-up {
+    animation: liftIntroLogin 3s cubic-bezier(0.5, 0, 0.35, 1) forwards;
+    will-change: transform, opacity;
+    pointer-events: none;
+    z-index: 25;
+}
+@keyframes liftIntroLogin {
+    0%   { transform: translateY(-50%) translateX(0) scale(1);    opacity: 1;   }
+    70%  { transform: translateY(-120%) translateX(0) scale(1.03); opacity: 0.7; }
+    100% { transform: translateY(-180%) translateX(0) scale(1.06); opacity: 0;   }
+}
+
+/* El overlay desaparece al final */
+.robot-intro-overlay.powerpoint-exit {
+    animation: overlayFadeOut 0.8s ease forwards;
+}
+@keyframes overlayFadeOut {
+    0%   { opacity: 1; visibility: visible; }
+    100% { opacity: 0; visibility: hidden;  }
+}
