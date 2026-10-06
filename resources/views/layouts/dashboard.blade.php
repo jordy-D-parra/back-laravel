@@ -10,6 +10,7 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
 
+    {{-- CSS --}}
     @vite(['resources/js/bootstrap.js'])
     @vite(['resources/css/dashboard-layout.css'])
     @vite(['resources/css/dashboard-home.css'])
@@ -32,7 +33,6 @@
                     : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
                 if (activo) {
                     document.documentElement.setAttribute('data-theme', 'dark');
-                    // Se aplicará la clase al body en cuanto exista
                     document.addEventListener('DOMContentLoaded', function() {
                         document.body.classList.add('dark-mode');
                     });
@@ -82,7 +82,7 @@
                 </a>
             </li>
 
-            {{-- ========== NOTIFICACIONES / BANDEJA DE ENTRADA ========== --}}
+            {{-- Bandeja de entrada --}}
             @php
                 use App\Services\NotificacionService;
                 $notificacionService = app(NotificacionService::class);
@@ -189,7 +189,7 @@
                 <li class="nav-section">PROCESOS</li>
             @endif
 
-            {{-- Solicitudes de Préstamo --}}
+            {{-- Solicitudes --}}
             @if($user->hasPermission('ver-solicitudes'))
                 <li class="nav-item">
                     <a href="{{ route('admin.solicitudes.index') }}" class="nav-link {{ request()->routeIs('admin.solicitudes.*') ? 'active' : '' }}">
@@ -236,7 +236,7 @@
             @endif
 
             {{-- Soporte Técnico --}}
-            @if(auth()->user()->hasPermission('ver-fichas-soporte'))
+            @if($user->hasPermission('ver-fichas-soporte'))
                 <li class="nav-item">
                     <a href="{{ route('admin.soporte.index') }}" class="nav-link {{ request()->routeIs('admin.soporte.*') ? 'active' : '' }}">
                         <span class="nav-icon">
@@ -255,26 +255,24 @@
             <li class="nav-divider"></li>
             <li class="nav-section">REPORTES</li>
 
-            @if($user->hasPermission('ver-activos') ||
-            $user->hasPermission('ver-solicitudes') ||
-            $user->hasPermission('ver-fichas-soporte'))
-<li class="nav-item">
-    <a href="{{ route('admin.reportes.index') }}"
-       class="nav-link {{ request()->routeIs('admin.reportes.*') ? 'active' : '' }}">
-        <span class="nav-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M3 3v18h18"/>
-                <path d="M18 17V9"/>
-                <path d="M13 17V5"/>
-                <path d="M8 17v-3"/>
-            </svg>
-        </span>
-        <span>Reportes</span>
-    </a>
-</li>
-@endif
+            @if($user->hasPermission('ver-activos') || $user->hasPermission('ver-solicitudes') || $user->hasPermission('ver-fichas-soporte'))
+                <li class="nav-item">
+                    <a href="{{ route('admin.reportes.index') }}" class="nav-link {{ request()->routeIs('admin.reportes.*') ? 'active' : '' }}">
+                        <span class="nav-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                                <path d="M3 3v18h18"/>
+                                <path d="M18 17V9"/>
+                                <path d="M13 17V5"/>
+                                <path d="M8 17v-3"/>
+                            </svg>
+                        </span>
+                        <span>Reportes</span>
+                    </a>
+                </li>
+            @endif
 
-            @if(auth()->user()->hasPermission('ver-auditoria'))
+            {{-- Bitácora --}}
+            @if($user->hasPermission('ver-auditoria'))
                 <li class="nav-item">
                     <a href="{{ route('admin.auditoria.index') }}" class="nav-link {{ request()->routeIs('admin.auditoria.*') ? 'active' : '' }}">
                         <span class="nav-icon">
@@ -314,12 +312,9 @@
                 </div>
             </div>
 
-            <!-- ====== MENÚ DE USUARIO CON CAMPANITA Y AVATAR ====== -->
+            <!-- MENÚ DE USUARIO CON CAMPANITA Y AVATAR -->
             <div class="user-menu">
-                <!-- CAMPANITA DE NOTIFICACIONES -->
                 <x-notification-bell />
-
-                <!-- AVATAR DE PERFIL (dropdown con cerrar sesión) -->
                 <x-user-avatar-menu />
 
                 <div class="user-info">
@@ -373,16 +368,40 @@
         </div>
     </div>
 
-    {{-- 🆕 MODAL DE PERFIL (FUERA del topbar, al final del body) --}}
+    {{-- MODAL DE PERFIL --}}
     <x-user-profile-modal />
 
+    {{-- 🌙 MODO OSCURO: JS --}}
+    @vite(['resources/js/dark-mode.js'])
+
+    {{-- 🆕 SISTEMA GLOBAL DE PERMISOS --}}
+    <script>
+        window.userPermissions = @json($authPermissions ?? []);
+        window.authRol = @json($authRol ?? null);
+        window.authIsAdmin = @json($authIsAdmin ?? false);
+
+        window.authUserHasPermission = function(permission) {
+            if (window.authIsAdmin) return true;
+            return Array.isArray(window.userPermissions) &&
+                   window.userPermissions.includes(permission);
+        };
+
+        window.authUserHasAnyPermission = function(permissions) {
+            if (window.authIsAdmin) return true;
+            return Array.isArray(permissions) &&
+                   permissions.some(function(p) {
+                       return window.userPermissions.includes(p);
+                   });
+        };
+
+        if (!Array.isArray(window.userPermissions)) {
+            window.userPermissions = [];
+        }
+    </script>
+
     @vite(['resources/js/dashboard-layout.js'])
-    @vite(['resources/css/dashboard-home.css'])
     @vite(['resources/js/app.js'])
     @vite(['resources/js/user-avatar.js'])
-
-    {{-- 🌙 MODO OSCURO: JS (crea el botón automáticamente) --}}
-    @vite(['resources/js/dark-mode.js'])
 
     @yield('scripts')
 

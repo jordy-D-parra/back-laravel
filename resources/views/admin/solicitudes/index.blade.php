@@ -743,11 +743,7 @@
 
 @section('scripts')
 <script>
-window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
-
-window.authUserHasPermission = function(p) {
-    return window.userPermissions.includes(p);
-};
+// ✅ Los permisos están disponibles globalmente desde el layout
 
 window.departamentos = @json($departamentos ?? []);
 window.instituciones = @json($instituciones ?? []);

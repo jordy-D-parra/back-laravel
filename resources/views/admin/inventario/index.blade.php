@@ -463,12 +463,5 @@
 
 @section('scripts')
     @vite(['resources/js/admin-inventario.js'])
-
-    <script>
-        window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
-
-        function authUserHasPermission(permission) {
-            return window.userPermissions.includes(permission);
-        }
-    </script>
+    {{-- ✅ Los permisos están disponibles globalmente desde el layout --}}
 @endsection

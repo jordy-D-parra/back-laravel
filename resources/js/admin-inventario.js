@@ -955,7 +955,7 @@ function renderizarActivosFiltrados(filtrados) {
         return;
     }
 
-    var puedeCambiarEstadoGlobal = typeof authUserHasPermission !== 'undefined' ? authUserHasPermission('cambiar-estatus-activo') : true;
+    var puedeCambiarEstadoGlobal = typeof authUserHasPermission !== 'undefined' ? authUserHasPermission('cambiar-estatus-activo') : false;
     var html = '';
 
     for (var i = 0; i < pageData.length; i++) {

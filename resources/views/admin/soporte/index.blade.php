@@ -659,9 +659,6 @@
 @section('scripts')
 @vite(['resources/js/admin-soporte.js'])
 <script>
-window.userPermissions = @json(auth()->user()->rol->permisos->pluck('nombre'));
-function authUserHasPermission(p) { return window.userPermissions.includes(p); }
-
 document.addEventListener('DOMContentLoaded', function () {
     const serialInput = document.getElementById('ext_serial');
     const feedback = document.getElementById('ext_serial_feedback');
