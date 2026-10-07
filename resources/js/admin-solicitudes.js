@@ -121,7 +121,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const prioridad = (s.prioridad || 'normal').toLowerCase();
             const estado = (s.estado_solicitud || s.estado || 'pendiente').toLowerCase();
             const esNoLeida = s.leida_por_admin === false || s.leida_por_admin === 0;
-            const badgeNueva = esNoLeida ? '<span class="badge-nueva">NUEVA</span>' : '';
+            const badgeNueva = esNoLeida ? '<span></span>' : '';
             const itemsCount = s.detalles?.length ?? s.items_count ?? (s.items ? s.items.length : 0);
 
             const puedeEditar = window.authUserHasPermission('editar-solicitud') && estado === 'pendiente';

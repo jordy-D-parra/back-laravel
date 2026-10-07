@@ -182,7 +182,7 @@
                     <option value="no_procesados">Sin procesar</option>
                     <option value="procesados">Procesados</option>
                 </select>
-                <button class="btn btn-primary-dark" onclick="revisarCorreos()" id="btnRevisarCorreos">
+                <button class="btn btn-primary-dark" onclick="revisarCorreos()" id="btnRevisarCorreos" style="color: #fff">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:4px;">
                         <polyline points="23 4 23 10 17 10"/>
                         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>

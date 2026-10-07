@@ -1,5 +1,4 @@
 <?php
-// database/seeders/DatabaseSeeder.php
 
 namespace Database\Seeders;
 
@@ -19,12 +18,12 @@ class DatabaseSeeder extends Seeder
         $this->call(TrabajadorSeeder::class);
         $this->call(EstatusSeeder::class);
 
-        // ========== 2. UBICACIONES GEOGRÁFICAS (¡ANTES DE ENTIDADES!) ==========
+        // ========== 2. UBICACIONES GEOGRÁFICAS ==========
         $this->call(EstadosVenezuelaSeeder::class);
         $this->call(MunicipiosYaracuySeeder::class);
         $this->call(ParroquiasYaracuySeeder::class);
 
-        // ========== 3. ENTIDADES (AHORA CON UBICACIÓN) ==========
+        // ========== 3. ENTIDADES ==========
         $this->call(EntidadesSeeder::class);
 
         // ========== 4. USUARIO ADMIN ==========
@@ -39,6 +38,8 @@ class DatabaseSeeder extends Seeder
         // ========== 7. SOLICITUDES Y PRÉSTAMOS ==========
         $this->call(SolicitudPrestamoDemoSeeder::class);
 
+        // ========== 8. SOPORTE TÉCNICO ==========
+        $this->call(SoporteTecnicoSeeder::class);
 
         $this->command->info('==============================');
         $this->command->info('✅ Seeding completado');
