@@ -36,10 +36,6 @@ class Usuario extends Authenticatable
         'ultimo_login' => 'datetime',
     ];
 
-    /**
-     * Caché en memoria de los permisos del rol.
-     * Evita ejecutar N consultas SQL por cada verificación.
-     */
     protected ?array $permisosCache = null;
 
     // ============================================================
@@ -70,9 +66,6 @@ class Usuario extends Authenticatable
     // SISTEMA DE PERMISOS
     // ============================================================
 
-    /**
-     * Devuelve el array de nombres de permisos del usuario (con caché en memoria).
-     */
     public function getPermisosNombres(): array
     {
         if ($this->permisosCache === null) {
@@ -91,10 +84,6 @@ class Usuario extends Authenticatable
         return $this->permisosCache;
     }
 
-    /**
-     * Verifica si el usuario tiene un permiso específico.
-     * Admin y super_admin siempre pasan (bypass).
-     */
     public function hasPermission(string $permisoNombre): bool
     {
         if ($this->isRole('admin') || $this->isRole('super_admin')) {
@@ -104,9 +93,6 @@ class Usuario extends Authenticatable
         return in_array($permisoNombre, $this->getPermisosNombres(), true);
     }
 
-    /**
-     * Verifica si el usuario tiene AL MENOS UNO de los permisos dados.
-     */
     public function hasAnyPermission(array $permisos): bool
     {
         if ($this->isRole('admin') || $this->isRole('super_admin')) {
@@ -116,9 +102,6 @@ class Usuario extends Authenticatable
         return count(array_intersect($permisos, $this->getPermisosNombres())) > 0;
     }
 
-    /**
-     * Verifica si el usuario tiene TODOS los permisos dados.
-     */
     public function hasAllPermissions(array $permisos): bool
     {
         if ($this->isRole('admin') || $this->isRole('super_admin')) {
@@ -128,32 +111,22 @@ class Usuario extends Authenticatable
         return count(array_diff($permisos, $this->getPermisosNombres())) === 0;
     }
 
-    /**
-     * Verifica si el usuario tiene un rol específico.
-     */
     public function isRole(string $rolNombre): bool
     {
         return $this->rol?->nombre === $rolNombre;
     }
 
-    /**
-     * Verifica si el usuario tiene ALGUNO de los roles dados.
-     */
     public function hasAnyRole(array $roles): bool
     {
         return in_array($this->rol?->nombre, $roles, true);
     }
 
-    // Atajos de roles comunes
     public function isSuperAdmin(): bool { return $this->isRole('super_admin'); }
     public function isAdmin(): bool { return $this->isRole('admin'); }
     public function isIngeniero(): bool { return $this->isRole('ingeniero'); }
     public function isTecnico(): bool { return $this->isRole('tecnico'); }
     public function isSecretaria(): bool { return $this->isRole('secretaria'); }
 
-    /**
-     * Limpia la caché de permisos (útil si cambias el rol en runtime).
-     */
     public function refreshPermisos(): void
     {
         $this->permisosCache = null;

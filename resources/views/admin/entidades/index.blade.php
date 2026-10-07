@@ -75,7 +75,7 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2.5" class="me-1" style="display:inline;">
                 <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
             </svg>
-            Nuevo Registro (Wizard)
+            Nuevo Registro
         </button>
         @endif
     </div>

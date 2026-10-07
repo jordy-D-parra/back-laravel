@@ -8,12 +8,14 @@ use App\Models\Trabajador;
 use App\Models\Rol;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 class UsuarioController extends Controller
 {
+    // ============================================================
+    // INDEX
+    // ============================================================
     public function index(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-usuarios')) {
@@ -67,6 +69,9 @@ class UsuarioController extends Controller
         ));
     }
 
+    // ============================================================
+    // STORE
+    // ============================================================
     public function store(Request $request)
     {
         if (!auth()->user()->hasPermission('crear-usuario')) {
@@ -83,32 +88,62 @@ class UsuarioController extends Controller
                 'rol_id' => ['required', 'exists:roles,id'],
             ]);
 
-            $password = Str::random(12);
-            $passwordHash = Hash::make($password);
+            // ============================================================
+            // GENERAR CONTRASEÑA TEMPORAL SEGURA
+            // ============================================================
+            $password = $this->generarPasswordTemporal(12);
 
+            // ============================================================
+            // CREAR USUARIO
+            // ============================================================
             $usuario = Usuario::create([
                 'usuario' => $validated['usuario'],
-                'password' => $passwordHash,
+                'password' => Hash::make($password),
                 'must_change_password' => true,
                 'status' => 'activo',
                 'trabajador_id' => $validated['trabajador_id'],
                 'rol_id' => $validated['rol_id'],
             ]);
 
+            // ============================================================
+            // VERIFICAR QUE EL HASH CORRESPONDA (debug)
+            // ============================================================
+            $verificacion = Hash::check($password, $usuario->fresh()->password);
+
+            Log::info('Usuario creado', [
+                'usuario' => $usuario->usuario,
+                'password_temporal' => $password,
+                'verificacion_hash' => $verificacion,
+            ]);
+
+            if (!$verificacion) {
+                Log::error('❌ El hash NO corresponde a la contraseña generada', [
+                    'usuario' => $usuario->usuario,
+                    'password_generada' => $password,
+                    'hash_guardado' => $usuario->fresh()->password,
+                ]);
+            }
+
+            // ============================================================
+            // NOTIFICACIÓN DE BIENVENIDA (opcional)
+            // ============================================================
             try {
                 $this->enviarNotificacionBienvenida($usuario, $password);
             } catch (\Exception $e) {
                 Log::error('Error al enviar notificación de bienvenida: ' . $e->getMessage());
             }
 
+            // ============================================================
+            // RESPUESTA
+            // ============================================================
             if ($request->ajax() || $request->wantsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => 'Usuario creado exitosamente',
+                    'message' => 'Usuario creado exitosamente. Guarde la contraseña temporal.',
                     'data' => $usuario,
-                    'password_hash' => $passwordHash,
                     'new_password' => $password,
                     'new_usuario' => $usuario->usuario,
+                    'verificacion' => $verificacion,
                 ]);
             }
 
@@ -142,6 +177,9 @@ class UsuarioController extends Controller
         }
     }
 
+    // ============================================================
+    // UPDATE
+    // ============================================================
     public function update(Request $request, $id)
     {
         if (!auth()->user()->hasPermission('editar-usuario')) {
@@ -198,27 +236,9 @@ class UsuarioController extends Controller
         }
     }
 
-    private function enviarNotificacionBienvenida(Usuario $usuario, string $password)
-    {
-        try {
-            $notificacionService = app(\App\Services\NotificacionService::class);
-
-            $notificacionService->enviarAUsuario(
-                $usuario,
-                '🎉 ¡Bienvenido al Sistema!',
-                "Se ha creado tu usuario en el Sistema de Gestión de Inventario.\n\n" .
-                "Usuario: {$usuario->usuario}\n" .
-                "Contraseña temporal: {$password}\n\n" .
-                "Por favor, cambia tu contraseña en el primer inicio de sesión.",
-                'sistema',
-                route('login'),
-                true
-            );
-        } catch (\Exception $e) {
-            Log::error('Error en enviarNotificacionBienvenida: ' . $e->getMessage());
-        }
-    }
-
+    // ============================================================
+    // DESTROY
+    // ============================================================
     public function destroy($id)
     {
         if (!auth()->user()->hasPermission('eliminar-usuario')) {
@@ -248,6 +268,9 @@ class UsuarioController extends Controller
             ->with('success', 'Usuario "' . $nombreUsuario . '" eliminado permanentemente.');
     }
 
+    // ============================================================
+    // TOGGLE STATUS
+    // ============================================================
     public function toggleStatus(Request $request, $id)
     {
         if (!auth()->user()->hasPermission('activar-desactivar-usuario')) {
@@ -294,6 +317,9 @@ class UsuarioController extends Controller
         }
     }
 
+    // ============================================================
+    // RESET PASSWORD
+    // ============================================================
     public function resetPassword(Request $request, $id)
     {
         if (!auth()->user()->hasPermission('resetear-password-usuario')) {
@@ -306,10 +332,21 @@ class UsuarioController extends Controller
         try {
             $usuario = Usuario::findOrFail($id);
 
-            $password = Str::random(12);
+            // Usar la misma función segura
+            $password = $this->generarPasswordTemporal(12);
+
             $usuario->password = Hash::make($password);
             $usuario->must_change_password = true;
             $usuario->save();
+
+            // Verificar
+            $verificacion = Hash::check($password, $usuario->fresh()->password);
+
+            Log::info('Contraseña reseteada', [
+                'usuario' => $usuario->usuario,
+                'password_temporal' => $password,
+                'verificacion' => $verificacion,
+            ]);
 
             try {
                 $this->enviarNotificacionResetPassword($usuario, $password);
@@ -322,7 +359,8 @@ class UsuarioController extends Controller
                     'success' => true,
                     'message' => 'Contraseña reseteada exitosamente',
                     'new_password' => $password,
-                    'usuario' => $usuario->usuario
+                    'usuario' => $usuario->usuario,
+                    'verificacion' => $verificacion,
                 ]);
             }
 
@@ -343,27 +381,9 @@ class UsuarioController extends Controller
         }
     }
 
-    private function enviarNotificacionResetPassword(Usuario $usuario, string $password)
-    {
-        try {
-            $notificacionService = app(\App\Services\NotificacionService::class);
-
-            $notificacionService->enviarAUsuario(
-                $usuario,
-                '🔑 Contraseña Reseteada',
-                "Tu contraseña ha sido reseteada.\n\n" .
-                "Usuario: {$usuario->usuario}\n" .
-                "Nueva contraseña temporal: {$password}\n\n" .
-                "Por favor, cambia tu contraseña en el primer inicio de sesión.",
-                'sistema',
-                route('login'),
-                true
-            );
-        } catch (\Exception $e) {
-            Log::error('Error en enviarNotificacionResetPassword: ' . $e->getMessage());
-        }
-    }
-
+    // ============================================================
+    // SHOW
+    // ============================================================
     public function show($id)
     {
         if (!auth()->user()->hasPermission('ver-usuarios')) {
@@ -389,5 +409,87 @@ class UsuarioController extends Controller
                 'email' => $usuario->trabajador->email ?? 'No registrado',
             ]
         ]);
+    }
+
+    // ============================================================
+    // HELPERS PRIVADOS
+    // ============================================================
+
+    /**
+     * Genera una contraseña temporal con caracteres seguros.
+     * Evita caracteres que causan problemas al copiar/pegar.
+     */
+    private function generarPasswordTemporal(int $longitud = 12): string
+    {
+        // Caracteres seguros: solo letras, números y unos pocos símbolos
+        $mayusculas = 'ABCDEFGHJKLMNPQRSTUVWXYZ';  // Sin I, O (confunden)
+        $minusculas = 'abcdefghijkmnopqrstuvwxyz';  // Sin l (confunde con 1)
+        $numeros = '23456789';                      // Sin 0, 1 (confunden)
+        $simbolos = '!@#$%&*';                      // Solo símbolos seguros
+
+        $todos = $mayusculas . $minusculas . $numeros . $simbolos;
+
+        // Asegurar al menos un carácter de cada tipo
+        $password = '';
+        $password .= $mayusculas[random_int(0, strlen($mayusculas) - 1)];
+        $password .= $minusculas[random_int(0, strlen($minusculas) - 1)];
+        $password .= $numeros[random_int(0, strlen($numeros) - 1)];
+        $password .= $simbolos[random_int(0, strlen($simbolos) - 1)];
+
+        // Rellenar el resto
+        for ($i = 4; $i < $longitud; $i++) {
+            $password .= $todos[random_int(0, strlen($todos) - 1)];
+        }
+
+        // Mezclar
+        return str_shuffle($password);
+    }
+
+    /**
+     * Envía notificación de bienvenida con la contraseña temporal.
+     */
+    private function enviarNotificacionBienvenida(Usuario $usuario, string $password): void
+    {
+        try {
+            $notificacionService = app(\App\Services\NotificacionService::class);
+
+            $notificacionService->enviarAUsuario(
+                $usuario,
+                '🎉 ¡Bienvenido al Sistema!',
+                "Se ha creado tu usuario en el Sistema de Gestión de Inventario.\n\n" .
+                "Usuario: {$usuario->usuario}\n" .
+                "Contraseña temporal: {$password}\n\n" .
+                "Por favor, cambia tu contraseña en el primer inicio de sesión.",
+                'sistema',
+                route('login'),
+                true
+            );
+        } catch (\Exception $e) {
+            Log::error('Error en enviarNotificacionBienvenida: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Envía notificación de reset de contraseña.
+     */
+    private function enviarNotificacionResetPassword(Usuario $usuario, string $password): void
+    {
+        try {
+            $notificacionService = app(\App\Services\NotificacionService::class);
+
+            $notificacionService->enviarAUsuario(
+                $usuario,
+                '🔑 Contraseña Reseteada',
+                "Tu contraseña ha sido reseteada.\n\n" .
+                "Usuario: {$usuario->usuario}\n" .
+                "Nueva contraseña temporal: {$password}\n\n" .
+                "Por favor, cambia tu contraseña en el primer inicio de sesión.",
+                'sistema',
+                route('login'),
+                true
+            );
+        } catch (\Exception $e) {
+            Log::error('Error en enviarNotificacionResetPassword: ' . $e->getMessage());
+        }
     }
 }

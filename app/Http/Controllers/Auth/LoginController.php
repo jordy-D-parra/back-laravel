@@ -7,6 +7,8 @@ use App\Models\Usuario;
 use App\Services\AuditoriaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
@@ -34,51 +36,111 @@ class LoginController extends Controller
             'password' => ['required', 'string'],
         ]);
 
-        if (Auth::attempt($credentials)) {
-            $usuario = Auth::user();
+        // ============================================================
+        // LOG DE DEPURACIÓN
+        // ============================================================
+        Log::info('=== INTENTO DE LOGIN ===', [
+            'usuario' => $credentials['usuario'],
+            'password_length' => strlen($credentials['password']),
+            'ip' => $request->ip(),
+        ]);
 
-            if ($usuario->status !== 'activo') {
-                Auth::logout();
-                $this->auditoriaService->registrarEvento(
-                    'login_fallido',
-                    'auth',
-                    'Intento de inicio de sesión de usuario inactivo: ' . $usuario->usuario
-                );
-                throw ValidationException::withMessages([
-                    'usuario' => 'Su cuenta está inactiva. Contacte al administrador.',
-                ]);
-            }
+        // ============================================================
+        // VERIFICAR QUE EL USUARIO EXISTA
+        // ============================================================
+        $usuario = Usuario::where('usuario', $credentials['usuario'])->first();
 
-            // Registrar login exitoso
+        if (!$usuario) {
+            Log::warning('❌ Usuario NO encontrado', [
+                'usuario' => $credentials['usuario'],
+            ]);
+
             $this->auditoriaService->registrarEvento(
-                'login',
+                'login_fallido',
                 'auth',
-                'Inicio de sesión exitoso: ' . $usuario->usuario
+                'Intento de inicio de sesión con usuario inexistente: ' . $credentials['usuario']
             );
 
-            $usuario->ultimo_login = now();
-            $usuario->save();
-
-            $request->session()->regenerate();
-
-            if ($usuario->must_change_password) {
-                return redirect()->route('password.change');
-            }
-
-            return redirect()->intended(route('dashboard'));
+            throw ValidationException::withMessages([
+                'usuario' => 'Las credenciales proporcionadas son incorrectas.',
+            ]);
         }
 
-        // Registrar login fallido
-        $usuarioInput = $request->input('usuario');
+        // ============================================================
+        // VERIFICAR CONTRASEÑA MANUALMENTE (para debug)
+        // ============================================================
+        $passwordValida = Hash::check($credentials['password'], $usuario->password);
+
+        Log::info('🔐 Verificación de contraseña', [
+            'usuario' => $usuario->usuario,
+            'password_valida' => $passwordValida,
+            'hash_guardado_inicia_con' => substr($usuario->password, 0, 7),
+            'hash_guardado_longitud' => strlen($usuario->password),
+        ]);
+
+        if (!$passwordValida) {
+            Log::warning('❌ Contraseña incorrecta', [
+                'usuario' => $usuario->usuario,
+            ]);
+
+            $this->auditoriaService->registrarEvento(
+                'login_fallido',
+                'auth',
+                'Contraseña incorrecta para usuario: ' . $credentials['usuario']
+            );
+
+            throw ValidationException::withMessages([
+                'usuario' => 'Las credenciales proporcionadas son incorrectas.',
+            ]);
+        }
+
+        // ============================================================
+        // VERIFICAR QUE LA CUENTA ESTÉ ACTIVA
+        // ============================================================
+        if ($usuario->status !== 'activo') {
+            Log::warning('❌ Usuario inactivo', [
+                'usuario' => $usuario->usuario,
+                'status' => $usuario->status,
+            ]);
+
+            $this->auditoriaService->registrarEvento(
+                'login_fallido',
+                'auth',
+                'Intento de inicio de sesión de usuario inactivo: ' . $usuario->usuario
+            );
+
+            throw ValidationException::withMessages([
+                'usuario' => 'Su cuenta está inactiva. Contacte al administrador.',
+            ]);
+        }
+
+        // ============================================================
+        // LOGIN EXITOSO — Iniciar sesión manualmente
+        // ============================================================
+        Auth::login($usuario, $request->boolean('remember'));
+        $request->session()->regenerate();
+
+        Log::info('✅ LOGIN EXITOSO', [
+            'usuario' => $usuario->usuario,
+            'usuario_id' => $usuario->id,
+            'rol' => $usuario->rol?->nombre,
+        ]);
+
         $this->auditoriaService->registrarEvento(
-            'login_fallido',
+            'login',
             'auth',
-            'Intento de inicio de sesión fallido para usuario: ' . $usuarioInput
+            'Inicio de sesión exitoso: ' . $usuario->usuario
         );
 
-        throw ValidationException::withMessages([
-            'usuario' => 'Las credenciales proporcionadas son incorrectas.',
-        ]);
+        $usuario->ultimo_login = now();
+        $usuario->save();
+
+        // Redirección según estado
+        if ($usuario->must_change_password) {
+            return redirect()->route('password.change');
+        }
+
+        return redirect()->intended(route('dashboard'));
     }
 
     public function logout(Request $request)

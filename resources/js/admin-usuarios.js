@@ -336,61 +336,96 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // ===========================
-    // FUNCIÓN: MOSTRAR MODAL CONTRASEÑA
-    // ===========================
+    // ============================================================
+    // FUNCIÓN: MOSTRAR MODAL CONTRASEÑA (CORREGIDA)
+    // ============================================================
     function mostrarModalContraseña(usuario, password) {
+        // ============================================================
+        // ⚠️ CRÍTICO: Limpiar la contraseña de espacios/saltos invisibles
+        // ============================================================
+        const passwordLimpia = String(password).trim();
+        const usuarioLimpio = String(usuario).trim();
+
+        console.log('🔐 Modal contraseña:', {
+            usuario: usuarioLimpio,
+            password_original: JSON.stringify(password),
+            password_limpia: JSON.stringify(passwordLimpia),
+            length_original: String(password).length,
+            length_limpia: passwordLimpia.length,
+        });
+
+        // Eliminar modal anterior si existe
         let modalExistente = document.getElementById('modalPasswordDisplay');
         if (modalExistente) {
             modalExistente.remove();
         }
 
+        // Escapar para mostrar en HTML
+        const usuarioEscapado = usuarioLimpio
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
+        const passwordEscapado = passwordLimpia
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
+
         const modalHTML = `
             <div class="modal fade" id="modalPasswordDisplay" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
-                <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-dialog modal-dialog-centered">
                     <div class="modal-content shadow-lg">
                         <div class="modal-header" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); color: white;">
                             <h5 class="modal-title">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:8px;">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:8px; vertical-align:middle;">
                                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                                     <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                                 </svg>
-                                Contraseña Reseteada
+                                Contraseña Temporal
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                         </div>
-                        <div class="modal-body px-4 text-center">
-                            <p class="small text-muted mb-2">Usuario: <strong>${usuario}</strong></p>
-                            <div class="password-display" style="
+                        <div class="modal-body px-4 py-4">
+                            <p class="small text-muted mb-1">Usuario:</p>
+                            <p class="fw-bold mb-3" style="color: #1e3c72; font-size: 1rem;">${usuarioEscapado}</p>
+
+                            <p class="small text-muted mb-2">Contraseña temporal:</p>
+                            <div id="passwordDisplayBox" style="
                                 background: #f8f9fc;
                                 border: 2px dashed #1e3c72;
                                 border-radius: 10px;
-                                padding: 16px 20px;
+                                padding: 18px 20px;
                                 font-family: 'Courier New', monospace;
-                                font-size: 1.4rem;
+                                font-size: 1.5rem;
                                 font-weight: 700;
                                 color: #1e3c72;
                                 letter-spacing: 2px;
                                 word-break: break-all;
+                                text-align: center;
                                 user-select: all;
                                 cursor: pointer;
-                            " onclick="copiarContraseña('${password}')">
-                                ${password}
+                                transition: all 0.2s ease;
+                            " title="Haz clic para copiar">
+                                ${passwordEscapado}
                             </div>
-                            <p class="small text-warning mt-3 mb-0">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#856404" stroke-width="2" style="display:inline; margin-right:4px; vertical-align:middle;">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <path d="M12 16v-4M12 8h.01"/>
-                                </svg>
-                                Copie esta contraseña. No se volverá a mostrar.
-                            </p>
-                            <p class="small text-muted">El usuario deberá cambiarla en su primer inicio de sesión.</p>
+
+                            <div class="mt-3">
+                                <button type="button" class="btn btn-primary w-100" id="btnCopiarPassword" style="background: #1e3c72; border: none; border-radius: 10px; padding: 10px;">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:6px; vertical-align:middle;">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                                    </svg>
+                                    Copiar contraseña
+                                </button>
+                            </div>
+
+                            <div class="alert alert-warning mt-3 mb-0" style="font-size: 0.8rem; border-radius: 10px;">
+                                <strong>⚠️ Importante:</strong> Copie esta contraseña ahora. No se volverá a mostrar.
+                                El usuario deberá cambiarla en su primer inicio de sesión.
+                            </div>
                         </div>
                         <div class="modal-footer border-0 px-4 pb-4 justify-content-center">
-                            <button type="button" class="btn btn-primary-dark w-100" data-bs-dismiss="modal" style="color:#fff;">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:6px;">
-                                    <polyline points="20 6 9 17 4 12"/>
-                                </svg>
+                            <button type="button" class="btn btn-primary-dark w-100" data-bs-dismiss="modal" style="color: #fff;">
                                 Entendido, cerrar
                             </button>
                         </div>
@@ -400,38 +435,84 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
 
         document.body.insertAdjacentHTML('beforeend', modalHTML);
+
         const modalElement = document.getElementById('modalPasswordDisplay');
         const modal = new bootstrap.Modal(modalElement);
         modal.show();
 
+        // ============================================================
+        // FUNCIÓN DE COPIADO — Usa la contraseña LIMPIA
+        // ============================================================
+        const btnCopiar = document.getElementById('btnCopiarPassword');
+        const displayBox = document.getElementById('passwordDisplayBox');
+
+        function copiarAlPortapapeles() {
+            // ✅ SIEMPRE copiar la versión limpia (con trim aplicado)
+            const textoACopiar = passwordLimpia;
+
+            console.log('📋 Copiando al portapapeles:', JSON.stringify(textoACopiar), 'length:', textoACopiar.length);
+
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(textoACopiar).then(() => {
+                    mostrarFeedbackCopiado();
+                }).catch(err => {
+                    console.error('Error con navigator.clipboard:', err);
+                    copiarFallback(textoACopiar);
+                });
+            } else {
+                copiarFallback(textoACopiar);
+            }
+        }
+
+        function copiarFallback(texto) {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = texto;
+            tempInput.style.position = 'fixed';
+            tempInput.style.top = '-9999px';
+            tempInput.style.left = '-9999px';
+            document.body.appendChild(tempInput);
+            tempInput.focus();
+            tempInput.select();
+            tempInput.setSelectionRange(0, texto.length);
+
+            try {
+                const exito = document.execCommand('copy');
+                if (exito) {
+                    mostrarFeedbackCopiado();
+                } else {
+                    alert('No se pudo copiar. Selecciona el texto manualmente.');
+                }
+            } catch (err) {
+                console.error('Error copiando:', err);
+                alert('No se pudo copiar. Selecciona el texto manualmente.');
+            }
+
+            document.body.removeChild(tempInput);
+        }
+
+        function mostrarFeedbackCopiado() {
+            btnCopiar.innerHTML = '✅ ¡Copiada!';
+            btnCopiar.style.background = '#22c55e';
+            setTimeout(() => {
+                btnCopiar.innerHTML = `
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:6px; vertical-align:middle;">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    Copiar contraseña
+                `;
+                btnCopiar.style.background = '#1e3c72';
+            }, 2000);
+        }
+
+        btnCopiar.addEventListener('click', copiarAlPortapapeles);
+        displayBox.addEventListener('click', copiarAlPortapapeles);
+
+        // Limpiar al cerrar
         modalElement.addEventListener('hidden.bs.modal', function() {
             modalElement.remove();
         });
     }
-
-    // ===========================
-    // FUNCIÓN: COPIAR CONTRASEÑA
-    // ===========================
-    window.copiarContraseña = function(password) {
-        const tempInput = document.createElement('input');
-        tempInput.value = password;
-        document.body.appendChild(tempInput);
-        tempInput.select();
-        try {
-            document.execCommand('copy');
-            mostrarNotificacion('success', 'Contraseña copiada al portapapeles');
-        } catch (err) {
-            const display = document.querySelector('.password-display');
-            if (display) {
-                const range = document.createRange();
-                range.selectNode(display);
-                window.getSelection().removeAllRanges();
-                window.getSelection().addRange(range);
-                mostrarNotificacion('info', 'Seleccione la contraseña y copie manualmente');
-            }
-        }
-        tempInput.remove();
-    };
 
     // ===========================
     // ELIMINAR USUARIO
@@ -485,7 +566,7 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     // ===========================
-    // VALIDACIÓN Y ENVÍO DEL FORMULARIO (CON HASH)
+    // VALIDACIÓN Y ENVÍO DEL FORMULARIO
     // ===========================
     if (formUsuario) {
         formUsuario.addEventListener('submit', function(e) {
@@ -546,19 +627,18 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     mostrarNotificacion('success', data.message || 'Usuario guardado exitosamente');
 
-                    // ✅ MOSTRAR HASH SI VIENE EN LA RESPUESTA
-                    if (data.password_hash) {
-                        mostrarHashContraseña(data.password_hash);
-                    }
-
-                    // ✅ Si es un nuevo usuario, mostrar también el modal de contraseña temporal
+                    // ✅ MOSTRAR MODAL DE CONTRASEÑA (si aplica)
                     if (data.new_password && data.new_usuario) {
                         setTimeout(() => {
                             mostrarModalContraseña(data.new_usuario, data.new_password);
                         }, 500);
                     }
 
-                    setTimeout(() => location.reload(), 2000);
+                    if (data.password_hash) {
+                        mostrarHashContraseña(data.password_hash);
+                    }
+
+                    setTimeout(() => location.reload(), 3000);
                 } else {
                     mostrarNotificacion('error', data.message || 'Error al guardar usuario');
                     if (data.errors) {
