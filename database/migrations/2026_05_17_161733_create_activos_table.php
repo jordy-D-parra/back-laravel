@@ -27,9 +27,7 @@ return new class extends Migration
             $table->string('agrupacion', 100)->nullable()
                   ->comment('Agrupación de equipos (ej: Laboratorio A)');
 
-            // ✅ Consolidado desde: add_reservado_en_prestamo_id_to_activos_table
-            $table->foreignId('reservado_en_prestamo_id')->nullable()
-                  ->constrained('prestamos')->onDelete('set null');
+            $table->unsignedBigInteger('reservado_en_prestamo_id')->nullable();
 
             $table->text('observaciones')->nullable();
             $table->timestamps();
