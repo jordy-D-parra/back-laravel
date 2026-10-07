@@ -19,17 +19,16 @@ class NotificacionController extends Controller
     }
 
     public function index()
-    {
-        $usuario = Auth::user();
+{
+    $usuario = Auth::user();
+    $notificaciones = Notificacion::porUsuario($usuario->id)
+                            ->orderBy('fecha_envio', 'desc')
+                            ->paginate(20);
 
-        $noLeidas = $this->notificacionService->countNoLeidas($usuario);
+    $noLeidas = $this->notificacionService->countNoLeidas($usuario);
 
-        $notificaciones = Notificacion::porUsuario($usuario->id)
-            ->orderBy('fecha_envio', 'desc')
-            ->paginate(20);
-
-        return view('admin.notificaciones.index', compact('notificaciones', 'noLeidas'));
-    }
+    return view('admin.notificaciones.index', compact('notificaciones', 'noLeidas'));
+}
 
     public function marcarComoLeida($id)
     {
