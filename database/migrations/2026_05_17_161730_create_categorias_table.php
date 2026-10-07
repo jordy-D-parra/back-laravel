@@ -8,9 +8,13 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // ✅ Estado final tras consolidar:
+        // - Se agregó marca_id (add_marca_id)
+        // - Se eliminó marca_id (refactor_remove_marca_id)
+        // Resultado: queda igual que el original, categorías GLOBALES
         Schema::create('categorias', function (Blueprint $table) {
             $table->id();
-            $table->string('nombre', 100)->unique();  // ✅ Global, único
+            $table->string('nombre', 100)->unique();
             $table->text('descripcion')->nullable();
             $table->boolean('activo')->default(true);
             $table->timestamps();

@@ -29,6 +29,9 @@ return new class extends Migration
                   ->constrained('roles')
                   ->onDelete('set null');
 
+            // ✅ Consolidado desde: add_foto_perfil_to_usuarios_table
+            $table->string('foto_perfil', 255)->nullable()->after('rol_id');
+
             $table->index('status');
         });
     }

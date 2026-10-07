@@ -16,11 +16,19 @@ return new class extends Migration
             $table->foreignId('usuario_reporta_id')->nullable()->constrained('usuarios')->onDelete('set null');
             $table->string('usuario_reporta_nombre', 150)->nullable();
             $table->timestamp('fecha_ingreso')->useCurrent();
+
+            // ✅ Consolidado desde: add_fecha_requerida_to_fichas_soporte
+            $table->date('fecha_requerida_entrega')->nullable()->after('fecha_ingreso');
+
             $table->timestamp('fecha_salida')->nullable();
             $table->text('diagnostico')->nullable();
             $table->text('trabajo_realizado')->nullable();
             $table->text('observaciones')->nullable();
             $table->enum('estado', ['en_proceso', 'finalizado'])->default('en_proceso');
+
+            // ✅ Consolidado desde: add_fecha_requerida_to_fichas_soporte
+            $table->string('origen', 20)->default('manual')->after('estado');
+
             $table->timestamps();
 
             $table->index('activo_id');

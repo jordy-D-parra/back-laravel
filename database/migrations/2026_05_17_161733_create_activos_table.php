@@ -20,6 +20,18 @@ return new class extends Migration
             $table->date('fecha_adquisicion')->nullable();
             $table->date('fecha_fin_garantia')->nullable();
             $table->integer('vida_util_anos')->nullable()->comment('Años de vida útil estimada');
+
+            // ✅ Consolidado desde: add_especificaciones_and_agrupacion_to_activos_table
+            $table->json('especificaciones_tecnicas')->nullable()
+                  ->comment('Campos dinámicos según categoría');
+            $table->string('agrupacion', 100)->nullable()
+                  ->comment('Agrupación de equipos (ej: Laboratorio A)');
+
+            // ✅ Consolidado desde: add_reservado_en_prestamo_id_to_activos_table
+            // ⚠️ Se omite la FK porque la tabla "prestamos" se crea después.
+            //    La relación se mantiene a nivel de aplicación (Eloquent).
+            $table->unsignedBigInteger('reservado_en_prestamo_id')->nullable();
+
             $table->text('observaciones')->nullable();
             $table->timestamps();
 
@@ -29,6 +41,7 @@ return new class extends Migration
             $table->index('institucion_id');
             $table->index('fecha_adquisicion');
             $table->index('fecha_fin_garantia');
+            $table->index('reservado_en_prestamo_id');
         });
     }
 

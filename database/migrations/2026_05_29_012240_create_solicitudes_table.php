@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('solicitudes', function (Blueprint $table) {
             $table->id();
             $table->foreignId('usuario_id')->constrained('usuarios')->onDelete('cascade');
-            $table->string('tipo_solicitante', 20)->default('interno'); // interno, externo
+            $table->string('tipo_solicitante', 20)->default('interno');
             $table->foreignId('institucion_id')->nullable()->constrained('instituciones')->onDelete('set null');
             $table->foreignId('departamento_id')->nullable()->constrained('departamentos')->onDelete('set null');
             $table->foreignId('responsable_id')->nullable()->constrained('responsables')->onDelete('set null');
@@ -20,16 +20,31 @@ return new class extends Migration
             $table->date('fecha_requerida')->nullable();
             $table->date('fecha_fin_estimada')->nullable();
             $table->text('justificacion')->nullable();
-            $table->string('prioridad', 20)->default('normal'); // baja, normal, alta, urgente
-            $table->string('estado_solicitud', 20)->default('pendiente'); // pendiente, aprobada, rechazada, cancelada
+            $table->string('prioridad', 20)->default('normal');
+            $table->string('estado_solicitud', 20)->default('pendiente');
+
+            // ✅ Consolidado desde: add_leida_por_admin_to_solicitudes_table
+            $table->boolean('leida_por_admin')->default(false)->after('estado_solicitud');
+
             $table->text('observaciones')->nullable();
             $table->foreignId('aprobado_por')->nullable()->constrained('usuarios')->onDelete('set null');
             $table->timestamp('fecha_aprobacion')->nullable();
+
+            // ✅ Consolidado desde: add_geolocation_to_solicitudes_table
+            $table->foreignId('estado_id')->nullable()->after('fecha_fin_estimada')
+                  ->constrained('estados')->onDelete('set null');
+            $table->foreignId('municipio_id')->nullable()->after('estado_id')
+                  ->constrained('municipios')->onDelete('set null');
+            $table->foreignId('parroquia_id')->nullable()->after('municipio_id')
+                  ->constrained('parroquias')->onDelete('set null');
+            $table->string('lugar_evento', 200)->nullable()->after('parroquia_id');
+
             $table->timestamps();
 
             $table->index('estado_solicitud');
             $table->index('usuario_id');
             $table->index('prioridad');
+            $table->index('leida_por_admin');
         });
     }
 

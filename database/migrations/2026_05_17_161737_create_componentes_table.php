@@ -15,11 +15,18 @@ return new class extends Migration
             $table->string('modelo', 100)->nullable()->comment('Modelo del componente - texto libre');
             $table->string('serial', 100)->nullable()->unique()->comment('Número de serie si aplica');
             $table->string('capacidad', 50)->nullable()->comment('Ej: 8GB, 512GB, 65W, 15.6 pulgadas');
-            $table->string('estado', 20)->default('en_bodega')->comment('en_bodega, instalado, prestado, desechado, en_reparacion');
-            $table->foreignId('activo_id')->nullable()->constrained('activos')->onDelete('set null')->comment('Activo donde está instalado, NULL si está en bodega');
+            $table->string('estado', 20)->default('en_bodega')
+                  ->comment('en_bodega, instalado, prestado, desechado, en_reparacion');
+            $table->foreignId('activo_id')->nullable()->constrained('activos')->onDelete('set null')
+                  ->comment('Activo donde está instalado, NULL si está en bodega');
             $table->foreignId('institucion_id')->constrained('instituciones')->onDelete('restrict');
             $table->foreignId('departamento_id')->nullable()->constrained('departamentos')->onDelete('set null');
             $table->foreignId('responsable_id')->constrained('responsables')->onDelete('restrict');
+
+            // ✅ Consolidado desde: add_reservado_en_prestamo_id_to_componentes_table
+            // Nota: se omite la FK por orden de creación (prestamos se crea después)
+            $table->unsignedBigInteger('reservado_en_prestamo_id')->nullable();
+
             $table->string('ubicacion', 100)->nullable()->comment('Ubicación física: Oficina 3B, Bodega Central');
             $table->timestamp('fecha_instalacion')->nullable()->comment('Cuándo se instaló en un activo');
             $table->timestamp('fecha_retiro')->nullable()->comment('Cuándo se retiró de un activo');
@@ -31,6 +38,7 @@ return new class extends Migration
             $table->index('activo_id');
             $table->index('institucion_id');
             $table->index('serial');
+            $table->index('reservado_en_prestamo_id');
         });
     }
 
