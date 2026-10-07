@@ -274,7 +274,7 @@
                 </div>
                 <div class="modal-footer border-0 px-4 pb-4">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary-dark" id="btnGuardarTrabajador">Guardar Trabajador</button>
+                    <button type="submit" class="btn btn-primary-dark" id="btnGuardarTrabajador" style="color: #fff;">Guardar Trabajador</button>
                 </div>
             </form>
         </div>
@@ -341,7 +341,7 @@
                 </button>
             </div>
             <div class="modal-footer border-0 px-4 pb-4">
-                <button type="button" class="btn btn-primary-dark" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary-dark" data-bs-dismiss="modal" style="color: #fff;">Cerrar</button>
             </div>
         </div>
     </div>

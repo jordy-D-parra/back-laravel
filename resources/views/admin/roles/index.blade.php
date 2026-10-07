@@ -164,7 +164,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary-dark">Guardar Rol y Permisos</button>
+                    <button type="submit" class="btn btn-primary-dark" style="color: #fff;">Guardar Rol y Permisos</button>
                 </div>
             </form>
         </div>
@@ -183,7 +183,7 @@
                 <div class="text-center py-4 text-muted">Cargando...</div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary-dark" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary-dark" data-bs-dismiss="modal" style="color: #fff;">Cerrar</button>
             </div>
         </div>
     </div>

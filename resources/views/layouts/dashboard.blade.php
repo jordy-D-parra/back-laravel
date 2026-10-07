@@ -132,7 +132,7 @@
                                 <line x1="15" y1="4" x2="15" y2="20"/>
                             </svg>
                         </span>
-                        <span>Equipos</span>
+                        <span>Catalogo de Equipos</span>
                     </a>
                 </li>
             @endif

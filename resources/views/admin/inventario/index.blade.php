@@ -298,7 +298,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary-dark">Guardar Activo</button>
+                    <button type="submit" class="btn btn-primary-dark" style="color: #fff;">Guardar Activo</button>
                 </div>
             </form>
         </div>
@@ -389,7 +389,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary-dark">Guardar Componente</button>
+                    <button type="submit" class="btn btn-primary-dark" style="color: #fff;">Guardar Componente</button>
                 </div>
             </form>
         </div>

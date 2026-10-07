@@ -23,7 +23,7 @@
             <p>Gestión de mantenimiento y reparaciones</p>
         </div>
         <div class="dropdown">
-            <button class="btn btn-primary-dark dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <button class="btn btn-primary-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" style="color: #fff;">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1" style="display:inline-block;">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>

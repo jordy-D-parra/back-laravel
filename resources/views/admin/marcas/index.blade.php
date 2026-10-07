@@ -218,7 +218,7 @@
                     </div>
                     <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2">
                         <button type="button" onclick="cerrarModalEditar()" class="btn btn-light px-4" style="border-radius: 10px;">Cancelar</button>
-                        <button type="button" onclick="actualizarMarca()" class="btn px-4 text-white" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 10px;">Actualizar Marca</button>
+                        <button type="button" onclick="actualizarMarca()" class="btn px-4 text-white" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); border-radius: 10px;" style="color: #fff;">Actualizar Marca</button>
                     </div>
                 </form>
             </div>

@@ -324,7 +324,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary-dark">Enviar Solicitud</button>
+                    <button type="submit" class="btn btn-primary-dark" style="color: #fff;">Enviar Solicitud</button>
                 </div>
             </form>
         </div>
@@ -414,7 +414,7 @@
                             <label class="form-label">Fecha Requerida <span class="text-danger">*</span></label>
                             <input type="date" class="form-control" id="aprobarFechaRequerida" name="fecha_requerida" required>
                             <div id="aprobarFechaAdvertencia" class="text-danger small mt-1" style="display:none;">
-                                ⚠️ Esta fecha ya pasó.
+                                Esta fecha ya pasó.
                             </div>
                         </div>
                         <div class="col-md-6 mb-3">

@@ -231,7 +231,7 @@
                     <svg viewBox="0 0 24 24" stroke="white" stroke-width="2" fill="none" style="width:20px;height:20px;display:inline;margin-right:8px;">
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                     </svg>
-                    Registrar Entidad (Wizard)
+                    Registrar Entidad
                 </h5>
                 <span class="badge bg-light text-dark" id="wizardStepIndicator">Paso 1 de 3</span>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -312,7 +312,7 @@
                     </div>
 
                     <div class="mt-4 text-end">
-                        <button type="button" class="btn btn-primary-dark" onclick="irPasoWizard(2)">
+                        <button type="button" class="btn btn-primary-dark" onclick="irPasoWizard(2)" style="color: #fff;">
                             Siguiente
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="margin-left:4px;">
                                 <polyline points="9 18 15 12 9 6"/>
@@ -361,7 +361,7 @@
                             </svg>
                             Anterior
                         </button>
-                        <button type="button" class="btn btn-primary-dark" onclick="irPasoWizard(3)">
+                        <button type="button" class="btn btn-primary-dark" onclick="irPasoWizard(3)" style="color: #fff;">
                             Siguiente
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="margin-left:4px;">
                                 <polyline points="9 18 15 12 9 6"/>
@@ -425,7 +425,7 @@
                             </svg>
                             Anterior
                         </button>
-                        <button type="button" class="btn btn-success" id="wizardBtnGuardar">
+                        <button type="button" class="btn btn-success" id="wizardBtnGuardar" style="color: #fff;">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="margin-right:4px;">
                                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                                 <polyline points="17 21 17 13 7 13 7 21"/>

@@ -914,7 +914,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary-dark">Guardar</button>
+                    <button type="submit" class="btn btn-primary-dark" >Guardar</button>
                 </div>
             </form>
         </div>
@@ -1115,7 +1115,7 @@
                             </svg>
                             Solo crear marca
                         </button>
-                        <button type="button" class="btn btn-primary-dark" id="wizardBtnIrPaso2">
+                        <button type="button" class="btn btn-primary-dark" id="wizardBtnIrPaso2" style="color: #fff;">
                             Siguiente
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="margin-left:4px;">
                                 <polyline points="9 18 15 12 9 6"/>
@@ -1197,7 +1197,7 @@
                                 Solo crear categoría
                             </button>
                         </div>
-                        <button type="button" class="btn btn-primary-dark" id="wizardBtnIrPaso3">
+                        <button type="button" class="btn btn-primary-dark" id="wizardBtnIrPaso3" style="color: #fff;">
                             Siguiente
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="margin-left:4px;">
                                 <polyline points="9 18 15 12 9 6"/>
