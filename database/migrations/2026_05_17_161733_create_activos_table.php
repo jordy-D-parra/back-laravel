@@ -28,9 +28,8 @@ return new class extends Migration
                   ->comment('Agrupación de equipos (ej: Laboratorio A)');
 
             // ✅ Consolidado desde: add_reservado_en_prestamo_id_to_activos_table
-            // ⚠️ Se omite la FK porque la tabla "prestamos" se crea después.
-            //    La relación se mantiene a nivel de aplicación (Eloquent).
-            $table->unsignedBigInteger('reservado_en_prestamo_id')->nullable();
+            $table->foreignId('reservado_en_prestamo_id')->nullable()
+                  ->constrained('prestamos')->onDelete('set null');
 
             $table->text('observaciones')->nullable();
             $table->timestamps();
