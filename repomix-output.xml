@@ -200,49 +200,10 @@ database/
     ParroquiaFactory.php
     UserFactory.php
   migrations/
-    0001_01_01_000000_create_users_table.php
     0001_01_01_000001_create_cache_table.php
     0001_01_01_000002_create_jobs_table.php
-    2026_03_28_171946_01_create_rol_table.php
-    2026_03_28_171946_02_create_permiso_table.php
-    2026_03_28_171946_03_create_departamento_table.php
     2026_03_28_171946_04_create_estatus_table.php
-    2026_03_28_171947_05_create_tipo_activo_table.php
-    2026_03_28_171947_07_create_usuario_table.php
-    2026_03_28_171947_08_create_periferico_table.php
-    2026_03_28_171948_09_create_componente_table.php
-    2026_03_28_171948_10_create_activo_table.php
-    2026_03_28_171948_11_create_activo_componente_table.php
-    2026_03_28_171948_12_create_institucion_table.php
-    2026_03_28_171949_13_create_responsable_table.php
-    2026_03_28_171949_14_create_solicitud_table.php
-    2026_03_28_171949_15_create_detalle_solicitud_table.php
-    2026_03_28_171949_16_create_reserva_table.php
-    2026_03_28_171949_17_create_prestamo_table.php
-    2026_03_28_171950_18_create_detalle_prestamo_table.php
-    2026_03_28_171950_19_create_extension_prestamo_table.php
-    2026_03_28_171950_20_create_devolucion_table.php
-    2026_03_28_171950_21_create_detalle_devolucion_table.php
-    2026_03_28_171951_22_create_acta_table.php
-    2026_03_28_171951_25_create_activity_log_table.php
-    2026_03_28_171951_26_create_cambio_rol_historial_table.php
-    2026_04_10_222702_create_password_resets_table.php
     2026_04_11_051922_create_sessions_table.php
-    2026_04_11_222523_create_notificacion_sistemas_table.php
-    2026_04_21_194214_create_tecnicos_table.php
-    2026_04_21_194302_create_especialidades_table.php
-    2026_04_21_194337_create_tecnico_especialidad_table.php
-    2026_04_21_194417_create_clientes_soporte_table.php
-    2026_04_21_194449_create_dias_festivos_table.php
-    2026_04_21_194539_create_servicio_tecnico_table.php
-    2026_04_21_194609_create_servicio_tecnico_historial_table.php
-    2026_04_22_125246_create_ficha_soporte_table.php
-    2026_04_29_153816_add_departamento_id_to_solicitud_table.php
-    2026_05_02_004022_add_columns_to_solicitud_table.php
-    2026_05_03_212129_add_departamento_responsable_to_solicitud_table.php
-    2026_05_03_212223_add_descripcion_personalizada_to_detalle_solicitud_table.php
-    2026_05_03_223019_add_responsable_id_to_institucion_table.php
-    2026_05_03_223336_add_responsable_id_to_departamento_table.php
     2026_05_13_204139_create_roles_table.php
     2026_05_13_204140_create_permisos_table.php
     2026_05_13_204141_create_trabajadores_table.php
@@ -328,7 +289,6 @@ resources/
   css/
     auth/
       login.css
-      robot-intro.css
     admin-auditoria.css
     admin-entidades.css
     admin-equipos.css
@@ -352,7 +312,6 @@ resources/
   js/
     auth/
       login.js
-      robot-intro.js
     admin-entidades.js
     admin-equipos.js
     admin-inventario.js
@@ -10466,58 +10425,6 @@ class UserFactory extends Factory
 }
 </file>
 
-<file path="database/migrations/0001_01_01_000000_create_users_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
-        Schema::create('users', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
-            $table->string('password');
-            $table->rememberToken();
-            $table->timestamps();
-        });
-
-        Schema::create('password_reset_tokens', function (Blueprint $table) {
-            $table->string('email')->primary();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
-        });
-
-        Schema::create('sessions', function (Blueprint $table) {
-            $table->string('id')->primary();
-            $table->foreignId('user_id')->nullable()->index();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->longText('payload');
-            $table->integer('last_activity')->index();
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
-        Schema::dropIfExists('sessions');
-    }
-};
-</file>
-
 <file path="database/migrations/0001_01_01_000001_create_cache_table.php">
 <?php
 
@@ -10618,90 +10525,6 @@ return new class extends Migration
 };
 </file>
 
-<file path="database/migrations/2026_03_28_171946_01_create_rol_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('rol', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre', 50)->unique();
-            $table->text('descripcion')->nullable();
-            $table->integer('nivel')->default(1);
-            $table->boolean('es_activo')->default(true);
-            $table->timestamps();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('rol');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171946_02_create_permiso_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('permiso', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre', 100)->unique();
-            $table->text('descripcion')->nullable();
-            $table->string('modulo', 50)->nullable();
-            $table->timestamps();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('permiso');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171946_03_create_departamento_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('departamento', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre', 100)->unique();
-            $table->text('informacion')->nullable();
-            $table->string('representante', 150)->nullable();
-            $table->string('ubicacion', 200)->nullable();
-            $table->boolean('activo')->default(true);
-            $table->timestamps();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('departamento');
-    }
-};
-</file>
-
 <file path="database/migrations/2026_03_28_171946_04_create_estatus_table.php">
 <?php
 
@@ -10727,715 +10550,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('estatus');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171947_05_create_tipo_activo_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('tipo_activo', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre', 100)->unique();
-            $table->string('categoria', 50)->nullable();
-            $table->boolean('requiere_serial')->default(true);
-            $table->boolean('requiere_cantidad')->default(false);
-            $table->boolean('requiere_mantenimiento')->default(false);
-            $table->integer('vida_util_meses')->nullable();
-            $table->timestamps();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('tipo_activo');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171947_07_create_usuario_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('usuario', function (Blueprint $table) {
-            $table->id();
-            $table->string('cedula', 20)->unique();
-            $table->string('password');
-            $table->string('nombre', 100);
-            $table->string('apellido', 100);
-            $table->string('departamento', 100)->nullable();
-            $table->string('cargo', 100);
-            $table->foreignId('departamento_id')->nullable()->constrained('departamento')->onDelete('set null');
-            $table->text('pregunta_seguridad_1');
-            $table->string('respuesta_1', 255);
-            $table->text('pregunta_seguridad_2');
-            $table->string('respuesta_2', 255);
-            $table->foreignId('id_rol')->nullable()->constrained('rol')->onDelete('set null');
-            $table->string('estado_usuario', 20)->default('pendiente');
-            $table->timestamp('fecha_solicitud')->useCurrent();
-            $table->timestamp('fecha_aprobacion')->nullable();
-            $table->foreignId('aprobado_por')->nullable()->constrained('usuario')->onDelete('set null');
-            $table->timestamp('ultimo_login')->nullable();
-            $table->boolean('activo')->default(true);
-            $table->timestamps();
-
-            $table->index('cedula');
-            $table->index('estado_usuario');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('usuario');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171947_08_create_periferico_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('periferico', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre', 100);
-            $table->string('tipo', 50)->nullable();
-            $table->string('marca', 100)->nullable();
-            $table->string('modelo', 100)->nullable();
-            $table->string('serial', 100)->nullable()->unique();
-            $table->integer('cantidad_total')->default(1);
-            $table->integer('cantidad_disponible')->default(1);
-            $table->string('ubicacion', 200)->nullable();
-            $table->text('observaciones')->nullable();
-            $table->timestamps();
-
-            $table->index('tipo');
-            $table->index('cantidad_disponible');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('periferico');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171948_09_create_componente_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('componente', function (Blueprint $table) {
-            $table->id();
-            $table->string('tipo_componente', 50);
-            $table->string('marca', 100)->nullable();
-            $table->string('modelo', 100)->nullable();
-            $table->string('capacidad', 50)->nullable();
-            $table->text('especificaciones')->nullable();
-            $table->timestamps();
-
-            $table->index('tipo_componente');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('componente');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171948_10_create_activo_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('activo', function (Blueprint $table) {
-            $table->id();
-            $table->string('serial', 100)->unique();
-            $table->string('tipo_equipo', 20)->default('principal');
-            $table->string('marca_modelo', 200);
-            $table->foreignId('id_estatus')->constrained('estatus');
-            $table->foreignId('id_tipo_activo')->constrained('tipo_activo');
-            $table->integer('cantidad')->default(1);
-            $table->string('ubicacion', 100)->nullable();
-            
-            // 📅 Fechas clave
-            $table->date('disponible_desde')->nullable();
-            $table->date('fecha_adquisicion')->nullable();
-            
-            // ⏱️ Vida útil del equipo
-            $table->integer('vida_util_anos')->nullable()->comment('Años de vida útil estimada del equipo');
-            $table->date('fecha_fin_garantia')->nullable();
-            
-            // 🔧 Especificaciones técnicas dinámicas (JSON)
-            $table->json('especificaciones_tecnicas')->nullable()->comment('Campos dinámicos según categoría');
-            
-            // 📝 Observaciones generales
-            $table->text('observaciones')->nullable();
-            
-            $table->timestamps();
-
-            // Índices para búsquedas rápidas
-            $table->index('tipo_equipo');
-            $table->index('fecha_adquisicion');
-            $table->index('vida_util_anos');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('activo');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171948_11_create_activo_componente_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('activo_componente', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('activo_id')->constrained('activo')->onDelete('cascade');
-            $table->foreignId('componente_id')->constrained('componente')->onDelete('cascade');
-            $table->integer('cantidad')->default(1);
-            $table->timestamp('fecha_instalacion')->useCurrent();
-            $table->timestamp('fecha_retiro')->nullable();
-            $table->text('observaciones')->nullable();
-
-            $table->index('activo_id');
-            $table->index('componente_id');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('activo_componente');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171948_12_create_institucion_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('institucion', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre', 200)->unique();
-            $table->text('informacion')->nullable();
-            $table->string('representante', 150)->nullable();
-            $table->string('ubicacion', 200)->nullable();
-            $table->boolean('activo')->default(true);
-            $table->timestamps();
-
-            $table->index('activo');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('institucion');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171949_13_create_responsable_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('responsable', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre', 150);
-            $table->string('departamento', 150)->nullable();
-            $table->string('tipo', 20)->default('interno');
-            $table->foreignId('institucion_id')->nullable()->constrained('institucion')->onDelete('set null');
-            $table->string('documento', 50)->nullable();
-            $table->string('telefono', 20)->nullable();
-            $table->string('email', 100)->nullable();
-            $table->text('direccion')->nullable();
-            $table->timestamps();
-
-            $table->index('tipo');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('responsable');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171949_14_create_solicitud_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('solicitud', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_solicitante')->constrained('usuario');
-            $table->string('tipo_solicitante', 20)->default('interno');
-            $table->foreignId('institucion_id')->nullable()->constrained('institucion')->onDelete('set null');
-            $table->string('oficio_adjunto', 255)->nullable();
-            $table->date('fecha_solicitud')->useCurrent();
-            $table->date('fecha_requerida')->nullable();
-            $table->date('fecha_fin_estimada')->nullable();
-            $table->text('justificacion')->nullable();
-            $table->string('prioridad', 20)->default('normal');
-            $table->string('estado_solicitud', 20)->default('pendiente');
-            $table->text('observaciones')->nullable();
-            $table->foreignId('aprobado_por')->nullable()->constrained('usuario')->onDelete('set null');
-            $table->timestamp('fecha_aprobacion')->nullable();
-            $table->timestamps();
-
-            $table->index('estado_solicitud');
-            $table->index('id_solicitante');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('solicitud');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171949_15_create_detalle_solicitud_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('detalle_solicitud', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_solicitud')->constrained('solicitud')->onDelete('cascade');
-            $table->foreignId('id_activo')->nullable()->constrained('activo')->onDelete('cascade');
-            $table->foreignId('periferico_id')->nullable()->constrained('periferico')->onDelete('cascade');
-            $table->string('tipo_item', 20)->default('activo');
-            $table->integer('cantidad_solicitada')->default(1);
-            $table->text('observaciones')->nullable();
-            $table->timestamps();
-
-            $table->index('id_solicitud');
-            $table->index('id_activo');
-            $table->index('periferico_id');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('detalle_solicitud');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171949_16_create_reserva_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('reserva', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('activo_id')->constrained('activo')->onDelete('cascade');
-            $table->foreignId('solicitud_id')->nullable()->constrained('solicitud')->onDelete('set null');
-            $table->date('fecha_inicio');
-            $table->date('fecha_fin');
-            $table->string('estado', 20)->default('confirmada');
-            $table->timestamps();
-
-            $table->index('activo_id');
-            $table->index(['fecha_inicio', 'fecha_fin']);
-            $table->index('estado');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('reserva');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171949_17_create_prestamo_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('prestamo', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_solicitud')->nullable()->constrained('solicitud')->onDelete('set null');
-            $table->foreignId('id_tecnico')->constrained('usuario');
-            $table->foreignId('id_responsable')->constrained('responsable');
-            $table->date('fecha_prestamo');
-            $table->time('hora_prestamo');
-            $table->date('fecha_retorno_estimada')->nullable();
-            $table->date('fecha_retorno_real')->nullable();
-            $table->string('tipo_prestamo', 20)->default('interno');
-            $table->string('estado_prestamo', 20)->default('activo');
-            $table->boolean('pendiente_completar')->default(false);
-            $table->text('observaciones')->nullable();
-            $table->foreignId('aprobado_por')->nullable()->constrained('usuario')->onDelete('set null');
-            $table->timestamps();
-
-            $table->index('estado_prestamo');
-            $table->index('id_tecnico');
-            $table->index('id_responsable');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('prestamo');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171950_18_create_detalle_prestamo_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('detalle_prestamo', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_prestamo')->constrained('prestamo')->onDelete('cascade');
-            $table->foreignId('id_activo')->nullable()->constrained('activo')->onDelete('cascade');
-            $table->foreignId('periferico_id')->nullable()->constrained('periferico')->onDelete('cascade');
-            $table->string('tipo_item', 20)->default('activo');
-            $table->integer('cantidad')->default(1);
-            $table->foreignId('estado_al_prestar')->nullable()->constrained('estatus')->onDelete('set null');
-            $table->text('observaciones')->nullable();
-            $table->boolean('devuelto')->default(false);
-            $table->timestamps();
-
-            $table->index('id_prestamo');
-            $table->index('id_activo');
-            $table->index('periferico_id');
-            $table->index('devuelto');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('detalle_prestamo');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171950_19_create_extension_prestamo_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('extension_prestamo', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('prestamo_id')->constrained('prestamo')->onDelete('cascade');
-            $table->foreignId('solicitada_por')->constrained('usuario');
-            $table->date('nueva_fecha_devolucion');
-            $table->text('motivo')->nullable();
-            $table->string('estado', 20)->default('pendiente');
-            $table->foreignId('aprobada_por')->nullable()->constrained('usuario')->onDelete('set null');
-            $table->timestamp('fecha_aprobacion')->nullable();
-            $table->timestamps();
-
-            $table->index('prestamo_id');
-            $table->index('estado');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('extension_prestamo');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171950_20_create_devolucion_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('devolucion', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_prestamo')->constrained('prestamo');
-            $table->foreignId('id_tecnico')->constrained('usuario');
-            $table->date('fecha_devolucion');
-            $table->time('hora_devolucion');
-            $table->string('tipo_devolucion', 20)->default('parcial');
-            $table->text('observaciones')->nullable();
-            $table->timestamps();
-
-            $table->index('id_prestamo');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('devolucion');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171950_21_create_detalle_devolucion_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('detalle_devolucion', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_devolucion')->constrained('devolucion')->onDelete('cascade');
-            $table->foreignId('id_activo')->nullable()->constrained('activo')->onDelete('cascade');
-            $table->foreignId('periferico_id')->nullable()->constrained('periferico')->onDelete('cascade');
-            $table->string('tipo_item', 20)->default('activo');
-            $table->integer('cantidad')->default(1);
-            $table->foreignId('estado_devuelto')->nullable()->constrained('estatus')->onDelete('set null');
-            $table->text('observaciones')->nullable();
-            $table->timestamps();
-
-            $table->index('id_devolucion');
-            $table->index('id_activo');
-            $table->index('periferico_id');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('detalle_devolucion');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171951_22_create_acta_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('acta', function (Blueprint $table) {
-            $table->id();
-            $table->string('numero_acta', 50)->unique();
-            $table->string('tipo_referencia', 20);
-            $table->bigInteger('id_referencia');
-            $table->timestamp('fecha_emision')->useCurrent();
-            $table->text('contenido');
-            $table->text('firma_digital')->nullable();
-            $table->foreignId('generado_por')->nullable()->constrained('usuario')->onDelete('set null');
-            $table->timestamps();
-
-            $table->index(['tipo_referencia', 'id_referencia']);
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('acta');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171951_25_create_activity_log_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('activity_log', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('user_id')->nullable()->constrained('usuario')->onDelete('set null');
-            $table->string('user_name', 200)->nullable();
-            $table->string('user_role', 50)->nullable();
-            $table->string('ip_address', 45)->nullable();
-            $table->text('user_agent')->nullable();
-            $table->string('operation', 20);
-            $table->string('table_name', 100);
-            $table->bigInteger('record_id')->nullable();
-            $table->string('field_name', 100)->nullable();
-            $table->json('old_data')->nullable();
-            $table->json('new_data')->nullable();
-            $table->text('description')->nullable();
-            $table->string('request_method', 10)->nullable();
-            $table->string('request_url', 500)->nullable();
-            $table->timestamps();
-
-            $table->index('user_id');
-            $table->index(['table_name', 'record_id']);
-            $table->index('operation');
-            $table->index('created_at');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('activity_log');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_03_28_171951_26_create_cambio_rol_historial_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('cambio_rol_historial', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('id_usuario')->constrained('usuario');
-            $table->foreignId('id_rol_anterior')->constrained('rol');
-            $table->foreignId('id_rol_nuevo')->constrained('rol');
-            $table->foreignId('id_usuario_cambio')->constrained('usuario');
-            $table->timestamp('fecha_cambio')->useCurrent();
-            $table->text('justificacion')->nullable();
-            $table->timestamps();
-
-            $table->index('id_usuario');
-            $table->index('fecha_cambio');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('cambio_rol_historial');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_10_222702_create_password_resets_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up()
-    {
-        Schema::create('password_resets', function (Blueprint $table) {
-            $table->string('email')->index();
-            $table->string('token');
-            $table->timestamp('created_at')->nullable();
-        });
-    }
-
-    public function down()
-    {
-        Schema::dropIfExists('password_resets');
     }
 };
 </file>
@@ -11466,517 +10580,6 @@ return new class extends Migration
     public function down(): void
     {
         Schema::dropIfExists('sessions');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_11_222523_create_notificacion_sistemas_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up()
-    {
-        Schema::create('notificacion_sistema', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('usuario_id');
-            $table->string('tipo', 50);
-            $table->string('titulo');
-            $table->text('mensaje');
-            $table->json('datos_extra')->nullable();
-            $table->boolean('leida')->default(false);
-            $table->timestamp('fecha_envio')->useCurrent();
-            $table->timestamps();
-
-            $table->foreign('usuario_id')->references('id')->on('usuario')->onDelete('cascade');
-            $table->index(['usuario_id', 'leida']);
-        });
-    }
-
-    public function down()
-    {
-        Schema::dropIfExists('notificacion_sistema');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_21_194214_create_tecnicos_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('tecnicos', function (Blueprint $table) {
-            $table->id();
-            $table->string('cedula', 20)->unique();
-            $table->string('nombre', 100);
-            $table->string('apellido', 100);
-            $table->foreignId('usuario_id')->nullable()->constrained('usuario')->onDelete('set null');
-            $table->timestamps();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('tecnicos');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_21_194302_create_especialidades_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('especialidades', function (Blueprint $table) {
-            $table->id();
-            $table->string('nombre', 100)->unique();
-            $table->text('descripcion')->nullable();
-            $table->timestamps();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('especialidades');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_21_194337_create_tecnico_especialidad_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('tecnico_especialidad', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('tecnico_id')->constrained('tecnicos')->onDelete('cascade');
-            $table->foreignId('especialidad_id')->constrained('especialidades')->onDelete('cascade');
-            $table->timestamps();
-
-            $table->unique(['tecnico_id', 'especialidad_id']);
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('tecnico_especialidad');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_21_194417_create_clientes_soporte_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('clientes_soporte', function (Blueprint $table) {
-            $table->id();
-            $table->string('tipo', 20)->default('interno');
-            $table->string('nombre', 200);
-            $table->foreignId('institucion_id')->nullable()->constrained('institucion')->onDelete('set null');
-            $table->foreignId('departamento_id')->nullable()->constrained('departamento')->onDelete('set null');
-            $table->foreignId('responsable_id')->nullable()->constrained('responsable')->onDelete('set null');
-            $table->timestamps();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('clientes_soporte');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_21_194449_create_dias_festivos_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('dias_festivos', function (Blueprint $table) {
-            $table->id();
-            $table->date('fecha')->unique();
-            $table->string('motivo', 200);
-            $table->text('descripcion')->nullable();
-            $table->boolean('activo')->default(true);
-            $table->timestamps();
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('dias_festivos');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_21_194539_create_servicio_tecnico_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('servicio_tecnico', function (Blueprint $table) {
-            $table->id();
-            $table->string('codigo', 50)->unique();
-            $table->foreignId('cliente_id')->constrained('clientes_soporte');
-            $table->string('tipo_equipo', 20)->default('activo'); // 'activo' o 'periferico'
-            $table->foreignId('activo_id')->nullable()->constrained('activo')->onDelete('set null');
-            $table->foreignId('periferico_id')->nullable()->constrained('periferico')->onDelete('set null');
-            $table->foreignId('tecnico_id')->nullable()->constrained('tecnicos')->onDelete('set null');
-
-            // Fases del servicio
-            $table->enum('fase', [
-                'diagnostico',
-                'reparacion',
-                'pruebas',
-                'entregado',
-                'cerrado'
-            ])->default('diagnostico');
-
-            // Fechas clave
-            $table->date('fecha_inicio_diagnostico')->nullable();
-            $table->date('fecha_fin_diagnostico')->nullable();
-            $table->date('fecha_inicio_reparacion')->nullable();
-            $table->date('fecha_fin_reparacion')->nullable();
-            $table->date('fecha_inicio_pruebas')->nullable();
-            $table->date('fecha_fin_pruebas')->nullable();
-            $table->date('fecha_entrega')->nullable();
-            $table->date('fecha_cierre')->nullable();
-
-            // Tiempos calculados (días hábiles)
-            $table->integer('dias_diagnostico')->nullable();
-            $table->integer('dias_reparacion')->nullable();
-            $table->integer('dias_pruebas')->nullable();
-            $table->integer('dias_totales')->nullable();
-
-            // Información del servicio
-            $table->text('problema_reportado')->nullable();
-            $table->text('diagnostico')->nullable();
-            $table->text('trabajo_realizado')->nullable();
-            $table->text('observaciones')->nullable();
-
-            // Control
-            $table->enum('estado', ['activo', 'pausado', 'completado', 'cancelado'])->default('activo');
-            $table->enum('prioridad', ['baja', 'normal', 'alta', 'urgente'])->default('normal');
-
-            // Auditoría
-            $table->foreignId('creado_por')->constrained('usuario');
-            $table->foreignId('cerrado_por')->nullable()->constrained('usuario')->onDelete('set null');
-
-            $table->timestamps();
-            $table->softDeletes();
-
-            // Índices
-            $table->index('codigo');
-            $table->index('fase');
-            $table->index('estado');
-            $table->index('tecnico_id');
-            $table->index('cliente_id');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('servicio_tecnico');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_21_194609_create_servicio_tecnico_historial_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::create('servicio_tecnico_historial', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('servicio_tecnico_id')->constrained('servicio_tecnico')->onDelete('cascade');
-            $table->string('fase_anterior', 30)->nullable();
-            $table->string('fase_nueva', 30);
-            $table->string('campo_modificado', 50)->nullable();
-            $table->text('valor_anterior')->nullable();
-            $table->text('valor_nuevo')->nullable();
-            $table->text('comentario')->nullable();
-            $table->foreignId('realizado_por')->constrained('usuario');
-            $table->timestamp('fecha_cambio')->useCurrent();
-            $table->timestamps();
-
-            $table->index('servicio_tecnico_id');
-            $table->index('fase_nueva');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::dropIfExists('servicio_tecnico_historial');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_22_125246_create_ficha_soporte_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
-    {
-        Schema::create('ficha_soporte', function (Blueprint $table) {
-            $table->id();
-            $table->string('estado')->default('en_proceso');
-            $table->timestamps();
-        });
-    }
-
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
-    {
-        Schema::dropIfExists('ficha_soporte');
-    }
-};
-</file>
-
-<file path="database/migrations/2026_04_29_153816_add_departamento_id_to_solicitud_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::table('solicitud', function (Blueprint $table) {
-            $table->foreignId('departamento_id')->nullable()->after('institucion_id')->constrained('departamento')->onDelete('set null');
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('solicitud', function (Blueprint $table) {
-            $table->dropForeign(['departamento_id']);
-            $table->dropColumn('departamento_id');
-        });
-    }
-};
-</file>
-
-<file path="database/migrations/2026_05_02_004022_add_columns_to_solicitud_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::table('solicitud', function (Blueprint $table) {
-            // Verificar si la columna ya existe antes de agregarla
-            if (!Schema::hasColumn('solicitud', 'departamento_id')) {
-                $table->foreignId('departamento_id')
-                      ->nullable()
-                      ->after('institucion_id')
-                      ->constrained('departamento')
-                      ->onDelete('set null');
-            }
-
-            // Verificar si la columna ya existe antes de agregarla
-            if (!Schema::hasColumn('solicitud', 'responsable_id')) {
-                $table->foreignId('responsable_id')
-                      ->nullable()
-                      ->after('departamento_id')
-                      ->constrained('responsable')
-                      ->onDelete('set null');
-            }
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('solicitud', function (Blueprint $table) {
-            $table->dropForeign(['departamento_id']);
-            $table->dropForeign(['responsable_id']);
-            $table->dropColumn(['departamento_id', 'responsable_id']);
-        });
-    }
-};
-</file>
-
-<file path="database/migrations/2026_05_03_212129_add_departamento_responsable_to_solicitud_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::table('solicitud', function (Blueprint $table) {
-            if (!Schema::hasColumn('solicitud', 'departamento_id')) {
-                $table->foreignId('departamento_id')->nullable()->after('institucion_id')->constrained('departamento')->onDelete('set null');
-            }
-            if (!Schema::hasColumn('solicitud', 'responsable_id')) {
-                $table->foreignId('responsable_id')->nullable()->after('departamento_id')->constrained('responsable')->onDelete('set null');
-            }
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('solicitud', function (Blueprint $table) {
-            $table->dropForeign(['departamento_id']);
-            $table->dropColumn('departamento_id');
-            $table->dropForeign(['responsable_id']);
-            $table->dropColumn('responsable_id');
-        });
-    }
-};
-</file>
-
-<file path="database/migrations/2026_05_03_212223_add_descripcion_personalizada_to_detalle_solicitud_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::table('detalle_solicitud', function (Blueprint $table) {
-            if (!Schema::hasColumn('detalle_solicitud', 'descripcion_personalizada')) {
-                $table->string('descripcion_personalizada', 500)->nullable()->after('cantidad_solicitada');
-            }
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('detalle_solicitud', function (Blueprint $table) {
-            $table->dropColumn('descripcion_personalizada');
-        });
-    }
-};
-</file>
-
-<file path="database/migrations/2026_05_03_223019_add_responsable_id_to_institucion_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::table('institucion', function (Blueprint $table) {
-            if (!Schema::hasColumn('institucion', 'responsable_id')) {
-                $table->foreignId('responsable_id')
-                    ->nullable()
-                    ->after('activo')
-                    ->constrained('responsable')
-                    ->onDelete('set null');
-            }
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('institucion', function (Blueprint $table) {
-            $table->dropForeign(['responsable_id']);
-            $table->dropColumn('responsable_id');
-        });
-    }
-};
-</file>
-
-<file path="database/migrations/2026_05_03_223336_add_responsable_id_to_departamento_table.php">
-<?php
-
-use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
-
-return new class extends Migration
-{
-    public function up(): void
-    {
-        Schema::table('departamento', function (Blueprint $table) {
-            if (!Schema::hasColumn('departamento', 'responsable_id')) {
-                $table->foreignId('responsable_id')
-                    ->nullable()
-                    ->after('activo')
-                    ->constrained('responsable')
-                    ->onDelete('set null');
-            }
-        });
-    }
-
-    public function down(): void
-    {
-        Schema::table('departamento', function (Blueprint $table) {
-            $table->dropForeign(['responsable_id']);
-            $table->dropColumn('responsable_id');
-        });
     }
 };
 </file>
@@ -40302,55 +38905,6 @@ CHANGELOG.md export-ignore
 .styleci.yml export-ignore
 </file>
 
-<file path=".gitignore">
-<<<<<<< HEAD
-/vendor/
-/node_modules/
-.env
-.env.*
-!.env.example
-.phpunit.result.cache
-Homestead.json
-Homestead.yaml
-npm-debug.log
-yarn-error.log
-/storage/*.key
-/storage/framework/
-/storage/logs/
-.DS_Store
-/.idea
-/.vscode
-=======
-*.log
-.DS_Store
-.env
-.env.backup
-.env.production
-.phpactor.json
-.phpunit.result.cache
-/.codex
-/.cursor/
-/.idea
-/.nova
-/.phpunit.cache
-/.vscode
-/.zed
-/auth.json
-/node_modules
-/public/build
-/public/fonts-manifest.dev.json
-/public/hot
-/public/storage
-/storage/*.key
-/storage/pail
-/vendor
-_ide_helper.php
-Homestead.json
-Homestead.yaml
-Thumbs.db
->>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
-</file>
-
 <file path=".npmrc">
 ignore-scripts=true
 audit=true
@@ -45259,1023 +43813,6 @@ class SoporteTecnicoSeeder extends Seeder
         $this->command->line("   • Finalizados: {$finalizados}");
         $this->command->line("   • Total: " . ($enProceso + $finalizados));
     }
-}
-</file>
-
-<file path="resources/css/auth/robot-intro.css">
-/* ============================================================
-ROBOT INTRO ANIMATION - Gobernación de Yaracuy
-============================================================ */
-.robot-intro-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 999999;
-    background: linear-gradient(135deg, #0f172a 0%, #1e3c72 50%, #2a5298 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    transition: opacity 0.8s ease, visibility 0.8s ease;
-}
-
-.robot-intro-overlay.hidden {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-}
-
-.robot-intro-overlay::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background:
-        radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.15) 0%, transparent 50%),
-        radial-gradient(circle at 80% 70%, rgba(246, 194, 62, 0.1) 0%, transparent 50%);
-    pointer-events: none;
-}
-
-/* Estrellas de fondo */
-.robot-intro-stars {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-}
-
-.robot-intro-star {
-    position: absolute;
-    width: 2px;
-    height: 2px;
-    background: white;
-    border-radius: 50%;
-    opacity: 0;
-    animation: starTwinkle 3s infinite ease-in-out;
-}
-
-@keyframes starTwinkle {
-    0%, 100% { opacity: 0; transform: scale(0.5); }
-    50% { opacity: 1; transform: scale(1.2); }
-}
-
-/* ============================================================
-ESCENARIO
-============================================================ */
-.robot-stage {
-    position: relative;
-    width: 100%;
-    max-width: 1200px;
-    height: 100vh;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    perspective: 1800px;
-}
-
-/* ============================================================
-ROBOT
-============================================================ */
-.robot {
-    position: absolute;
-    bottom: 20%;
-    left: -200px;
-    width: 140px;
-    height: 200px;
-    z-index: 20;
-    animation: robotWalkIn 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes robotWalkIn {
-    0% { left: -200px; }
-    70% { left: calc(50% - 70px); }
-    85% { left: calc(50% - 75px); }
-    100% { left: calc(50% - 70px); }
-}
-
-/* ============================================================
-CUERPO DEL ROBOT
-============================================================ */
-.robot-body-wrapper {
-    position: relative;
-    width: 100%;
-    height: 100%;
-}
-
-/* Cabeza */
-.robot-head {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 90px;
-    height: 75px;
-    background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%);
-    border-radius: 20px 20px 15px 15px;
-    box-shadow:
-        inset 0 -4px 8px rgba(0, 0, 0, 0.1),
-        inset 0 4px 8px rgba(255, 255, 255, 0.6),
-        0 4px 12px rgba(0, 0, 0, 0.3);
-    border: 2px solid #94a3b8;
-    z-index: 5;
-}
-
-/* Antena */
-.robot-antenna {
-    position: absolute;
-    top: -22px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 3px;
-    height: 22px;
-    background: linear-gradient(180deg, #64748b, #94a3b8);
-    border-radius: 2px;
-}
-
-.robot-antenna-ball {
-    position: absolute;
-    top: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 12px;
-    height: 12px;
-    background: radial-gradient(circle at 30% 30%, #fbbf24, #f59e0b);
-    border-radius: 50%;
-    box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
-    animation: antennaPulse 1.5s infinite ease-in-out;
-}
-
-@keyframes antennaPulse {
-    0%, 100% { box-shadow: 0 0 12px rgba(251, 191, 36, 0.6); }
-    50% { box-shadow: 0 0 20px rgba(251, 191, 36, 1); }
-}
-
-/* Cara */
-.robot-face {
-    position: absolute;
-    top: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 70px;
-    height: 40px;
-    background: #0f172a;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
-    overflow: hidden;
-}
-
-.robot-face::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.2), transparent);
-    animation: faceGlow 3s infinite;
-}
-
-@keyframes faceGlow {
-    0%, 100% { transform: translateX(-100%); }
-    50% { transform: translateX(100%); }
-}
-
-.robot-eye {
-    width: 14px;
-    height: 14px;
-    background: radial-gradient(circle at 30% 30%, #60a5fa, #1e40af);
-    border-radius: 50%;
-    box-shadow: 0 0 10px rgba(96, 165, 250, 0.8);
-    position: relative;
-    z-index: 1;
-    animation: eyeBlink 4s infinite;
-}
-
-@keyframes eyeBlink {
-    0%, 92%, 100% { transform: scaleY(1); }
-    95% { transform: scaleY(0.1); }
-}
-
-/* Cuello */
-.robot-neck {
-    position: absolute;
-    top: 70px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 24px;
-    height: 12px;
-    background: linear-gradient(180deg, #94a3b8, #64748b);
-    border-radius: 4px;
-    z-index: 4;
-}
-
-/* Torso */
-.robot-torso {
-    position: absolute;
-    top: 78px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100px;
-    height: 85px;
-    background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%);
-    border-radius: 15px 15px 12px 12px;
-    box-shadow:
-        inset 0 -4px 8px rgba(0, 0, 0, 0.1),
-        inset 0 4px 8px rgba(255, 255, 255, 0.5),
-        0 4px 12px rgba(0, 0, 0, 0.2);
-    border: 2px solid #94a3b8;
-    z-index: 3;
-}
-
-/* Panel del pecho */
-.robot-chest-panel {
-    position: absolute;
-    top: 15px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 40px;
-    background: #0f172a;
-    border-radius: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.5);
-}
-
-.robot-chest-line {
-    width: 40px;
-    height: 3px;
-    background: #3b82f6;
-    border-radius: 2px;
-    box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
-}
-
-.robot-chest-line:nth-child(1) { animation: chestLine 2s infinite 0s; }
-.robot-chest-line:nth-child(2) { animation: chestLine 2s infinite 0.3s; }
-.robot-chest-line:nth-child(3) { animation: chestLine 2s infinite 0.6s; }
-
-@keyframes chestLine {
-    0%, 100% { opacity: 0.4; }
-    50% { opacity: 1; box-shadow: 0 0 12px rgba(59, 130, 246, 1); }
-}
-
-/* Luces del pecho */
-.robot-chest-leds {
-    position: absolute;
-    bottom: 8px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 6px;
-}
-
-.robot-led {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: #22c55e;
-    box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
-}
-
-.robot-led:nth-child(1) { animation: ledBlink 1.5s infinite 0s; }
-.robot-led:nth-child(2) { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.8); animation: ledBlink 1.5s infinite 0.5s; }
-.robot-led:nth-child(3) { background: #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.8); animation: ledBlink 1.5s infinite 1s; }
-
-@keyframes ledBlink {
-    0%, 100% { opacity: 0.3; transform: scale(0.8); }
-    50% { opacity: 1; transform: scale(1.1); }
-}
-
-/* ============================================================
-BRAZOS
-============================================================ */
-.robot-arm {
-    position: absolute;
-    top: 88px;
-    width: 18px;
-    height: 70px;
-    background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%);
-    border-radius: 10px;
-    border: 2px solid #94a3b8;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    transform-origin: top center;
-    z-index: 6;
-}
-
-.robot-arm-left {
-    left: 0;
-    transform: rotate(0deg);
-}
-
-.robot-arm-right {
-    right: 0;
-    transform: rotate(0deg);
-}
-
-/* Manos */
-.robot-hand {
-    position: absolute;
-    bottom: -14px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 22px;
-    height: 22px;
-    background: linear-gradient(145deg, #cbd5e1, #94a3b8);
-    border-radius: 50%;
-    border: 2px solid #64748b;
-    box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.15);
-}
-
-/* Animación de caminar - brazos */
-.robot.walking .robot-arm-left {
-    animation: armSwingLeft 0.5s infinite alternate ease-in-out;
-}
-
-.robot.walking .robot-arm-right {
-    animation: armSwingRight 0.5s infinite alternate ease-in-out;
-}
-
-@keyframes armSwingLeft {
-    from { transform: rotate(15deg); }
-    to { transform: rotate(-15deg); }
-}
-
-@keyframes armSwingRight {
-    from { transform: rotate(-15deg); }
-    to { transform: rotate(15deg); }
-}
-
-/* Animación de saludar (brazo derecho levantado) */
-.robot.waving .robot-arm-right {
-    animation: waveArm 0.4s infinite alternate ease-in-out;
-    transform-origin: top center;
-}
-
-@keyframes waveArm {
-    from { transform: rotate(-140deg); }
-    to { transform: rotate(-120deg); }
-}
-
-/* Animación de jalar (brazo izquierdo extendido) */
-.robot.pulling-left .robot-arm-left {
-    animation: pullLeft 1.5s ease-in-out forwards;
-}
-
-@keyframes pullLeft {
-    0% { transform: rotate(0deg); }
-    30% { transform: rotate(90deg); }
-    60% { transform: rotate(85deg); }
-    100% { transform: rotate(0deg); }
-}
-
-/* Animación de jalar (brazo derecho extendido) */
-.robot.pulling-right .robot-arm-right {
-    animation: pullRight 1.5s ease-in-out forwards;
-}
-
-@keyframes pullRight {
-    0% { transform: rotate(0deg); }
-    30% { transform: rotate(-90deg); }
-    60% { transform: rotate(-85deg); }
-    100% { transform: rotate(0deg); }
-}
-
-/* Despedida con la mano */
-.robot.goodbye .robot-arm-right {
-    animation: waveGoodbye 0.5s infinite alternate ease-in-out;
-    transform-origin: top center;
-}
-
-@keyframes waveGoodbye {
-    from { transform: rotate(-150deg); }
-    to { transform: rotate(-110deg); }
-}
-
-/* ============================================================
-PIERNAS
-============================================================ */
-.robot-leg {
-    position: absolute;
-    top: 160px;
-    width: 20px;
-    height: 45px;
-    background: linear-gradient(145deg, #e2e8f0 0%, #cbd5e1 100%);
-    border-radius: 6px;
-    border: 2px solid #94a3b8;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    transform-origin: top center;
-    z-index: 2;
-}
-
-.robot-leg-left {
-    left: 25px;
-}
-
-.robot-leg-right {
-    right: 25px;
-}
-
-/* Pies */
-.robot-foot {
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 28px;
-    height: 12px;
-    background: linear-gradient(145deg, #64748b, #475569);
-    border-radius: 6px;
-    border: 2px solid #334155;
-}
-
-/* Animación de caminar - piernas */
-.robot.walking .robot-leg-left {
-    animation: legSwingLeft 0.5s infinite alternate ease-in-out;
-}
-
-.robot.walking .robot-leg-right {
-    animation: legSwingRight 0.5s infinite alternate ease-in-out;
-}
-
-@keyframes legSwingLeft {
-    from { transform: rotate(-12deg); }
-    to { transform: rotate(12deg); }
-}
-
-@keyframes legSwingRight {
-    from { transform: rotate(12deg); }
-    to { transform: rotate(-12deg); }
-}
-
-/* Rebote al caminar */
-.robot.walking .robot-body-wrapper {
-    animation: robotBounce 0.5s infinite alternate ease-in-out;
-}
-
-@keyframes robotBounce {
-    from { transform: translateY(0); }
-    to { transform: translateY(-4px); }
-}
-
-/* ============================================================
-PANELES QUE EL ROBOT JALA
-============================================================ */
-/* Panel del sistema (lado izquierdo) */
-.panel-sistema {
-    position: absolute;
-    left: 5%;
-    top: 50%;
-    transform: translateY(-50%) translateX(-500px);
-    width: 320px;
-    z-index: 10;
-    opacity: 0;
-    transition: none;
-}
-
-.panel-sistema.pulled {
-    animation: pullPanelLeft 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes pullPanelLeft {
-    0% {
-        transform: translateY(-50%) translateX(-500px);
-        opacity: 0;
-    }
-    30% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(-50%) translateX(0);
-        opacity: 1;
-    }
-}
-
-/* Panel del login (lado derecho) */
-.panel-login-intro {
-    position: absolute;
-    right: 5%;
-    top: 50%;
-    transform: translateY(-50%) translateX(500px);
-    width: 380px;
-    z-index: 10;
-    opacity: 0;
-    transition: none;
-}
-
-.panel-login-intro.pulled {
-    animation: pullPanelRight 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-}
-
-@keyframes pullPanelRight {
-    0% {
-        transform: translateY(-50%) translateX(500px);
-        opacity: 0;
-    }
-    30% {
-        opacity: 1;
-    }
-    100% {
-        transform: translateY(-50%) translateX(0);
-        opacity: 1;
-    }
-}
-
-/* Tarjetas de los paneles */
-.intro-card {
-    background: rgba(255, 255, 255, 0.98);
-    border-radius: 24px;
-    padding: 32px 28px;
-    box-shadow:
-        0 25px 60px rgba(0, 0, 0, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-/* Panel sistema - contenido */
-.intro-logo-wrap {
-    display: flex;
-    justify-content: center;
-    margin-bottom: 20px;
-}
-
-.intro-logo {
-    width: 90px;
-    height: 90px;
-    object-fit: contain;
-    border-radius: 20px;
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    padding: 12px;
-    box-shadow: 0 12px 30px rgba(30, 60, 114, 0.35);
-}
-
-.intro-title {
-    text-align: center;
-    color: #1e3c72;
-    font-weight: 800;
-    font-size: 1.4rem;
-    margin-bottom: 8px;
-    letter-spacing: 0.5px;
-}
-
-.intro-subtitle {
-    text-align: center;
-    color: #64748b;
-    font-size: 0.85rem;
-    margin-bottom: 20px;
-}
-
-.intro-features {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.intro-feature {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 14px;
-    background: linear-gradient(135deg, #f8fafc, #eef3fc);
-    border-radius: 12px;
-    border-left: 3px solid #1e3c72;
-    opacity: 0;
-    transform: translateX(-20px);
-    animation: fadeInFeature 0.5s ease forwards;
-}
-
-.intro-feature:nth-child(1) { animation-delay: 0.4s; }
-.intro-feature:nth-child(2) { animation-delay: 0.6s; }
-.intro-feature:nth-child(3) { animation-delay: 0.8s; }
-
-@keyframes fadeInFeature {
-    to { opacity: 1; transform: translateX(0); }
-}
-
-.intro-feature-icon {
-    width: 32px;
-    height: 32px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, #1e3c72, #2a5298);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.intro-feature-icon svg {
-    width: 16px;
-    height: 16px;
-    stroke: white;
-    fill: none;
-    stroke-width: 2.5;
-}
-
-.intro-feature-text {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #334155;
-}
-
-/* Panel login - contenido */
-.intro-login-title {
-    text-align: center;
-    color: #1e3c72;
-    font-weight: 800;
-    font-size: 1.2rem;
-    margin-bottom: 6px;
-}
-
-.intro-login-subtitle {
-    text-align: center;
-    color: #64748b;
-    font-size: 0.8rem;
-    margin-bottom: 22px;
-}
-
-.intro-input-group {
-    margin-bottom: 16px;
-}
-
-.intro-input-label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 700;
-    color: #1e3c72;
-    margin-bottom: 6px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.intro-input {
-    width: 100%;
-    padding: 12px 16px;
-    border: 2px solid #e2e8f0;
-    border-radius: 12px;
-    font-size: 0.9rem;
-    background: #f8fafc;
-    color: #334155;
-    transition: all 0.3s ease;
-    outline: none;
-}
-
-.intro-input::placeholder {
-    color: #94a3b8;
-}
-
-.intro-btn {
-    width: 100%;
-    padding: 14px;
-    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 0.9rem;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 8px 20px rgba(30, 60, 114, 0.3);
-    margin-top: 8px;
-}
-
-.intro-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 12px 30px rgba(30, 60, 114, 0.4);
-}
-
-/* ============================================================
-BURBUJAS DE TEXTO DEL ROBOT
-============================================================ */
-.robot-bubble {
-    position: absolute;
-    top: -60px;
-    left: 50%;
-    transform: translateX(-50%) scale(0);
-    background: white;
-    color: #1e3c72;
-    padding: 10px 18px;
-    border-radius: 16px;
-    font-size: 0.85rem;
-    font-weight: 700;
-    white-space: nowrap;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    opacity: 0;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    z-index: 30;
-}
-
-.robot-bubble::after {
-    content: '';
-    position: absolute;
-    bottom: -8px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 0;
-    height: 0;
-    border-left: 8px solid transparent;
-    border-right: 8px solid transparent;
-    border-top: 8px solid white;
-}
-
-.robot-bubble.show {
-    opacity: 1;
-    transform: translateX(-50%) scale(1);
-}
-
-/* ============================================================
-PARTÍCULAS DE "MAGIA" CUANDO JALA LOS PANELES
-============================================================ */
-.magic-particle {
-    position: absolute;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: radial-gradient(circle, #fbbf24, #f59e0b);
-    pointer-events: none;
-    z-index: 15;
-    box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
-}
-
-/* ============================================================
-BOTÓN SALTAR INTRO
-============================================================ */
-.skip-intro-btn {
-    position: fixed;
-    top: 24px;
-    right: 24px;
-    z-index: 1000001;
-    background: rgba(255, 255, 255, 0.15);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    padding: 10px 20px;
-    border-radius: 30px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    cursor: pointer;
-    backdrop-filter: blur(10px);
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.skip-intro-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
-}
-
-.skip-intro-btn svg {
-    width: 14px;
-    height: 14px;
-    stroke: currentColor;
-    fill: none;
-    stroke-width: 2.5;
-}
-
-/* ============================================================
-RESPONSIVE
-============================================================ */
-@media (max-width: 992px) {
-    .panel-sistema,
-    .panel-login-intro {
-        width: 280px;
-    }
-    .panel-sistema { left: 3%; }
-    .panel-login-intro { right: 3%; }
-    .robot {
-        transform: scale(0.85);
-        transform-origin: bottom center;
-    }
-}
-
-@media (max-width: 768px) {
-    .panel-sistema,
-    .panel-login-intro {
-        display: none;
-    }
-    .robot-stage::after {
-        content: 'Bienvenido';
-        position: absolute;
-        bottom: 35%;
-        left: 50%;
-        transform: translateX(-50%);
-        color: white;
-        font-size: 1.5rem;
-        font-weight: 800;
-        letter-spacing: 2px;
-        animation: fadeInFeature 1s ease 1.5s forwards;
-        opacity: 0;
-    }
-}
-
-/* ============================================================
-FASE FINAL: EL ROBOT LEVANTA EL LOGIN REAL DESDE ABAJO
-============================================================
-El login real se posiciona FUERA de la pantalla (abajo) con
-transform: translateY(100vh). Luego el robot lo "levanta" y el
-login se revela de abajo hacia arriba (efecto PowerPoint).
-El robot se mantiene SIEMPRE CENTRADO (left: calc(50% - 70px))
-mientras sube, hasta que llega arriba y desaparece sin moverse
-de lado.
-============================================================ */
-
-/* ---- LOGIN REAL: posición inicial FUERA de pantalla (abajo) ---- */
-body.intro-active #loginReal {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 1000000 !important; /* ENCIMA del overlay (que es 999999) */
-    transform: translateY(100vh);
-    transition: none !important;
-    overflow: hidden;
-    will-change: transform;
-}
-
-/* El login real sube desde abajo hacia arriba */
-body.intro-active #loginReal.lifting {
-    animation: liftLoginReal 3s cubic-bezier(0.5, 0, 0.35, 1) forwards;
-}
-
-@keyframes liftLoginReal {
-    0%   { transform: translateY(100vh); }
-    70%  { transform: translateY(15vh); }
-    100% { transform: translateY(0); }
-}
-
-/* Cuando termina, el login queda fijo en su lugar normal */
-body.intro-active #loginReal.done {
-    position: relative !important;
-    inset: auto !important;
-    transform: translateY(0) !important;
-    animation: none !important;
-    z-index: 1 !important;
-    overflow: visible;
-}
-
-/* ============================================================
-ROBOT: SE MUEVE ABAJO AL CENTRO (se agacha)
-============================================================ */
-.robot.moving-to-center-bottom {
-    animation: moveToCenterBottom 0.8s cubic-bezier(0.45, 0, 0.3, 1) forwards;
-}
-
-@keyframes moveToCenterBottom {
-    0% {
-        left: calc(50% - 70px);
-        bottom: 20%;
-        transform: scale(1);
-    }
-    100% {
-        left: calc(50% - 70px);
-        bottom: 0%;
-        transform: scale(1);
-    }
-}
-
-/* ============================================================
-ROBOT: BRAZOS
-============================================================ */
-
-/* Brazos a reposo (cuando se agacha) */
-.robot.arms-down .robot-arm-left {
-    animation: armsDownLeft 0.4s ease-out forwards;
-    transform-origin: top center;
-}
-.robot.arms-down .robot-arm-right {
-    animation: armsDownRight 0.4s ease-out forwards;
-    transform-origin: top center;
-}
-@keyframes armsDownLeft  { 0% { transform: rotate(0deg); }  100% { transform: rotate(10deg);  } }
-@keyframes armsDownRight { 0% { transform: rotate(0deg); }  100% { transform: rotate(-10deg); } }
-
-/* Brazos agarran el login (se extienden hacia arriba) */
-.robot.grabbing-login .robot-arm-left {
-    animation: armGrabLoginLeft 0.6s ease-out forwards;
-    transform-origin: top center;
-}
-.robot.grabbing-login .robot-arm-right {
-    animation: armGrabLoginRight 0.6s ease-out forwards;
-    transform-origin: top center;
-}
-@keyframes armGrabLoginLeft  { 0% { transform: rotate(10deg);  } 100% { transform: rotate(100deg);  } }
-@keyframes armGrabLoginRight { 0% { transform: rotate(-10deg); } 100% { transform: rotate(-100deg); } }
-
-/* Brazos mantienen la posición mientras sube */
-.robot.lifting-up .robot-arm-left {
-    animation: armKeepLeft 0.3s ease-out forwards;
-    transform-origin: top center;
-}
-.robot.lifting-up .robot-arm-right {
-    animation: armKeepRight 0.3s ease-out forwards;
-    transform-origin: top center;
-}
-@keyframes armKeepLeft  { 0% { transform: rotate(100deg);  } 100% { transform: rotate(110deg);  } }
-@keyframes armKeepRight { 0% { transform: rotate(-100deg); } 100% { transform: rotate(-110deg); } }
-
-/* ============================================================
-ROBOT: SUBE JUNTO CON EL LOGIN (SINCRONIZADO Y CENTRADO)
-============================================================
-⭐ FIX CLAVE: Se incluye `left: calc(50% - 70px)` DENTRO de cada
-keyframe para forzar que el robot se mantenga SIEMPRE centrado
-mientras sube. Antes, la animación sobrescribía el `left` y el
-robot se iba hacia la izquierda.
-============================================================ */
-.robot.lifting-up {
-    animation: robotLiftUp 3s cubic-bezier(0.5, 0, 0.35, 1) forwards;
-}
-
-@keyframes robotLiftUp {
-    0% {
-        left: calc(50% - 70px);
-        bottom: 0%;
-        opacity: 1;
-        transform: scale(1);
-    }
-    70% {
-        left: calc(50% - 70px);
-        bottom: 85%;
-        opacity: 1;
-        transform: scale(0.95);
-    }
-    100% {
-        left: calc(50% - 70px);
-        bottom: 100%;
-        opacity: 1;
-        transform: scale(0.9);
-    }
-}
-
-/* ============================================================
-ROBOT: DESAPARECE AL LLEGAR ARRIBA (CENTRADO)
-============================================================
-⭐ FIX CLAVE: Se incluye `left: calc(50% - 70px)` DENTRO de cada
-keyframe para que el robot NO se mueva lateralmente al
-desvanecerse. Se desvanece en el sitio.
-============================================================ */
-.robot.vanished {
-    animation: robotVanish 0.5s ease-in forwards;
-    pointer-events: none;
-}
-
-@keyframes robotVanish {
-    0% {
-        left: calc(50% - 70px);
-        bottom: 100%;
-        opacity: 1;
-        transform: scale(0.9) translateY(0);
-        filter: blur(0);
-    }
-    60% {
-        left: calc(50% - 70px);
-        bottom: 100%;
-        opacity: 0.5;
-        transform: scale(1) translateY(-30px);
-        filter: blur(4px);
-    }
-    100% {
-        left: calc(50% - 70px);
-        bottom: 100%;
-        opacity: 0;
-        transform: scale(1.1) translateY(-60px);
-        filter: blur(10px);
-        visibility: hidden;
-    }
-}
-
-/* ============================================================
-PANELES: SE DESVANECEN
-============================================================ */
-
-/* Panel del sistema se desvanece */
-.panel-sistema.fading-out {
-    animation: fadeSistemaPanel 1.2s ease forwards;
-}
-@keyframes fadeSistemaPanel {
-    0%   { opacity: 1; transform: translateY(-50%) translateZ(0)      scale(1);   }
-    100% { opacity: 0; transform: translateY(-50%) translateZ(-100px) scale(0.9); }
-}
-
-/* Panel de intro del login sube y se desvanece */
-.panel-login-intro.lifting-up {
-    animation: liftIntroLogin 3s cubic-bezier(0.5, 0, 0.35, 1) forwards;
-    will-change: transform, opacity;
-    pointer-events: none;
-    z-index: 25;
-}
-@keyframes liftIntroLogin {
-    0%   { transform: translateY(-50%) translateX(0) scale(1);    opacity: 1;   }
-    70%  { transform: translateY(-120%) translateX(0) scale(1.03); opacity: 0.7; }
-    100% { transform: translateY(-180%) translateX(0) scale(1.06); opacity: 0;   }
-}
-
-/* El overlay desaparece al final */
-.robot-intro-overlay.powerpoint-exit {
-    animation: overlayFadeOut 0.8s ease forwards;
-}
-@keyframes overlayFadeOut {
-    0%   { opacity: 1; visibility: visible; }
-    100% { opacity: 0; visibility: hidden;  }
 }
 </file>
 
@@ -52229,263 +49766,6 @@ body {
         padding: 14px;
     }
 }
-</file>
-
-<file path="resources/js/auth/robot-intro.js">
-// resources/js/auth/robot-intro.js
-// ============================================================
-// ROBOT INTRO ANIMATION - Secuencia profesional de bienvenida
-// ============================================================
-
-(function () {
-    'use strict';
-
-    const SESSION_KEY = 'robot_intro_shown';
-
-    // Si ya se mostró en esta sesión, no volver a mostrarlo
-    if (sessionStorage.getItem(SESSION_KEY) === 'true') {
-        document.addEventListener('DOMContentLoaded', () => {
-            const overlay = document.getElementById('robotIntroOverlay');
-            if (overlay) overlay.remove();
-            document.body.classList.remove('intro-active');
-        });
-        return;
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const overlay = document.getElementById('robotIntroOverlay');
-        const robot = document.getElementById('introRobot');
-        const bubble = document.getElementById('robotBubble');
-        const panelSistema = document.getElementById('panelSistema');
-        const panelLogin = document.getElementById('panelLoginIntro');
-        const skipBtn = document.getElementById('skipIntroBtn');
-        const loginReal = document.getElementById('loginReal');
-
-        if (!overlay || !robot) return;
-
-        // ⭐ CLAVE: marcar el body como "intro-active" para que el CSS
-        // posicione el login real FUERA de la pantalla (abajo)
-        document.body.classList.add('intro-active');
-
-        // Bloquear scroll mientras se reproduce
-        document.body.style.overflow = 'hidden';
-
-        // ============================================================
-        // UTILIDADES
-        // ============================================================
-        const setBubble = (text) => {
-            if (!bubble) return;
-            bubble.textContent = text;
-            bubble.classList.add('show');
-        };
-
-        const hideBubble = () => {
-            if (!bubble) return;
-            bubble.classList.remove('show');
-        };
-
-        const createMagicParticles = (count = 20) => {
-            const rect = robot.getBoundingClientRect();
-            for (let i = 0; i < count; i++) {
-                setTimeout(() => {
-                    const p = document.createElement('div');
-                    p.className = 'magic-particle';
-                    const x = rect.left + rect.width / 2 + (Math.random() - 0.5) * 200;
-                    const y = rect.top + rect.height / 2 + (Math.random() - 0.5) * 200;
-                    p.style.left = x + 'px';
-                    p.style.top = y + 'px';
-                    document.body.appendChild(p);
-
-                    const tx = (Math.random() - 0.5) * 300;
-                    const ty = (Math.random() - 0.5) * 300;
-                    p.animate(
-                        [
-                            { transform: 'translate(0,0) scale(1)', opacity: 1 },
-                            { transform: `translate(${tx}px, ${ty}px) scale(0)`, opacity: 0 }
-                        ],
-                        { duration: 800, easing: 'cubic-bezier(0.4, 0, 0.2, 1)' }
-                    ).onfinish = () => p.remove();
-                }, i * 30);
-            }
-        };
-
-        // Finaliza la intro
-        const finishIntro = () => {
-            hideBubble();
-
-            // Marcar el login real como "done" (posición natural)
-            if (loginReal) {
-                loginReal.classList.remove('lifting');
-                loginReal.classList.add('done');
-            }
-
-            // Quitar la clase intro-active (para que el login quede en su sitio)
-            document.body.classList.remove('intro-active');
-
-            overlay.classList.add('hidden');
-            document.body.style.overflow = '';
-
-            setTimeout(() => {
-                overlay.remove();
-            }, 800);
-
-            sessionStorage.setItem(SESSION_KEY, 'true');
-        };
-
-        // Saltar intro
-        if (skipBtn) {
-            skipBtn.addEventListener('click', () => {
-                if (loginReal) {
-                    loginReal.classList.remove('lifting');
-                    loginReal.classList.add('done');
-                }
-                document.body.classList.remove('intro-active');
-                finishIntro();
-            });
-        }
-
-        // ============================================================
-        // SECUENCIA DE ANIMACIÓN
-        // ============================================================
-
-        // 1) Robot entra caminando (0s - 2.5s)
-        robot.classList.add('walking');
-
-        // 2) A los 2.5s: se detiene y saluda
-        setTimeout(() => {
-            robot.classList.remove('walking');
-            robot.classList.add('waving');
-            setBubble('¡Hola! Como estas, Mucho Gusto me llamo SIGIET');
-
-            setTimeout(() => {
-                robot.classList.remove('waving');
-            }, 2000);
-        }, 2500);
-
-        // 3) A los 5s: jala el panel del SISTEMA
-        setTimeout(() => {
-            hideBubble();
-            robot.classList.add('pulling-left');
-            createMagicParticles(25);
-
-            if (panelSistema) panelSistema.classList.add('pulled');
-
-            setTimeout(() => {
-                robot.classList.remove('pulling-left');
-                setBubble('¡en la parte izquierda esta el titulo del sistema');
-            }, 1500);
-
-            setTimeout(() => hideBubble(), 3000);
-        }, 5000);
-
-        // 4) A los 8s: jala el panel del LOGIN
-        setTimeout(() => {
-            hideBubble();
-            robot.classList.add('pulling-right');
-            createMagicParticles(25);
-
-            if (panelLogin) panelLogin.classList.add('pulled');
-
-            setTimeout(() => {
-                robot.classList.remove('pulling-right');
-                setBubble('¡Y aqui en la parte derecha esta el panel de inicio de sesión!');
-            }, 1500);
-
-            setTimeout(() => hideBubble(), 3000);
-        }, 8000);
-
-        // 5) A los 11s: se despide con la mano
-        setTimeout(() => {
-            hideBubble();
-            robot.classList.add('goodbye');
-            setBubble('¡Adelante! ✨');
-
-            setTimeout(() => {
-                robot.classList.remove('goodbye');
-            }, 2500);
-        }, 11000);
-
-        // 6) A los 13.5s: se mueve ABAJO al CENTRO (se agacha)
-        setTimeout(() => {
-            hideBubble();
-            robot.classList.add('moving-to-center-bottom');
-            robot.classList.add('arms-down');
-        }, 13500);
-
-        // 7) A los 14.3s: coloca ambas manos DEBAJO del login real
-        setTimeout(() => {
-            setBubble('¡Toma! 🚀');
-            robot.classList.remove('arms-down');
-            robot.classList.add('grabbing-login');
-            createMagicParticles(30);
-        }, 14300);
-
-        // 8) A los 15s: empieza a LEVANTAR el login + sube con él
-        setTimeout(() => {
-            hideBubble();
-            createMagicParticles(50);
-
-            // El robot pasa a modo "levantando" y sube junto con el panel
-            robot.classList.remove('grabbing-login');
-            robot.classList.remove('moving-to-center-bottom');
-            robot.classList.add('lifting-up');
-
-            // El panel de intro del login sube y se desvanece
-            if (panelLogin) {
-                panelLogin.classList.remove('pulled');
-                panelLogin.classList.add('lifting-up');
-            }
-
-            // El panel del sistema se desvanece al fondo
-            if (panelSistema) {
-                panelSistema.classList.remove('pulled');
-                panelSistema.classList.add('fading-out');
-            }
-
-            // ⭐ EL LOGIN REAL EMPIEZA A SUBIR DESDE ABAJO
-            // Ya está posicionado fuera de pantalla por el CSS
-            // (body.intro-active #loginReal { transform: translateY(100vh); })
-            // Solo agregamos la clase "lifting" para que anime a subir.
-            if (loginReal) {
-                loginReal.classList.add('lifting');
-            }
-        }, 15000);
-
-        // 9) A los 18s: el robot desaparece al llegar arriba
-        setTimeout(() => {
-            robot.classList.remove('lifting-up');
-            robot.classList.add('vanished');
-        }, 18000);
-
-        // 10) A los 18.5s: el overlay se desvanece
-        setTimeout(() => {
-            overlay.classList.add('powerpoint-exit');
-        }, 18500);
-
-        // 11) A los 19.3s: se limpia todo y el login queda seco
-        setTimeout(() => {
-            finishIntro();
-        }, 19300);
-    });
-
-    // ============================================================
-    // ESTRELLAS DE FONDO
-    // ============================================================
-    document.addEventListener('DOMContentLoaded', () => {
-        const starsContainer = document.getElementById('robotIntroStars');
-        if (!starsContainer) return;
-
-        for (let i = 0; i < 60; i++) {
-            const star = document.createElement('div');
-            star.className = 'robot-intro-star';
-            star.style.left = Math.random() * 100 + '%';
-            star.style.top = Math.random() * 100 + '%';
-            star.style.animationDelay = Math.random() * 3 + 's';
-            star.style.animationDuration = (2 + Math.random() * 2) + 's';
-            starsContainer.appendChild(star);
-        }
-    });
-})();
 </file>
 
 <file path="resources/js/admin-equipos.js">
@@ -58804,6 +56084,55 @@ function verMensaje(id) {
 
 </div>
 @endsection
+</file>
+
+<file path=".gitignore">
+<<<<<<< HEAD
+/vendor/
+/node_modules/
+.env
+.env.*
+!.env.example
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+npm-debug.log
+yarn-error.log
+/storage/*.key
+/storage/framework/
+/storage/logs/
+.DS_Store
+/.idea
+/.vscode
+=======
+*.log
+.DS_Store
+.env
+.env.backup
+.env.production
+.phpactor.json
+.phpunit.result.cache
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+/node_modules
+/public/build
+/public/fonts-manifest.dev.json
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/vendor
+_ide_helper.php
+Homestead.json
+Homestead.yaml
+Thumbs.db
+>>>>>>> 184845b (listo con la parte de soporte y el calendario en el dashoard listo)
 </file>
 
 <file path="composer.json">
@@ -67479,341 +64808,6 @@ window.abrirModalDia = abrirModalDia;
 @endsection
 </file>
 
-<file path="resources/views/auth/login.blade.php">
-@extends('layouts.app')
-
-@section('title', 'Iniciar Sesión')
-
-@section('styles')
-@vite(['resources/css/auth/login.css', 'resources/css/auth/robot-intro.css'])
-@endsection
-
-@section('scripts')
-@vite(['resources/js/auth/login.js', 'resources/js/auth/robot-intro.js'])
-@endsection
-
-@section('content')
-
-{{-- ============================================================ --}}
-{{-- OVERLAY DE INTRO CON ROBOT --}}
-{{-- ============================================================ --}}
-<div class="robot-intro-overlay" id="robotIntroOverlay">
-    <div class="robot-intro-stars" id="robotIntroStars"></div>
-
-    <button class="skip-intro-btn" id="skipIntroBtn" title="Saltar animación">
-        <svg viewBox="0 0 24 24">
-            <polyline points="5 4 15 12 5 20"></polyline>
-            <line x1="19" y1="5" x2="19" y2="19"></line>
-        </svg>
-        Saltar
-    </button>
-
-    <div class="robot-stage">
-
-        {{-- ============================================ --}}
-        {{-- PANEL DEL SISTEMA (izquierda) --}}
-        {{-- ============================================ --}}
-        <div class="panel-sistema" id="panelSistema">
-            <div class="intro-card">
-                <div class="intro-logo-wrap">
-                    <img src="{{ asset('images/escudo-yaracuy.jpeg') }}"
-                         alt="Gobernación de Yaracuy"
-                         class="intro-logo">
-                </div>
-                <h3 class="intro-title">Sistema Informático</h3>
-                <p class="intro-subtitle">Gobernación del Estado Yaracuy</p>
-                <div class="intro-features">
-                    <div class="intro-feature">
-                        <div class="intro-feature-icon">
-                            <svg viewBox="0 0 24 24">
-                                <rect x="2" y="7" width="20" height="14" rx="2"></rect>
-                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                            </svg>
-                        </div>
-                        <span class="intro-feature-text">Inventario Tecnológico</span>
-                    </div>
-                    <div class="intro-feature">
-                        <div class="intro-feature-icon">
-                            <svg viewBox="0 0 24 24">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </div>
-                        <span class="intro-feature-text">Gestión de Préstamos</span>
-                    </div>
-                    <div class="intro-feature">
-                        <div class="intro-feature-icon">
-                            <svg viewBox="0 0 24 24">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                            </svg>
-                        </div>
-                        <span class="intro-feature-text">Soporte Técnico</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        {{-- ============================================ --}}
-        {{-- ROBOT --}}
-        {{-- ============================================ --}}
-        <div class="robot" id="introRobot">
-            <div class="robot-bubble" id="robotBubble"></div>
-
-            <div class="robot-body-wrapper">
-                {{-- Cabeza --}}
-                <div class="robot-head">
-                    <div class="robot-antenna">
-                        <div class="robot-antenna-ball"></div>
-                    </div>
-                    <div class="robot-face">
-                        <div class="robot-eye"></div>
-                        <div class="robot-eye"></div>
-                    </div>
-                </div>
-
-                {{-- Cuello --}}
-                <div class="robot-neck"></div>
-
-                {{-- Torso --}}
-                <div class="robot-torso">
-                    <div class="robot-chest-panel">
-                        <div class="robot-chest-line"></div>
-                        <div class="robot-chest-line"></div>
-                        <div class="robot-chest-line"></div>
-                    </div>
-                    <div class="robot-chest-leds">
-                        <div class="robot-led"></div>
-                        <div class="robot-led"></div>
-                        <div class="robot-led"></div>
-                    </div>
-                </div>
-
-                {{-- Brazos --}}
-                <div class="robot-arm robot-arm-left">
-                    <div class="robot-hand"></div>
-                </div>
-                <div class="robot-arm robot-arm-right">
-                    <div class="robot-hand"></div>
-                </div>
-
-                {{-- Piernas --}}
-                <div class="robot-leg robot-leg-left">
-                    <div class="robot-foot"></div>
-                </div>
-                <div class="robot-leg robot-leg-right">
-                    <div class="robot-foot"></div>
-                </div>
-            </div>
-        </div>
-
-        {{-- ============================================ --}}
-        {{-- PANEL DEL LOGIN (derecha) --}}
-        {{-- ============================================ --}}
-        <div class="panel-login-intro" id="panelLoginIntro">
-            <div class="intro-card">
-                <h3 class="intro-login-title">Acceso al Sistema</h3>
-                <p class="intro-login-subtitle">Ingresa tus credenciales</p>
-
-                <div class="intro-input-group">
-                    <label class="intro-input-label">Usuario</label>
-                    <input type="text" class="intro-input" placeholder="admin" disabled>
-                </div>
-
-                <div class="intro-input-group">
-                    <label class="intro-input-label">Contraseña</label>
-                    <input type="password" class="intro-input" placeholder="••••••••" disabled>
-                </div>
-
-                <button type="button" class="intro-btn" disabled>
-                    Ingresar al Sistema
-                </button>
-            </div>
-        </div>
-
-    </div>
-</div>
-{{-- ============================================================ --}}
-{{-- FIN OVERLAY ROBOT --}}
-{{-- ============================================================ --}}
-
-{{-- ⬇️⬇️⬇️ CAMBIO CLAVE: agregar id="loginReal" ⬇️⬇️⬇️ --}}
-<div class="split-image" id="loginReal"
-     style="background-image: url('{{ asset('images/fondo-universitario.jpeg') }}'); background-size: cover;
-background-position: center;">
-
-    {{-- Lado izquierdo - Imagen con overlay --}}
-    <div class="split-left-image">
-        <div class="left-content">
-
-            {{-- Escudo --}}
-            <div class="mb-4">
-                <div class="bg-white bg-opacity-20 rounded-circle d-inline-flex p-3">
-                    <img src="{{ asset('images/escudo-yaracuy.jpeg') }}"
-                         alt="Escudo del Estado Yaracuy"
-                         style="width: 50px; height: 50px; object-fit: contain;">
-                </div>
-            </div>
-
-            {{-- Título principal --}}
-            <div class="mb-3">
-                <h2 class="fw-bold mb-2 display-6" style="font-size: 1.8rem;">Sistema Informático</h2>
-                <p class="mb-0 fs-6 opacity-75">Gestión de Inventario de Equipos Tecnológicos</p>
-            </div>
-
-            <div class="mb-4">
-                <small class="opacity-75">Gobernación del Estado Yaracuy - San Felipe, Edo. Yaracuy</small>
-            </div>
-
-            {{-- Línea decorativa --}}
-            <div class="d-flex justify-content-center gap-2 mb-4">
-                <div class="bg-white rounded-pill" style="width: 40px; height: 2px;"></div>
-                <div class="bg-white rounded-pill opacity-50" style="width: 20px; height: 2px;"></div>
-            </div>
-
-            {{-- Valores --}}
-            <div class="mt-4 text-start">
-                <div class="feature-item">
-                    <div class="feature-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M20 6L9 17l-5-5"/>
-                        </svg>
-                    </div>
-                    <span>Excelencia Académica</span>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M20 6L9 17l-5-5"/>
-                        </svg>
-                    </div>
-                    <span>Innovación Tecnológica</span>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-                            <path d="M20 6L9 17l-5-5"/>
-                        </svg>
-                    </div>
-                    <span>Compromiso Social</span>
-                </div>
-            </div>
-
-            {{-- Cita --}}
-            <div class="mt-5 pt-3">
-                <div class="quote-icon">"</div>
-                <p class="fst-italic mb-2 small">Tecnología al servicio del pueblo yaracuyano</p>
-                <small class="opacity-75">--- Proyecto de Grado</small>
-            </div>
-
-            {{-- Tecnologías --}}
-            <div class="mt-4 pt-2">
-                <div class="d-flex justify-content-center gap-4">
-                    <div class="tech-item text-center">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
-                            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7l-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z"/>
-                        </svg>
-                        <div><small class="opacity-75">Laravel</small></div>
-                    </div>
-                    <div class="tech-item text-center">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                            <line x1="9" y1="3" x2="9" y2="21"/>
-                        </svg>
-                        <div><small class="opacity-75">Bootstrap</small></div>
-                    </div>
-                    <div class="tech-item text-center">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
-                            <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-                        </svg>
-                        <div><small class="opacity-75">PostgreSQL</small></div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-
-    {{-- Lado derecho - Formulario de login --}}
-    <div class="split-right-image">
-        <div class="login-card-image">
-
-            <div class="text-center mb-4">
-                <div class="d-inline-block mb-3">
-                    <div class="bg-primary bg-opacity-10 rounded-circle p-3">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#1e3c72" class="bi bi-person-circle" viewBox="0 0 16 16">
-                            <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-                            <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
-                        </svg>
-                    </div>
-                </div>
-                <h3 class="fw-bold" style="color: #1e3c72;">Acceso al Sistema</h3>
-                <p class="text-muted">Ingresa tu usuario y contraseña</p>
-            </div>
-
-            @if (session('status'))
-                <div class="alert alert-security alert-dismissible fade show rounded-3" role="alert">
-                    <i class="bi bi-check-circle-fill me-2"></i>
-                    {{ session('status') }}
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
-
-            @if ($errors->any())
-                <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    {{ $errors->first() }}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            @endif
-
-            <form method="POST" action="{{ route('login') }}">
-                @csrf
-
-                <div class="mb-3">
-                    <label for="usuario" class="form-label fw-semibold text-secondary">Usuario</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-transparent border-end-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#6c757d" class="bi bi-person-badge" viewBox="0 0 16 16">
-                                <path d="M6.5 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
-                                <path d="M4.5 0A2.5 2.5 0 0 0 2 2.5V14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2.5A2.5 2.5 0 0 0 11.5 0h-7zM3 2.5A1.5 1.5 0 0 1 4.5 1h7A1.5 1.5 0 0 1 13 2.5v10.795a4.2 4.2 0 0 0-.776-.492C11.392 12.387 10.063 12 8 12s-3.392.387-4.224.803a4.2 4.2 0 0 0-.776.492V2.5z"/>
-                            </svg>
-                        </span>
-                        <input type="text" class="form-control form-control-lg border-start-0 ps-0"
-                               id="usuario" name="usuario" value="{{ old('usuario') }}"
-                               placeholder="admin" required autofocus>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="password" class="form-label fw-semibold text-secondary">Contraseña</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-transparent border-end-0">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#6c757d" class="bi bi-lock" viewBox="0 0 16 16">
-                                <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
-                            </svg>
-                        </span>
-                        <input type="password" class="form-control form-control-lg border-start-0 ps-0"
-                               id="password" name="password" placeholder="••••••••" required>
-                    </div>
-                </div>
-
-                <div class="mb-3 form-check">
-                    <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                    <label class="form-check-label text-secondary" for="remember">Recordarme</label>
-                </div>
-
-                <button type="submit" class="btn btn-primary btn-lg w-100 btn-primary-custom">
-                    Ingresar al Sistema
-                </button>
-            </form>
-
-        </div>
-    </div>
-</div>
-
-@endsection
-</file>
-
 <file path="resources/views/emails/acta-retiro.blade.php">
 <!DOCTYPE html>
 <html lang="es">
@@ -69556,6 +66550,326 @@ return Application::configure(basePath: dirname(__DIR__))
 
 @section('scripts')
 @vite(['resources/js/admin-entidades.js'])
+@endsection
+</file>
+
+<file path="resources/views/auth/login.blade.php">
+@extends('layouts.app')
+
+@section('title', 'Iniciar Sesión')
+
+@section('styles')
+@vite(['resources/css/auth/login.css'])
+@endsection
+
+@section('scripts')
+@vite(['resources/js/auth/login.js'])
+@endsection
+
+@section('content')
+
+
+        {{-- ============================================ --}}
+        {{-- PANEL DEL SISTEMA (izquierda) --}}
+        {{-- ============================================ --}}
+        <div class="panel-sistema" id="panelSistema">
+            <div class="intro-card">
+                <div class="intro-logo-wrap">
+                    <img src="{{ asset('images/escudo-yaracuy.jpeg') }}"
+                         alt="Gobernación de Yaracuy"
+                         class="intro-logo">
+                </div>
+                <h3 class="intro-title">Sistema Informático</h3>
+                <p class="intro-subtitle">Gobernación del Estado Yaracuy</p>
+                <div class="intro-features">
+                    <div class="intro-feature">
+                        <div class="intro-feature-icon">
+                            <svg viewBox="0 0 24 24">
+                                <rect x="2" y="7" width="20" height="14" rx="2"></rect>
+                                <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
+                            </svg>
+                        </div>
+                        <span class="intro-feature-text">Inventario Tecnológico</span>
+                    </div>
+                    <div class="intro-feature">
+                        <div class="intro-feature-icon">
+                            <svg viewBox="0 0 24 24">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                        <span class="intro-feature-text">Gestión de Préstamos</span>
+                    </div>
+                    <div class="intro-feature">
+                        <div class="intro-feature-icon">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                        </div>
+                        <span class="intro-feature-text">Soporte Técnico</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- ============================================ --}}
+        {{-- ROBOT --}}
+        {{-- ============================================ --}}
+        <div class="robot" id="introRobot">
+            <div class="robot-bubble" id="robotBubble"></div>
+
+            <div class="robot-body-wrapper">
+                {{-- Cabeza --}}
+                <div class="robot-head">
+                    <div class="robot-antenna">
+                        <div class="robot-antenna-ball"></div>
+                    </div>
+                    <div class="robot-face">
+                        <div class="robot-eye"></div>
+                        <div class="robot-eye"></div>
+                    </div>
+                </div>
+
+                {{-- Cuello --}}
+                <div class="robot-neck"></div>
+
+                {{-- Torso --}}
+                <div class="robot-torso">
+                    <div class="robot-chest-panel">
+                        <div class="robot-chest-line"></div>
+                        <div class="robot-chest-line"></div>
+                        <div class="robot-chest-line"></div>
+                    </div>
+                    <div class="robot-chest-leds">
+                        <div class="robot-led"></div>
+                        <div class="robot-led"></div>
+                        <div class="robot-led"></div>
+                    </div>
+                </div>
+
+                {{-- Brazos --}}
+                <div class="robot-arm robot-arm-left">
+                    <div class="robot-hand"></div>
+                </div>
+                <div class="robot-arm robot-arm-right">
+                    <div class="robot-hand"></div>
+                </div>
+
+                {{-- Piernas --}}
+                <div class="robot-leg robot-leg-left">
+                    <div class="robot-foot"></div>
+                </div>
+                <div class="robot-leg robot-leg-right">
+                    <div class="robot-foot"></div>
+                </div>
+            </div>
+        </div>
+
+        {{-- ============================================ --}}
+        {{-- PANEL DEL LOGIN (derecha) --}}
+        {{-- ============================================ --}}
+        <div class="panel-login-intro" id="panelLoginIntro">
+            <div class="intro-card">
+                <h3 class="intro-login-title">Acceso al Sistema</h3>
+                <p class="intro-login-subtitle">Ingresa tus credenciales</p>
+
+                <div class="intro-input-group">
+                    <label class="intro-input-label">Usuario</label>
+                    <input type="text" class="intro-input" placeholder="admin" disabled>
+                </div>
+
+                <div class="intro-input-group">
+                    <label class="intro-input-label">Contraseña</label>
+                    <input type="password" class="intro-input" placeholder="••••••••" disabled>
+                </div>
+
+                <button type="button" class="intro-btn" disabled>
+                    Ingresar al Sistema
+                </button>
+            </div>
+        </div>
+
+    </div>
+</div>
+{{-- ============================================================ --}}
+{{-- FIN OVERLAY ROBOT --}}
+{{-- ============================================================ --}}
+
+{{-- ⬇️⬇️⬇️ CAMBIO CLAVE: agregar id="loginReal" ⬇️⬇️⬇️ --}}
+<div class="split-image" id="loginReal"
+     style="background-image: url('{{ asset('images/fondo-universitario.jpeg') }}'); background-size: cover;
+background-position: center;">
+
+    {{-- Lado izquierdo - Imagen con overlay --}}
+    <div class="split-left-image">
+        <div class="left-content">
+
+            {{-- Escudo --}}
+            <div class="mb-4">
+                <div class="bg-white bg-opacity-20 rounded-circle d-inline-flex p-3">
+                    <img src="{{ asset('images/escudo-yaracuy.jpeg') }}"
+                         alt="Escudo del Estado Yaracuy"
+                         style="width: 50px; height: 50px; object-fit: contain;">
+                </div>
+            </div>
+
+            {{-- Título principal --}}
+            <div class="mb-3">
+                <h2 class="fw-bold mb-2 display-6" style="font-size: 1.8rem;">Sistema Informático</h2>
+                <p class="mb-0 fs-6 opacity-75">Gestión de Inventario de Equipos Tecnológicos</p>
+            </div>
+
+            <div class="mb-4">
+                <small class="opacity-75">Gobernación del Estado Yaracuy - San Felipe, Edo. Yaracuy</small>
+            </div>
+
+            {{-- Línea decorativa --}}
+            <div class="d-flex justify-content-center gap-2 mb-4">
+                <div class="bg-white rounded-pill" style="width: 40px; height: 2px;"></div>
+                <div class="bg-white rounded-pill opacity-50" style="width: 20px; height: 2px;"></div>
+            </div>
+
+            {{-- Valores --}}
+            <div class="mt-4 text-start">
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                    </div>
+                    <span>Excelencia Académica</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                    </div>
+                    <span>Innovación Tecnológica</span>
+                </div>
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                            <path d="M20 6L9 17l-5-5"/>
+                        </svg>
+                    </div>
+                    <span>Compromiso Social</span>
+                </div>
+            </div>
+
+            {{-- Cita --}}
+            <div class="mt-5 pt-3">
+                <div class="quote-icon">"</div>
+                <p class="fst-italic mb-2 small">Tecnología al servicio del pueblo yaracuyano</p>
+                <small class="opacity-75">--- Proyecto de Grado</small>
+            </div>
+
+            {{-- Tecnologías --}}
+            <div class="mt-4 pt-2">
+                <div class="d-flex justify-content-center gap-4">
+                    <div class="tech-item text-center">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+                            <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7l-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2Z"/>
+                        </svg>
+                        <div><small class="opacity-75">Laravel</small></div>
+                    </div>
+                    <div class="tech-item text-center">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
+                        </svg>
+                        <div><small class="opacity-75">Bootstrap</small></div>
+                    </div>
+                    <div class="tech-item text-center">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.5">
+                            <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                        </svg>
+                        <div><small class="opacity-75">PostgreSQL</small></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    {{-- Lado derecho - Formulario de login --}}
+    <div class="split-right-image">
+        <div class="login-card-image">
+
+            <div class="text-center mb-4">
+                <div class="d-inline-block mb-3">
+                    <div class="bg-primary bg-opacity-10 rounded-circle p-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="#1e3c72" class="bi bi-person-circle" viewBox="0 0 16 16">
+                            <path d="M11 6a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                            <path fill-rule="evenodd" d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8zm8-7a7 7 0 0 0-5.468 11.37C3.242 11.226 4.805 10 8 10s4.757 1.225 5.468 2.37A7 7 0 0 0 8 1z"/>
+                        </svg>
+                    </div>
+                </div>
+                <h3 class="fw-bold" style="color: #1e3c72;">Acceso al Sistema</h3>
+                <p class="text-muted">Ingresa tu usuario y contraseña</p>
+            </div>
+
+            @if (session('status'))
+                <div class="alert alert-security alert-dismissible fade show rounded-3" role="alert">
+                    <i class="bi bi-check-circle-fill me-2"></i>
+                    {{ session('status') }}
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            @if ($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show rounded-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    {{ $errors->first() }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            @endif
+
+            <form method="POST" action="{{ route('login') }}">
+                @csrf
+
+                <div class="mb-3">
+                    <label for="usuario" class="form-label fw-semibold text-secondary">Usuario</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#6c757d" class="bi bi-person-badge" viewBox="0 0 16 16">
+                                <path d="M6.5 2a.5.5 0 0 0 0 1h3a.5.5 0 0 0 0-1h-3zM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z"/>
+                                <path d="M4.5 0A2.5 2.5 0 0 0 2 2.5V14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V2.5A2.5 2.5 0 0 0 11.5 0h-7zM3 2.5A1.5 1.5 0 0 1 4.5 1h7A1.5 1.5 0 0 1 13 2.5v10.795a4.2 4.2 0 0 0-.776-.492C11.392 12.387 10.063 12 8 12s-3.392.387-4.224.803a4.2 4.2 0 0 0-.776.492V2.5z"/>
+                            </svg>
+                        </span>
+                        <input type="text" class="form-control form-control-lg border-start-0 ps-0"
+                               id="usuario" name="usuario" value="{{ old('usuario') }}"
+                               placeholder="admin" required autofocus>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="password" class="form-label fw-semibold text-secondary">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-transparent border-end-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="#6c757d" class="bi bi-lock" viewBox="0 0 16 16">
+                                <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+                            </svg>
+                        </span>
+                        <input type="password" class="form-control form-control-lg border-start-0 ps-0"
+                               id="password" name="password" placeholder="••••••••" required>
+                    </div>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                    <label class="form-check-label text-secondary" for="remember">Recordarme</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-lg w-100 btn-primary-custom">
+                    Ingresar al Sistema
+                </button>
+            </form>
+
+        </div>
+    </div>
+</div>
+
 @endsection
 </file>
 
