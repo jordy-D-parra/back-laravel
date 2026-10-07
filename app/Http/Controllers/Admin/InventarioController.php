@@ -7,7 +7,6 @@ use App\Models\Activo;
 use App\Models\Componente;
 use App\Models\Categoria;
 use App\Models\Estatus;
-use App\Models\TipoActivo;   // ✅ IMPORT NECESARIO
 
 class InventarioController extends Controller
 {
@@ -40,9 +39,8 @@ class InventarioController extends Controller
         $estatusList = Estatus::orderBy('descripcion')
             ->get(['id', 'descripcion', 'color_badge']);
 
-        // ✅ NUEVO: Tipos de activo (los que la vista espera como $tiposActivo)
-        $tiposActivo = TipoActivo::orderBy('nombre')
-            ->get(['id', 'nombre', 'categoria']);
+        // ✅ Tipos de activo (vacío — la tabla fue removida del proyecto)
+        $tiposActivo = collect();
 
         // Lista de tipos de componentes (valores únicos)
         $tiposComponentes = Componente::select('tipo')
@@ -54,11 +52,11 @@ class InventarioController extends Controller
 
         // Estados de componentes (fijos, según el modelo)
         $estadosComponentes = [
-            ['valor' => 'en_bodega',    'label' => 'En Bodega'],
-            ['valor' => 'instalado',    'label' => 'Instalado'],
-            ['valor' => 'prestado',     'label' => 'Prestado'],
-            ['valor' => 'en_reparacion','label' => 'En Reparación'],
-            ['valor' => 'desechado',    'label' => 'Desechado'],
+            ['valor' => 'en_bodega',     'label' => 'En Bodega'],
+            ['valor' => 'instalado',     'label' => 'Instalado'],
+            ['valor' => 'prestado',      'label' => 'Prestado'],
+            ['valor' => 'en_reparacion', 'label' => 'En Reparación'],
+            ['valor' => 'desechado',     'label' => 'Desechado'],
         ];
 
         return view('admin.inventario.index', compact(
@@ -68,7 +66,7 @@ class InventarioController extends Controller
             'activosPrestados',
             'categorias',
             'estatusList',
-            'tiposActivo',        // ✅ AHORA SÍ SE PASA A LA VISTA
+            'tiposActivo',
             'tiposComponentes',
             'estadosComponentes'
         ));
