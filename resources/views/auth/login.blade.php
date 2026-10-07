@@ -3,30 +3,15 @@
 @section('title', 'Iniciar Sesión')
 
 @section('styles')
-@vite(['resources/css/auth/login.css', 'resources/css/auth/robot-intro.css'])
+@vite(['resources/css/auth/login.css'])
 @endsection
 
 @section('scripts')
-@vite(['resources/js/auth/login.js', 'resources/js/auth/robot-intro.js'])
+@vite(['resources/js/auth/login.js'])
 @endsection
 
 @section('content')
 
-{{-- ============================================================ --}}
-{{-- OVERLAY DE INTRO CON ROBOT --}}
-{{-- ============================================================ --}}
-<div class="robot-intro-overlay" id="robotIntroOverlay">
-    <div class="robot-intro-stars" id="robotIntroStars"></div>
-
-    <button class="skip-intro-btn" id="skipIntroBtn" title="Saltar animación">
-        <svg viewBox="0 0 24 24">
-            <polyline points="5 4 15 12 5 20"></polyline>
-            <line x1="19" y1="5" x2="19" y2="19"></line>
-        </svg>
-        Saltar
-    </button>
-
-    <div class="robot-stage">
 
         {{-- ============================================ --}}
         {{-- PANEL DEL SISTEMA (izquierda) --}}
