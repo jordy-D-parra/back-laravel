@@ -23,14 +23,14 @@
         </div>
         <div class="d-flex gap-2 flex-wrap">
             <button type="button" class="btn btn-light" id="btnAgregarActivo" onclick="window.abrirModalActivo && window.abrirModalActivo(); return false;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
                 Nuevo Activo
             </button>
             <button type="button" class="btn btn-light" id="btnAgregarComponente" onclick="window.abrirModalComponente && window.abrirModalComponente(); return false;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
@@ -114,10 +114,13 @@
     </ul>
 
     <div class="tab-content">
-        {{-- ========== TAB ACTIVOS ========== --}}
+
+        {{-- ============================================ --}}
+        {{-- TAB ACTIVOS --}}
+        {{-- ============================================ --}}
         <div class="tab-pane fade show active" id="activos" role="tabpanel">
             <div class="filters-bar">
-                <div class="input-group" style="max-width: 300px;">
+                <div class="input-group" style="max-width: 350px;">
                     <span class="input-group-text">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
                             <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
@@ -125,8 +128,8 @@
                     </span>
                     <input type="text" class="form-control" id="buscarActivos" placeholder="Buscar por serial, modelo, marca...">
                 </div>
-                <div class="d-flex gap-2">
-                    <select class="form-select form-select-sm" id="filtroEstadoActivos" style="width: 160px;">
+                <div class="d-flex gap-2 align-items-center">
+                    <select class="form-select form-select-sm" id="filtroEstadoActivos" style="width: 180px;">
                         <option value="">Todos los estados</option>
                         @foreach($estatusList as $estatus)
                             <option value="{{ $estatus->descripcion }}">{{ $estatus->descripcion }}</option>
@@ -154,10 +157,12 @@
             <div id="paginacionActivos"></div>
         </div>
 
-        {{-- ========== TAB COMPONENTES ========== --}}
+        {{-- ============================================ --}}
+        {{-- TAB COMPONENTES --}}
+        {{-- ============================================ --}}
         <div class="tab-pane fade" id="componentes" role="tabpanel">
             <div class="filters-bar">
-                <div class="input-group" style="max-width: 300px;">
+                <div class="input-group" style="max-width: 350px;">
                     <span class="input-group-text">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
                             <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
@@ -165,11 +170,11 @@
                     </span>
                     <input type="text" class="form-control" id="buscarComponentes" placeholder="Buscar por tipo, marca, serial...">
                 </div>
-                <div class="d-flex gap-2">
-                    <select class="form-select form-select-sm" id="filtroTipoComponentes" style="width: 160px;">
+                <div class="d-flex gap-2 align-items-center">
+                    <select class="form-select form-select-sm" id="filtroTipoComponentes" style="width: 170px;">
                         <option value="">Todos los tipos</option>
                     </select>
-                    <select class="form-select form-select-sm" id="filtroEstadoComponentes" style="width: 160px;">
+                    <select class="form-select form-select-sm" id="filtroEstadoComponentes" style="width: 170px;">
                         <option value="">Todos los estados</option>
                         @foreach($estadosComponentes as $estado)
                             <option value="{{ $estado['valor'] }}">{{ $estado['label'] }}</option>
@@ -430,7 +435,7 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-primary-dark" id="btnConfirmarCambioEstado">Cambiar</button>
+                <button type="button" class="btn btn-primary-dark" id="btnConfirmarCambioEstado" style="color: #fff;">Cambiar</button>
             </div>
         </div>
     </div>
@@ -463,5 +468,4 @@
 
 @section('scripts')
     @vite(['resources/js/admin-inventario.js'])
-    {{-- ✅ Los permisos están disponibles globalmente desde el layout --}}
 @endsection

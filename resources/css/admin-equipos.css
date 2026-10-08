@@ -724,7 +724,6 @@ textarea.form-control {
     background: var(--primary-lighter);
 }
 
-/* Raíz - Marca */
 .arbol-raiz > .arbol-nodo-header {
     background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
     color: white;
@@ -1050,6 +1049,17 @@ textarea.form-control {
     .pagination-bar {
         flex-direction: column;
         align-items: center;
+    }
+
+    .pagination-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 0.75rem;
+    }
+
+    .pagination-ellipsis {
+        width: 30px;
+        height: 30px;
     }
 }
 

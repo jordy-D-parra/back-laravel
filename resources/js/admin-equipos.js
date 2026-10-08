@@ -2,6 +2,7 @@
 // ✅ Catálogo de equipos: Marcas, Categorías (globales), Modelos y Wizard
 // ✅ Sin referencias a modelo_componente
 // ✅ Wizard adaptado: la categoría es global, no lleva marca_id
+// ✅ Paginación integrada (8 items por página)
 
 (function() {
     'use strict';
@@ -87,49 +88,136 @@
     };
 
     // ============================================================
+    // ESTADO DE PAGINACIÓN (8 items por página)
+    // ============================================================
+    const ITEMS_POR_PAGINA = 8;
+
+    const paginacion = {
+        marcas: { data: [], page: 1 },
+        categorias: { data: [], page: 1 },
+        modelos: { data: [], page: 1 }
+    };
+
+    // ============================================================
+    // HELPERS DE PAGINACIÓN
+    // ============================================================
+    function renderPaginacionEquipo(tipo, totalPaginas, pageActual, totalRegistros) {
+        if (totalPaginas <= 1) return '';
+
+        let html = `<div class="pagination-bar">
+            <div class="pagination-info">Mostrando ${((pageActual - 1) * ITEMS_POR_PAGINA) + 1} a ${Math.min(pageActual * ITEMS_POR_PAGINA, totalRegistros)} de ${totalRegistros} registros</div>
+            <div class="pagination-btns">`;
+
+        // Botón anterior
+        html += `<button class="pagination-btn ${pageActual === 1 ? 'disabled' : ''}"
+                    onclick="window.cambiarPaginaEquipo('${tipo}', ${pageActual - 1})" ${pageActual === 1 ? 'disabled' : ''}>«</button>`;
+
+        // Números de página
+        let inicio = Math.max(1, pageActual - 2);
+        let fin = Math.min(totalPaginas, pageActual + 2);
+
+        if (inicio > 1) {
+            html += `<button class="pagination-btn" onclick="window.cambiarPaginaEquipo('${tipo}', 1)">1</button>`;
+            if (inicio > 2) html += `<span class="pagination-ellipsis">...</span>`;
+        }
+
+        for (let i = inicio; i <= fin; i++) {
+            html += `<button class="pagination-btn ${i === pageActual ? 'active' : ''}"
+                        onclick="window.cambiarPaginaEquipo('${tipo}', ${i})">${i}</button>`;
+        }
+
+        if (fin < totalPaginas) {
+            if (fin < totalPaginas - 1) html += `<span class="pagination-ellipsis">...</span>`;
+            html += `<button class="pagination-btn" onclick="window.cambiarPaginaEquipo('${tipo}', ${totalPaginas})">${totalPaginas}</button>`;
+        }
+
+        // Botón siguiente
+        html += `<button class="pagination-btn ${pageActual === totalPaginas ? 'disabled' : ''}"
+                    onclick="window.cambiarPaginaEquipo('${tipo}', ${pageActual + 1})" ${pageActual === totalPaginas ? 'disabled' : ''}>»</button>`;
+
+        html += `</div></div>`;
+        return html;
+    }
+
+    window.cambiarPaginaEquipo = function(tipo, nuevaPagina) {
+        const estado = paginacion[tipo];
+        if (!estado) return;
+
+        const totalPaginas = Math.ceil(estado.data.length / ITEMS_POR_PAGINA);
+        if (nuevaPagina < 1 || nuevaPagina > totalPaginas) return;
+
+        estado.page = nuevaPagina;
+
+        const buscar = {
+            marcas: document.getElementById('buscarMarcas')?.value || '',
+            categorias: document.getElementById('buscarCategorias')?.value || '',
+            modelos: document.getElementById('buscarModelos')?.value || ''
+        }[tipo] || '';
+
+        if (tipo === 'marcas') renderizarMarcas(estado.data, buscar);
+        else if (tipo === 'categorias') renderizarCategorias(estado.data, buscar);
+        else if (tipo === 'modelos') renderizarModelos(estado.data, buscar);
+
+        // Scroll al inicio de la tabla
+        const tbody = document.getElementById(`tabla${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`);
+        tbody?.closest('.table-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // ============================================================
     // MARCAS
     // ============================================================
     function cargarMarcas() {
-    const buscar = document.getElementById('buscarMarcas')?.value || '';
-    const tbody = document.getElementById('tablaMarcas');
+        const buscar = document.getElementById('buscarMarcas')?.value || '';
+        const tbody = document.getElementById('tablaMarcas');
 
-    if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
-    }
-
-    fetch('/admin/equipos/marcas?buscar=' + encodeURIComponent(buscar), {
-        headers: {
-            'Accept': 'application/json',
-            'X-CSRF-TOKEN': getCsrfToken(),
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        credentials: 'same-origin'  // <-- IMPORTANTE: envía cookies de sesión
-    })
-    .then(r => r.json())
-    .then(response => {
-        if (response.success) {
-            renderizarMarcas(response.data, buscar);
-        } else {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Error al cargar marcas</td></tr>';
+        if (tbody) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>';
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Error de conexión</td></tr>';
-    });
-}
+
+        fetch('/admin/equipos/marcas?buscar=' + encodeURIComponent(buscar), {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        })
+        .then(r => r.json())
+        .then(response => {
+            if (response.success) {
+                renderizarMarcas(response.data, buscar);
+            } else {
+                if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Error al cargar marcas</td></tr>';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Error de conexión</td></tr>';
+        });
+    }
 
     function renderizarMarcas(data, buscar) {
         const tbody = document.getElementById('tablaMarcas');
         if (!tbody) return;
 
+        // Guardar en el estado de paginación
+        paginacion.marcas.data = data || [];
+
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron marcas</td></tr>';
+            const pag = document.getElementById('paginacionMarcas');
+            if (pag) pag.innerHTML = '';
             return;
         }
 
+        const total = data.length;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA);
+        const pagina = paginacion.marcas.page;
+        const inicio = (pagina - 1) * ITEMS_POR_PAGINA;
+        const paginaData = data.slice(inicio, inicio + ITEMS_POR_PAGINA);
+
         let html = '';
-        for (const marca of data) {
+        for (const marca of paginaData) {
             html += `
                 <tr>
                     <td><span class="fw-medium" style="color:#1e3c72">${resaltarTexto(marca.nombre, buscar)}</span></td>
@@ -146,6 +234,12 @@
             `;
         }
         tbody.innerHTML = html;
+
+        // Renderizar paginación
+        const paginacionContainer = document.getElementById('paginacionMarcas');
+        if (paginacionContainer) {
+            paginacionContainer.innerHTML = renderPaginacionEquipo('marcas', totalPaginas, pagina, total);
+        }
     }
 
     function verMarca(id) {
@@ -251,13 +345,24 @@
         const tbody = document.getElementById('tablaCategorias');
         if (!tbody) return;
 
+        // Guardar en el estado de paginación
+        paginacion.categorias.data = data || [];
+
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No se encontraron categorías</td></tr>';
+            const pag = document.getElementById('paginacionCategorias');
+            if (pag) pag.innerHTML = '';
             return;
         }
 
+        const total = data.length;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA);
+        const pagina = paginacion.categorias.page;
+        const inicio = (pagina - 1) * ITEMS_POR_PAGINA;
+        const paginaData = data.slice(inicio, inicio + ITEMS_POR_PAGINA);
+
         let html = '';
-        for (const cat of data) {
+        for (const cat of paginaData) {
             html += `
                 <tr>
                     <td><span class="fw-medium" style="color:#1e3c72">${resaltarTexto(cat.nombre, buscar)}</span></td>
@@ -274,6 +379,11 @@
             `;
         }
         tbody.innerHTML = html;
+
+        const paginacionContainer = document.getElementById('paginacionCategorias');
+        if (paginacionContainer) {
+            paginacionContainer.innerHTML = renderPaginacionEquipo('categorias', totalPaginas, pagina, total);
+        }
     }
 
     function verCategoria(id) {
@@ -379,13 +489,24 @@
         const tbody = document.getElementById('tablaModelos');
         if (!tbody) return;
 
+        // Guardar en el estado de paginación
+        paginacion.modelos.data = data || [];
+
         if (!data || data.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron modelos</td></tr>';
+            const pag = document.getElementById('paginacionModelos');
+            if (pag) pag.innerHTML = '';
             return;
         }
 
+        const total = data.length;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA);
+        const pagina = paginacion.modelos.page;
+        const inicio = (pagina - 1) * ITEMS_POR_PAGINA;
+        const paginaData = data.slice(inicio, inicio + ITEMS_POR_PAGINA);
+
         let html = '';
-        for (const m of data) {
+        for (const m of paginaData) {
             html += `
                 <tr>
                     <td><span class="fw-medium" style="color:#1e3c72">${resaltarTexto(m.nombre, buscar)}</span></td>
@@ -403,6 +524,11 @@
             `;
         }
         tbody.innerHTML = html;
+
+        const paginacionContainer = document.getElementById('paginacionModelos');
+        if (paginacionContainer) {
+            paginacionContainer.innerHTML = renderPaginacionEquipo('modelos', totalPaginas, pagina, total);
+        }
     }
 
     function verModelo(id) {
@@ -918,8 +1044,6 @@
         document.getElementById('wizardCategoriaFinalLabel').textContent = wizardData.categoriaNombre || '(Ninguna)';
     }
 
-    // ---- Acciones del wizard ----
-
     async function wizardCrearMarcaSiNecesario() {
         if (!wizardData.marcaEsNueva) return wizardData.marcaId;
 
@@ -947,7 +1071,6 @@
     }
 
     async function wizardCrearCategoriaSiNecesario() {
-        // ✅ Ya NO recibe marcaId: la categoría es global
         if (!wizardData.categoriaEsNueva) return wizardData.categoriaId;
 
         const nombre = document.getElementById('wizardCategoriaNombre').value.trim();
@@ -1009,7 +1132,6 @@
         btn.disabled = true;
 
         try {
-            // Validar
             if (!validarPasoMarca()) throw new Error('Datos de marca incompletos');
             if (!validarPasoCategoria()) throw new Error('Datos de categoría incompletos');
 
@@ -1018,13 +1140,9 @@
 
             const modeloDescripcion = document.getElementById('wizardModeloDescripcion').value.trim();
 
-            // Crear marca si es nueva
             const marcaId = await wizardCrearMarcaSiNecesario();
-
-            // Crear categoría si es nueva (ya NO recibe marcaId)
             const categoriaId = await wizardCrearCategoriaSiNecesario();
 
-            // ✅ Crear modelo con AMBOS: marca_id + categoria_id
             const response = await fetch('/admin/equipos/modelos', {
                 method: 'POST',
                 headers: {
@@ -1070,20 +1188,29 @@
         cargarCategorias();
         cargarModelos();
 
-        // ============ BÚSQUEDAS EN TIEMPO REAL ============
+        // ============ BÚSQUEDAS EN TIEMPO REAL (con reset a página 1) ============
         const buscarMarcasInput = document.getElementById('buscarMarcas');
         if (buscarMarcasInput) {
-            buscarMarcasInput.addEventListener('input', debounce(cargarMarcas, 300));
+            buscarMarcasInput.addEventListener('input', debounce(() => {
+                paginacion.marcas.page = 1;
+                cargarMarcas();
+            }, 300));
         }
 
         const buscarCategoriasInput = document.getElementById('buscarCategorias');
         if (buscarCategoriasInput) {
-            buscarCategoriasInput.addEventListener('input', debounce(cargarCategorias, 300));
+            buscarCategoriasInput.addEventListener('input', debounce(() => {
+                paginacion.categorias.page = 1;
+                cargarCategorias();
+            }, 300));
         }
 
         const buscarModelosInput = document.getElementById('buscarModelos');
         if (buscarModelosInput) {
-            buscarModelosInput.addEventListener('input', debounce(cargarModelos, 300));
+            buscarModelosInput.addEventListener('input', debounce(() => {
+                paginacion.modelos.page = 1;
+                cargarModelos();
+            }, 300));
         }
 
         // ============ FORMULARIOS ============
@@ -1129,15 +1256,22 @@
         document.querySelectorAll('#equipoTab .nav-link').forEach(tab => {
             tab.addEventListener('shown.bs.tab', function(e) {
                 const target = e.target.getAttribute('data-bs-target');
-                if (target === '#marcas') cargarMarcas();
-                else if (target === '#categorias') cargarCategorias();
-                else if (target === '#modelos') cargarModelos();
+                if (target === '#marcas') {
+                    paginacion.marcas.page = 1;
+                    cargarMarcas();
+                } else if (target === '#categorias') {
+                    paginacion.categorias.page = 1;
+                    cargarCategorias();
+                } else if (target === '#modelos') {
+                    paginacion.modelos.page = 1;
+                    cargarModelos();
+                }
             });
         });
     }
 
     // ============================================================
-    // EXPONER FUNCIONES GLOBALES (para onclick en HTML generado)
+    // EXPONER FUNCIONES GLOBALES
     // ============================================================
     window.verMarca = verMarca;
     window.editarMarca = editarMarca;

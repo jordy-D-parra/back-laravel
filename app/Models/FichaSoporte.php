@@ -20,6 +20,9 @@ class FichaSoporte extends Model
         'fecha_ingreso',
         'fecha_requerida_entrega',
         'fecha_salida',
+        'fecha_aceptacion',   // ✅ NUEVO
+        'fecha_rechazo',      // ✅ NUEVO
+        'motivo_rechazo',     // ✅ NUEVO
         'diagnostico',
         'trabajo_realizado',
         'observaciones',
@@ -30,6 +33,8 @@ class FichaSoporte extends Model
     protected $casts = [
         'fecha_ingreso' => 'datetime',
         'fecha_salida' => 'datetime',
+        'fecha_aceptacion' => 'datetime',  // ✅ NUEVO
+        'fecha_rechazo' => 'datetime',     // ✅ NUEVO
         'fecha_requerida_entrega' => 'date',
     ];
 
@@ -68,7 +73,10 @@ class FichaSoporte extends Model
         return $query->where('estado', 'finalizado');
     }
 
-    // Helper: días restantes para la entrega
+    // ============================================================
+    // HELPERS
+    // ============================================================
+
     public function getDiasRestantesAttribute(): ?int
     {
         if (!$this->fecha_requerida_entrega) return null;
@@ -76,11 +84,40 @@ class FichaSoporte extends Model
         return now()->startOfDay()->diffInDays($this->fecha_requerida_entrega, false);
     }
 
-    // Helper: ¿está vencida?
     public function getEstaVencidaAttribute(): bool
     {
         if (!$this->fecha_requerida_entrega) return false;
         if ($this->estado === 'finalizado') return false;
         return now()->startOfDay()->gt($this->fecha_requerida_entrega);
+    }
+
+    /**
+     * ✅ NUEVO: Devuelve un label legible del estado
+     */
+    public function getEstadoLabelAttribute(): string
+    {
+        return match($this->estado) {
+            'en_proceso' => 'En Proceso',
+            'aceptada'   => 'Aceptada',
+            'rechazada'  => 'Rechazada',
+            'finalizado' => 'Finalizado',
+            'cancelada'  => 'Cancelada',
+            default      => ucfirst($this->estado),
+        };
+    }
+
+    /**
+     * ✅ NUEVO: Devuelve la clase de badge según el estado
+     */
+    public function getEstadoBadgeAttribute(): string
+    {
+        return match($this->estado) {
+            'en_proceso' => 'badge-estado-en-proceso',
+            'aceptada'   => 'badge-estado-pendiente',
+            'rechazada'  => 'badge-estado-rechazado',
+            'finalizado' => 'badge-estado-finalizado',
+            'cancelada'  => 'badge-estado-cancelado',
+            default      => 'badge-estado',
+        };
     }
 }

@@ -1,55 +1,24 @@
 // ============================================================
-// ADMIN ROLES - Gestión de Roles y Permisos
+// ADMIN ROLES - Gestión de Roles con Paginación
 // ============================================================
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Módulo de roles inicializado');
 
     // ===========================
-    // BÚSQUEDA EN TIEMPO REAL
+    // ESTADO DE PAGINACIÓN
     // ===========================
-    const buscarInput = document.getElementById('buscarRol');
-    let timeoutBusqueda = null;
-
-    if (buscarInput) {
-        buscarInput.addEventListener('input', function() {
-            const termino = this.value.trim().toLowerCase();
-
-            clearTimeout(timeoutBusqueda);
-            timeoutBusqueda = setTimeout(function() {
-                filtrarRoles(termino);
-            }, 300);
-        });
-    }
-
-    function filtrarRoles(termino) {
-        const rows = document.querySelectorAll('#tablaRoles tr');
-        
-        rows.forEach(row => {
-            // Saltar fila de "No hay roles" o mensajes
-            if (row.querySelector('.text-muted') || row.querySelector('.text-center')) {
-                return;
-            }
-
-            const nombreRol = row.querySelector('td:first-child')?.textContent?.toLowerCase() || '';
-            const descripcion = row.querySelector('td:nth-child(2)')?.textContent?.toLowerCase() || '';
-
-            if (termino === '' || nombreRol.includes(termino) || descripcion.includes(termino)) {
-                row.style.display = '';
-            } else {
-                row.style.display = 'none';
-            }
-        });
-    }
-
-    // ===========================
-    // FUNCIONES GLOBALES
-    // ===========================
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const ITEMS_POR_PAGINA = 8;
     let rolesData = [];
+    let rolesFiltrados = [];
+    let paginaActual = 1;
     let elementoAEliminar = null;
 
-    // Iconos SVG
+    // ===========================
+    // HELPERS
+    // ===========================
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
     const iconos = {
         ver: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>',
         editar: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
@@ -84,59 +53,92 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===========================
-    // CARGAR ROLES
+    // HELPERS DE PAGINACIÓN
     // ===========================
-    function cargarRoles() {
-        const tbody = document.getElementById('tablaRoles');
-        if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">Cargando roles...</td></tr>';
+    function renderPaginacion(totalPaginas, pageActual, totalRegistros) {
+        if (totalPaginas <= 1) return '';
+
+        let html = `<div class="pagination-bar">
+            <div class="pagination-info">Mostrando ${((pageActual - 1) * ITEMS_POR_PAGINA) + 1} a ${Math.min(pageActual * ITEMS_POR_PAGINA, totalRegistros)} de ${totalRegistros} registros</div>
+            <div class="pagination-btns">`;
+
+        html += `<button class="pagination-btn ${pageActual === 1 ? 'disabled' : ''}"
+                    onclick="window.cambiarPaginaRoles(${pageActual - 1})" ${pageActual === 1 ? 'disabled' : ''}>«</button>`;
+
+        let inicio = Math.max(1, pageActual - 2);
+        let fin = Math.min(totalPaginas, pageActual + 2);
+
+        if (inicio > 1) {
+            html += `<button class="pagination-btn" onclick="window.cambiarPaginaRoles(1)">1</button>`;
+            if (inicio > 2) html += `<span class="pagination-ellipsis">...</span>`;
         }
 
-        fetch('/admin/roles/list', {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.success) {
-                rolesData = data.data;
-                renderizarTablaRoles();
-                actualizarEstadisticas();
-            } else {
-                mostrarToast(data.message || 'Error al cargar roles', 'error');
-                if (tbody) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Error al cargar roles</td></tr>';
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            mostrarToast('Error de conexión: ' + error.message, 'error');
-            if (tbody) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-danger">Error de conexión al servidor</td></tr>';
-            }
-        });
+        for (let i = inicio; i <= fin; i++) {
+            html += `<button class="pagination-btn ${i === pageActual ? 'active' : ''}"
+                        onclick="window.cambiarPaginaRoles(${i})">${i}</button>`;
+        }
+
+        if (fin < totalPaginas) {
+            if (fin < totalPaginas - 1) html += `<span class="pagination-ellipsis">...</span>`;
+            html += `<button class="pagination-btn" onclick="window.cambiarPaginaRoles(${totalPaginas})">${totalPaginas}</button>`;
+        }
+
+        html += `<button class="pagination-btn ${pageActual === totalPaginas ? 'disabled' : ''}"
+                    onclick="window.cambiarPaginaRoles(${pageActual + 1})" ${pageActual === totalPaginas ? 'disabled' : ''}>»</button>`;
+
+        html += `</div></div>`;
+        return html;
     }
 
+    window.cambiarPaginaRoles = function(nuevaPagina) {
+        const totalPaginas = Math.ceil(rolesFiltrados.length / ITEMS_POR_PAGINA);
+        if (nuevaPagina < 1 || nuevaPagina > totalPaginas) return;
+
+        paginaActual = nuevaPagina;
+        renderizarTablaRoles();
+        document.querySelector('.table-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // ===========================
+    // CARGAR ROLES (desde Blade)
+    // ===========================
+    function cargarDatosDesdeBlade() {
+        if (window.rolesIniciales && Array.isArray(window.rolesIniciales)) {
+            rolesData = window.rolesIniciales;
+            rolesFiltrados = [...rolesData];
+            paginaActual = 1;
+            renderizarTablaRoles();
+            actualizarEstadisticas();
+        }
+    }
+
+    // ===========================
+    // RENDERIZAR TABLA
+    // ===========================
     function renderizarTablaRoles() {
         const tbody = document.getElementById('tablaRoles');
         if (!tbody) return;
 
-        if (rolesData.length === 0) {
+        const total = rolesFiltrados.length;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA);
+
+        if (paginaActual > totalPaginas && totalPaginas > 0) {
+            paginaActual = totalPaginas;
+        }
+
+        const inicio = (paginaActual - 1) * ITEMS_POR_PAGINA;
+        const paginaData = rolesFiltrados.slice(inicio, inicio + ITEMS_POR_PAGINA);
+
+        if (total === 0) {
             tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-muted">No hay roles registrados</td></tr>';
+            const pag = document.getElementById('paginacionRoles');
+            if (pag) pag.innerHTML = '';
             return;
         }
 
         let html = '';
-        for (let i = 0; i < rolesData.length; i++) {
-            const rol = rolesData[i];
+        for (let i = 0; i < paginaData.length; i++) {
+            const rol = paginaData[i];
             const permisosCount = rol.permisos_count || 0;
             const usuariosCount = rol.usuarios_count || 0;
 
@@ -156,25 +158,57 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         tbody.innerHTML = html;
 
-        // Aplicar filtro si hay búsqueda activa
-        const buscarInput = document.getElementById('buscarRol');
-        if (buscarInput && buscarInput.value.trim()) {
-            filtrarRoles(buscarInput.value.trim().toLowerCase());
+        // Renderizar paginación
+        const paginacionContainer = document.getElementById('paginacionRoles');
+        if (paginacionContainer) {
+            paginacionContainer.innerHTML = renderPaginacion(totalPaginas, paginaActual, total);
         }
     }
 
+    // ===========================
+    // ACTUALIZAR ESTADÍSTICAS
+    // ===========================
     function actualizarEstadisticas() {
         const total = rolesData.length;
         const totalPermisos = rolesData.reduce((sum, rol) => sum + (rol.permisos_count || 0), 0);
         const totalUsuarios = rolesData.reduce((sum, rol) => sum + (rol.usuarios_count || 0), 0);
 
-        document.getElementById('statsTotal').textContent = total;
-        document.getElementById('statsPermisos').textContent = totalPermisos;
-        document.getElementById('statsUsuarios').textContent = totalUsuarios;
+        const elTotal = document.getElementById('statsTotal');
+        const elPermisos = document.getElementById('statsPermisos');
+        const elUsuarios = document.getElementById('statsUsuarios');
+
+        if (elTotal) elTotal.textContent = total;
+        if (elPermisos) elPermisos.textContent = totalPermisos;
+        if (elUsuarios) elUsuarios.textContent = totalUsuarios;
     }
 
     // ===========================
-    // CARGAR PERMISOS EN MODAL
+    // BÚSQUEDA EN TIEMPO REAL (CLIENTE)
+    // ===========================
+    const buscarInput = document.getElementById('buscarRol');
+    let timeoutBusqueda = null;
+
+    if (buscarInput) {
+        buscarInput.addEventListener('input', function() {
+            const termino = this.value.trim().toLowerCase();
+            clearTimeout(timeoutBusqueda);
+            timeoutBusqueda = setTimeout(function() {
+                if (termino === '') {
+                    rolesFiltrados = [...rolesData];
+                } else {
+                    rolesFiltrados = rolesData.filter(rol => {
+                        return (rol.nombre || '').toLowerCase().includes(termino) ||
+                               (rol.descripcion || '').toLowerCase().includes(termino);
+                    });
+                }
+                paginaActual = 1;
+                renderizarTablaRoles();
+            }, 300);
+        });
+    }
+
+    // ===========================
+    // CARGAR PERMISOS EN MODAL (crear/editar)
     // ===========================
     function cargarPermisosEnModal(permisosSeleccionados = []) {
         const container = document.getElementById('permisosContainer');
@@ -354,7 +388,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalRol'));
                 modal.hide();
                 mostrarToast(response.message, 'success');
-                cargarRoles();
+                setTimeout(() => location.reload(), 800);
             } else {
                 mostrarToast(response.message || 'Error al guardar', 'error');
             }
@@ -411,7 +445,7 @@ document.addEventListener('DOMContentLoaded', function() {
             modal.hide();
             if (response.success) {
                 mostrarToast(response.message, 'success');
-                cargarRoles();
+                setTimeout(() => location.reload(), 800);
             } else {
                 mostrarToast(response.message, 'error');
             }
@@ -438,11 +472,5 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===========================
     // INICIALIZAR
     // ===========================
-    cargarRoles();
-
-    // Exponer funciones globales
-    window.abrirModalRol = window.abrirModalRol;
-    window.editarRol = window.editarRol;
-    window.verRol = window.verRol;
-    window.confirmarEliminarRol = window.confirmarEliminarRol;
+    cargarDatosDesdeBlade();
 });

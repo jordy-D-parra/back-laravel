@@ -12,6 +12,7 @@ return new class extends Migration
             $table->id();
             $table->string('usuario', 50)->unique();
             $table->string('password');
+            $table->rememberToken();                          // ← ✅ AGREGADO
             $table->boolean('must_change_password')->default(true);
             $table->enum('status', ['activo', 'inactivo'])->default('activo');
             $table->timestamp('ultimo_login')->nullable();

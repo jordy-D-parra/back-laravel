@@ -1,6 +1,6 @@
 /**
  * Módulo de Reportes - 3 secciones (Inventario, Solicitudes, Soporte)
- * Estilo unificado con el sistema
+ * ✅ Con paginación del lado del cliente (8 items por página)
  */
 const Reportes = (() => {
     'use strict';
@@ -9,7 +9,21 @@ const Reportes = (() => {
     let chartSol = null;
     let chartSop = null;
 
-    // ============ UTILIDADES ============
+    // ============================================================
+    // CONFIGURACIÓN DE PAGINACIÓN
+    // ============================================================
+    const ITEMS_POR_PAGINA = 8;
+
+    // Estado de paginación por cada sección
+    const paginacion = {
+        inventario: { data: [], page: 1, tipo: 'activos' }, // 'activos' o 'componentes'
+        solicitudes: { data: [], page: 1 },
+        soporte: { data: [], page: 1 }
+    };
+
+    // ============================================================
+    // UTILIDADES
+    // ============================================================
     const fmtFecha = (f) => {
         if (!f) return '---';
         const d = new Date(f);
@@ -85,13 +99,95 @@ const Reportes = (() => {
             <p class="mt-2">Cargando reporte...</p>
         </div>`;
 
-    // ============ CARGA PRINCIPAL ============
+    // ============================================================
+    // PAGINACIÓN — RENDERIZADO DE BOTONES
+    // ============================================================
+    const renderPaginacion = (seccion, totalPaginas, pageActual, totalRegistros) => {
+        if (totalPaginas <= 1) return '';
+
+        const inicio = ((pageActual - 1) * ITEMS_POR_PAGINA) + 1;
+        const fin = Math.min(pageActual * ITEMS_POR_PAGINA, totalRegistros);
+
+        let html = `<div class="pagination-bar">
+            <div class="pagination-info">Mostrando ${inicio} a ${fin} de ${totalRegistros} registros</div>
+            <div class="pagination-btns">`;
+
+        // Botón anterior
+        html += `<button class="pagination-btn ${pageActual === 1 ? 'disabled' : ''}"
+                    onclick="Reportes.cambiarPagina('${seccion}', ${pageActual - 1})"
+                    ${pageActual === 1 ? 'disabled' : ''}>«</button>`;
+
+        // Números de página
+        let inicioRango = Math.max(1, pageActual - 2);
+        let finRango = Math.min(totalPaginas, pageActual + 2);
+
+        if (inicioRango > 1) {
+            html += `<button class="pagination-btn" onclick="Reportes.cambiarPagina('${seccion}', 1)">1</button>`;
+            if (inicioRango > 2) html += `<span class="pagination-ellipsis">...</span>`;
+        }
+
+        for (let i = inicioRango; i <= finRango; i++) {
+            html += `<button class="pagination-btn ${i === pageActual ? 'active' : ''}"
+                        onclick="Reportes.cambiarPagina('${seccion}', ${i})">${i}</button>`;
+        }
+
+        if (finRango < totalPaginas) {
+            if (finRango < totalPaginas - 1) html += `<span class="pagination-ellipsis">...</span>`;
+            html += `<button class="pagination-btn" onclick="Reportes.cambiarPagina('${seccion}', ${totalPaginas})">${totalPaginas}</button>`;
+        }
+
+        // Botón siguiente
+        html += `<button class="pagination-btn ${pageActual === totalPaginas ? 'disabled' : ''}"
+                    onclick="Reportes.cambiarPagina('${seccion}', ${pageActual + 1})"
+                    ${pageActual === totalPaginas ? 'disabled' : ''}>»</button>`;
+
+        html += `</div></div>`;
+        return html;
+    };
+
+    // ============================================================
+    // PAGINACIÓN — CAMBIAR DE PÁGINA
+    // ============================================================
+    const cambiarPagina = (seccion, nuevaPagina) => {
+        const estado = paginacion[seccion];
+        if (!estado) return;
+
+        const datos = seccion === 'inventario'
+            ? (estado.tipo === 'activos' ? estado.data.activos : estado.data.componentes)
+            : estado.data;
+
+        const totalPaginas = Math.ceil((datos?.length || 0) / ITEMS_POR_PAGINA);
+        if (nuevaPagina < 1 || nuevaPagina > totalPaginas) return;
+
+        estado.page = nuevaPagina;
+
+        // Re-renderizar según la sección
+        if (seccion === 'inventario') {
+            renderInventario(paginacion.inventario._rawData, true);
+        } else if (seccion === 'solicitudes') {
+            renderSolicitudes(paginacion.solicitudes._rawData, true);
+        } else if (seccion === 'soporte') {
+            renderSoporte(paginacion.soporte._rawData, true);
+        }
+
+        // Scroll al inicio de la tabla
+        document.querySelector('.tab-content-wrap')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // ============================================================
+    // CARGA PRINCIPAL
+    // ============================================================
     const cargar = async (seccion) => {
         const p = prefijo(seccion);
         const cont = document.getElementById(`${p}_contenido`);
         if (!cont) return;
 
         cont.innerHTML = renderLoading();
+
+        // Resetear página al cargar nuevos filtros
+        if (paginacion[seccion]) {
+            paginacion[seccion].page = 1;
+        }
 
         const params = new URLSearchParams(getParams(seccion));
 
@@ -106,9 +202,16 @@ const Reportes = (() => {
                 return;
             }
 
-            if (seccion === 'inventario') renderInventario(data.data);
-            else if (seccion === 'solicitudes') renderSolicitudes(data.data);
-            else renderSoporte(data.data);
+            if (seccion === 'inventario') {
+                paginacion.inventario._rawData = data.data;
+                renderInventario(data.data, false);
+            } else if (seccion === 'solicitudes') {
+                paginacion.solicitudes._rawData = data.data;
+                renderSolicitudes(data.data, false);
+            } else {
+                paginacion.soporte._rawData = data.data;
+                renderSoporte(data.data, false);
+            }
 
         } catch (e) {
             console.error(e);
@@ -116,14 +219,15 @@ const Reportes = (() => {
         }
     };
 
-    // ============ EXPORTAR A PDF ============
+    // ============================================================
+    // EXPORTAR A PDF
+    // ============================================================
     const exportarPdf = (seccion) => {
         const params = new URLSearchParams(getParams(seccion));
         params.set('seccion', seccion);
 
         const url = `/admin/reportes/exportar-pdf?${params.toString()}`;
 
-        // Abrir en nueva pestaña (vista imprimible)
         const ventana = window.open(url, '_blank', 'width=1100,height=800,scrollbars=yes');
 
         if (!ventana) {
@@ -131,12 +235,25 @@ const Reportes = (() => {
         }
     };
 
-    // ============ RENDER: INVENTARIO ============
-    const renderInventario = (d) => {
+    // ============================================================
+    // RENDER: INVENTARIO
+    // ============================================================
+    const renderInventario = (d, soloTabla = false) => {
         const cont = document.getElementById('inv_contenido');
         const s = d.stats;
 
-        let html = `
+        // Cambiar tipo (activos/componentes) según botón seleccionado
+        const tipoActual = document.getElementById('inv_tipo_items')?.value || 'activos';
+        paginacion.inventario.tipo = tipoActual;
+
+        const listaActual = tipoActual === 'activos' ? d.activos : d.componentes;
+        const totalPaginas = Math.ceil(listaActual.length / ITEMS_POR_PAGINA);
+        const pageActual = paginacion.inventario.page;
+        const startIdx = (pageActual - 1) * ITEMS_POR_PAGINA;
+        const itemsPagina = listaActual.slice(startIdx, startIdx + ITEMS_POR_PAGINA);
+
+        // ============ STATS ============
+        const statsHTML = `
         <div class="stats-mini">
             <div class="stat-mini-card"><div class="num">${s.total_activos}</div><div class="lbl">Activos</div></div>
             <div class="stat-mini-card green"><div class="num">${s.disponibles}</div><div class="lbl">Disponibles</div></div>
@@ -146,14 +263,26 @@ const Reportes = (() => {
             <div class="stat-mini-card purple"><div class="num">${s.bodega}</div><div class="lbl">En Bodega</div></div>
         </div>`;
 
-        html += `<div class="chart-container"><canvas id="chartInv"></canvas></div>`;
+        // ============ SELECTOR DE TIPO DE ITEMS ============
+        const selectorHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; flex-wrap:wrap; gap:0.5rem;">
+            <h6 class="fw-bold mb-0" style="color:#1e3c72;">
+                ${tipoActual === 'activos' ? `Activos (${d.activos.length})` : `Componentes (${d.componentes.length})`}
+            </h6>
+            <select id="inv_tipo_items" class="form-select form-select-sm" style="width: 200px;" onchange="Reportes.cambiarTipoItems(this.value)">
+                <option value="activos" ${tipoActual === 'activos' ? 'selected' : ''}>Ver Activos</option>
+                <option value="componentes" ${tipoActual === 'componentes' ? 'selected' : ''}>Ver Componentes</option>
+            </select>
+        </div>`;
 
-        html += `<h6 class="fw-bold mb-2" style="color:#1e3c72;">Activos (${d.activos.length})</h6>`;
-        if (d.activos.length === 0) {
-            html += renderEmpty('No hay activos en este rango');
-        } else {
-            html += `
-            <div class="table-responsive mb-3">
+        // ============ TABLA ============
+        let tablaHTML = '';
+
+        if (listaActual.length === 0) {
+            tablaHTML = renderEmpty('No hay ' + tipoActual + ' en este rango');
+        } else if (tipoActual === 'activos') {
+            tablaHTML = `
+            <div class="table-responsive mb-2">
                 <table class="table tabla-reporte">
                     <thead>
                         <tr>
@@ -162,7 +291,7 @@ const Reportes = (() => {
                         </tr>
                     </thead>
                     <tbody>
-                        ${d.activos.map(a => `
+                        ${itemsPagina.map(a => `
                             <tr>
                                 <td><strong style="color:#1e3c72;">${esc(a.serial)}</strong></td>
                                 <td>${esc(a.modelo?.nombre || 'N/A')}</td>
@@ -175,14 +304,9 @@ const Reportes = (() => {
                     </tbody>
                 </table>
             </div>`;
-        }
-
-        html += `<h6 class="fw-bold mb-2" style="color:#1e3c72;">Componentes (${d.componentes.length})</h6>`;
-        if (d.componentes.length === 0) {
-            html += renderEmpty('No hay componentes en este rango');
         } else {
-            html += `
-            <div class="table-responsive">
+            tablaHTML = `
+            <div class="table-responsive mb-2">
                 <table class="table tabla-reporte">
                     <thead>
                         <tr>
@@ -191,7 +315,7 @@ const Reportes = (() => {
                         </tr>
                     </thead>
                     <tbody>
-                        ${d.componentes.map(c => `
+                        ${itemsPagina.map(c => `
                             <tr>
                                 <td><strong style="color:#1e3c72;">${esc(c.tipo)}</strong></td>
                                 <td>${esc(c.marca || 'N/A')}</td>
@@ -206,42 +330,68 @@ const Reportes = (() => {
             </div>`;
         }
 
-        cont.innerHTML = html;
+        // ============ PAGINACIÓN ============
+        const paginacionHTML = renderPaginacion('inventario', totalPaginas, pageActual, listaActual.length);
 
-        if (chartInv) chartInv.destroy();
-        const labels = Object.keys(d.por_fecha);
-        const values = Object.values(d.por_fecha);
-        if (labels.length > 0) {
-            chartInv = new Chart(document.getElementById('chartInv'), {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'Activos registrados',
-                        data: values,
-                        borderColor: '#1e3c72',
-                        backgroundColor: 'rgba(30,60,114,0.1)',
-                        tension: 0.3,
-                        fill: true,
-                        pointBackgroundColor: '#1e3c72'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-                }
-            });
+        // ============ CHART (solo si no es "solo tabla") ============
+        const chartHTML = soloTabla ? '' : `<div class="chart-container"><canvas id="chartInv"></canvas></div>`;
+
+        cont.innerHTML = statsHTML + chartHTML + selectorHTML + tablaHTML + paginacionHTML;
+
+        // ============ RE-RENDERIZAR CHART ============
+        if (!soloTabla) {
+            if (chartInv) chartInv.destroy();
+            const labels = Object.keys(d.por_fecha);
+            const values = Object.values(d.por_fecha);
+            if (labels.length > 0) {
+                chartInv = new Chart(document.getElementById('chartInv'), {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Activos registrados',
+                            data: values,
+                            borderColor: '#1e3c72',
+                            backgroundColor: 'rgba(30,60,114,0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            pointBackgroundColor: '#1e3c72'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    }
+                });
+            }
         }
     };
 
-    // ============ RENDER: SOLICITUDES ============
-    const renderSolicitudes = (d) => {
+    // ============================================================
+    // CAMBIAR TIPO DE ITEMS EN INVENTARIO
+    // ============================================================
+    const cambiarTipoItems = (tipo) => {
+        paginacion.inventario.tipo = tipo;
+        paginacion.inventario.page = 1;
+        renderInventario(paginacion.inventario._rawData, true);
+    };
+
+    // ============================================================
+    // RENDER: SOLICITUDES
+    // ============================================================
+    const renderSolicitudes = (d, soloTabla = false) => {
         const cont = document.getElementById('sol_contenido');
         const s = d.stats;
 
-        let html = `
+        const listaActual = d.solicitudes;
+        const totalPaginas = Math.ceil(listaActual.length / ITEMS_POR_PAGINA);
+        const pageActual = paginacion.solicitudes.page;
+        const startIdx = (pageActual - 1) * ITEMS_POR_PAGINA;
+        const itemsPagina = listaActual.slice(startIdx, startIdx + ITEMS_POR_PAGINA);
+
+        const statsHTML = `
         <div class="stats-mini">
             <div class="stat-mini-card"><div class="num">${s.total}</div><div class="lbl">Total</div></div>
             <div class="stat-mini-card orange"><div class="num">${s.pendientes}</div><div class="lbl">Pendientes</div></div>
@@ -251,14 +401,14 @@ const Reportes = (() => {
             <div class="stat-mini-card purple"><div class="num">${s.altas}</div><div class="lbl">Alta Prioridad</div></div>
         </div>`;
 
-        html += `<div class="chart-container"><canvas id="chartSol"></canvas></div>`;
+        let tablaHTML = '';
 
-        html += `<h6 class="fw-bold mb-2" style="color:#1e3c72;">Solicitudes (${d.solicitudes.length})</h6>`;
-        if (d.solicitudes.length === 0) {
-            html += renderEmpty('No hay solicitudes en este rango');
+        if (listaActual.length === 0) {
+            tablaHTML = renderEmpty('No hay solicitudes en este rango');
         } else {
-            html += `
-            <div class="table-responsive">
+            tablaHTML = `
+            <h6 class="fw-bold mb-2" style="color:#1e3c72;">Solicitudes (${listaActual.length})</h6>
+            <div class="table-responsive mb-2">
                 <table class="table tabla-reporte">
                     <thead>
                         <tr>
@@ -267,7 +417,7 @@ const Reportes = (() => {
                         </tr>
                     </thead>
                     <tbody>
-                        ${d.solicitudes.map(sol => {
+                        ${itemsPagina.map(sol => {
                             let entidad = 'No especificado';
                             if (sol.tipo_solicitante === 'interno' && sol.departamento) entidad = sol.departamento.nombre;
                             else if (sol.tipo_solicitante === 'externo' && sol.institucion) entidad = sol.institucion.nombre;
@@ -287,39 +437,52 @@ const Reportes = (() => {
             </div>`;
         }
 
-        cont.innerHTML = html;
+        const paginacionHTML = renderPaginacion('solicitudes', totalPaginas, pageActual, listaActual.length);
+        const chartHTML = soloTabla ? '' : `<div class="chart-container"><canvas id="chartSol"></canvas></div>`;
 
-        if (chartSol) chartSol.destroy();
-        const labels = Object.keys(d.por_fecha);
-        const values = Object.values(d.por_fecha);
-        if (labels.length > 0) {
-            chartSol = new Chart(document.getElementById('chartSol'), {
-                type: 'bar',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'Solicitudes',
-                        data: values,
-                        backgroundColor: '#2a5298',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-                }
-            });
+        cont.innerHTML = statsHTML + chartHTML + tablaHTML + paginacionHTML;
+
+        if (!soloTabla) {
+            if (chartSol) chartSol.destroy();
+            const labels = Object.keys(d.por_fecha);
+            const values = Object.values(d.por_fecha);
+            if (labels.length > 0) {
+                chartSol = new Chart(document.getElementById('chartSol'), {
+                    type: 'bar',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Solicitudes',
+                            data: values,
+                            backgroundColor: '#2a5298',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    }
+                });
+            }
         }
     };
 
-    // ============ RENDER: SOPORTE ============
-    const renderSoporte = (d) => {
+    // ============================================================
+    // RENDER: SOPORTE
+    // ============================================================
+    const renderSoporte = (d, soloTabla = false) => {
         const cont = document.getElementById('sop_contenido');
         const s = d.stats;
 
-        let html = `
+        const listaActual = d.fichas;
+        const totalPaginas = Math.ceil(listaActual.length / ITEMS_POR_PAGINA);
+        const pageActual = paginacion.soporte.page;
+        const startIdx = (pageActual - 1) * ITEMS_POR_PAGINA;
+        const itemsPagina = listaActual.slice(startIdx, startIdx + ITEMS_POR_PAGINA);
+
+        const statsHTML = `
         <div class="stats-mini">
             <div class="stat-mini-card"><div class="num">${s.total}</div><div class="lbl">Total</div></div>
             <div class="stat-mini-card orange"><div class="num">${s.en_proceso}</div><div class="lbl">En Proceso</div></div>
@@ -329,14 +492,14 @@ const Reportes = (() => {
             <div class="stat-mini-card purple"><div class="num">${s.sin_tecnico}</div><div class="lbl">Sin Técnico</div></div>
         </div>`;
 
-        html += `<div class="chart-container"><canvas id="chartSop"></canvas></div>`;
+        let tablaHTML = '';
 
-        html += `<h6 class="fw-bold mb-2" style="color:#1e3c72;">Fichas de Soporte (${d.fichas.length})</h6>`;
-        if (d.fichas.length === 0) {
-            html += renderEmpty('No hay fichas en este rango');
+        if (listaActual.length === 0) {
+            tablaHTML = renderEmpty('No hay fichas en este rango');
         } else {
-            html += `
-            <div class="table-responsive">
+            tablaHTML = `
+            <h6 class="fw-bold mb-2" style="color:#1e3c72;">Fichas de Soporte (${listaActual.length})</h6>
+            <div class="table-responsive mb-2">
                 <table class="table tabla-reporte">
                     <thead>
                         <tr>
@@ -345,7 +508,7 @@ const Reportes = (() => {
                         </tr>
                     </thead>
                     <tbody>
-                        ${d.fichas.map(f => `
+                        ${itemsPagina.map(f => `
                             <tr>
                                 <td>${f.id}</td>
                                 <td>${esc(f.activo?.serial || 'Externo')}<br><small class="text-muted">${esc(f.activo?.modelo?.nombre || '')}</small></td>
@@ -360,37 +523,44 @@ const Reportes = (() => {
             </div>`;
         }
 
-        cont.innerHTML = html;
+        const paginacionHTML = renderPaginacion('soporte', totalPaginas, pageActual, listaActual.length);
+        const chartHTML = soloTabla ? '' : `<div class="chart-container"><canvas id="chartSop"></canvas></div>`;
 
-        if (chartSop) chartSop.destroy();
-        const labels = Object.keys(d.por_fecha);
-        const values = Object.values(d.por_fecha);
-        if (labels.length > 0) {
-            chartSop = new Chart(document.getElementById('chartSop'), {
-                type: 'line',
-                data: {
-                    labels,
-                    datasets: [{
-                        label: 'Fichas de soporte',
-                        data: values,
-                        borderColor: '#17a2b8',
-                        backgroundColor: 'rgba(23,162,184,0.1)',
-                        tension: 0.3,
-                        fill: true,
-                        pointBackgroundColor: '#17a2b8'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
-                }
-            });
+        cont.innerHTML = statsHTML + chartHTML + tablaHTML + paginacionHTML;
+
+        if (!soloTabla) {
+            if (chartSop) chartSop.destroy();
+            const labels = Object.keys(d.por_fecha);
+            const values = Object.values(d.por_fecha);
+            if (labels.length > 0) {
+                chartSop = new Chart(document.getElementById('chartSop'), {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Fichas de soporte',
+                            data: values,
+                            borderColor: '#17a2b8',
+                            backgroundColor: 'rgba(23,162,184,0.1)',
+                            tension: 0.3,
+                            fill: true,
+                            pointBackgroundColor: '#17a2b8'
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+                    }
+                });
+            }
         }
     };
 
-    // ============ INICIALIZACIÓN ============
+    // ============================================================
+    // INICIALIZACIÓN
+    // ============================================================
     document.addEventListener('DOMContentLoaded', () => {
         ['inventario', 'solicitudes', 'soporte'].forEach(seccion => {
             const p = prefijo(seccion);
@@ -420,9 +590,14 @@ const Reportes = (() => {
     });
 
     // ============================================================
-    // ✅ EXPONER GLOBALMENTE (necesario para los onclick inline)
+    // API PÚBLICA
     // ============================================================
-    window.Reportes = { cargar, exportarPdf };
-
-    return { cargar, exportarPdf };
+    return {
+        cargar,
+        exportarPdf,
+        cambiarPagina,
+        cambiarTipoItems
+    };
 })();
+
+window.Reportes = Reportes;

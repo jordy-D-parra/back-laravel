@@ -4,6 +4,100 @@
 
 @section('styles')
 @vite(['resources/css/admin-trabajadores.css'])
+<style>
+    /* ============================================================
+       PAGINACIÓN ELEGANTE
+       ============================================================ */
+    .pagination-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 1.25rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        background: white;
+        border-top: 1px solid var(--border-light);
+    }
+
+    .pagination-info {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+
+    .pagination-btns {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+
+    .pagination-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        padding: 0 0.6rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--primary-dark);
+        background: white;
+        border: 1.5px solid var(--border-light);
+        border-radius: 10px;
+        text-decoration: none;
+        transition: all 0.25s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        cursor: pointer;
+        user-select: none;
+        line-height: 1;
+    }
+
+    .pagination-btn:hover:not(.disabled):not(.active) {
+        background: var(--primary-lighter);
+        border-color: var(--primary-dark);
+        color: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(30, 60, 114, 0.15);
+    }
+
+    .pagination-btn.active {
+        background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+        color: white;
+        border-color: var(--primary-dark);
+        box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
+        font-weight: 700;
+    }
+
+    .pagination-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+
+    .pagination-ellipsis {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+
+    @media (max-width: 576px) {
+        .pagination-bar {
+            flex-direction: column;
+            align-items: center;
+        }
+        .pagination-btn {
+            min-width: 32px;
+            height: 32px;
+            font-size: 0.75rem;
+        }
+    }
+</style>
 @endsection
 
 @section('content')
@@ -124,93 +218,16 @@
                     </tr>
                 </thead>
                 <tbody id="tablaTrabajadores">
-                    @forelse($trabajadores as $trabajador)
                     <tr>
-                        <td><small>{{ $trabajador->cedula }}</small></td>
-                        <td><span class="fw-medium" style="color: var(--primary-dark);">{{ $trabajador->nombre }} {{ $trabajador->apellido }}</span></td>
-                        <td>{{ $trabajador->cargo }}</td>
-                        <td>{{ $trabajador->departamento }}</td>
-                        <td>{{ $trabajador->especialidad ?? '-' }}</td>
-                        <td>
-                            @if($trabajador->usuario)
-                                <span class="badge-usuario-si">{{ $trabajador->usuario->usuario }}</span>
-                            @else
-                                <span class="badge-usuario-no">Sin usuario</span>
-                            @endif
-                        </td>
-                        <td class="text-end">
-                            <div class="btn-group">
-                                @if(auth()->user()->hasPermission('ver-trabajadores'))
-                                <button class="btn btn-sm btn-action btn-outline-primary-dark btn-ver-trabajador"
-                                    data-id="{{ $trabajador->id }}" title="Ver detalle">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                        <circle cx="12" cy="12" r="3"/>
-                                    </svg>
-                                </button>
-                                @endif
-
-                                @if(auth()->user()->hasPermission('editar-trabajador'))
-                                <button class="btn btn-sm btn-action btn-outline-primary-dark btn-editar-trabajador"
-                                    data-id="{{ $trabajador->id }}"
-                                    data-cedula="{{ $trabajador->cedula }}"
-                                    data-nombre="{{ $trabajador->nombre }}"
-                                    data-apellido="{{ $trabajador->apellido }}"
-                                    data-email="{{ $trabajador->email }}"
-                                    data-departamento="{{ $trabajador->departamento }}"
-                                    data-cargo="{{ $trabajador->cargo }}"
-                                    data-especialidad="{{ $trabajador->especialidad }}"
-                                    data-telefono="{{ $trabajador->telefono }}" title="Editar">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                    </svg>
-                                </button>
-                                @endif
-
-                                @if(!$trabajador->usuario && auth()->user()->hasPermission('crear-usuario'))
-                                <a href="{{ route('admin.usuarios.index', ['search' => $trabajador->cedula, 'crear' => 1]) }}"
-                                    class="btn btn-sm btn-action btn-outline-primary-dark" title="Crear usuario">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                        <circle cx="12" cy="7" r="4"/>
-                                    </svg>
-                                </a>
-                                @endif
-
-                                @if(auth()->user()->hasPermission('eliminar-trabajador') && (!$trabajador->usuario || $trabajador->usuario->id !== Auth::id()))
-                                <button class="btn btn-sm btn-action btn-outline-danger btn-eliminar-trabajador"
-                                    data-id="{{ $trabajador->id }}"
-                                    data-nombre="{{ $trabajador->nombre }} {{ $trabajador->apellido }}"
-                                    data-tiene-usuario="{{ $trabajador->usuario ? '1' : '0' }}" title="Eliminar">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c5221f" stroke-width="2">
-                                        <polyline points="3 6 5 6 21 6"/>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                    </svg>
-                                </button>
-                                @endif
-                            </div>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2">Cargando trabajadores...</p>
                         </td>
                     </tr>
-                    @empty
-                    <tr>
-                        <td colspan="7" class="text-center py-5 text-muted">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                            </svg>
-                            <p>No se encontraron trabajadores</p>
-                        </td>
-                    </tr>
-                    @endforelse
                 </tbody>
             </table>
         </div>
-    </div>
-
-    {{-- ========== PAGINACIÓN ========== --}}
-    <div class="mt-3">
-        {{ $trabajadores->links() }}
+        <div id="paginacionTrabajadores"></div>
     </div>
 </div>
 
@@ -350,6 +367,11 @@
 {{-- ========== CONTENEDOR DE NOTIFICACIONES TOAST ========== --}}
 <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 99999; width: 340px;"></div>
 
+{{-- ========== DATOS INICIALES (JSON para el JS) ========== --}}
+<script>
+    window.trabajadoresIniciales = @json($trabajadores->items() ?? []);
+</script>
+
 @endsection
 
 @section('scripts')
@@ -410,7 +432,6 @@
 
         container.appendChild(toast);
 
-        // Auto-cerrar a los 4.5 segundos
         setTimeout(() => {
             if (toast.parentNode) {
                 toast.style.transition = 'all 0.3s ease';

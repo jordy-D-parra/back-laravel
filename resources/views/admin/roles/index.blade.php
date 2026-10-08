@@ -4,6 +4,100 @@
 
 @section('styles')
     @vite(['resources/css/admin-roles.css'])
+    <style>
+        /* ============================================================
+           PAGINACIÓN ELEGANTE
+           ============================================================ */
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            background: white;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .pagination-info {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .pagination-btns {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .pagination-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 0.6rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            background: white;
+            border: 1.5px solid var(--border-light);
+            border-radius: 10px;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            cursor: pointer;
+            user-select: none;
+            line-height: 1;
+        }
+
+        .pagination-btn:hover:not(.disabled):not(.active) {
+            background: var(--primary-lighter);
+            border-color: var(--primary-dark);
+            color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(30, 60, 114, 0.15);
+        }
+
+        .pagination-btn.active {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            color: white;
+            border-color: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
+            font-weight: 700;
+        }
+
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .pagination-ellipsis {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 576px) {
+            .pagination-bar {
+                flex-direction: column;
+                align-items: center;
+            }
+            .pagination-btn {
+                min-width: 32px;
+                height: 32px;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
 @endsection
 
 @section('content')
@@ -28,7 +122,7 @@
     <div class="stats-row">
         <div class="stat-card-mini">
             <div class="stat-info">
-                <div class="stat-number" id="statsTotal">0</div>
+                <div class="stat-number" id="statsTotal">{{ $roles->count() ?? 0 }}</div>
                 <div class="stat-label">Total Roles</div>
             </div>
             <div class="stat-icon-circle">
@@ -41,7 +135,7 @@
         </div>
         <div class="stat-card-mini">
             <div class="stat-info">
-                <div class="stat-number" id="statsPermisos">0</div>
+                <div class="stat-number" id="statsPermisos">{{ $totalPermisos ?? 0 }}</div>
                 <div class="stat-label">Total Permisos</div>
             </div>
             <div class="stat-icon-circle" style="background: rgba(23, 162, 184, 0.1);">
@@ -67,9 +161,8 @@
         </div>
     </div>
 
-    <!-- ========== BARRA DE FILTROS CON SEPARACIÓN ========== -->
+    <!-- ========== BARRA DE FILTROS ========== -->
     <div class="filters-bar">
-        <!-- Filtro de búsqueda a la IZQUIERDA -->
         <div class="filtro-busqueda">
             <div class="input-group">
                 <span class="input-group-text">
@@ -83,7 +176,6 @@
             </div>
         </div>
 
-        <!-- Botón Nuevo Rol a la DERECHA -->
         @if(auth()->user()->hasPermission('crear-rol'))
         <button class="btn btn-primary-dark btn-accion" style="color: #fff" onclick="abrirModalRol()">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
@@ -110,11 +202,15 @@
                 </thead>
                 <tbody id="tablaRoles">
                     <tr>
-                        <td colspan="5" class="text-center py-4 text-muted">Cargando roles...</td>
+                        <td colspan="5" class="text-center py-4 text-muted">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2">Cargando roles...</p>
+                        </td>
                     </tr>
                 </tbody>
             </table>
         </div>
+        <div id="paginacionRoles"></div>
     </div>
 </div>
 
@@ -208,6 +304,11 @@
         </div>
     </div>
 </div>
+
+{{-- DATOS INICIALES PARA EL JS --}}
+<script>
+    window.rolesIniciales = @json($roles ?? []);
+</script>
 
 @endsection
 

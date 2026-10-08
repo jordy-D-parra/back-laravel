@@ -333,72 +333,109 @@ class FichaSoporteController extends Controller
     // CLOSE - Finalizar ficha
     // ✅ CORREGIDO: Despacha Job con evento 'finalizada' para notificar al responsable
     // ============================================================
-    public function close(Request $request, $id)
-    {
-        if (!auth()->user()->hasPermission('cerrar-ficha-soporte')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-        }
-
-        try {
-            $ficha = FichaSoporte::findOrFail($id);
-
-            if ($ficha->estado === 'finalizado') {
-                return response()->json(['success' => false, 'message' => 'La ficha ya está finalizada'], 422);
-            }
-
-            $validated = $request->validate([
-                'trabajo_realizado' => 'nullable|string',
-                'observaciones_finales' => 'nullable|string',
-                'detalles' => 'nullable|array',
-            ]);
-
-            DB::beginTransaction();
-
-            if (isset($validated['detalles']) && is_array($validated['detalles'])) {
-                foreach ($validated['detalles'] as $detalleId => $det) {
-                    if (isset($det['estado_salida'])) {
-                        FichaSoporteDetalle::where('id', $detalleId)->update([
-                            'estado_salida' => $det['estado_salida'],
-                            'observaciones' => $det['observaciones'] ?? null,
-                        ]);
-                    }
-                }
-            }
-
-            $ficha->update([
-                'trabajo_realizado' => $validated['trabajo_realizado'] ?? null,
-                'observaciones' => $validated['observaciones_finales'] ?? $ficha->observaciones,
-                'fecha_salida' => now(),
-                'estado' => 'finalizado',
-            ]);
-
-            // Liberar activo
-            $activo = Activo::find($ficha->activo_id);
-            if ($activo) {
-                $estatusDisponible = Estatus::where('descripcion', 'Disponible')->first();
-                if ($estatusDisponible) {
-                    $activo->update(['id_estatus' => $estatusDisponible->id]);
-                }
-            }
-
-            DB::commit();
-
-            // ✅ Despachar Job con evento 'finalizada' para notificar al responsable
-            EnviarNotificacionFichaSoporte::dispatch($ficha->id, 'finalizada')
-                ->onQueue('notifications');
-
-            Log::info('✅ Job EnviarNotificacionFichaSoporte despachado (finalizada)', [
-                'ficha_id' => $ficha->id,
-            ]);
-
-            return response()->json(['success' => true, 'message' => 'Ficha finalizada exitosamente']);
-
-        } catch (\Throwable $e) {
-            DB::rollBack();
-            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
-        }
+   public function close(Request $request, $id)
+{
+    if (!auth()->user()->hasPermission('cerrar-ficha-soporte')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'No tienes permiso para cerrar fichas de soporte',
+        ], 403);
     }
 
+    try {
+        $ficha = FichaSoporte::findOrFail($id);
+
+        if ($ficha->estado === 'finalizado') {
+            return response()->json([
+                'success' => false,
+                'message' => 'La ficha ya está finalizada',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'trabajo_realizado' => 'nullable|string',
+            'observaciones_finales' => 'nullable|string',
+            'detalles' => 'nullable|array',
+        ]);
+
+        DB::beginTransaction();
+
+        // 1. Actualizar detalles de componentes
+        if (isset($validated['detalles']) && is_array($validated['detalles'])) {
+            foreach ($validated['detalles'] as $detalleId => $det) {
+                if (isset($det['estado_salida'])) {
+                    FichaSoporteDetalle::where('id', $detalleId)->update([
+                        'estado_salida' => $det['estado_salida'],
+                        'observaciones' => $det['observaciones'] ?? null,
+                    ]);
+                }
+            }
+        }
+
+        // 2. Cerrar la ficha con fecha_salida explícita
+        $fechaSalida = now();
+
+        $ficha->update([
+            'trabajo_realizado' => $validated['trabajo_realizado'] ?? $ficha->trabajo_realizado,
+            'observaciones' => $validated['observaciones_finales'] ?? $ficha->observaciones,
+            'fecha_salida' => $fechaSalida,
+            'estado' => 'finalizado',
+        ]);
+
+        // 3. Liberar el activo
+        $activo = Activo::find($ficha->activo_id);
+        if ($activo) {
+            $estatusDisponible = Estatus::where('descripcion', 'Disponible')->first();
+            if ($estatusDisponible) {
+                $activo->update(['id_estatus' => $estatusDisponible->id]);
+            }
+        }
+
+        DB::commit();
+
+        // 4. Refrescar y verificar
+        $ficha->refresh();
+
+        Log::info('✅ [close] Ficha cerrada', [
+            'ficha_id' => $ficha->id,
+            'fecha_salida' => $ficha->fecha_salida,
+            'estado' => $ficha->estado,
+        ]);
+
+        // 5. Despachar job
+        EnviarNotificacionFichaSoporte::dispatch($ficha->id, 'finalizada')
+            ->onQueue('notifications');
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Ficha finalizada exitosamente',
+            'fecha_salida' => $ficha->fecha_salida?->format('d/m/Y H:i'),
+            'data' => [
+                'id' => $ficha->id,
+                'estado' => $ficha->estado,
+                'fecha_salida' => $ficha->fecha_salida?->toDateTimeString(),
+            ],
+        ]);
+
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => 'Error de validación',
+            'errors' => $e->errors(),
+        ], 422);
+    } catch (\Throwable $e) {
+        DB::rollBack();
+        Log::error('❌ [close] Error al cerrar ficha: ' . $e->getMessage(), [
+            'ficha_id' => $id,
+            'trace' => $e->getTraceAsString(),
+        ]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage(),
+        ], 500);
+    }
+}
     // ============================================================
     // DESTROY
     // ✅ CORREGIDO: Despacha Job con evento 'eliminada' para notificar al responsable

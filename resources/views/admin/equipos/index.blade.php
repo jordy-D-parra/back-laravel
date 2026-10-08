@@ -559,6 +559,63 @@
             transition: width 0.5s ease;
         }
 
+        /* ========== PAGINACIÓN ========== */
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            background: white;
+            border-top: 1px solid #e9ecef;
+        }
+        .pagination-info {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        .pagination-btns {
+            display: flex;
+            gap: 4px;
+        }
+        .pagination-btn {
+            width: 34px;
+            height: 34px;
+            border: 1px solid #e9ecef;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #1e3c72;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .pagination-btn:hover:not(.disabled):not(.active) {
+            background: #1e3c72;
+            color: white;
+            border-color: #1e3c72;
+        }
+        .pagination-btn.active {
+            background: #1e3c72;
+            color: white;
+            border-color: #1e3c72;
+            font-weight: 600;
+        }
+        .pagination-btn.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .pagination-ellipsis {
+            width: 34px;
+            height: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+        }
+
         @media (max-width: 992px) {
             .stats-row {
                 grid-template-columns: repeat(2, 1fr);
@@ -619,6 +676,10 @@
             .modal-footer .btn {
                 flex: 1;
                 min-width: 80px;
+            }
+            .pagination-bar {
+                flex-direction: column;
+                align-items: center;
             }
         }
     </style>
@@ -810,10 +871,11 @@
                         <tr><td colspan="5" class="text-center py-4 text-muted">Cargando...</td></tr>
                     </tbody>
                 </table>
+                <div id="paginacionMarcas"></div>
             </div>
         </div>
 
-        <!-- TAB CATEGORÍAS (sin marca) -->
+        <!-- TAB CATEGORÍAS -->
         <div class="tab-pane fade" id="categorias">
             <div class="filters-bar">
                 <div class="d-flex gap-2 flex-wrap" style="flex:1;">
@@ -843,6 +905,7 @@
                         <tr><td colspan="5" class="text-center py-4 text-muted">Cargando...</td></tr>
                     </tbody>
                 </table>
+                <div id="paginacionCategorias"></div>
             </div>
         </div>
 
@@ -877,6 +940,7 @@
                         <tr><td colspan="6" class="text-center py-4 text-muted">Cargando...</td></tr>
                     </tbody>
                 </table>
+                <div id="paginacionModelos"></div>
             </div>
         </div>
 
@@ -922,7 +986,7 @@
 </div>
 
 <!-- ============================================================
-     MODAL CATEGORÍA (sin marca)
+     MODAL CATEGORÍA
      ============================================================ -->
 <div class="modal fade" id="modalCategoria" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -961,7 +1025,7 @@
 </div>
 
 <!-- ============================================================
-     MODAL MODELO (pide Marca + Categoría)
+     MODAL MODELO
      ============================================================ -->
 <div class="modal fade" id="modalModelo" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -1019,7 +1083,7 @@
 </div>
 
 <!-- ============================================================
-     MODAL WIZARD EQUIPO COMPLETO (3 pasos)
+     MODAL WIZARD EQUIPO COMPLETO
      ============================================================ -->
 <div class="modal fade" id="modalWizardEquipo" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">

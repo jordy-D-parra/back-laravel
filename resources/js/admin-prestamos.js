@@ -1,3 +1,6 @@
+// resources/js/admin-prestamos.js
+// ✅ Módulo de préstamos con paginación del cliente (8 items por página)
+
 document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
     // VARIABLES GLOBALES
@@ -7,6 +10,78 @@ document.addEventListener('DOMContentLoaded', function() {
     let solicitudDetalles = [];
     let tipoFiltroInventario = 'ambos';
     let currentTab = 'solicitudes';
+
+    // ============================================================
+    // PAGINACIÓN (8 items por página)
+    // ============================================================
+    const ITEMS_POR_PAGINA = 8;
+
+    const paginacionPrestamos = {
+        solicitudes: { data: [], page: 1 },
+        activos:     { data: [], page: 1 },
+        finalizados: { data: [], page: 1 }
+    };
+
+    // ============================================================
+    // HELPERS DE PAGINACIÓN
+    // ============================================================
+    function renderPaginacionPrestamo(tipo, totalPaginas, pageActual, totalRegistros) {
+        if (totalPaginas <= 1) return '';
+
+        let html = `<div class="pagination-bar">
+            <div class="pagination-info">Mostrando ${((pageActual - 1) * ITEMS_POR_PAGINA) + 1} a ${Math.min(pageActual * ITEMS_POR_PAGINA, totalRegistros)} de ${totalRegistros} registros</div>
+            <div class="pagination-btns">`;
+
+        // Anterior
+        html += `<button class="pagination-btn ${pageActual === 1 ? 'disabled' : ''}"
+                    onclick="window.cambiarPaginaPrestamo('${tipo}', ${pageActual - 1})" ${pageActual === 1 ? 'disabled' : ''}>«</button>`;
+
+        let inicio = Math.max(1, pageActual - 2);
+        let fin = Math.min(totalPaginas, pageActual + 2);
+
+        if (inicio > 1) {
+            html += `<button class="pagination-btn" onclick="window.cambiarPaginaPrestamo('${tipo}', 1)">1</button>`;
+            if (inicio > 2) html += `<span class="pagination-ellipsis">...</span>`;
+        }
+
+        for (let i = inicio; i <= fin; i++) {
+            html += `<button class="pagination-btn ${i === pageActual ? 'active' : ''}"
+                        onclick="window.cambiarPaginaPrestamo('${tipo}', ${i})">${i}</button>`;
+        }
+
+        if (fin < totalPaginas) {
+            if (fin < totalPaginas - 1) html += `<span class="pagination-ellipsis">...</span>`;
+            html += `<button class="pagination-btn" onclick="window.cambiarPaginaPrestamo('${tipo}', ${totalPaginas})">${totalPaginas}</button>`;
+        }
+
+        // Siguiente
+        html += `<button class="pagination-btn ${pageActual === totalPaginas ? 'disabled' : ''}"
+                    onclick="window.cambiarPaginaPrestamo('${tipo}', ${pageActual + 1})" ${pageActual === totalPaginas ? 'disabled' : ''}>»</button>`;
+
+        html += `</div></div>`;
+        return html;
+    }
+
+    window.cambiarPaginaPrestamo = function(tipo, nuevaPagina) {
+        const estado = paginacionPrestamos[tipo];
+        if (!estado) return;
+
+        const totalPaginas = Math.ceil(estado.data.length / ITEMS_POR_PAGINA);
+        if (nuevaPagina < 1 || nuevaPagina > totalPaginas) return;
+
+        estado.page = nuevaPagina;
+
+        if (tipo === 'solicitudes') {
+            renderSolicitudes(estado.data);
+        } else if (tipo === 'activos') {
+            renderPrestamos({ data: estado.data }, 'tablaActivos', 'activos');
+        } else if (tipo === 'finalizados') {
+            renderPrestamos({ data: estado.data }, 'tablaFinalizados', 'finalizados');
+        }
+
+        const tablaId = tipo === 'solicitudes' ? 'tablaSolicitudes' : (tipo === 'activos' ? 'tablaActivos' : 'tablaFinalizados');
+        document.getElementById(tablaId)?.closest('.table-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
 
     // ============================================================
     // FUNCIONES UTILITARIAS
@@ -207,17 +282,17 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ============================================================
-    // FUNCIONES DE CARGA DE DATOS POR TAB
+    // FUNCIONES DE CARGA DE DATOS
     // ============================================================
     function cargarSolicitudes() {
         const tabla = document.getElementById('tablaSolicitudes');
         if (!tabla) return;
-        
+
         showLoading('tablaSolicitudes');
         let buscar = document.getElementById('buscarSolicitudes')?.value || '';
         let url = `/admin/solicitudes/pendientes-prestamo`;
         if (buscar) url += `?buscar=${encodeURIComponent(buscar)}`;
-        
+
         fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
@@ -226,9 +301,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     solicitudes = data.data;
                 } else if (data && Array.isArray(data)) {
                     solicitudes = data;
-                } else if (data && typeof data === 'object') {
-                    solicitudes = data.data || [];
                 }
+
+                paginacionPrestamos.solicitudes.data = solicitudes;
+                paginacionPrestamos.solicitudes.page = 1;
+
                 renderSolicitudes(solicitudes);
             })
             .catch(error => {
@@ -240,7 +317,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function cargarPrestamosActivos() {
         const tabla = document.getElementById('tablaActivos');
         if (!tabla) return;
-        
+
         showLoading('tablaActivos');
         let buscar = document.getElementById('buscarActivos')?.value || '';
         let tipo = document.getElementById('filtroTipoActivos')?.value || '';
@@ -264,7 +341,17 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
-                renderPrestamos(data, 'tablaActivos', 'activos');
+                let prestamos = [];
+                if (data && data.data) {
+                    prestamos = data.data;
+                } else if (data && Array.isArray(data)) {
+                    prestamos = data;
+                }
+
+                paginacionPrestamos.activos.data = prestamos;
+                paginacionPrestamos.activos.page = 1;
+
+                renderPrestamos({ data: prestamos }, 'tablaActivos', 'activos');
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -275,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function cargarPrestamosFinalizados() {
         const tabla = document.getElementById('tablaFinalizados');
         if (!tabla) return;
-        
+
         showLoading('tablaFinalizados');
         let buscar = document.getElementById('buscarFinalizados')?.value || '';
         let estado = document.getElementById('filtroEstadoFinalizados')?.value || '';
@@ -287,11 +374,21 @@ document.addEventListener('DOMContentLoaded', function() {
         if (buscar) url += `buscar=${encodeURIComponent(buscar)}&`;
         if (fechaDesde) url += `fecha_desde=${fechaDesde}&`;
         if (fechaHasta) url += `fecha_hasta=${fechaHasta}&`;
-        
+
         fetch(url, { headers: { Accept: 'application/json' } })
             .then(response => response.json())
             .then(data => {
-                renderPrestamos(data, 'tablaFinalizados', 'finalizados');
+                let prestamos = [];
+                if (data && data.data) {
+                    prestamos = data.data;
+                } else if (data && Array.isArray(data)) {
+                    prestamos = data;
+                }
+
+                paginacionPrestamos.finalizados.data = prestamos;
+                paginacionPrestamos.finalizados.page = 1;
+
+                renderPrestamos({ data: prestamos }, 'tablaFinalizados', 'finalizados');
             })
             .catch(error => {
                 console.error('Error:', error);
@@ -305,18 +402,19 @@ document.addEventListener('DOMContentLoaded', function() {
     function renderSolicitudes(solicitudes) {
         const table = document.getElementById('tablaSolicitudes');
         if (!table) return;
-        
+
         if (!Array.isArray(solicitudes)) {
-            console.error('renderSolicitudes: solicitudes no es un array', solicitudes);
-            table.innerHTML = `
-                <div class="text-center py-4 text-muted">
-                    <p>No hay solicitudes pendientes</p>
-                </div>
-            `;
+            table.innerHTML = `<div class="text-center py-4 text-muted"><p>No hay solicitudes pendientes</p></div>`;
             return;
         }
 
-        if (solicitudes.length === 0) {
+        const total = solicitudes.length;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA);
+        const pagina = paginacionPrestamos.solicitudes.page;
+        const inicio = (pagina - 1) * ITEMS_POR_PAGINA;
+        const paginaData = solicitudes.slice(inicio, inicio + ITEMS_POR_PAGINA);
+
+        if (total === 0) {
             table.innerHTML = `
                 <div class="text-center py-4 text-muted">
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
@@ -338,10 +436,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <tbody>
         `;
 
-        solicitudes.forEach(sol => {
+        paginaData.forEach(sol => {
             const estado = sol.estado_solicitud || 'pendiente';
             const badgeClass = estado === 'aprobada' ? 'badge-estado-aprobada' :
-                               estado === 'pendiente' ? 'badge-estado-pendiente' : 'badge-estado-otro';
+                               estado === 'pendiente' ? 'badge-estado-pendiente' : 'badge-estado-info';
             const puedePrestar = estado === 'aprobada' || estado === 'pendiente';
             const botonPrestar = puedePrestar ?
                 `<button class="btn-action text-success" onclick="prestarDesdeSolicitud(${sol.id})" title="Realizar préstamo">
@@ -351,22 +449,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 `<span class="text-muted">No disponible</span>`;
 
             let nombreSolicitante = '—';
-            if (sol.usuario?.nombre) {
-                nombreSolicitante = sol.usuario.nombre;
-            } else if (sol.trabajador?.nombre) {
-                nombreSolicitante = sol.trabajador.nombre;
-            } else if (sol.solicitante_nombre) {
-                nombreSolicitante = sol.solicitante_nombre;
-            } else if (sol.responsable?.nombre) {
-                nombreSolicitante = sol.responsable.nombre;
-            }
+            if (sol.usuario?.nombre) nombreSolicitante = sol.usuario.nombre;
+            else if (sol.trabajador?.nombre) nombreSolicitante = sol.trabajador.nombre;
+            else if (sol.solicitante_nombre) nombreSolicitante = sol.solicitante_nombre;
+            else if (sol.responsable?.nombre) nombreSolicitante = sol.responsable.nombre;
 
             let nombreDepto = '—';
-            if (sol.departamento?.nombre) {
-                nombreDepto = sol.departamento.nombre;
-            } else if (sol.trabajador?.departamento?.nombre) {
-                nombreDepto = sol.trabajador.departamento.nombre;
-            }
+            if (sol.departamento?.nombre) nombreDepto = sol.departamento.nombre;
+            else if (sol.trabajador?.departamento?.nombre) nombreDepto = sol.trabajador.departamento.nombre;
 
             html += `
                 <tr>
@@ -382,25 +472,31 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         html += `</tbody></table>`;
+        html += renderPaginacionPrestamo('solicitudes', totalPaginas, pagina, total);
         table.innerHTML = html;
     }
 
     function renderPrestamos(data, tableId, tipo) {
         const table = document.getElementById(tableId);
         if (!table) return;
-        
+
         let prestamos = [];
         if (data && data.data) {
             prestamos = data.data;
         } else if (data && Array.isArray(data)) {
             prestamos = data;
-        } else {
-            prestamos = [];
         }
-        
-        const esFinalizados = tipo === 'finalizados';
 
-        if (prestamos.length === 0) {
+        const esFinalizados = tipo === 'finalizados';
+        const total = prestamos.length;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA);
+        const pagina = esFinalizados
+            ? paginacionPrestamos.finalizados.page
+            : paginacionPrestamos.activos.page;
+        const inicio = (pagina - 1) * ITEMS_POR_PAGINA;
+        const paginaData = prestamos.slice(inicio, inicio + ITEMS_POR_PAGINA);
+
+        if (total === 0) {
             const mensajes = {
                 activos: 'No hay préstamos activos',
                 finalizados: 'No hay préstamos finalizados'
@@ -428,7 +524,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <tbody>
         `;
 
-        prestamos.forEach(prestamo => {
+        paginaData.forEach(prestamo => {
             const estado = prestamo.estado || 'pendiente';
             const badgeClass = 'badge-estado-' + estado;
             const vencido = prestamo.esta_vencido ? 'vencido' : '';
@@ -501,6 +597,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         html += `</tbody></table>`;
+        html += renderPaginacionPrestamo(tipo, totalPaginas, pagina, total);
         table.innerHTML = html;
     }
 
@@ -742,7 +839,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ============================================================
-    // FUNCIONES DE BÚSQUEDA DE ITEMS (CON INDICADOR DE RESERVA)
+    // FUNCIONES DE BÚSQUEDA DE ITEMS
     // ============================================================
     window.buscarItemsPrestamo = debounce(function() {
         const buscar = document.getElementById('buscarItem')?.value?.trim() || '';
@@ -773,12 +870,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     const tipoLabel = item.tipo === 'activo' ? 'Activo' : 'Componente';
                     const badgeClass = item.tipo === 'activo' ? 'item-badge-activo' : 'item-badge-componente';
                     const nombre = escapeHtml(item.nombre || tipoLabel + ' sin nombre');
-                    
+
                     const estaReservado = item.esta_reservado || false;
-                    const estadoBadge = estaReservado 
-                        ? '<span class="badge bg-warning text-dark ms-2">🔒 Reservado</span>' 
+                    const estadoBadge = estaReservado
+                        ? '<span class="badge bg-warning text-dark ms-2">🔒 Reservado</span>'
                         : '';
-                    
+
                     let prestableType = normalizePrestableType(item.prestable_type || '');
                     const itemId = item.id;
 
@@ -979,14 +1076,14 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.success) {
                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalPrestamo'));
                 if (modal) modal.hide();
-                
+
                 let mensaje = data.message || 'Préstamo creado exitosamente';
                 const estadoSeleccionado = document.getElementById('estadoPrestamo')?.value || 'aprobado';
                 if (estadoSeleccionado === 'pendiente') {
                     mensaje += ' ⚠️ Los items han sido reservados. Deben ser aprobados para continuar.';
                 }
                 showToast(mensaje, 'success');
-                
+
                 cargarSolicitudes();
                 cargarPrestamosActivos();
                 cargarPrestamosFinalizados();
@@ -1084,9 +1181,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         const estadoEntrega = d.estado_entrega || '—';
                         const estadoDevolucion = d.estado_devolucion || 'Pendiente';
                         const devuelto = d.estado_devolucion && d.estado_devolucion !== 'Pendiente de devolución';
-                        
+
                         const estaReservado = p.estado === 'pendiente';
-                        const estadoItemBadge = estaReservado 
+                        const estadoItemBadge = estaReservado
                             ? '<span class="badge bg-warning text-dark ms-2">🔒 Reservado</span>'
                             : '';
 
@@ -1190,7 +1287,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ============================================================
-    // GENERAR ACTA DE ENTREGA DESDE PRÉSTAMO
+    // GENERAR ACTA DE ENTREGA
     // ============================================================
     window.generarActaPrestamo = function(prestamoId) {
         const url = '/admin/actas/generar?prestamo_id=' + prestamoId;
@@ -1205,7 +1302,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ============================================================
-    // 🆕 GENERAR ACTA DE DEVOLUCIÓN
+    // GENERAR ACTA DE DEVOLUCIÓN
     // ============================================================
     window.generarActaDevolucion = function(prestamoId) {
         const url = '/admin/actas/devolucion/generar?prestamo_id=' + prestamoId;
@@ -1236,7 +1333,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.abrirModalEntrega = function(id) {
         const input = document.getElementById('entregaPrestamoId');
         if (input) input.value = id;
-        
+
         document.getElementById('fechaEntregaPrestamo').value = new Date().toISOString().split('T')[0];
         document.getElementById('fechaEntregaDevolucion').value = new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0];
 
@@ -1256,12 +1353,12 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ============================================================
-    // 🆕 ABRIR MODAL DE DEVOLUCIÓN (CON VALIDACIÓN DE DUPLICADOS)
+    // ABRIR MODAL DE DEVOLUCIÓN
     // ============================================================
     window.abrirModalDevolucion = function(id) {
         const input = document.getElementById('devolucionPrestamoId');
         if (input) input.value = id;
-        
+
         document.getElementById('fechaDevolucionReal').value = new Date().toISOString().split('T')[0];
         document.getElementById('observacionesDevolucion').value = '';
         document.getElementById('itemsDevolucionContainer').innerHTML = '<div class="text-center py-3 text-muted">Cargando items...</div>';
@@ -1302,8 +1399,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 detalles.forEach((d, index) => {
                     const nombreItem = d.nombre_item || d.prestable?.serial || d.prestable?.tipo || 'Item ' + (index + 1);
-                    
-                    // ========== VERIFICAR SI YA FUE DEVUELTO ==========
+
                     const yaDevuelto = d.estado_devolucion && d.estado_devolucion !== 'Pendiente de devolución';
                     const checked = yaDevuelto ? 'checked' : '';
                     const disabled = yaDevuelto ? 'disabled' : '';
@@ -1349,7 +1445,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.abrirModalExtension = function(id) {
         const input = document.getElementById('extensionPrestamoId');
         if (input) input.value = id;
-        
+
         document.getElementById('fechaNuevaExtension').value = '';
         document.getElementById('motivoExtension').value = '';
         document.getElementById('tipoExtensionCompleta').checked = true;
@@ -1429,7 +1525,7 @@ document.addEventListener('DOMContentLoaded', function() {
     window.abrirModalCancelar = function(id) {
         const input = document.getElementById('cancelarPrestamoId');
         if (input) input.value = id;
-        
+
         document.getElementById('motivoCancelacion').value = '';
         const modal = new bootstrap.Modal(document.getElementById('modalCancelar'));
         modal.show();
@@ -1444,21 +1540,21 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     // ============================================================
-    // 🆕 EVENTO: FORMULARIO DE DEVOLUCIÓN CON CONFIRMACIÓN DE ACTA
+    // EVENTO: FORMULARIO DE DEVOLUCIÓN
     // ============================================================
     document.getElementById('formDevolucion')?.addEventListener('submit', function(e) {
         e.preventDefault();
-        
+
         const id = document.getElementById('devolucionPrestamoId').value;
         const formData = new FormData(this);
         const submitBtn = this.querySelector('button[type="submit"]');
         const originalText = submitBtn ? submitBtn.innerHTML : 'Registrar Devolución';
-        
+
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Procesando...';
         }
-        
+
         fetch('/admin/prestamos/' + id + '/devolver', {
             method: 'POST',
             body: formData,
@@ -1467,25 +1563,18 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                // Cerrar modal de devolución
                 bootstrap.Modal.getInstance(document.getElementById('modalDevolucion')).hide();
-                
-                // Mostrar notificación
                 showToast(data.message || 'Devolución registrada', 'success');
-                
-                // Recargar tablas
                 cargarPrestamosActivos();
                 cargarPrestamosFinalizados();
-                
-                // ========== MOSTRAR MODAL PARA GENERAR ACTA ==========
+
                 const btnActa = document.getElementById('btnGenerarActaDevolucion');
                 if (btnActa) {
                     btnActa.dataset.prestamoId = id;
                 }
-                
+
                 const modalActa = new bootstrap.Modal(document.getElementById('modalConfirmarActaDevolucion'));
                 modalActa.show();
-                
             } else {
                 showToast(data.message || 'Error al registrar devolución', 'error');
             }
@@ -1500,7 +1589,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ============================================================
-    // 🆕 GENERAR ACTA DE DEVOLUCIÓN DESDE MODAL DE CONFIRMACIÓN
+    // GENERAR ACTA DE DEVOLUCIÓN DESDE MODAL
     // ============================================================
     document.getElementById('btnGenerarActaDevolucion')?.addEventListener('click', function() {
         const prestamoId = this.dataset.prestamoId;
@@ -1508,11 +1597,8 @@ document.addEventListener('DOMContentLoaded', function() {
             showToast('No se encontró el préstamo', 'error');
             return;
         }
-        
-        // Cerrar el modal de confirmación
+
         bootstrap.Modal.getInstance(document.getElementById('modalConfirmarActaDevolucion')).hide();
-        
-        // Abrir el acta en una nueva ventana
         window.generarActaDevolucion(prestamoId);
     });
 
@@ -1523,7 +1609,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const id = document.getElementById('aprobacionPrestamoId').value;
         const formData = new FormData(this);
-        
+
         fetch('/admin/prestamos/' + id + '/aprobar', {
             method: 'POST',
             body: formData,
@@ -1547,7 +1633,7 @@ document.addEventListener('DOMContentLoaded', function() {
         e.preventDefault();
         const id = document.getElementById('rechazoPrestamoId').value;
         const formData = new FormData(this);
-        
+
         fetch('/admin/prestamos/' + id + '/rechazar', {
             method: 'POST',
             body: formData,
@@ -1573,7 +1659,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(this);
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
-        
+
         fetch('/admin/prestamos/' + id + '/entregar', {
             method: 'POST',
             body: formData,
@@ -1611,7 +1697,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(this);
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
-        
+
         fetch('/admin/prestamos/' + id + '/extender', {
             method: 'POST',
             body: formData,
@@ -1639,7 +1725,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const formData = new FormData(this);
         const submitBtn = this.querySelector('button[type="submit"]');
         if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Procesando...'; }
-        
+
         fetch('/admin/prestamos/' + id + '/cancelar', {
             method: 'POST',
             body: formData,
@@ -1717,7 +1803,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ============================================================
-    // CARGA INICIAL - Cargar todas las tablas
+    // CARGA INICIAL
     // ============================================================
     cargarSolicitudes();
     cargarPrestamosActivos();

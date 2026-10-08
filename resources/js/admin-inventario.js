@@ -1,9 +1,9 @@
 // resources/js/admin-inventario.js
 // ✅ Inventario con componentes dinámicos por activo
 // ✅ RESPONSABLE AUTO-ASIGNADO desde institución/departamento
-// ✅ SIN sección de "Especificaciones Técnicas" en el detalle
+// ✅ Tablas y paginación unificadas con el resto del sistema
+// ✅ Badge de estado del activo unificado con Préstamos
 // ✅ FIX: listener de institución/departamento usa .onchange (sin cloneNode)
-// ✅ FIX: Paginación fuera de la tabla (contenedores #paginacionActivos y #paginacionComponentes)
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -29,8 +29,7 @@ var SVG_ICONS = {
     ver: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',
     editar: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
     eliminar: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>',
-    cambiarEstado: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>',
-    plus: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>'
+    cambiarEstado: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>'
 };
 
 // ============================================================
@@ -145,12 +144,24 @@ function mostrarToast(mensaje, tipo) {
 }
 
 function getEstadoBadge(estado) {
-    var map = { 'en_bodega': 'badge-en-bodega', 'instalado': 'badge-instalado', 'prestado': 'badge-prestado', 'en_reparacion': 'badge-en-reparacion', 'desechado': 'badge-desechado' };
-    return map[estado] || 'bg-secondary text-white';
+    var map = {
+        'en_bodega': 'badge-en-bodega',
+        'instalado': 'badge-instalado',
+        'prestado': 'badge-prestado',
+        'en_reparacion': 'badge-en-reparacion',
+        'desechado': 'badge-desechado'
+    };
+    return map[estado] || 'badge-en-bodega';
 }
 
 function getEstadoLabel(estado) {
-    var map = { 'en_bodega': 'En Bodega', 'instalado': 'Instalado', 'prestado': 'Prestado', 'en_reparacion': 'En Reparación', 'desechado': 'Desechado' };
+    var map = {
+        'en_bodega': 'En Bodega',
+        'instalado': 'Instalado',
+        'prestado': 'Prestado',
+        'en_reparacion': 'En Reparación',
+        'desechado': 'Desechado'
+    };
     return map[estado] || estado;
 }
 
@@ -177,7 +188,7 @@ function getEstadoComponenteClass(estado) {
         case 'prestado': return 'componente-estado-prestado';
         case 'en_reparacion': return 'componente-estado-reparacion';
         case 'desechado': return 'componente-estado-desechado';
-        default: return 'componente-estado-default';
+        default: return 'componente-estado-bodega';
     }
 }
 
@@ -189,6 +200,30 @@ function getEstadoComponenteTexto(estado) {
         case 'en_reparacion': return 'En Reparación';
         case 'desechado': return 'Desechado';
         default: return estado || 'N/A';
+    }
+}
+
+// ============================================================
+// HELPER: Badge de estado del ACTIVO (unificado con Préstamos)
+// ============================================================
+function getBadgeEstadoActivo(estado) {
+    // Normalizamos: minúsculas, sin espacios, sin acentos
+    var normalizado = (estado || '')
+        .toString()
+        .toLowerCase()
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')   // quita tildes
+        .replace(/\s+/g, '-');             // espacios → guiones
+
+    switch (normalizado) {
+        case 'disponible':      return 'badge-estado badge-estado-disponible';
+        case 'prestado':        return 'badge-estado badge-estado-prestado';
+        case 'en-reparacion':   return 'badge-estado badge-estado-en-reparacion';
+        case 'desechado':       return 'badge-estado badge-estado-desechado';
+        case 'en-bodega':       return 'badge-estado badge-estado-en-bodega';
+        case 'reservado':       return 'badge-estado badge-estado-reservado';
+        default:                return 'badge-estado badge-estado-default';
     }
 }
 
@@ -204,7 +239,7 @@ function debounce(func, wait) {
 }
 
 // ============================================================
-// ✅ RESPONSABLE AUTOMÁTICO
+// RESPONSABLE AUTOMÁTICO
 // ============================================================
 function cargarResponsableAutomatico(tipo, id, displayId, hiddenId) {
     var display = document.getElementById(displayId);
@@ -258,8 +293,7 @@ function cargarResponsableAutomatico(tipo, id, displayId, hiddenId) {
 }
 
 // ============================================================
-// ✅ CARGAR INSTITUCIONES + DEPARTAMENTOS (ÚNICA FUENTE DE VERDAD)
-// ✅ SIN cloneNode --- usa .onchange = (sobrescribe sin acumular)
+// CARGAR INSTITUCIONES + DEPARTAMENTOS
 // ============================================================
 function cargarInstituciones(selectId, seleccionada, departamentoSelectId, departamentoSeleccionado) {
     var sel = document.getElementById(selectId);
@@ -285,11 +319,9 @@ function cargarInstituciones(selectId, seleccionada, departamentoSelectId, depar
             sel.innerHTML += '<option value="' + i.id + '">' + escapeHtml(i.nombre) + '</option>';
         });
 
-        // ✅ Usar .onchange = ... en lugar de cloneNode + addEventListener
         sel.onchange = function() {
             var instId = this.value;
 
-            // Reset departamento
             if (departamentoSelectId) {
                 var deptoSelect = document.getElementById(departamentoSelectId);
                 if (deptoSelect) {
@@ -302,16 +334,13 @@ function cargarInstituciones(selectId, seleccionada, departamentoSelectId, depar
                 return;
             }
 
-            // ✅ SIEMPRE cargar departamentos al cambiar institución
             if (departamentoSelectId) {
                 cargarDepartamentos(instId, departamentoSelectId);
             }
 
-            // Cargar responsable directo de la institución
             cargarResponsableAutomatico('institucion', instId, respDisplay, respHidden);
         };
 
-        // Modo edición: setear institución + cargar departamentos + setear departamento
         if (seleccionada) {
             sel.value = seleccionada;
             if (departamentoSelectId) {
@@ -357,7 +386,6 @@ function cargarDepartamentos(institucionId, selectId, seleccionado) {
             sel.innerHTML += '<option value="' + d.id + '">' + escapeHtml(d.nombre) + '</option>';
         });
 
-        // ✅ Usar .onchange = ... (sobrescribe sin acumular)
         sel.onchange = function() {
             var deptoId = this.value;
             var instId = esActivo
@@ -373,7 +401,6 @@ function cargarDepartamentos(institucionId, selectId, seleccionado) {
             }
         };
 
-        // Modo edición: setear departamento
         if (seleccionado) {
             sel.value = seleccionado;
         }
@@ -578,7 +605,7 @@ function cargarComponentesEnFormulario(componentes) {
 // ============================================================
 function renderComponentesInstalados(componentes) {
     if (!componentes || componentes.length === 0) {
-        return '<div class="text-center py-4 text-muted"><i class="fas fa-info-circle"></i> No hay componentes instalados</div>';
+        return '<div class="text-center py-4 text-muted">No hay componentes instalados</div>';
     }
 
     var html = '<div class="componentes-grid">';
@@ -591,7 +618,7 @@ function renderComponentesInstalados(componentes) {
             <div class="componente-card">
                 <div class="componente-card-header">
                     <div class="componente-tipo">
-                        <i class="fas fa-microchip"></i> ${escapeHtml(c.tipo)}
+                        ${escapeHtml(c.tipo)}
                     </div>
                     <span class="componente-estado ${estadoClass}">${estadoTexto}</span>
                 </div>
@@ -622,7 +649,7 @@ function renderComponentesInstalados(componentes) {
 
 function renderComponentesModelo(componentes) {
     if (!componentes || componentes.length === 0) {
-        return '<div class="text-center py-4 text-muted"><i class="fas fa-info-circle"></i> No hay componentes definidos para este modelo</div>';
+        return '<div class="text-center py-4 text-muted">No hay componentes definidos para este modelo</div>';
     }
 
     var html = '<div class="componentes-modelo-grid">';
@@ -630,13 +657,11 @@ function renderComponentesModelo(componentes) {
         var c = componentes[i];
         html += `
             <div class="componente-modelo-card">
-                <div class="componente-modelo-tipo">
-                    <i class="fas fa-cog"></i> ${escapeHtml(c.tipo)}
-                </div>
+                <div class="componente-modelo-tipo">${escapeHtml(c.tipo)}</div>
                 <div class="componente-modelo-descripcion">
                     ${escapeHtml(c.descripcion)}
                 </div>
-                ${c.capacidad ? `<div class="componente-modelo-capacidad"><i class="fas fa-tachometer-alt"></i> ${escapeHtml(c.capacidad)}</div>` : ''}
+                ${c.capacidad ? `<div class="componente-modelo-capacidad">${escapeHtml(c.capacidad)}</div>` : ''}
             </div>
         `;
     }
@@ -645,7 +670,7 @@ function renderComponentesModelo(componentes) {
 }
 
 // ============================================================
-// ESTILOS ADICIONALES PARA EL DETALLE
+// ESTILOS ADICIONALES PARA EL DETALLE (inyectados)
 // ============================================================
 function agregarEstilosDetalle() {
     if (document.getElementById('detalle-activo-styles')) return;
@@ -653,16 +678,14 @@ function agregarEstilosDetalle() {
     var styles = `
         <style id="detalle-activo-styles">
         .detalle-activo-moderno { font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-        .detalle-seccion { background: #ffffff; border-radius: 16px; padding: 1rem; border: 1px solid #e9ecef; }
+        .detalle-seccion { background: #ffffff; border-radius: 12px; padding: 1rem; border: 1px solid #e9ecef; }
         .detalle-seccion-titulo { font-size: 0.85rem; font-weight: 600; color: #1e3c72; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #eef2f6; display: flex; align-items: center; }
-        .detalle-seccion-titulo i { color: #1e3c72; }
         .detalle-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
-        .detalle-item { padding: 0.5rem; background: #f8f9fc; border-radius: 12px; transition: all 0.2s ease; }
+        .detalle-item { padding: 0.5rem; background: #f8f9fc; border-radius: 10px; transition: all 0.2s ease; }
         .detalle-item:hover { background: #eef3fc; transform: translateY(-1px); }
-        .detalle-label { font-size: 0.65rem; text-transform: uppercase; color: #6c757d; letter-spacing: 0.5px; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.25rem; }
-        .detalle-label i { font-size: 0.7rem; color: #1e3c72; }
+        .detalle-label { font-size: 0.65rem; text-transform: uppercase; color: #6c757d; letter-spacing: 0.5px; margin-bottom: 0.25rem; }
         .detalle-valor { font-weight: 600; color: #1a1a1a; font-size: 0.9rem; word-break: break-word; }
-        .detalle-observaciones { background: #f8f9fc; padding: 1rem; border-radius: 12px; font-size: 0.85rem; color: #495057; line-height: 1.5; }
+        .detalle-observaciones { background: #f8f9fc; padding: 1rem; border-radius: 10px; font-size: 0.85rem; color: #495057; line-height: 1.5; }
         .nav-tabs-componentes { border-bottom: 2px solid #e9ecef; margin-bottom: 0; }
         .nav-tabs-componentes .nav-link { border: none; background: transparent; padding: 0.6rem 1.2rem; font-weight: 500; color: #6c757d; position: relative; transition: all 0.2s ease; }
         .nav-tabs-componentes .nav-link:hover { color: #1e3c72; background: #f8f9fc; }
@@ -670,11 +693,10 @@ function agregarEstilosDetalle() {
         .nav-tabs-componentes .nav-link.active::after { content: ''; position: absolute; bottom: -2px; left: 0; right: 0; height: 2px; background: #1e3c72; border-radius: 2px; }
         .badge-componentes { background: #e9ecef; color: #495057; padding: 0.15rem 0.5rem; border-radius: 20px; font-size: 0.65rem; margin-left: 0.5rem; }
         .componentes-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-        .componente-card { background: #ffffff; border: 1px solid #e9ecef; border-radius: 12px; overflow: hidden; transition: all 0.2s ease; }
+        .componente-card { background: #ffffff; border: 1px solid #e9ecef; border-radius: 10px; overflow: hidden; transition: all 0.2s ease; }
         .componente-card:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); transform: translateY(-2px); }
         .componente-card-header { padding: 0.75rem 1rem; background: #f8f9fc; border-bottom: 1px solid #e9ecef; display: flex; justify-content: space-between; align-items: center; }
-        .componente-tipo { font-weight: 600; color: #1e3c72; display: flex; align-items: center; gap: 0.5rem; }
-        .componente-tipo i { font-size: 0.9rem; }
+        .componente-tipo { font-weight: 600; color: #1e3c72; }
         .componente-estado { padding: 0.2rem 0.6rem; border-radius: 20px; font-size: 0.65rem; font-weight: 600; }
         .componente-estado-instalado { background: #d4edda; color: #155724; }
         .componente-estado-bodega { background: #e2e3e5; color: #383d41; }
@@ -687,17 +709,17 @@ function agregarEstilosDetalle() {
         .componente-value { font-weight: 500; color: #1a1a1a; }
         .componente-serial { font-family: 'Courier New', monospace; font-size: 0.75rem; }
         .componentes-modelo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
-        .componente-modelo-card { background: #f8f9fc; border-radius: 12px; padding: 1rem; text-align: center; transition: all 0.2s ease; border: 1px solid #e9ecef; }
+        .componente-modelo-card { background: #f8f9fc; border-radius: 10px; padding: 1rem; text-align: center; transition: all 0.2s ease; border: 1px solid #e9ecef; }
         .componente-modelo-card:hover { background: #eef3fc; transform: translateY(-2px); }
-        .componente-modelo-tipo { font-weight: 700; color: #1e3c72; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem; }
+        .componente-modelo-tipo { font-weight: 700; color: #1e3c72; margin-bottom: 0.5rem; }
         .componente-modelo-descripcion { font-size: 0.75rem; color: #6c757d; margin-bottom: 0.5rem; }
         .componente-modelo-capacidad { font-size: 0.7rem; color: #28a745; background: #d4edda; display: inline-block; padding: 0.2rem 0.6rem; border-radius: 20px; }
-        .detalle-acciones .btn-editar-detalle { background: #1e3c72; border: none; color: white; padding: 0.5rem 1.2rem; border-radius: 30px; font-size: 0.8rem; font-weight: 500; transition: all 0.2s ease; }
-        .detalle-acciones .btn-editar-detalle:hover { background: #2a5298; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3); }
-        .detalle-acciones .btn-cerrar-detalle { background: #f8f9fa; border: 1px solid #dee2e6; color: #495057; padding: 0.5rem 1.2rem; border-radius: 30px; font-size: 0.8rem; font-weight: 500; transition: all 0.2s ease; }
-        .detalle-acciones .btn-cerrar-detalle:hover { background: #e9ecef; border-color: #ced4da; }
-        .badge-garantia-vencida { background: #f8d7da; color: #721c24; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem; }
-        .badge-garantia-vigente { background: #d4edda; color: #155724; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.7rem; }
+        .btn-editar-detalle { background: #1e3c72; border: none; color: white; padding: 0.5rem 1.2rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+        .btn-editar-detalle:hover { background: #2a5298; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3); }
+        .btn-cerrar-detalle { background: #f8f9fa; border: 1px solid #dee2e6; color: #495057; padding: 0.5rem 1.2rem; border-radius: 8px; font-size: 0.8rem; font-weight: 500; transition: all 0.2s ease; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+        .btn-cerrar-detalle:hover { background: #e9ecef; border-color: #ced4da; }
+        .badge-garantia-vencida { background: #f8d7da; color: #721c24; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.65rem; font-weight: 600; margin-left: 4px; }
+        .badge-garantia-vigente { background: #d4edda; color: #155724; padding: 0.2rem 0.5rem; border-radius: 20px; font-size: 0.65rem; font-weight: 600; margin-left: 4px; }
         @media (max-width: 768px) {
             .detalle-grid { grid-template-columns: 1fr; }
             .componentes-grid, .componentes-modelo-grid { grid-template-columns: 1fr; }
@@ -738,32 +760,47 @@ function cargarEstados() {
 }
 
 // ============================================================
-// PAGINACIÓN (FIX: se renderiza fuera de la tabla)
+// PAGINACIÓN (UNIFICADA CON EL SISTEMA)
 // ============================================================
 function renderPaginacion(totalPages, currentPage, tipo) {
     if (totalPages <= 1) return '';
 
     var html = '<div class="pagination-bar"><div class="pagination-info">Página ' + currentPage + ' de ' + totalPages + '</div><div class="pagination-btns">';
 
-    html += '<button class="pagination-btn' + (currentPage === 1 ? ' disabled' : '') + '" onclick="window.cambiarPaginaInv(\'' + tipo + '\',' + (currentPage - 1) + ')">«</button>';
+    html += '<button class="pagination-btn' + (currentPage === 1 ? ' disabled' : '') + '" onclick="window.cambiarPaginaInv(\'' + tipo + '\',' + (currentPage - 1) + ')"' + (currentPage === 1 ? ' disabled' : '') + '>«</button>';
 
-    for (var i = 1; i <= totalPages; i++) {
-        if (i === 1 || i === totalPages || (i >= currentPage - 1 && i <= currentPage + 1)) {
-            html += '<button class="pagination-btn' + (i === currentPage ? ' active' : '') + '" onclick="window.cambiarPaginaInv(\'' + tipo + '\',' + i + ')">' + i + '</button>';
-        } else if (i === currentPage - 2 || i === currentPage + 2) {
-            html += '<span class="pagination-ellipsis">...</span>';
-        }
+    var inicio = Math.max(1, currentPage - 2);
+    var fin = Math.min(totalPages, currentPage + 2);
+
+    if (inicio > 1) {
+        html += '<button class="pagination-btn" onclick="window.cambiarPaginaInv(\'' + tipo + '\',1)">1</button>';
+        if (inicio > 2) html += '<span class="pagination-ellipsis">...</span>';
     }
 
-    html += '<button class="pagination-btn' + (currentPage === totalPages ? ' disabled' : '') + '" onclick="window.cambiarPaginaInv(\'' + tipo + '\',' + (currentPage + 1) + ')">»</button>';
+    for (var i = inicio; i <= fin; i++) {
+        html += '<button class="pagination-btn' + (i === currentPage ? ' active' : '') + '" onclick="window.cambiarPaginaInv(\'' + tipo + '\',' + i + ')">' + i + '</button>';
+    }
+
+    if (fin < totalPages) {
+        if (fin < totalPages - 1) html += '<span class="pagination-ellipsis">...</span>';
+        html += '<button class="pagination-btn" onclick="window.cambiarPaginaInv(\'' + tipo + '\',' + totalPages + ')">' + totalPages + '</button>';
+    }
+
+    html += '<button class="pagination-btn' + (currentPage === totalPages ? ' disabled' : '') + '" onclick="window.cambiarPaginaInv(\'' + tipo + '\',' + (currentPage + 1) + ')"' + (currentPage === totalPages ? ' disabled' : '') + '>»</button>';
 
     html += '</div></div>';
     return html;
 }
 
 window.cambiarPaginaInv = function(tipo, page) {
-    if (tipo === 'activos') { activosPage = page; aplicarFiltrosActivos(); }
-    else if (tipo === 'componentes') { componentesPage = page; aplicarFiltrosComponentes(); }
+    if (tipo === 'activos') {
+        activosPage = page;
+        aplicarFiltrosActivos();
+    } else if (tipo === 'componentes') {
+        componentesPage = page;
+        aplicarFiltrosComponentes();
+    }
+    document.querySelector('.table-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
 
 // ============================================================
@@ -805,10 +842,9 @@ function validarSerialActivo() {
 }
 
 // ============================================================
-// SELECTS BASE (SOLO MODELOS, ESTATUS Y ACTIVOS DE COMPONENTES)
+// SELECTS BASE
 // ============================================================
 function cargarSelectsBase() {
-    // Cargar modelos
     fetch('/admin/equipos/modelos', { headers: { 'Accept': 'application/json' } })
         .then(function(r) { return r.json(); })
         .then(function(response) {
@@ -817,7 +853,6 @@ function cargarSelectsBase() {
             }
         });
 
-    // Cargar estatus
     fetch('/admin/estatus-list', { headers: { 'Accept': 'application/json' } })
         .then(function(r) { return r.json(); })
         .then(function(response) {
@@ -838,7 +873,6 @@ function cargarSelectsBase() {
             if (select) select.innerHTML = '<option value="">Seleccionar...</option><option value="1" selected>Disponible</option>';
         });
 
-    // Cargar activos para el select de componentes
     fetch('/admin/activos', { headers: { 'Accept': 'application/json' } })
         .then(function(r) { return r.json(); })
         .then(function(response) {
@@ -940,6 +974,9 @@ function aplicarFiltrosComponentes() {
     renderizarComponentesFiltrados(filtrados);
 }
 
+// ============================================================
+// RENDERIZAR ACTIVOS EN LA TABLA
+// ============================================================
 function renderizarActivosFiltrados(filtrados) {
     var tbody = document.getElementById('tablaActivos');
     if (!tbody) return;
@@ -956,6 +993,9 @@ function renderizarActivosFiltrados(filtrados) {
     }
 
     var puedeCambiarEstadoGlobal = typeof authUserHasPermission !== 'undefined' ? authUserHasPermission('cambiar-estatus-activo') : false;
+    var puedeEditar = typeof authUserHasPermission !== 'undefined' ? authUserHasPermission('editar-activo') : false;
+    var puedeEliminar = typeof authUserHasPermission !== 'undefined' ? authUserHasPermission('eliminar-activo') : false;
+
     var html = '';
 
     for (var i = 0; i < pageData.length; i++) {
@@ -963,40 +1003,43 @@ function renderizarActivosFiltrados(filtrados) {
         var garantiaBadge = '';
         if (a.fecha_fin_garantia) {
             garantiaBadge = garantiaVencida(a.fecha_fin_garantia) ?
-                '<span class="badge badge-garantia-vencida ms-1">Vencida</span>' :
-                '<span class="badge badge-garantia-vigente ms-1">Vigente</span>';
+                '<span class="badge-garantia-vencida">Vencida</span>' :
+                '<span class="badge-garantia-vigente">Vigente</span>';
         }
 
         var compCount = a.componentes ? a.componentes.length : 0;
         var estadoDescripcion = a.estatus ? a.estatus.descripcion : 'N/A';
-        var colorBadge = a.estatus ? a.estatus.color_badge : 'secondary';
         var esTerminal = a.estatus ? a.estatus.es_terminal : false;
         var mostrarBotonEstado = puedeCambiarEstadoGlobal && !esTerminal;
 
         html += '<tr>' +
-            '<td data-label="Serial"><strong>' + escapeHtml(a.serial) + '</strong>' + garantiaBadge + '</td>' +
+            '<td data-label="Serial"><strong style="color:#1e3c72;">' + escapeHtml(a.serial) + '</strong> ' + garantiaBadge + '</td>' +
             '<td data-label="Modelo">' + escapeHtml(a.modelo ? a.modelo.nombre : 'N/A') + (compCount > 0 ? ' <span class="badge bg-info text-dark">' + compCount + '</span>' : '') + '</td>' +
             '<td data-label="Marca">' + escapeHtml(a.modelo && a.modelo.marca ? a.modelo.marca.nombre : 'N/A') + '</td>' +
-            '<td data-label="Estado"><span class="badge bg-' + colorBadge + '">' + escapeHtml(estadoDescripcion) + '</span></td>' +
+            '<td data-label="Estado"><span class="' + getBadgeEstadoActivo(estadoDescripcion) + '">' + escapeHtml(estadoDescripcion) + '</span></td>' +
             '<td data-label="Ubicación">' + escapeHtml(a.ubicacion || (a.institucion ? a.institucion.nombre : 'N/A')) + '</td>' +
             '<td data-label="Acciones" class="text-end">' +
-            '<button class="btn btn-sm btn-outline-primary-dark" onclick="verActivo(' + a.id + ')" title="Ver detalle">' + SVG_ICONS.ver + '</button> ' +
-            (window.authUserHasPermission && authUserHasPermission('editar-activo') ? '<button class="btn btn-sm btn-outline-primary-dark" onclick="editarActivo(' + a.id + ')" title="Editar">' + SVG_ICONS.editar + '</button> ' : '') +
-            (mostrarBotonEstado ? '<button class="btn btn-sm btn-cambiar-estado" onclick="abrirModalCambiarEstado(' + a.id + ', \'' + escapeHtml(a.serial) + '\', \'' + estadoDescripcion + '\', ' + (a.estatus ? a.estatus.id : 'null') + ')" title="Cambiar estado">' + SVG_ICONS.cambiarEstado + '</button> ' : '') +
-            (window.authUserHasPermission && authUserHasPermission('eliminar-activo') ? '<button class="btn btn-sm btn-outline-danger" onclick="confirmarEliminarActivo(' + a.id + ')" title="Eliminar">' + SVG_ICONS.eliminar + '</button>' : '') +
+            '<div class="d-flex gap-1 justify-content-end">' +
+            '<button class="btn-action" onclick="verActivo(' + a.id + ')" title="Ver detalle">' + SVG_ICONS.ver + '</button>' +
+            (puedeEditar ? '<button class="btn-action" onclick="editarActivo(' + a.id + ')" title="Editar">' + SVG_ICONS.editar + '</button>' : '') +
+            (mostrarBotonEstado ? '<button class="btn-action" onclick="abrirModalCambiarEstado(' + a.id + ', \'' + escapeHtml(a.serial) + '\', \'' + estadoDescripcion + '\', ' + (a.estatus ? a.estatus.id : 'null') + ')" title="Cambiar estado">' + SVG_ICONS.cambiarEstado + '</button>' : '') +
+            (puedeEliminar ? '<button class="btn-action text-danger" onclick="confirmarEliminarActivo(' + a.id + ')" title="Eliminar">' + SVG_ICONS.eliminar + '</button>' : '') +
+            '</div>' +
             '</td>' +
             '</tr>';
     }
 
     tbody.innerHTML = html;
 
-    // ✅ FIX: La paginación se renderiza FUERA de la tabla
     var paginacionContainer = document.getElementById('paginacionActivos');
     if (paginacionContainer) {
         paginacionContainer.innerHTML = renderPaginacion(totalPages, activosPage, 'activos');
     }
 }
 
+// ============================================================
+// RENDERIZAR COMPONENTES EN LA TABLA
+// ============================================================
 function renderizarComponentesFiltrados(filtrados) {
     var tbody = document.getElementById('tablaComponentes');
     if (!tbody) return;
@@ -1012,26 +1055,30 @@ function renderizarComponentesFiltrados(filtrados) {
         return;
     }
 
+    var puedeEditar = typeof authUserHasPermission !== 'undefined' ? authUserHasPermission('editar-componente') : false;
+    var puedeEliminar = typeof authUserHasPermission !== 'undefined' ? authUserHasPermission('eliminar-componente') : false;
+
     var html = '';
     for (var i = 0; i < pageData.length; i++) {
         var c = pageData[i];
         html += '<tr>' +
-            '<td data-label="Tipo"><strong>' + escapeHtml(c.tipo) + '</strong></td>' +
+            '<td data-label="Tipo"><strong style="color:#1e3c72;">' + escapeHtml(c.tipo) + '</strong></td>' +
             '<td data-label="Marca">' + escapeHtml(c.marca || 'N/A') + '</td>' +
             '<td data-label="Serial">' + escapeHtml(c.serial || 'N/A') + '</td>' +
             '<td data-label="Capacidad">' + escapeHtml(c.capacidad || 'N/A') + '</td>' +
-            '<td data-label="Estado"><span class="badge ' + getEstadoBadge(c.estado) + '">' + getEstadoLabel(c.estado) + '</span></td>' +
-            '<td data-label="Activo">' + (c.activo ? '<a href="#" onclick="verActivo(' + c.activo.id + '); return false;" class="text-decoration-none">' + escapeHtml(c.activo.serial) + '</a>' : '---') + '</td>' +
+            '<td data-label="Estado"><span class="' + getEstadoBadge(c.estado) + '">' + getEstadoLabel(c.estado) + '</span></td>' +
+            '<td data-label="Activo">' + (c.activo ? '<a href="#" onclick="verActivo(' + c.activo.id + '); return false;" class="text-decoration-none" style="color:#1e3c72; font-weight:500;">' + escapeHtml(c.activo.serial) + '</a>' : '---') + '</td>' +
             '<td data-label="Acciones" class="text-end">' +
-            (window.authUserHasPermission && authUserHasPermission('editar-componente') ? '<button class="btn btn-sm btn-outline-primary-dark" onclick="editarComponente(' + c.id + ')" title="Editar">' + SVG_ICONS.editar + '</button> ' : '') +
-            (window.authUserHasPermission && authUserHasPermission('eliminar-componente') ? '<button class="btn btn-sm btn-outline-danger" onclick="confirmarEliminarComponente(' + c.id + ')" title="Eliminar">' + SVG_ICONS.eliminar + '</button>' : '') +
+            '<div class="d-flex gap-1 justify-content-end">' +
+            (puedeEditar ? '<button class="btn-action" onclick="editarComponente(' + c.id + ')" title="Editar">' + SVG_ICONS.editar + '</button>' : '') +
+            (puedeEliminar ? '<button class="btn-action text-danger" onclick="confirmarEliminarComponente(' + c.id + ')" title="Eliminar">' + SVG_ICONS.eliminar + '</button>' : '') +
+            '</div>' +
             '</td>' +
             '</tr>';
     }
 
     tbody.innerHTML = html;
 
-    // ✅ FIX: La paginación se renderiza FUERA de la tabla
     var paginacionContainer = document.getElementById('paginacionComponentes');
     if (paginacionContainer) {
         paginacionContainer.innerHTML = renderPaginacion(totalPages, componentesPage, 'componentes');
@@ -1039,7 +1086,7 @@ function renderizarComponentesFiltrados(filtrados) {
 }
 
 // ============================================================
-// ACTIVOS --- CRUD
+// ACTIVOS — CRUD
 // ============================================================
 function cargarActivos() {
     fetch('/admin/activos', { headers: { 'Accept': 'application/json' } })
@@ -1125,7 +1172,7 @@ window.abrirModalActivo = function(id) {
 window.editarActivo = function(id) { window.abrirModalActivo(id); };
 
 // ============================================================
-// ✅ VER ACTIVO (SIN especificaciones técnicas, con componentes)
+// VER ACTIVO (DETALLE)
 // ============================================================
 window.verActivo = function(id) {
     fetch('/admin/activos/' + id, { headers: { 'Accept': 'application/json' } })
@@ -1139,17 +1186,8 @@ window.verActivo = function(id) {
                 var garantiaVencidaFlag = a.fecha_fin_garantia && new Date(a.fecha_fin_garantia) < new Date();
 
                 var garantiaBadge = garantiaVencidaFlag ?
-                    '<span class="badge-garantia-vencida ms-2"><i class="fas fa-exclamation-triangle"></i> Vencida</span>' :
-                    (a.fecha_fin_garantia ? '<span class="badge-garantia-vigente ms-2"><i class="fas fa-check-circle"></i> Vigente</span>' : '');
-
-                var estadoIcono = '';
-                switch(a.estatus?.descripcion) {
-                    case 'Disponible': estadoIcono = '<i class="fas fa-check-circle"></i> '; break;
-                    case 'Prestado': estadoIcono = '<i class="fas fa-hand-holding"></i> '; break;
-                    case 'En reparación': estadoIcono = '<i class="fas fa-tools"></i> '; break;
-                    case 'Desechado': estadoIcono = '<i class="fas fa-trash-alt"></i> '; break;
-                    default: estadoIcono = '<i class="fas fa-circle"></i> ';
-                }
+                    '<span class="badge-garantia-vencida ms-2">Vencida</span>' :
+                    (a.fecha_fin_garantia ? '<span class="badge-garantia-vigente ms-2">Vigente</span>' : '');
 
                 agregarEstilosDetalle();
 
@@ -1163,22 +1201,19 @@ window.verActivo = function(id) {
 
                 var html = `
                     <div class="detalle-activo-moderno">
-                        <div class="detalle-header-moderno" style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); margin: -1.5rem -1.5rem 1.5rem -1.5rem; padding: 1.5rem; border-radius: 12px 12px 0 0;">
-                            <div class="d-flex justify-content-between align-items-center">
+                        <div style="background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); margin: -1.5rem -1.5rem 1.5rem -1.5rem; padding: 1.5rem; border-radius: 12px 12px 0 0;">
+                            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                                 <div>
-                                    <div class="d-flex align-items-center gap-2 mb-2">
-                                        <i class="fas fa-microchip" style="font-size: 1.8rem; color: #ffcd3c;"></i>
-                                        <h4 class="mb-0 text-white">${escapeHtml(a.serial)}</h4>
-                                    </div>
+                                    <h4 class="mb-2 text-white">${escapeHtml(a.serial)}</h4>
                                     <p class="mb-0 text-white-50">
-                                        <i class="fas fa-tag me-1"></i> ${escapeHtml(modeloMarca)} ${escapeHtml(modeloNombre)}
+                                        ${escapeHtml(modeloMarca)} ${escapeHtml(modeloNombre)}
                                         <span class="mx-2">•</span>
-                                        <i class="fas fa-folder me-1"></i> ${escapeHtml(categoriaNombre)}
+                                        ${escapeHtml(categoriaNombre)}
                                     </p>
                                 </div>
                                 <div class="text-end">
-                                    <span class="badge-estado-detalle" style="background: ${getColorByEstado(a.estatus?.descripcion)}; color: white; padding: 0.5rem 1rem; border-radius: 30px; font-size: 0.8rem;">
-                                        ${estadoIcono} ${escapeHtml(a.estatus?.descripcion || 'N/A')}
+                                    <span style="background: ${getColorByEstado(a.estatus?.descripcion)}; color: white; padding: 0.5rem 1rem; border-radius: 30px; font-size: 0.8rem; font-weight: 600;">
+                                        ${escapeHtml(a.estatus?.descripcion || 'N/A')}
                                     </span>
                                 </div>
                             </div>
@@ -1187,30 +1222,28 @@ window.verActivo = function(id) {
                         <div class="row g-4 mb-4">
                             <div class="col-md-6">
                                 <div class="detalle-seccion">
-                                    <h6 class="detalle-seccion-titulo">
-                                        <i class="fas fa-info-circle me-2"></i>Información General
-                                    </h6>
+                                    <h6 class="detalle-seccion-titulo">Información General</h6>
                                     <div class="detalle-grid">
                                         <div class="detalle-item">
-                                            <div class="detalle-label"><i class="fas fa-barcode"></i> Número de Serie</div>
+                                            <div class="detalle-label">Número de Serie</div>
                                             <div class="detalle-valor">${escapeHtml(a.serial)}</div>
                                         </div>
                                         <div class="detalle-item">
-                                            <div class="detalle-label"><i class="fas fa-building"></i> Institución</div>
+                                            <div class="detalle-label">Institución</div>
                                             <div class="detalle-valor">${escapeHtml(institucionNombre)}</div>
                                         </div>
                                         ${departamentoNombre ? `
                                         <div class="detalle-item">
-                                            <div class="detalle-label"><i class="fas fa-sitemap"></i> Departamento</div>
+                                            <div class="detalle-label">Departamento</div>
                                             <div class="detalle-valor">${escapeHtml(departamentoNombre)}</div>
                                         </div>
                                         ` : ''}
                                         <div class="detalle-item">
-                                            <div class="detalle-label"><i class="fas fa-map-marker-alt"></i> Ubicación</div>
+                                            <div class="detalle-label">Ubicación</div>
                                             <div class="detalle-valor">${escapeHtml(a.ubicacion || 'No especificada')}</div>
                                         </div>
                                         <div class="detalle-item">
-                                            <div class="detalle-label"><i class="fas fa-user"></i> Responsable</div>
+                                            <div class="detalle-label">Responsable</div>
                                             <div class="detalle-valor">
                                                 ${escapeHtml(responsableNombre)}
                                                 ${responsableCargo ? `<div class="small text-muted mt-1">${escapeHtml(responsableCargo)}</div>` : ''}
@@ -1222,20 +1255,18 @@ window.verActivo = function(id) {
 
                             <div class="col-md-6">
                                 <div class="detalle-seccion">
-                                    <h6 class="detalle-seccion-titulo">
-                                        <i class="fas fa-calendar-alt me-2"></i>Información de Adquisición
-                                    </h6>
+                                    <h6 class="detalle-seccion-titulo">Información de Adquisición</h6>
                                     <div class="detalle-grid">
                                         <div class="detalle-item">
-                                            <div class="detalle-label"><i class="fas fa-shopping-cart"></i> Fecha Adquisición</div>
+                                            <div class="detalle-label">Fecha Adquisición</div>
                                             <div class="detalle-valor">${fechaAdquisicion}</div>
                                         </div>
                                         <div class="detalle-item">
-                                            <div class="detalle-label"><i class="fas fa-shield-alt"></i> Fin de Garantía</div>
+                                            <div class="detalle-label">Fin de Garantía</div>
                                             <div class="detalle-valor">${fechaGarantia} ${garantiaBadge}</div>
                                         </div>
                                         <div class="detalle-item">
-                                            <div class="detalle-label"><i class="fas fa-hourglass-half"></i> Vida Útil Estimada</div>
+                                            <div class="detalle-label">Vida Útil Estimada</div>
                                             <div class="detalle-valor">${a.vida_util_anos ? a.vida_util_anos + ' años' : 'No especificada'}</div>
                                         </div>
                                     </div>
@@ -1245,9 +1276,7 @@ window.verActivo = function(id) {
 
                         ${a.observaciones ? `
                         <div class="detalle-seccion mb-4">
-                            <h6 class="detalle-seccion-titulo">
-                                <i class="fas fa-sticky-note me-2"></i>Observaciones
-                            </h6>
+                            <h6 class="detalle-seccion-titulo">Observaciones</h6>
                             <div class="detalle-observaciones">
                                 ${escapeHtml(a.observaciones)}
                             </div>
@@ -1258,13 +1287,13 @@ window.verActivo = function(id) {
                             <ul class="nav nav-tabs nav-tabs-componentes" id="componentesTab" role="tablist">
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link active" id="instalados-tab" data-bs-toggle="tab" data-bs-target="#instalados" type="button" role="tab">
-                                        <i class="fas fa-microchip me-1"></i> Componentes Instalados
+                                        Componentes Instalados
                                         <span class="badge-componentes">${a.componentes ? a.componentes.length : 0}</span>
                                     </button>
                                 </li>
                                 <li class="nav-item" role="presentation">
                                     <button class="nav-link" id="modelo-tab" data-bs-toggle="tab" data-bs-target="#modelo" type="button" role="tab">
-                                        <i class="fas fa-cube me-1"></i> Componentes del Modelo
+                                        Componentes del Modelo
                                     </button>
                                 </li>
                             </ul>
@@ -1283,14 +1312,14 @@ window.verActivo = function(id) {
                             </div>
                         </div>
 
-                        <div class="detalle-acciones mt-4 pt-3 border-top">
+                        <div class="mt-4 pt-3 border-top">
                             <div class="d-flex justify-content-end gap-2">
                                 ${window.authUserHasPermission && authUserHasPermission('editar-activo') ?
-                                    `<button class="btn btn-editar-detalle" onclick="editarActivo(${a.id}); bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide();">
-                                        <i class="fas fa-edit"></i> Editar Activo
+                                    `<button class="btn-editar-detalle" onclick="editarActivo(${a.id}); bootstrap.Modal.getInstance(document.getElementById('modalDetalle')).hide();">
+                                        Editar Activo
                                     </button>` : ''}
-                                <button class="btn btn-cerrar-detalle" onclick="cerrarModalDetalleManual()">
-                                    <i class="fas fa-times"></i> Cerrar
+                                <button class="btn-cerrar-detalle" onclick="cerrarModalDetalleManual()">
+                                    Cerrar
                                 </button>
                             </div>
                         </div>
@@ -1311,14 +1340,14 @@ window.verActivo = function(id) {
                                 var modelHtml = renderComponentesModelo(response.data);
                                 document.getElementById('detalleCompModeloContent').innerHTML = modelHtml;
                             } else {
-                                document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-info-circle"></i> Este modelo no tiene componentes definidos</div>';
+                                document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-muted">Este modelo no tiene componentes definidos</div>';
                             }
                         })
                         .catch(function() {
-                            document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle"></i> Error al cargar componentes</div>';
+                            document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-danger">Error al cargar componentes</div>';
                         });
                 } else {
-                    document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-muted"><i class="fas fa-info-circle"></i> No hay modelo asignado</div>';
+                    document.getElementById('detalleCompModeloContent').innerHTML = '<div class="text-center py-4 text-muted">No hay modelo asignado</div>';
                 }
             }
         });
@@ -1344,7 +1373,7 @@ function guardarActivo() {
 
     var responsableId = document.getElementById('activo_responsable_id')?.value;
     if (!responsableId) {
-        mostrarToast('⚠️ La institución/departamento seleccionado no tiene un responsable asignado.\n\nAsígnalo primero en el módulo de Entidades.', 'error');
+        mostrarToast('La institución/departamento seleccionado no tiene un responsable asignado.\n\nAsígnalo primero en el módulo de Entidades.', 'error');
         return;
     }
 
@@ -1480,7 +1509,7 @@ function guardarComponente() {
 
     var responsableId = document.getElementById('comp_responsable_id')?.value;
     if (!responsableId) {
-        mostrarToast('⚠️ La institución/departamento seleccionado no tiene un responsable asignado.\n\nAsígnalo primero en el módulo de Entidades.', 'error');
+        mostrarToast('La institución/departamento seleccionado no tiene un responsable asignado.\n\nAsígnalo primero en el módulo de Entidades.', 'error');
         return;
     }
 
@@ -1603,10 +1632,11 @@ function confirmarEliminacion() {
             mostrarToast(response.message, 'success');
             if (tipo === 'activo') {
                 cargarActivos();
+                cargarComponentes();
             } else {
                 cargarComponentes();
+                cargarActivos();
             }
-            cargarActivos();
         } else {
             mostrarToast(response.message || 'Error', 'error');
         }

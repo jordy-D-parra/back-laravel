@@ -4,6 +4,100 @@
 
 @section('styles')
     @vite(['resources/css/admin-usuarios.css'])
+    <style>
+        /* ============================================================
+           PAGINACIÓN ELEGANTE
+           ============================================================ */
+        .pagination-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.25rem;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            background: white;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .pagination-info {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .pagination-btns {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .pagination-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            padding: 0 0.6rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--primary-dark);
+            background: white;
+            border: 1.5px solid var(--border-light);
+            border-radius: 10px;
+            text-decoration: none;
+            transition: all 0.25s ease;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            cursor: pointer;
+            user-select: none;
+            line-height: 1;
+        }
+
+        .pagination-btn:hover:not(.disabled):not(.active) {
+            background: var(--primary-lighter);
+            border-color: var(--primary-dark);
+            color: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(30, 60, 114, 0.15);
+        }
+
+        .pagination-btn.active {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary-light));
+            color: white;
+            border-color: var(--primary-dark);
+            box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
+            font-weight: 700;
+        }
+
+        .pagination-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        .pagination-ellipsis {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 36px;
+            height: 36px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        @media (max-width: 576px) {
+            .pagination-bar {
+                flex-direction: column;
+                align-items: center;
+            }
+            .pagination-btn {
+                min-width: 32px;
+                height: 32px;
+                font-size: 0.75rem;
+            }
+        }
+    </style>
 @endsection
 
 @section('content')
@@ -123,105 +217,16 @@
                     </tr>
                 </thead>
                 <tbody id="tablaUsuarios">
-                    @forelse($usuarios as $usuario)
                     <tr>
-                        <td><span class="fw-medium" style="color: var(--primary-dark);">{{ $usuario->usuario }}</span></td>
-                        <td>{{ $usuario->trabajador->nombre }} {{ $usuario->trabajador->apellido }}</td>
-                        <td><small>{{ $usuario->trabajador->cedula }}</small></td>
-                        <td>
-                            @php
-                                $rolClass = 'badge-role-' . $usuario->rol->nombre;
-                            @endphp
-                            <span class="badge-role {{ $rolClass }}">{{ ucfirst($usuario->rol->nombre) }}</span>
-                        </td>
-                        <td>
-                            @if(auth()->user()->hasPermission('activar-desactivar-usuario'))
-                            <button class="btn btn-sm btn-toggle-status {{ $usuario->status === 'activo' ? 'badge-status-activo' : 'badge-status-inactivo' }} border-0"
-                                    data-id="{{ $usuario->id }}" style="font-size: 0.75rem;">
-                                {{ $usuario->status === 'activo' ? 'Activo' : 'Inactivo' }}
-                            </button>
-                            @else
-                            <span class="badge {{ $usuario->status === 'activo' ? 'badge-status-activo' : 'badge-status-inactivo' }}">
-                                {{ $usuario->status === 'activo' ? 'Activo' : 'Inactivo' }}
-                            </span>
-                            @endif
-                        </td>
-                        <td><small>{{ $usuario->ultimo_login ? $usuario->ultimo_login->format('d/m/Y H:i') : 'Nunca' }}</small></td>
-                        <td>
-                            @if($usuario->must_change_password)
-                                <span class="badge-status-inactivo" style="font-size: 0.7rem; padding: 3px 8px; border-radius: 12px;">Pendiente</span>
-                            @else
-                                <span class="badge-status-activo" style="font-size: 0.7rem; padding: 3px 8px; border-radius: 12px;">OK</span>
-                            @endif
-                        </td>
-                        <td class="text-end">
-                            <div class="btn-group">
-                                @if(auth()->user()->hasPermission('ver-usuarios'))
-                                <button class="btn btn-sm btn-action btn-outline-primary-dark btn-ver-usuario"
-                                        data-id="{{ $usuario->id }}" title="Ver detalle">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                        <circle cx="12" cy="12" r="3"/>
-                                    </svg>
-                                </button>
-                                @endif
-
-                                @if(auth()->user()->hasPermission('editar-usuario'))
-                                <button class="btn btn-sm btn-action btn-outline-primary-dark btn-editar-usuario"
-                                        data-id="{{ $usuario->id }}"
-                                        data-usuario="{{ $usuario->usuario }}"
-                                        data-rol-id="{{ $usuario->rol_id }}"
-                                        data-status="{{ $usuario->status }}" title="Editar">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                    </svg>
-                                </button>
-                                @endif
-
-                                @if(auth()->user()->hasPermission('resetear-password-usuario'))
-                                <button class="btn btn-sm btn-action btn-outline-primary-dark btn-reset-password"
-                                        data-id="{{ $usuario->id }}" title="Resetear contraseña">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                                    </svg>
-                                </button>
-                                @endif
-
-                                @if(auth()->user()->hasPermission('eliminar-usuario') && $usuario->id !== Auth::id())
-                                <button class="btn btn-sm btn-action btn-outline-danger btn-eliminar-usuario"
-                                        data-id="{{ $usuario->id }}"
-                                        data-usuario="{{ $usuario->usuario }}" title="Eliminar">
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#c5221f" stroke-width="2">
-                                        <polyline points="3 6 5 6 21 6"/>
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                    </svg>
-                                </button>
-                                @endif
-                            </div>
+                        <td colspan="8" class="text-center py-4 text-muted">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2">Cargando usuarios...</p>
                         </td>
                     </tr>
-                    @empty
-                    <tr>
-                        <td colspan="8" class="text-center py-5 text-muted">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                            </svg>
-                            <p>No se encontraron usuarios</p>
-                        </td>
-                    </tr>
-                    @endforelse
                 </tbody>
             </table>
         </div>
-    </div>
-
-    <!-- ========== PAGINACIÓN ========== -->
-    <div class="mt-3">
-        {{ $usuarios->links() }}
+        <div id="paginacionUsuarios"></div>
     </div>
 </div>
 
@@ -293,8 +298,6 @@
                         </small>
                     </div>
 
-                    <!-- CAMPO EMAIL ELIMINADO - El correo se toma del trabajador -->
-
                     <div class="mb-3">
                         <label for="usuarioRolId" class="form-label small fw-bold">Rol</label>
                         <select class="form-select" id="usuarioRolId" name="rol_id" required>
@@ -325,10 +328,16 @@
                             </small>
                         </div>
                     </div>
+
+                    <div id="passwordHashContainer" class="password-hash-container">
+                        <span class="hash-label">🔐 Contraseña Encriptada (Hash)</span>
+                        <span class="hash-value" id="passwordHashValue">---</span>
+                    </div>
+
                 </div>
                 <div class="modal-footer border-0 px-4 pb-4">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary-dark" id="btnGuardarUsuario" style="color: #fff;">Guardar Usuario</button>
+                    <button type="submit" class="btn btn-primary-dark" id="btnGuardarUsuario">Guardar Usuario</button>
                 </div>
             </form>
         </div>
@@ -397,31 +406,10 @@
     </div>
 </div>
 
-<!-- ========== MODAL CONTRASEÑA TEMPORAL ========== -->
-@if(session('new_password') || session('reset_password'))
-<div class="modal fade" id="modalPassword" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content shadow-lg">
-            <div class="modal-header">
-                <h5 class="modal-title">{{ session('reset_password') ? 'Contraseña Reseteada' : 'Contraseña Generada' }}</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body px-4 text-center">
-                <p class="small text-muted mb-2">Usuario: <strong>{{ session('new_usuario') ?? session('reset_usuario') }}</strong></p>
-                <div class="password-display" id="passwordDisplay">{{ session('new_password') ?? session('reset_password') }}</div>
-                <p class="small text-danger mt-2 mb-0">Copie esta contraseña ahora. No se volverá a mostrar.</p>
-            </div>
-            <div class="modal-footer border-0 px-4 pb-4 justify-content-center">
-                <button type="button" class="btn btn-primary-dark w-100" id="btnClosePasswordModal">Cerrar</button>
-            </div>
-        </div>
-    </div>
-</div>
-@endif
-
-<!-- ========== FORMS OCULTOS ========== -->
-<form id="formToggleStatus" method="POST" style="display:none;">@csrf @method('PATCH')</form>
-<form id="formResetPassword" method="POST" style="display:none;">@csrf @method('PATCH')</form>
+{{-- DATOS INICIALES PARA EL JS --}}
+<script>
+    window.usuariosIniciales = @json($usuarios);
+</script>
 
 @endsection
 

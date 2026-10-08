@@ -10,13 +10,24 @@ use Illuminate\Support\Facades\DB;
 
 class RoleController extends Controller
 {
-    public function index(Request $request)
+       public function index(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-roles')) {
             abort(403, 'No tienes permiso para ver roles');
         }
 
-        $roles = Rol::withCount('usuarios')->orderBy('nombre')->get();
+        // ✅ Traer TODOS los roles con conteos (sin paginar)
+        $roles = Rol::withCount('usuarios')
+            ->orderBy('nombre')
+            ->get();
+
+        // Agregar el contador de permisos manualmente
+        foreach ($roles as $rol) {
+            $rol->permisos_count = DB::table('permiso_rol')
+                ->where('rol_id', $rol->id)
+                ->count();
+        }
+
         $permisos = Permiso::orderBy('categoria')->orderBy('nombre')->get();
         $permisosAgrupados = $permisos->groupBy('categoria');
 
@@ -26,8 +37,8 @@ class RoleController extends Controller
         return view('admin.roles.index', compact(
             'roles',
             'permisosAgrupados',
-            'totalRoles',
-            'totalPermisos'
+            'totalPermisos',
+            'totalRoles'
         ));
     }
 

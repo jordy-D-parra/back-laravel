@@ -41,6 +41,10 @@ class DatabaseSeeder extends Seeder
         // ========== 8. SOPORTE TÉCNICO ==========
         $this->call(SoporteTecnicoSeeder::class);
 
+        $this->call(PrestamoDemoSeeder::class);
+
+        $this->call(ActivosExtraSeeder::class);
+
         $this->command->info('==============================');
         $this->command->info('✅ Seeding completado');
         $this->command->info('==============================');

@@ -381,10 +381,27 @@ Route::middleware(['auth', 'prevent-back-history'])->group(function () {
         // REPORTES
         // ============================================================
         Route::prefix('reportes')->name('reportes.')->middleware('permission:ver-reportes')->group(function () {
+
+            // ---------- PÁGINA CENTRAL ----------
             Route::get('/', [ReporteController::class, 'index'])->name('index');
+
+            // ---------- ENDPOINTS AJAX (devuelven JSON) ----------
             Route::get('/inventario', [ReporteController::class, 'inventario'])->name('inventario');
             Route::get('/solicitudes', [ReporteController::class, 'solicitudes'])->name('solicitudes');
             Route::get('/soporte', [ReporteController::class, 'soporte'])->name('soporte');
+
+            // ---------- REPORTES IMPRIMIBLES (devuelven VISTAS/PDF) ----------
+            Route::get('/prestamos', [ReporteController::class, 'prestamos'])->name('prestamos');
+            Route::get('/prestamos-vencidos', [ReporteController::class, 'prestamosVencidos'])->name('prestamos-vencidos');
+            Route::get('/inventario-completo', [ReporteController::class, 'inventarioCompleto'])->name('inventario-completo');
+            Route::get('/solicitudes-detalle', [ReporteController::class, 'solicitudesDetalle'])->name('solicitudes-detalle');
+            Route::get('/soporte-detalle', [ReporteController::class, 'soporteDetalle'])->name('soporte-detalle');
+            Route::get('/activos-por-entidad', [ReporteController::class, 'activosPorEntidad'])->name('activos-por-entidad');
+            Route::get('/kardex/{activoId}', [ReporteController::class, 'kardex'])->where('activoId', '[0-9]+')->name('kardex');
+            Route::get('/usuarios', [ReporteController::class, 'usuarios'])->name('usuarios');
+            Route::get('/auditoria', [ReporteController::class, 'auditoria'])->name('auditoria');
+
+            // ---------- EXPORTACIONES ----------
             Route::get('/exportar-pdf', [ReporteController::class, 'exportarPdf'])->middleware('permission:exportar-reportes')->name('exportar.pdf');
             Route::get('/inventario/exportar-excel', [ReporteInventarioController::class, 'exportarExcel'])->middleware('permission:exportar-reportes')->name('inventario.exportar-excel');
         });

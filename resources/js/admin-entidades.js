@@ -5,6 +5,17 @@ document.addEventListener('DOMContentLoaded', function() {
     let elementoAEliminar = null;
 
     // ===========================
+    // ESTADO DE PAGINACIÓN
+    // ===========================
+    const ITEMS_POR_PAGINA = 8;
+    
+    const paginacion = {
+        instituciones: { data: [], filtrados: [], page: 1 },
+        departamentos: { data: [], filtrados: [], page: 1 },
+        responsables: { data: [], filtrados: [], page: 1 }
+    };
+
+    // ===========================
     // HELPERS
     // ===========================
     function getUrl(tipo, id) {
@@ -53,6 +64,82 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===========================
+    // PAGINACIÓN GENÉRICA
+    // ===========================
+    function paginar(datos, pagina) {
+        const totalPaginas = Math.ceil(datos.length / ITEMS_POR_PAGINA);
+        const inicio = (pagina - 1) * ITEMS_POR_PAGINA;
+        const fin = inicio + ITEMS_POR_PAGINA;
+        return {
+            items: datos.slice(inicio, fin),
+            totalPaginas,
+            totalRegistros: datos.length,
+            inicio: inicio + 1,
+            fin: Math.min(fin, datos.length)
+        };
+    }
+
+    function renderPaginacion(tipo, totalPaginas, pageActual, totalRegistros) {
+        if (totalPaginas <= 1) return '';
+        
+        let html = `<div class="pagination-bar">
+            <div class="pagination-info">Mostrando ${((pageActual - 1) * ITEMS_POR_PAGINA) + 1} a ${Math.min(pageActual * ITEMS_POR_PAGINA, totalRegistros)} de ${totalRegistros} registros</div>
+            <div class="pagination-btns">`;
+        
+        // Botón anterior
+        html += `<button class="pagination-btn ${pageActual === 1 ? 'disabled' : ''}" 
+                    onclick="window.cambiarPaginaEntidad('${tipo}', ${pageActual - 1})" ${pageActual === 1 ? 'disabled' : ''}>«</button>`;
+        
+        // Números de página
+        let inicio = Math.max(1, pageActual - 2);
+        let fin = Math.min(totalPaginas, pageActual + 2);
+        
+        if (inicio > 1) {
+            html += `<button class="pagination-btn" onclick="window.cambiarPaginaEntidad('${tipo}', 1)">1</button>`;
+            if (inicio > 2) html += `<span class="pagination-ellipsis">...</span>`;
+        }
+        
+        for (let i = inicio; i <= fin; i++) {
+            html += `<button class="pagination-btn ${i === pageActual ? 'active' : ''}" 
+                        onclick="window.cambiarPaginaEntidad('${tipo}', ${i})">${i}</button>`;
+        }
+        
+        if (fin < totalPaginas) {
+            if (fin < totalPaginas - 1) html += `<span class="pagination-ellipsis">...</span>`;
+            html += `<button class="pagination-btn" onclick="window.cambiarPaginaEntidad('${tipo}', ${totalPaginas})">${totalPaginas}</button>`;
+        }
+        
+        // Botón siguiente
+        html += `<button class="pagination-btn ${pageActual === totalPaginas ? 'disabled' : ''}" 
+                    onclick="window.cambiarPaginaEntidad('${tipo}', ${pageActual + 1})" ${pageActual === totalPaginas ? 'disabled' : ''}>»</button>`;
+        
+        html += `</div></div>`;
+        return html;
+    }
+
+    window.cambiarPaginaEntidad = function(tipo, nuevaPagina) {
+        const estado = paginacion[tipo];
+        if (!estado) return;
+        
+        const totalPaginas = Math.ceil(estado.filtrados.length / ITEMS_POR_PAGINA);
+        if (nuevaPagina < 1 || nuevaPagina > totalPaginas) return;
+        
+        estado.page = nuevaPagina;
+        
+        // Re-renderizar según el tipo
+        if (tipo === 'instituciones') {
+            renderInstituciones(estado.filtrados, document.getElementById('buscarInstituciones')?.value || '');
+        } else if (tipo === 'departamentos') {
+            renderDepartamentos(estado.filtrados, document.getElementById('buscarDepartamentos')?.value || '');
+        } else if (tipo === 'responsables') {
+            renderResponsables(estado.filtrados, document.getElementById('buscarResponsables')?.value || '');
+        }
+        
+        // Scroll suave al inicio de la tabla
+        document.querySelector(`#tabla${tipo.charAt(0).toUpperCase() + tipo.slice(1)}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    // ===========================
     // CARGAR INSTITUCIONES
     // ===========================
     function cargarInstituciones() {
@@ -74,7 +161,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(r => r.json())
         .then(response => {
             const data = response.data || [];
-            renderTablaInstituciones(data, buscar);
+            paginacion.instituciones.data = data;
+            paginacion.instituciones.filtrados = [...data];
+            paginacion.instituciones.page = 1;
+            renderInstituciones(data, buscar);
         })
         .catch(err => {
             console.error(err);
@@ -82,11 +172,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function renderTablaInstituciones(data, buscar) {
+    function renderInstituciones(data, buscar) {
         const tabla = document.getElementById('tablaInstituciones');
         if (!tabla) return;
 
-        if (!data || data.length === 0) {
+        const total = data.length;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA);
+        const pagina = paginacion.instituciones.page;
+        const inicio = (pagina - 1) * ITEMS_POR_PAGINA;
+        const paginaData = data.slice(inicio, inicio + ITEMS_POR_PAGINA);
+
+        if (total === 0) {
             tabla.innerHTML = `<table class="table table-hover align-middle mb-0">
                 <thead><tr><th>Nombre</th><th>Representante</th><th>Ubicación</th><th>Deptos.</th><th>Resp.</th><th>Estado</th><th style="width:180px">Acciones</th></tr></thead>
                 <tbody><tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron instituciones</td></tr></tbody>
@@ -97,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let html = `<table class="table table-hover align-middle mb-0">
             <thead><tr><th>Nombre</th><th>Representante</th><th>Ubicación</th><th>Deptos.</th><th>Resp.</th><th>Estado</th><th style="width:180px">Acciones</th></tr></thead><tbody>`;
 
-        data.forEach(item => {
+        paginaData.forEach(item => {
             const ubicacion = item.ubicacion_completa ||
                 ((item.parroquia ? item.parroquia.nombre + ', ' : '') +
                  (item.municipio ? item.municipio.nombre + ', ' : '') +
@@ -127,6 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         html += '</tbody></table>';
+        html += renderPaginacion('instituciones', totalPaginas, pagina, total);
         tabla.innerHTML = html;
     }
 
@@ -164,7 +261,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 departamentos = [];
             }
 
-            renderTablaDepartamentos(departamentos, buscar);
+            paginacion.departamentos.data = departamentos;
+            paginacion.departamentos.filtrados = [...departamentos];
+            paginacion.departamentos.page = 1;
+            renderDepartamentos(departamentos, buscar);
         })
         .catch(err => {
             console.error('Error al cargar departamentos:', err);
@@ -172,13 +272,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function renderTablaDepartamentos(data, buscar) {
+    function renderDepartamentos(data, buscar) {
         const tabla = document.getElementById('tablaDepartamentos');
         if (!tabla) return;
 
         const departamentos = Array.isArray(data) ? data : (data.data || []);
+        const total = departamentos.length;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA);
+        const pagina = paginacion.departamentos.page;
+        const inicio = (pagina - 1) * ITEMS_POR_PAGINA;
+        const paginaData = departamentos.slice(inicio, inicio + ITEMS_POR_PAGINA);
 
-        if (departamentos.length === 0) {
+        if (total === 0) {
             tabla.innerHTML = `<table class="table table-hover align-middle mb-0">
                 <thead><tr><th>Nombre</th><th>Institución</th><th>Representante</th><th>Responsables</th><th>Estado</th><th style="width:180px">Acciones</th></tr></thead>
                 <tbody><tr><td colspan="6" class="text-center py-4 text-muted">No se encontraron departamentos</td></tr></tbody>
@@ -189,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let html = `<table class="table table-hover align-middle mb-0">
             <thead><tr><th>Nombre</th><th>Institución</th><th>Representante</th><th>Responsables</th><th>Estado</th><th style="width:180px">Acciones</th></tr></thead><tbody>`;
 
-        departamentos.forEach(item => {
+        paginaData.forEach(item => {
             html += `<tr>
                 <td><span class="fw-medium" style="color:#1e3c72">${resaltarTexto(item.nombre, buscar)}</span></td>
                 <td>${escapeHtml(item.institucion?.nombre || 'Sin institución')}</td>
@@ -211,6 +316,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         html += '</tbody></table>';
+        html += renderPaginacion('departamentos', totalPaginas, pagina, total);
         tabla.innerHTML = html;
     }
 
@@ -234,7 +340,10 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(r => r.json())
         .then(data => {
             const responsables = data.data || data || [];
-            renderTablaResponsables(responsables, buscar);
+            paginacion.responsables.data = responsables;
+            paginacion.responsables.filtrados = [...responsables];
+            paginacion.responsables.page = 1;
+            renderResponsables(responsables, buscar);
         })
         .catch(err => {
             console.error(err);
@@ -242,13 +351,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function renderTablaResponsables(data, buscar) {
+    function renderResponsables(data, buscar) {
         const tabla = document.getElementById('tablaResponsables');
         if (!tabla) return;
 
         const responsables = Array.isArray(data) ? data : (data.data || []);
+        const total = responsables.length;
+        const totalPaginas = Math.ceil(total / ITEMS_POR_PAGINA);
+        const pagina = paginacion.responsables.page;
+        const inicio = (pagina - 1) * ITEMS_POR_PAGINA;
+        const paginaData = responsables.slice(inicio, inicio + ITEMS_POR_PAGINA);
 
-        if (responsables.length === 0) {
+        if (total === 0) {
             tabla.innerHTML = `<table class="table table-hover align-middle mb-0">
                 <thead><tr><th>Nombre</th><th>Documento</th><th>Cargo</th><th>Institución</th><th>Departamento</th><th>Estado</th><th style="width:180px">Acciones</th></tr></thead>
                 <tbody><tr><td colspan="7" class="text-center py-4 text-muted">No se encontraron responsables</td></tr></tbody>
@@ -259,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
         let html = `<table class="table table-hover align-middle mb-0">
             <thead><tr><th>Nombre</th><th>Documento</th><th>Cargo</th><th>Institución</th><th>Departamento</th><th>Estado</th><th style="width:180px">Acciones</th></tr></thead><tbody>`;
 
-        responsables.forEach(item => {
+        paginaData.forEach(item => {
             html += `<tr>
                 <td><span class="fw-medium" style="color:#1e3c72">${resaltarTexto(item.nombre, buscar)}</span></td>
                 <td>${escapeHtml(item.documento || '---')}</td>
@@ -282,6 +396,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         html += '</tbody></table>';
+        html += renderPaginacion('responsables', totalPaginas, pagina, total);
         tabla.innerHTML = html;
     }
 
@@ -345,7 +460,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // ===========================
-    // WIZARD MAESTRO (Institución → Departamento → Responsable)
+    // WIZARD MAESTRO
     // ===========================
     let pasoWizard = 1;
     const TOTAL_PASOS = 3;
@@ -353,7 +468,6 @@ document.addEventListener('DOMContentLoaded', function() {
     window.abrirWizardEntidad = function() {
         pasoWizard = 1;
 
-        // Limpiar PASO 1
         document.getElementById('wz_inst_nombre').value = '';
         document.getElementById('wz_inst_informacion').value = '';
         document.getElementById('wz_estado_id').innerHTML = '<option value="">Seleccionar estado...</option>';
@@ -362,12 +476,10 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('wz_parroquia_id').innerHTML = '<option value="">Seleccionar municipio primero</option>';
         document.getElementById('wz_parroquia_id').disabled = true;
 
-        // Limpiar PASO 2
         document.getElementById('wz_depto_nombre').value = '';
         document.getElementById('wz_depto_ubicacion').value = '';
         document.getElementById('wz_depto_informacion').value = '';
 
-        // Limpiar PASO 3
         document.getElementById('wz_resp_nombre').value = '';
         document.getElementById('wz_resp_cargo').value = 'Jefe de Departamento';
         document.getElementById('wz_resp_documento').value = '';
@@ -375,7 +487,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.getElementById('wz_resp_email').value = '';
         document.getElementById('wz_resp_direccion').value = '';
 
-        // Mostrar paso 1
         document.getElementById('wizardStep1').style.display = 'block';
         document.getElementById('wizardStep2').style.display = 'none';
         document.getElementById('wizardStep3').style.display = 'none';
@@ -484,7 +595,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (labelDepto2) labelDepto2.textContent = deptoNombre;
     }
 
-    // Event listeners para selects anidados del wizard
     document.getElementById('wz_estado_id')?.addEventListener('change', function() {
         cargarMunicipios(this.value, 'wz_municipio_id');
         const parroquiaSelect = document.getElementById('wz_parroquia_id');
@@ -496,15 +606,10 @@ document.addEventListener('DOMContentLoaded', function() {
         cargarParroquias(this.value, 'wz_parroquia_id');
     });
 
-    // Actualizar etiquetas al escribir en inputs
     document.getElementById('wz_inst_nombre')?.addEventListener('input', actualizarEtiquetasWizard);
     document.getElementById('wz_depto_nombre')?.addEventListener('input', actualizarEtiquetasWizard);
 
-    // ===========================
-    // GUARDAR WIZARD (3 pasos en cadena)
-    // ===========================
     document.getElementById('wizardBtnGuardar')?.addEventListener('click', async function() {
-        // Validar paso 3
         if (!validarPasoWizard(3)) return;
 
         const btn = this;
@@ -513,7 +618,6 @@ document.addEventListener('DOMContentLoaded', function() {
         btn.disabled = true;
 
         try {
-            // ===== 1. CREAR INSTITUCIÓN (con su responsable institucional) =====
             const formDataInst = new FormData();
             formDataInst.append('_token', csrfToken);
             formDataInst.append('nombre', document.getElementById('wz_inst_nombre').value);
@@ -558,7 +662,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // ===== 2. OBTENER EL RESPONSABLE INSTITUCIONAL RECIÉN CREADO =====
             let responsableInstitucionalId = null;
             try {
                 const respResponse = await fetch(`/admin/responsables?institucion_id=${institucionId}&todos=1&_t=${Date.now()}`, {
@@ -578,7 +681,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 console.warn('No se pudo obtener el responsable institucional:', e);
             }
 
-            // ===== 3. CREAR DEPARTAMENTO =====
             const formDataDepto = new FormData();
             formDataDepto.append('_token', csrfToken);
             formDataDepto.append('institucion_id', institucionId);
@@ -613,18 +715,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
 
-            // ===== ÉXITO =====
             bootstrap.Modal.getInstance(document.getElementById('modalWizardEntidad')).hide();
             mostrarToast('✅ Entidad registrada: Institución + Departamento + Responsable', 'success');
 
-            // ✅ Recargar tablas (con un pequeño delay para asegurar persistencia)
             setTimeout(() => {
                 cargarInstituciones();
                 cargarDepartamentos();
                 cargarResponsables();
             }, 200);
 
-            // Resetear wizard
             pasoWizard = 1;
 
         } catch (err) {
@@ -772,7 +871,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ===========================
     // INICIALIZACIÓN
     // ===========================
-    console.log('Inicializando módulo de entidades con Wizard...');
+    console.log('Inicializando módulo de entidades con Wizard + Paginación...');
 
     cargarInstituciones();
     cargarDepartamentos();

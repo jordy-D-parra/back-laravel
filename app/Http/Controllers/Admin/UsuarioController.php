@@ -16,41 +16,17 @@ class UsuarioController extends Controller
     // ============================================================
     // INDEX
     // ============================================================
-    public function index(Request $request)
+       public function index(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-usuarios')) {
             abort(403, 'No tienes permiso para ver usuarios');
         }
 
-        $query = Usuario::with(['trabajador', 'rol']);
+        // ✅ Traer TODOS los usuarios con sus relaciones (sin paginar)
+        $usuarios = Usuario::with(['trabajador', 'rol'])
+            ->orderBy('usuario', 'asc')
+            ->get();
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('usuario', 'ilike', "%{$search}%")
-                  ->orWhereHas('trabajador', function ($q2) use ($search) {
-                      $q2->where('nombre', 'ilike', "%{$search}%")
-                         ->orWhere('apellido', 'ilike', "%{$search}%")
-                         ->orWhere('cedula', 'ilike', "%{$search}%");
-                  });
-            });
-        }
-
-        if ($request->filled('rol')) {
-            $query->where('rol_id', $request->rol);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        if ($request->filled('must_change')) {
-            $query->where('must_change_password', $request->must_change === '1');
-        }
-
-        $usuarios = $query->paginate(15)->withQueryString();
-
-        $trabajadoresDisponibles = Trabajador::doesntHave('usuario')->get();
         $roles = Rol::all();
 
         $totalActivos = Usuario::where('status', 'activo')->count();
@@ -60,7 +36,6 @@ class UsuarioController extends Controller
 
         return view('admin.usuarios.index', compact(
             'usuarios',
-            'trabajadoresDisponibles',
             'roles',
             'totalActivos',
             'totalInactivos',

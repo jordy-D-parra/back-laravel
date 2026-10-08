@@ -1,7 +1,8 @@
 // resources/js/admin-soporte.js
-// ✅ VERSIÓN LIMPIA: Solo Fichas + Correos + Wizard de conversión
-// ✅ Se eliminó todo el código de "crear ficha manual" y "equipo externo"
-// ✅ El flujo de creación de fichas es ÚNICAMENTE por correo (wizard)
+// ✅ VERSIÓN COMPLETA Y CORREGIDA
+// ✅ Sin parpadeo: el Blade renderiza inicial, el JS solo re-renderiza al interactuar
+// ✅ renderizarTabla() genera el mismo HTML que el Blade
+// ✅ Soporta todos los estados: en_proceso, aceptada, rechazada, finalizado, cancelada
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -29,7 +30,7 @@ let filtros = {
 // UTILIDADES
 // ============================================================
 function escapeHtml(text) {
-    if (!text) return '';
+    if (text === null || text === undefined) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -43,6 +44,53 @@ function formatearFechaHora(fecha) {
         day: '2-digit', month: '2-digit', year: 'numeric',
         hour: '2-digit', minute: '2-digit'
     });
+}
+
+function formatearFechaCorta(fecha) {
+    if (!fecha) return '---';
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return fecha;
+    return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+function formatearHoraCorta(fecha) {
+    if (!fecha) return '';
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+}
+
+function calcularDiasRestantes(fechaRequerida, estado) {
+    if (!fechaRequerida) return null;
+    if (estado === 'finalizado') return 0;
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    let fechaStr = String(fechaRequerida);
+    if (!fechaStr.includes('T')) fechaStr = fechaStr + 'T00:00:00';
+
+    const req = new Date(fechaStr);
+    if (isNaN(req.getTime())) return null;
+
+    const diffMs = req - hoy;
+    return Math.round(diffMs / (1000 * 60 * 60 * 24));
+}
+
+function estaVencida(fechaRequerida, estado) {
+    if (!fechaRequerida) return false;
+    if (estado === 'finalizado') return false;
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+
+    let fechaStr = String(fechaRequerida);
+    if (!fechaStr.includes('T')) fechaStr = fechaStr + 'T00:00:00';
+
+    const req = new Date(fechaStr);
+    if (isNaN(req.getTime())) return false;
+
+    return hoy > req;
 }
 
 // ✅ Normaliza cualquier fecha al formato Y-m-d que acepta input[type=date]
@@ -136,91 +184,189 @@ function actualizarEstadisticas() {
 }
 
 // ============================================================
-// FICHAS: RENDERIZADO
+// FICHAS: RENDERIZADO (mismo HTML que el Blade)
 // ============================================================
 function renderizarTabla() {
     const tbody = document.getElementById('tablaFichas');
     if (!tbody) return;
 
     if (fichasData.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No hay fichas de soporte registradas</td></tr>`;
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8" class="text-center py-5 text-muted">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
+                        <rect x="2" y="6" width="20" height="12" rx="2"/>
+                    </svg>
+                    <p>No hay fichas de soporte registradas</p>
+                </td>
+            </tr>`;
         return;
     }
 
     let html = '';
     for (const f of fichasData) {
-        const fechaIngreso = f.fecha_ingreso ? new Date(f.fecha_ingreso).toLocaleDateString() : 'N/A';
-        const fechaSalida = f.fecha_salida ? new Date(f.fecha_salida).toLocaleDateString() : '---';
-        const activoInfo = f.activo ? `${f.activo.serial} - ${f.activo.modelo?.nombre || 'N/A'}` : 'N/A';
-        const estadoClass = f.estado === 'en_proceso' ? 'badge-estado-en-proceso' : 'badge-estado-finalizado';
-        const estadoText = f.estado === 'en_proceso' ? 'En Proceso' : 'Finalizado';
+        // ----- Fechas con formato completo -----
+        const fechaIngresoHtml = f.fecha_ingreso
+            ? `
+                <small class="fw-medium">${formatearFechaCorta(f.fecha_ingreso)}</small>
+                <br>
+                <small class="text-muted">${formatearHoraCorta(f.fecha_ingreso)}</small>
+              `
+            : '<small class="text-muted">---</small>';
 
-        html += `<tr>
-            <td class="px-3 py-2">${escapeHtml(activoInfo)}</td>
-            <td class="px-3 py-2">${escapeHtml(f.tecnico_nombre || '---')}</td>
-            <td class="px-3 py-2">${escapeHtml(f.usuario_reporta_nombre || '---')}</td>
-            <td class="px-3 py-2">${fechaIngreso}</td>
-            <td class="px-3 py-2">${fechaSalida}</td>
-            <td class="px-3 py-2"><span class="${estadoClass}">${estadoText}</span></td>
-            <td class="px-3 py-2 text-end">
-                <button type="button" class="btn-action btn-outline-primary-dark" onclick="verDetalle(${f.id})" title="Ver detalle">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <path d="M12 8v4"/>
-                        <path d="M12 16h.01"/>
-                    </svg>
-                </button>`;
+        const fechaSalidaHtml = f.fecha_salida
+            ? `
+                <small class="fw-medium" style="color: #1e7e34;">${formatearFechaCorta(f.fecha_salida)}</small>
+                <br>
+                <small class="text-muted">${formatearHoraCorta(f.fecha_salida)}</small>
+              `
+            : '<small class="text-muted">---</small>';
 
-        if (f.estado === 'en_proceso') {
-            html += `
-                <button type="button" class="btn-cerrar-ficha ms-1" onclick="abrirModalCerrarFicha(${f.id})" title="Cerrar ficha">
-                    ✓ Cerrar
-                </button>`;
+        // ----- Fecha requerida con badge -----
+        let fechaRequeridaHtml = '<span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>';
+        if (f.fecha_requerida_entrega) {
+            const dias = calcularDiasRestantes(f.fecha_requerida_entrega, f.estado);
+            const vencida = estaVencida(f.fecha_requerida_entrega, f.estado);
+
+            let clase = 'badge-fecha-vigente';
+            let texto = formatearFechaCorta(f.fecha_requerida_entrega);
+
+            if (vencida) {
+                clase = 'badge-fecha-vencida';
+                texto += ' (Vencida)';
+            } else if (dias !== null && dias <= 3) {
+                clase = 'badge-fecha-proxima';
+                texto += ` (${dias} d)`;
+            }
+
+            fechaRequeridaHtml = `<span class="badge-fecha-entrega ${clase}">${texto}</span>`;
         }
 
+        // ----- Activo -----
+        const activoHtml = f.activo
+            ? `<span class="fw-medium" style="color:#1e3c72;">${escapeHtml(f.activo.serial)}</span>
+               <br>
+               <small class="text-muted">${escapeHtml(f.activo.modelo?.nombre || 'N/A')}</small>`
+            : `<span class="text-muted">Equipo externo</span>`;
+
+        // ----- Estado -----
+        let estadoLabel = 'En Proceso';
+        let estadoBadge = 'badge-estado-en-proceso';
+        switch (f.estado) {
+            case 'en_proceso': estadoLabel = 'En Proceso'; estadoBadge = 'badge-estado-en-proceso'; break;
+            case 'aceptada':   estadoLabel = 'Aceptada';   estadoBadge = 'badge-estado-pendiente';   break;
+            case 'rechazada':  estadoLabel = 'Rechazada';  estadoBadge = 'badge-estado-rechazado';   break;
+            case 'finalizado': estadoLabel = 'Finalizado'; estadoBadge = 'badge-estado-finalizado'; break;
+            case 'cancelada':  estadoLabel = 'Cancelada';  estadoBadge = 'badge-estado-cancelado';  break;
+            default:
+                estadoLabel = f.estado ? f.estado.charAt(0).toUpperCase() + f.estado.slice(1) : 'En Proceso';
+                estadoBadge = 'badge-estado';
+        }
+
+        // ----- Botón cerrar -----
+        const puedeCerrar = ['en_proceso', 'aceptada'].includes(f.estado);
+        const botonCerrar = puedeCerrar
+            ? `<button type="button" class="btn-cerrar-ficha" onclick="abrirModalCerrarFicha(${f.id})" title="Cerrar ficha">✓ Cerrar</button>`
+            : '';
+
+        // ----- Botón eliminar -----
+        const puedeEliminar = window.authUserHasPermission
+            ? window.authUserHasPermission('eliminar-ficha-soporte')
+            : true;
+
+        const botonEliminar = puedeEliminar
+            ? `<button type="button" class="btn-action text-danger" onclick="confirmarEliminar(${f.id})" title="Eliminar">
+                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                       <polyline points="3 6 5 6 21 6"/>
+                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                   </svg>
+               </button>`
+            : '';
+
+        // ----- Fila -----
         html += `
-                <button type="button" class="btn-action text-danger ms-1" onclick="confirmarEliminar(${f.id})" title="Eliminar">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="3 6 5 6 21 6"/>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                    </svg>
-                </button>
-            </td>
-        </tr>`;
+            <tr>
+                <td data-label="Activo">${activoHtml}</td>
+                <td data-label="Técnico">${escapeHtml(f.tecnico_nombre || '---')}</td>
+                <td data-label="Reporta">${escapeHtml(f.usuario_reporta_nombre || '---')}</td>
+                <td data-label="Ingreso">${fechaIngresoHtml}</td>
+                <td data-label="F. Requerida">${fechaRequeridaHtml}</td>
+                <td data-label="Salida">${fechaSalidaHtml}</td>
+                <td data-label="Estado"><span class="badge-estado ${estadoBadge}">${estadoLabel}</span></td>
+                <td data-label="Acciones" class="text-end">
+                    <div class="d-flex gap-1 justify-content-end">
+                        <button type="button" class="btn-action" onclick="verDetalle(${f.id})" title="Ver detalle">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <path d="M12 8v4"/>
+                                <path d="M12 16h.01"/>
+                            </svg>
+                        </button>
+                        ${botonCerrar}
+                        ${botonEliminar}
+                    </div>
+                </td>
+            </tr>
+        `;
     }
     tbody.innerHTML = html;
 }
 
 function renderizarPaginacion() {
-    const container = document.getElementById('paginationContainer');
+    const container = document.getElementById('paginacionFichas');
     if (!container) return;
-    if (lastPage <= 1) { container.innerHTML = ''; return; }
 
-    let html = `<li class="page-item ${currentPage === 1 ? 'disabled' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(${currentPage - 1}); return false;">«</a></li>`;
-    let startPage = Math.max(1, currentPage - 2);
-    let endPage = Math.min(lastPage, currentPage + 2);
-
-    if (startPage > 1) {
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="cambiarPagina(1); return false;">1</a></li>`;
-        if (startPage > 2) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+    if (lastPage <= 1) {
+        container.innerHTML = `
+            <div class="pagination-info">Mostrando ${fichasData.length} de ${totalRegistros} registros</div>
+            <div class="pagination-btns"></div>
+        `;
+        return;
     }
 
-    for (let i = startPage; i <= endPage; i++) {
-        html += `<li class="page-item ${i === currentPage ? 'active' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(${i}); return false;">${i}</a></li>`;
+    // Info
+    const inicio = ((currentPage - 1) * perPage) + 1;
+    const fin = Math.min(currentPage * perPage, totalRegistros);
+
+    let html = `
+        <div class="pagination-info">
+            Mostrando ${inicio} a ${fin} de ${totalRegistros} registros
+        </div>
+        <div class="pagination-btns">
+    `;
+
+    // Anterior
+    html += `<button class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}"
+                onclick="cambiarPagina(${currentPage - 1})"
+                ${currentPage === 1 ? 'disabled' : ''}>«</button>`;
+
+    // Números
+    let start = Math.max(1, currentPage - 2);
+    let end = Math.min(lastPage, currentPage + 2);
+
+    if (start > 1) {
+        html += `<button class="pagination-btn" onclick="cambiarPagina(1)">1</button>`;
+        if (start > 2) html += `<span class="pagination-ellipsis">...</span>`;
     }
 
-    if (endPage < lastPage) {
-        if (endPage < lastPage - 1) html += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
-        html += `<li class="page-item"><a class="page-link" href="#" onclick="cambiarPagina(${lastPage}); return false;">${lastPage}</a></li>`;
+    for (let i = start; i <= end; i++) {
+        html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}"
+                    onclick="cambiarPagina(${i})">${i}</button>`;
     }
 
-    html += `<li class="page-item ${currentPage === lastPage ? 'disabled' : ''}"><a class="page-link" href="#" onclick="cambiarPagina(${currentPage + 1}); return false;">»</a></li>`;
+    if (end < lastPage) {
+        if (end < lastPage - 1) html += `<span class="pagination-ellipsis">...</span>`;
+        html += `<button class="pagination-btn" onclick="cambiarPagina(${lastPage})">${lastPage}</button>`;
+    }
+
+    // Siguiente
+    html += `<button class="pagination-btn ${currentPage === lastPage ? 'disabled' : ''}"
+                onclick="cambiarPagina(${currentPage + 1})"
+                ${currentPage === lastPage ? 'disabled' : ''}>»</button>`;
+
+    html += `</div>`;
+
     container.innerHTML = html;
-
-    const infoDiv = document.getElementById('paginationInfo');
-    if (infoDiv) {
-        infoDiv.innerHTML = `Mostrando ${fichasData.length} de ${totalRegistros} registros`;
-    }
 }
 
 window.cambiarPagina = function (page) {
@@ -289,7 +435,7 @@ function aplicarFiltrosConDebounce() {
 }
 
 // ============================================================
-// ⭐ CORREOS DE SOPORTE TÉCNICO ⭐
+// CORREOS DE SOPORTE TÉCNICO
 // ============================================================
 window.cargarCorreosSoporte = async function () {
     const container = document.getElementById('listaCorreos');
@@ -466,7 +612,7 @@ window.abrirCorreoSoporte = async function (id) {
             if (el) el.value = datos.problema;
         }
 
-        // ✅ Normalizar la fecha al formato Y-m-d
+        // Normalizar la fecha al formato Y-m-d
         const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
         if (fechaRaw) {
             const el = document.getElementById('wzFechaRequeridaSoporte');
@@ -530,7 +676,7 @@ window.iniciarWizardSoporte = function () {
         if (el) el.value = datos.problema;
     }
 
-    // ✅ Normalizar la fecha al formato Y-m-d
+    // Normalizar la fecha al formato Y-m-d
     const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
     if (fechaRaw) {
         const el = document.getElementById('wzFechaRequeridaSoporte');
@@ -723,7 +869,7 @@ function generarResumenSoporte() {
 }
 
 // ============================================================
-// ⭐ INICIALIZACIÓN (DOMContentLoaded) ⭐
+// INICIALIZACIÓN (DOMContentLoaded)
 // ============================================================
 document.addEventListener('DOMContentLoaded', function () {
     console.log('✅ Módulo de fichas de soporte inicializado');
@@ -744,7 +890,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ========== CARGA INICIAL ==========
-    cargarPagina(1);
+    // ✅ NO llamar a cargarPagina() aquí.
+    // El Blade ya renderiza la tabla con los datos iniciales.
+    // El JS solo debe pedir datos cuando el usuario interactúe
+    // (buscar, filtrar, cambiar de página, cerrar/eliminar una ficha).
     actualizarBadgeCorreosSoporte();
 
     // ========== SUBMIT FORM CERRAR FICHA ==========
@@ -960,7 +1109,7 @@ window.abrirModalCerrarFicha = async function (id) {
 };
 
 // ============================================================
-// VER DETALLE DE FICHA (MEJORADO)
+// VER DETALLE DE FICHA
 // ============================================================
 window.verDetalle = async function (id) {
     const modalBody = document.getElementById('detalleContenido');

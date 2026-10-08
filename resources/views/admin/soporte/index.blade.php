@@ -4,6 +4,444 @@
 
 @section('styles')
 @vite(['resources/css/admin-soporte.css'])
+<style>
+    /* ============================================================
+       OVERRIDES ALINEADOS CON PRÉSTAMOS / INVENTARIO / ENTIDADES
+       ============================================================ */
+
+    /* Header con gradiente */
+    .page-header {
+        background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        border-radius: 16px;
+        padding: 1.5rem 2rem;
+        margin-bottom: 1.5rem;
+        color: white;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .page-header h4 {
+        color: white;
+        font-weight: 700;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .page-header h4 svg { stroke: white; }
+    .page-header p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.85rem;
+        margin: 0;
+    }
+
+    .page-header .btn-header {
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        color: white;
+        border-radius: 10px;
+        padding: 0.55rem 1.25rem;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .page-header .btn-header:hover {
+        background: rgba(255, 255, 255, 0.25);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .page-header .btn-header svg { stroke: white; }
+
+    .page-header .dropdown-menu {
+        border-radius: 12px;
+        border: 1px solid #e9ecef;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        padding: 0.5rem;
+        min-width: 240px;
+    }
+    .page-header .dropdown-item {
+        border-radius: 8px;
+        padding: 0.6rem 0.9rem;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #1e3c72;
+        display: flex;
+        align-items: center;
+        gap: 0.6rem;
+        transition: all 0.2s ease;
+    }
+    .page-header .dropdown-item:hover {
+        background: #eef3fc;
+        color: #1e3c72;
+        transform: translateX(2px);
+    }
+    .page-header .dropdown-item svg { stroke: #1e3c72; flex-shrink: 0; }
+
+    /* ============================================================
+       TABLA — Tamaños idénticos a Préstamos / Inventario
+       ============================================================ */
+    .table-container {
+        background: white;
+        border-radius: 0.75rem 0.75rem 0 0;
+        border: 1px solid #e9ecef;
+        border-bottom: none;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        overflow-x: auto;
+    }
+    .table {
+        margin-bottom: 0;
+        font-size: 0.85rem;              /* ✅ igual que Préstamos */
+    }
+    .table thead th {
+        background: #f8f9fc;
+        color: #1e3c72;
+        font-weight: 600;
+        font-size: 0.7rem;               /* ✅ igual que Préstamos */
+        text-transform: uppercase;
+        letter-spacing: 0.6px;
+        border-bottom: 2px solid #1e3c72;
+        padding: 0.9rem 0.75rem;         /* ✅ igual que Préstamos */
+        white-space: nowrap;
+    }
+    .table tbody td {
+        vertical-align: middle;
+        padding: 0.85rem 0.75rem;        /* ✅ igual que Préstamos */
+        border-bottom: 1px solid #e9ecef;
+        font-size: 0.85rem;
+        color: #0f172a;
+    }
+    .table tbody td small {
+        font-size: 0.75rem;
+    }
+    .table-hover tbody tr {
+        transition: background 0.15s ease;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #eef3fc;
+    }
+    .table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* ============================================================
+       BADGES DE ESTADO
+       ============================================================ */
+    .badge-estado {
+        display: inline-block;
+        padding: 4px 10px;               /* ✅ igual que Préstamos */
+        border-radius: 20px;
+        font-size: 0.7rem;               /* ✅ igual que Préstamos */
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+        white-space: nowrap;
+    }
+    .badge-estado-en-proceso {
+        background: #fef9e7;
+        color: #92400e;
+        border: 1px solid #f59e0b;
+    }
+    .badge-estado-finalizado {
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #10b981;
+    }
+    .badge-estado-pendiente {
+        background: #eff6ff;
+        color: #1e40af;
+        border: 1px solid #3b82f6;
+    }
+    .badge-estado-rechazado {
+        background: #fef2f2;
+        color: #991b1b;
+        border: 1px solid #ef4444;
+    }
+    .badge-estado-cancelado {
+        background: #f8fafc;
+        color: #475569;
+        border: 1px solid #94a3b8;
+    }
+
+    /* Badge fecha de entrega */
+    .badge-fecha-entrega {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 4px 10px;
+        border-radius: 20px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        white-space: nowrap;
+    }
+    .badge-fecha-vigente  { background: #ecfdf5; color: #065f46; border: 1px solid #10b981; }
+    .badge-fecha-proxima  { background: #fef9e7; color: #92400e; border: 1px solid #f59e0b; }
+    .badge-fecha-vencida  { background: #fef2f2; color: #991b1b; border: 1px solid #ef4444; }
+    .badge-fecha-sin      { background: #f8fafc; color: #64748b; border: 1px solid #cbd5e1; }
+
+    /* ============================================================
+       BOTÓN "CERRAR" — suave pero con buen contraste
+       ============================================================ */
+    .btn-cerrar-ficha {
+        background: #fef9e7;
+        border: 1px solid #fcd34d;
+        color: #92400e;
+        padding: 0.3rem 0.7rem;
+        border-radius: 6px;
+        font-size: 0.75rem;              /* ✅ legible */
+        font-weight: 600;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+    }
+    .btn-cerrar-ficha:hover {
+        background: #fde68a;
+        border-color: #f59e0b;
+        transform: translateY(-1px);
+        box-shadow: 0 3px 8px rgba(245, 158, 11, 0.25);
+        color: #78350f;
+    }
+
+    /* Botones de acción — tamaño legible */
+    .btn-action {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: #6c757d;
+        padding: 0.3rem 0.5rem;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .btn-action:hover {
+        background: #eef3fc;
+        color: #1e3c72;
+        transform: scale(1.08);
+    }
+    .btn-action.text-danger:hover {
+        background: #fee2e2;
+        color: #c5221f;
+    }
+
+    /* ============================================================
+       FILTROS
+       ============================================================ */
+    .filters-bar {
+        background: white;
+        border: 1px solid #e9ecef;
+        border-top: none;
+        padding: 0.75rem 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        border-radius: 0 0 0.75rem 0.75rem;
+        margin-bottom: 1rem;
+    }
+    .filters-bar .input-group-text {
+        background: white;
+        border-right: none;
+        color: #6c757d;
+    }
+    .filters-bar .form-control,
+    .filters-bar .form-select {
+        border-radius: 8px;
+        border: 1px solid #e9ecef;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.82rem;
+        background: white;
+        transition: all 0.2s ease;
+    }
+    .filters-bar .input-group .form-control {
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+    }
+    .filters-bar .input-group .input-group-text {
+        border-radius: 8px 0 0 8px;
+    }
+    .filters-bar .form-control:focus,
+    .filters-bar .form-select:focus {
+        border-color: #1e3c72;
+        box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
+    }
+
+    /* ============================================================
+       TABS
+       ============================================================ */
+    .nav-tabs-custom {
+        display: flex;
+        gap: 0.25rem;
+        border-bottom: 2px solid #e9ecef;
+        margin-bottom: 0;
+        background: white;
+        padding: 0 0.5rem;
+        border-radius: 0.75rem 0.75rem 0 0;
+    }
+    .nav-tabs-custom .nav-link {
+        border: none;
+        padding: 0.85rem 1.5rem;         /* ✅ igual que Préstamos */
+        color: #6c757d;
+        font-weight: 500;
+        font-size: 0.85rem;              /* ✅ igual que Préstamos */
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 0;
+        background: transparent;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    .nav-tabs-custom .nav-link:hover {
+        color: #1e3c72;
+        background: #eef3fc;
+    }
+    .nav-tabs-custom .nav-link.active {
+        color: #1e3c72;
+        font-weight: 600;
+        background: transparent;
+    }
+    .nav-tabs-custom .nav-link.active::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, #1e3c72, #2a5298);
+        border-radius: 3px 3px 0 0;
+    }
+    .nav-tabs-custom .nav-link svg { stroke: currentColor; }
+    .tab-correos-badge {
+        background: #dc3545 !important;
+        color: white !important;
+        padding: 0.15rem 0.55rem;
+        border-radius: 20px;
+        font-size: 0.65rem;
+        font-weight: 800;
+        margin-left: 0.5rem;
+    }
+
+    /* ============================================================
+       PAGINACIÓN (idéntica al módulo de Instituciones)
+       ============================================================ */
+    .pagination-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.85rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        background: white;
+        border: 1px solid #e9ecef;
+        border-top: none;
+        border-radius: 0 0 0.75rem 0.75rem;
+    }
+    .pagination-info {
+        font-size: 0.8rem;
+        color: #6c757d;
+        font-weight: 500;
+    }
+    .pagination-btns {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-wrap: wrap;
+    }
+    .pagination-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 34px;
+        padding: 0 0.55rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #1e3c72;
+        background: white;
+        border: 1.5px solid #e9ecef;
+        border-radius: 8px;
+        text-decoration: none;
+        transition: all 0.25s ease;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        cursor: pointer;
+        user-select: none;
+        line-height: 1;
+    }
+    .pagination-btn:hover:not(.disabled):not(.active) {
+        background: #eef3fc;
+        border-color: #1e3c72;
+        color: #1e3c72;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(30, 60, 114, 0.15);
+    }
+    .pagination-btn.active {
+        background: linear-gradient(135deg, #1e3c72, #2a5298);
+        color: white;
+        border-color: #1e3c72;
+        box-shadow: 0 4px 12px rgba(30, 60, 114, 0.3);
+        font-weight: 700;
+    }
+    .pagination-btn.disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: none;
+    }
+    .pagination-ellipsis {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 34px;
+        height: 34px;
+        color: #6c757d;
+        font-weight: 600;
+        font-size: 0.82rem;
+    }
+
+    /* Responsive tabla en móvil */
+    @media (max-width: 576px) {
+        .table thead { display: none; }
+        .table tbody td {
+            display: block;
+            text-align: right;
+            padding-left: 50%;
+            position: relative;
+        }
+        .table tbody td::before {
+            content: attr(data-label);
+            position: absolute;
+            left: 0.75rem;
+            width: 45%;
+            text-align: left;
+            font-weight: 600;
+            color: #1e3c72;
+            font-size: 0.7rem;
+        }
+        .table tbody tr {
+            display: block;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            padding: 0.5rem 0;
+            background: white;
+        }
+        .table tbody td:last-child { border-bottom: none; }
+        .pagination-bar { flex-direction: column; align-items: center; }
+        .pagination-btn { min-width: 32px; height: 32px; font-size: 0.75rem; }
+    }
+</style>
 @endsection
 
 @section('content')
@@ -23,18 +461,18 @@
             <p>Gestión de mantenimiento y reparaciones</p>
         </div>
         <div class="dropdown">
-            <button class="btn btn-primary-dark dropdown-toggle" type="button" data-bs-toggle="dropdown" style="color: #fff;">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="me-1" style="display:inline-block;">
+            <button class="btn-header dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <line x1="12" y1="5" x2="12" y2="19"/>
                     <line x1="5" y1="12" x2="19" y2="12"/>
                 </svg>
                 Nueva Ficha
             </button>
-            <ul class="dropdown-menu">
+            <ul class="dropdown-menu dropdown-menu-end">
                 @if(auth()->user()->hasPermission('crear-ficha-soporte'))
                 <li>
                     <a class="dropdown-item" href="#" onclick="window.abrirModalCrearFicha(); return false;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2" style="display:inline-block;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="2" y="6" width="20" height="12" rx="2"/>
                         </svg>
                         Crear Ficha Soporte
@@ -42,7 +480,7 @@
                 </li>
                 <li>
                     <a class="dropdown-item" href="#" onclick="window.abrirModalEquipoExterno(); return false;">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="me-2" style="display:inline-block;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
                             <line x1="9" y1="4" x2="9" y2="20"/>
                             <line x1="15" y1="4" x2="15" y2="20"/>
@@ -105,10 +543,10 @@
     </div>
 
     {{-- ========== TABS ========== --}}
-    <ul class="nav nav-tabs-custom mb-3" id="soporteTabs" role="tablist">
+    <ul class="nav nav-tabs-custom" id="soporteTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="tab-fichas" data-bs-toggle="tab" data-bs-target="#panel-fichas" type="button" role="tab">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="6" width="20" height="12" rx="2"/>
                 </svg>
                 Fichas de Soporte
@@ -117,7 +555,7 @@
         @if(auth()->user()->hasPermission('ver-fichas-soporte'))
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="tab-correos" data-bs-toggle="tab" data-bs-target="#panel-correos" type="button" role="tab">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <rect x="2" y="4" width="20" height="16" rx="2"/>
                     <path d="M22 7l-10 7L2 7"/>
                 </svg>
@@ -136,50 +574,57 @@
         {{-- PANEL 1: FICHAS DE SOPORTE --}}
         {{-- ============================================ --}}
         <div class="tab-pane fade show active" id="panel-fichas" role="tabpanel">
+
+            {{-- Filtros --}}
             <div class="filters-bar">
-                <div class="filtro-busqueda">
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"/>
-                                <path d="M21 21l-4.35-4.35"/>
-                            </svg>
-                        </span>
-                        <input type="text" class="form-control" id="buscarFichas" placeholder="Buscar por activo, técnico, reportante...">
-                    </div>
+                <div class="input-group" style="max-width: 350px;">
+                    <span class="input-group-text">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                    </span>
+                    <input type="text" class="form-control" id="buscarFichas"
+                           placeholder="Buscar por activo, técnico, reportante...">
                 </div>
-                <div class="d-flex gap-2 flex-wrap">
-                    <select class="form-select form-select-sm" id="filtroEstadoFichas" style="width: 160px;">
+                <div class="d-flex gap-2 flex-wrap align-items-center">
+                    <select class="form-select" id="filtroEstadoFichas" style="width: 180px;">
                         <option value="">Todos los estados</option>
                         <option value="en_proceso">En Proceso</option>
+                        <option value="aceptada">Aceptada</option>
                         <option value="finalizado">Finalizados</option>
+                        <option value="rechazada">Rechazada</option>
                     </select>
                     <button class="btn btn-outline-primary-dark btn-sm" id="limpiarFiltros">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M3 6h18M8 6V4h8v2M18 6v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6"/>
+                        </svg>
                         Limpiar
                     </button>
                 </div>
             </div>
 
+            {{-- Tabla --}}
             <div class="table-container">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Activo</th>
-                                <th>Técnico</th>
-                                <th>Reporta</th>
-                                <th>Ingreso</th>
-                                <th>F. Requerida</th>
-                                <th>Salida</th>
-                                <th>Estado</th>
-                                <th class="text-end">Acciones</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tablaFichas">
-                            @forelse($fichas as $ficha)
-                            <tr>
-                                <td>
-                                    @if($ficha->activo)
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th>Activo</th>
+                            <th>Técnico</th>
+                            <th>Reporta</th>
+                            <th>Ingreso</th>
+                            <th>F. Requerida</th>
+                            <th>Salida</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaFichas">
+                        @forelse($fichas as $ficha)
+                        <tr>
+                            {{-- Activo --}}
+                            <td data-label="Activo">
+                                @if($ficha->activo)
                                     <span class="fw-medium" style="color:#1e3c72;">
                                         {{ $ficha->activo->serial }}
                                     </span>
@@ -187,95 +632,195 @@
                                     <small class="text-muted">
                                         {{ $ficha->activo->modelo?->nombre ?? 'N/A' }}
                                     </small>
-                                    @else
+                                @else
                                     <span class="text-muted">Equipo externo</span>
-                                    @endif
-                                </td>
-                                <td>{{ $ficha->tecnico_nombre ?? '---' }}</td>
-                                <td>{{ $ficha->usuario_reporta_nombre ?? '---' }}</td>
-                                <td>
-                                    <small>{{ $ficha->fecha_ingreso?->format('d/m/Y') ?? 'N/A' }}</small>
-                                </td>
-                                <td>
-                                    @if($ficha->fecha_requerida_entrega)
+                                @endif
+                            </td>
+
+                            {{-- Técnico --}}
+                            <td data-label="Técnico">{{ $ficha->tecnico_nombre ?? '---' }}</td>
+
+                            {{-- Reporta --}}
+                            <td data-label="Reporta">{{ $ficha->usuario_reporta_nombre ?? '---' }}</td>
+
+                            {{-- Fecha Ingreso --}}
+                            <td data-label="Ingreso">
+                                @if($ficha->fecha_ingreso)
+                                    <small class="fw-medium">
+                                        {{ $ficha->fecha_ingreso->format('d/m/Y') }}
+                                    </small>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ $ficha->fecha_ingreso->format('H:i') }}
+                                    </small>
+                                @else
+                                    <small class="text-muted">---</small>
+                                @endif
+                            </td>
+
+                            {{-- Fecha Requerida --}}
+                            <td data-label="F. Requerida">
+                                @if($ficha->fecha_requerida_entrega)
                                     @php
-                                    $dias = $ficha->dias_restantes;
-                                    $clase = 'badge-fecha-vigente';
-                                    $texto = $ficha->fecha_requerida_entrega->format('d/m/Y');
-                                    if ($ficha->esta_vencida) {
-                                        $clase = 'badge-fecha-vencida';
-                                        $texto .= ' (Vencida)';
-                                    } elseif ($dias !== null && $dias <= 3) {
-                                        $clase = 'badge-fecha-proxima';
-                                        $texto .= " ({$dias} d)";
-                                    }
+                                        $dias = $ficha->dias_restantes;
+                                        $clase = 'badge-fecha-vigente';
+                                        $texto = $ficha->fecha_requerida_entrega->format('d/m/Y');
+                                        if ($ficha->esta_vencida) {
+                                            $clase = 'badge-fecha-vencida';
+                                            $texto .= ' (Vencida)';
+                                        } elseif ($dias !== null && $dias <= 3) {
+                                            $clase = 'badge-fecha-proxima';
+                                            $texto .= " ({$dias} d)";
+                                        }
                                     @endphp
                                     <span class="badge-fecha-entrega {{ $clase }}">
                                         {{ $texto }}
                                     </span>
-                                    @else
+                                @else
                                     <span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>
-                                    @endif
-                                </td>
-                                <td>
-                                    <small>{{ $ficha->fecha_salida?->format('d/m/Y') ?? '---' }}</small>
-                                </td>
-                                <td>
-                                    @if($ficha->estado === 'en_proceso')
-                                    <span class="badge-estado-en-proceso">En Proceso</span>
-                                    @else
-                                    <span class="badge-estado-finalizado">Finalizado</span>
-                                    @endif
-                                </td>
-                                <td class="text-end">
-                                    <button type="button" class="btn-action btn-outline-primary-dark" onclick="verDetalle({{ $ficha->id }})" title="Ver detalle">
+                                @endif
+                            </td>
+
+                            {{-- Fecha Salida --}}
+                            <td data-label="Salida">
+                                @if($ficha->fecha_salida)
+                                    <small class="fw-medium" style="color: #1e7e34;">
+                                        {{ $ficha->fecha_salida->format('d/m/Y') }}
+                                    </small>
+                                    <br>
+                                    <small class="text-muted">
+                                        {{ $ficha->fecha_salida->format('H:i') }}
+                                    </small>
+                                @else
+                                    <small class="text-muted">---</small>
+                                @endif
+                            </td>
+
+                            {{-- Estado --}}
+                            <td data-label="Estado">
+                                @php
+                                    $estadoLabel = match($ficha->estado) {
+                                        'en_proceso' => 'En Proceso',
+                                        'aceptada'   => 'Aceptada',
+                                        'rechazada'  => 'Rechazada',
+                                        'finalizado' => 'Finalizado',
+                                        'cancelada'  => 'Cancelada',
+                                        default      => ucfirst($ficha->estado),
+                                    };
+                                    $estadoBadge = match($ficha->estado) {
+                                        'en_proceso' => 'badge-estado-en-proceso',
+                                        'aceptada'   => 'badge-estado-pendiente',
+                                        'rechazada'  => 'badge-estado-rechazado',
+                                        'finalizado' => 'badge-estado-finalizado',
+                                        'cancelada'  => 'badge-estado-cancelado',
+                                        default      => 'badge-estado',
+                                    };
+                                @endphp
+                                <span class="badge-estado {{ $estadoBadge }}">
+                                    {{ $estadoLabel }}
+                                </span>
+                            </td>
+
+                            {{-- Acciones --}}
+                            <td data-label="Acciones" class="text-end">
+                                <div class="d-flex gap-1 justify-content-end">
+                                    <button type="button" class="btn-action"
+                                            onclick="verDetalle({{ $ficha->id }})" title="Ver detalle">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <circle cx="12" cy="12" r="10"/>
                                             <path d="M12 8v4"/>
                                             <path d="M12 16h.01"/>
                                         </svg>
                                     </button>
-                                    @if($ficha->estado === 'en_proceso')
-                                    <button type="button" class="btn-cerrar-ficha ms-1" onclick="abrirModalCerrarFicha({{ $ficha->id }})" title="Cerrar ficha">
-                                        ✓ Cerrar
-                                    </button>
+
+                                    @if(in_array($ficha->estado, ['en_proceso', 'aceptada']))
+                                        <button type="button" class="btn-cerrar-ficha"
+                                                onclick="abrirModalCerrarFicha({{ $ficha->id }})"
+                                                title="Cerrar ficha">
+                                            ✓ Cerrar
+                                        </button>
                                     @endif
+
                                     @if(auth()->user()->hasPermission('eliminar-ficha-soporte'))
-                                    <button type="button" class="btn-action text-danger ms-1" onclick="confirmarEliminar({{ $ficha->id }})" title="Eliminar">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="3 6 5 6 21 6"/>
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                        </svg>
-                                    </button>
+                                        <button type="button" class="btn-action text-danger"
+                                                onclick="confirmarEliminar({{ $ficha->id }})"
+                                                title="Eliminar">
+                                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="3 6 5 6 21 6"/>
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                            </svg>
+                                        </button>
                                     @endif
-                                </td>
-                            </tr>
-                            @empty
-                            <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
-                                        <rect x="2" y="6" width="20" height="12" rx="2"/>
-                                    </svg>
-                                    <p>No hay fichas de soporte registradas</p>
-                                </td>
-                            </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="8" class="text-center py-5 text-muted">
+                                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
+                                    <rect x="2" y="6" width="20" height="12" rx="2"/>
+                                </svg>
+                                <p>No hay fichas de soporte registradas</p>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
 
-            @if($fichas->hasPages())
-            <div class="d-flex justify-content-between align-items-center mt-3">
-                <div class="text-muted small" id="paginationInfo">
-                    Mostrando {{ $fichas->firstItem() }} a {{ $fichas->lastItem() }}
-                    de {{ $fichas->total() }} registros
+            {{-- Paginación (mismo estilo que Instituciones) --}}
+            <div class="pagination-bar" id="paginacionFichas">
+                <div class="pagination-info">
+                    @if($fichas->total() > 0)
+                        Mostrando {{ $fichas->firstItem() }} a {{ $fichas->lastItem() }}
+                        de {{ $fichas->total() }} registros
+                    @else
+                        Sin registros
+                    @endif
                 </div>
-                <nav>
-                    {{ $fichas->links() }}
-                </nav>
+                <div class="pagination-btns">
+                    {{-- Anterior --}}
+                    <button class="pagination-btn {{ $fichas->onFirstPage() ? 'disabled' : '' }}"
+                            onclick="cambiarPagina({{ $fichas->currentPage() - 1 }})"
+                            {{ $fichas->onFirstPage() ? 'disabled' : '' }}>
+                        «
+                    </button>
+
+                    {{-- Números de página --}}
+                    @php
+                        $currentPage = $fichas->currentPage();
+                        $lastPage = $fichas->lastPage();
+                        $start = max(1, $currentPage - 2);
+                        $end = min($lastPage, $currentPage + 2);
+                    @endphp
+
+                    @if($start > 1)
+                        <button class="pagination-btn" onclick="cambiarPagina(1)">1</button>
+                        @if($start > 2)
+                            <span class="pagination-ellipsis">...</span>
+                        @endif
+                    @endif
+
+                    @for($i = $start; $i <= $end; $i++)
+                        <button class="pagination-btn {{ $i === $currentPage ? 'active' : '' }}"
+                                onclick="cambiarPagina({{ $i }})">
+                            {{ $i }}
+                        </button>
+                    @endfor                    @if($end < $lastPage)
+                        @if($end < $lastPage - 1)
+                            <span class="pagination-ellipsis">...</span>
+                        @endif
+                        <button class="pagination-btn" onclick="cambiarPagina({{ $lastPage }})">{{ $lastPage }}</button>
+                    @endif
+
+                    {{-- Siguiente --}}
+                    <button class="pagination-btn {{ !$fichas->hasMorePages() ? 'disabled' : '' }}"
+                            onclick="cambiarPagina({{ $fichas->currentPage() + 1 }})"
+                            {{ !$fichas->hasMorePages() ? 'disabled' : '' }}>
+                        »
+                    </button>
+                </div>
             </div>
-            @endif
         </div>
 
         {{-- ============================================ --}}
@@ -283,7 +828,7 @@
         {{-- ============================================ --}}
         @if(auth()->user()->hasPermission('ver-fichas-soporte'))
         <div class="tab-pane fade" id="panel-correos" role="tabpanel">
-            <div class="filters-bar">
+            <div class="filters-bar" style="border-top: 1px solid #e9ecef; border-radius: 0.75rem;">
                 <div class="input-group" style="max-width: 400px;">
                     <span class="input-group-text">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
@@ -291,21 +836,24 @@
                             <path d="M21 21l-4.35-4.35"/>
                         </svg>
                     </span>
-                    <input type="text" class="form-control" id="buscarCorreo" placeholder="Buscar por remitente, asunto...">
+                    <input type="text" class="form-control" id="buscarCorreo"
+                           placeholder="Buscar por remitente, asunto...">
                 </div>
-                <select class="form-select" id="filtroCorreo" style="max-width: 200px;">
-                    <option value="">Todos</option>
-                    <option value="no_leidos">No leídos</option>
-                    <option value="no_procesados">Sin procesar</option>
-                    <option value="procesados">Procesados</option>
-                </select>
-                <button class="btn btn-primary-dark" onclick="revisarCorreos()" id="btnRevisarCorreos">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:4px;">
-                        <polyline points="23 4 23 10 17 10"/>
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                    </svg>
-                    Revisar ahora
-                </button>
+                <div class="d-flex gap-2 flex-wrap">
+                    <select class="form-select" id="filtroCorreo" style="max-width: 200px;">
+                        <option value="">Todos</option>
+                        <option value="no_leidos">No leídos</option>
+                        <option value="no_procesados">Sin procesar</option>
+                        <option value="procesados">Procesados</option>
+                    </select>
+                    <button class="btn btn-primary-dark" onclick="revisarCorreos()" id="btnRevisarCorreos" style="color: #fff;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:4px;">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Revisar ahora
+                    </button>
+                </div>
             </div>
             <div id="listaCorreos" class="p-3" style="background: white; border-radius: 12px;">
                 <div class="text-center py-5 text-muted">
@@ -319,8 +867,10 @@
 </div>
 
 {{-- ============================================================ --}}
-{{-- MODAL: CREAR FICHA MANUAL --}}
+{{-- MODALES --}}
 {{-- ============================================================ --}}
+
+{{-- Modal Crear Ficha --}}
 <div class="modal fade" id="modalCrearFicha" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -399,16 +949,14 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary-dark" id="btnGuardarFicha">Guardar Ficha</button>
+                    <button type="submit" class="btn btn-primary-dark" id="btnGuardarFicha" style="color:#fff;">Guardar Ficha</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-{{-- ============================================================ --}}
-{{-- MODAL: EQUIPO EXTERNO --}}
-{{-- ============================================================ --}}
+{{-- Modal Equipo Externo --}}
 <div class="modal fade" id="modalEquipoExterno" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -542,7 +1090,7 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-primary-dark" id="btnGuardarEquipoExterno">
+                    <button type="submit" class="btn btn-primary-dark" id="btnGuardarEquipoExterno" style="color:#fff;">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline-block; margin-right:4px;">
                             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
                             <polyline points="17 21 17 13 7 13 7 21"/>
@@ -556,9 +1104,7 @@
     </div>
 </div>
 
-{{-- ============================================================ --}}
-{{-- MODAL: CERRAR FICHA --}}
-{{-- ============================================================ --}}
+{{-- Modal Cerrar Ficha --}}
 <div class="modal fade" id="modalCerrarFicha" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -603,9 +1149,7 @@
     </div>
 </div>
 
-{{-- ============================================================ --}}
-{{-- MODAL: DETALLE --}}
-{{-- ============================================================ --}}
+{{-- Modal Detalle --}}
 <div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
@@ -617,15 +1161,13 @@
                 <div class="text-center py-4 text-muted">Cargando...</div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-primary-dark" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-primary-dark" data-bs-dismiss="modal" style="color:#fff;">Cerrar</button>
             </div>
         </div>
     </div>
 </div>
 
-{{-- ============================================================ --}}
-{{-- MODAL: ELIMINAR --}}
-{{-- ============================================================ --}}
+{{-- Modal Eliminar --}}
 <div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
@@ -646,9 +1188,7 @@
     </div>
 </div>
 
-{{-- ============================================================ --}}
-{{-- MODAL: CORREO + WIZARD DE CONVERSIÓN --}}
-{{-- ============================================================ --}}
+{{-- Modal Correo + Wizard --}}
 @include('admin.soporte.partials.modal-correo-wizard')
 
 {{-- Notificaciones --}}

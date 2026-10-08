@@ -212,7 +212,6 @@
     left: 0;
     right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
     border-radius: 3px 3px 0 0;
 }
 
@@ -298,7 +297,7 @@
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 1px;
-    border-bottom: 2px solid var(--primary-dark);
+    border-bottom: 1px solid #e9ecef;
     padding: 1rem 1.25rem;
     white-space: nowrap;
 }
@@ -315,11 +314,10 @@
 }
 
 .table-hover tbody tr:hover {
-    background-color: var(--primary-lighter);
-    transform: scale(1.002);
+    background-color: #f8fafc;
 }
 
-/* ============ BADGES ============ */
+/* ============ BADGES ESTADO Y PRIORIDAD ============ */
 .badge-estado {
     display: inline-block;
     padding: 0.35rem 0.9rem;
@@ -328,13 +326,10 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
 }
-
-.badge-estado-pendiente { background: #fff3cd; color: #856404; }
-.badge-estado-aprobada { background: #d4edda; color: #155724; }
-.badge-estado-rechazada { background: #f8d7da; color: #721c24; }
-.badge-estado-cancelada { background: #e2e3e5; color: #383d41; }
-.badge-estado-entregada { background: #cce5ff; color: #004085; }
 
 .badge-prioridad {
     display: inline-block;
@@ -343,12 +338,67 @@
     font-size: 0.7rem;
     font-weight: 700;
     text-transform: uppercase;
+    letter-spacing: 0.4px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
 }
 
-.badge-prioridad-baja { background: #e9ecef; color: #6c757d; }
-.badge-prioridad-normal { background: #d4edda; color: #155724; }
-.badge-prioridad-alta { background: #fff3cd; color: #856404; }
-.badge-prioridad-urgente { background: #f8d7da; color: #721c24; }
+/* --- Estados con colores suaves --- */
+.badge-estado-pendiente {
+    background: #fef9e7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+.badge-estado-aprobada {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.badge-estado-rechazada {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.badge-estado-cancelada {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #94a3b8;
+}
+
+.badge-estado-entregada {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #3b82f6;
+}
+
+/* --- Prioridades con colores suaves --- */
+.badge-prioridad-baja {
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+}
+
+.badge-prioridad-normal {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.badge-prioridad-alta {
+    background: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #f97316;
+}
+
+.badge-prioridad-urgente {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
 
 .badge-nueva {
     background: #dc3545;
@@ -362,8 +412,8 @@
 }
 
 .solicitud-no-leida {
-    background-color: #fff8e1 !important;
-    border-left: 4px solid var(--accent-color) !important;
+    background-color: #ffffff;
+    border-left: 3px solid #e2e8f0;
 }
 
 /* ============ BOTONES ============ */
@@ -379,7 +429,6 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-   
 }
 
 .btn-primary-dark:hover {
@@ -481,7 +530,7 @@
 }
 
 .detalle-modal-header {
-    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-light) 100%);
+    background: #334155;
     padding: 1.75rem 2.25rem;
     display: flex;
     justify-content: space-between;
@@ -626,6 +675,7 @@
     flex-wrap: wrap;
 }
 
+/* ============ DETALLE BADGES CON COLORES SUAVES ============ */
 .detalle-badge {
     display: inline-flex;
     align-items: center;
@@ -636,17 +686,66 @@
     font-weight: 700;
     letter-spacing: 0.3px;
     text-transform: uppercase;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
 }
 
-.detalle-badge.prioridad-baja { background: #f1f5f9; color: #475569; }
-.detalle-badge.prioridad-normal { background: #dbeafe; color: #1e40af; }
-.detalle-badge.prioridad-alta { background: #fef3c7; color: #92400e; }
-.detalle-badge.prioridad-urgente { background: #fee2e2; color: #991b1b; }
+/* --- Prioridades en detalle --- */
+.detalle-badge.prioridad-baja {
+    background: #f8fafc;
+    color: #64748b;
+    border: 1px solid #cbd5e1;
+}
 
-.detalle-badge.estado-pendiente { background: #fef3c7; color: #92400e; }
-.detalle-badge.estado-aprobada { background: #d1fae5; color: #065f46; }
-.detalle-badge.estado-rechazada { background: #fee2e2; color: #991b1b; }
-.detalle-badge.estado-cancelada { background: #f1f5f9; color: #475569; }
+.detalle-badge.prioridad-normal {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.detalle-badge.prioridad-alta {
+    background: #fff7ed;
+    color: #9a3412;
+    border: 1px solid #f97316;
+}
+
+.detalle-badge.prioridad-urgente {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+/* --- Estados en detalle --- */
+.detalle-badge.estado-pendiente {
+    background: #fef9e7;
+    color: #92400e;
+    border: 1px solid #f59e0b;
+}
+
+.detalle-badge.estado-aprobada {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.detalle-badge.estado-rechazada {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.detalle-badge.estado-cancelada {
+    background: #f8fafc;
+    color: #475569;
+    border: 1px solid #94a3b8;
+}
+
+.detalle-badge.estado-entregada {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #3b82f6;
+}
 
 .detalle-info-grid {
     display: grid;
@@ -739,12 +838,21 @@
     left: 0;
     width: 4px;
     height: 100%;
-    background: var(--primary-dark);
+    background: #cbd5e1;
 }
 
-.detalle-timeline-item.fecha-solicitud::before { background: #64748b; }
-.detalle-timeline-item.fecha-requerida::before { background: var(--accent-color); }
-.detalle-timeline-item.fecha-fin::before { background: #10b981; }
+/* --- Timeline con colores suaves por tipo --- */
+.detalle-timeline-item.fecha-solicitud::before {
+    background: #94a3b8;
+}
+
+.detalle-timeline-item.fecha-requerida::before {
+    background: #f59e0b;
+}
+
+.detalle-timeline-item.fecha-fin::before {
+    background: #10b981;
+}
 
 .detalle-timeline-date {
     font-size: 1.1rem;
@@ -799,6 +907,7 @@
 .detalle-items-table tr:hover td { background: var(--bg-light); }
 .detalle-items-table td.text-center { text-align: center; }
 
+/* ============ TIPO DE ITEM CON COLORES SUAVES ============ */
 .detalle-item-tipo {
     display: inline-flex;
     align-items: center;
@@ -809,20 +918,33 @@
     font-weight: 800;
     text-transform: uppercase;
     letter-spacing: 0.3px;
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #cbd5e1;
 }
 
-.detalle-item-tipo.activo { background: #dbeafe; color: #1e40af; }
-.detalle-item-tipo.componente { background: #ede9fe; color: #5b21b6; }
+.detalle-item-tipo.activo {
+    background: #eff6ff;
+    color: #1e40af;
+    border: 1px solid #3b82f6;
+}
+
+.detalle-item-tipo.componente {
+    background: #f5f3ff;
+    color: #5b21b6;
+    border: 1px solid #8b5cf6;
+}
 
 .detalle-item-cantidad {
     display: inline-block;
     min-width: 36px;
     padding: 5px 12px;
     border-radius: 8px;
-    background: var(--primary-dark);
-    color: white;
+    background: #f1f5f9;
+    color: #334155;
     font-weight: 700;
     font-size: 0.85rem;
+    border: 1px solid #e2e8f0;
 }
 
 .detalle-empty {
