@@ -5,6 +5,7 @@
 // ✅ Badge de estado del activo unificado con Préstamos
 // ✅ FIX: listener de institución/departamento usa .onchange (sin cloneNode)
 // ✅ NUEVO: Filtrado en servidor + Exportación contextual (PDF/Excel)
+// ✅ NUEVO: Botón de reporte individual (ficha técnica) por activo
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -30,7 +31,8 @@ var SVG_ICONS = {
     ver: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',
     editar: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
     eliminar: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg>',
-    cambiarEstado: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>'
+    cambiarEstado: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 102.13-9.36L1 10"/></svg>',
+    reporte: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>'
 };
 
 // ============================================================
@@ -1021,6 +1023,7 @@ function renderizarActivosFiltrados(filtrados) {
             '<td data-label="Acciones" class="text-end">' +
             '<div class="d-flex gap-1 justify-content-end">' +
             '<button class="btn-action" onclick="verActivo(' + a.id + ')" title="Ver detalle">' + SVG_ICONS.ver + '</button>' +
+            '<button class="btn-action" onclick="generarReporteActivo(' + a.id + ')" title="Ficha técnica (PDF)">' + SVG_ICONS.reporte + '</button>' +
             (puedeEditar ? '<button class="btn-action" onclick="editarActivo(' + a.id + ')" title="Editar">' + SVG_ICONS.editar + '</button>' : '') +
             (mostrarBotonEstado ? '<button class="btn-action" onclick="abrirModalCambiarEstado(' + a.id + ', \'' + escapeHtml(a.serial) + '\', \'' + estadoDescripcion + '\', ' + (a.estatus ? a.estatus.id : 'null') + ')" title="Cambiar estado">' + SVG_ICONS.cambiarEstado + '</button>' : '') +
             (puedeEliminar ? '<button class="btn-action text-danger" onclick="confirmarEliminarActivo(' + a.id + ')" title="Eliminar">' + SVG_ICONS.eliminar + '</button>' : '') +
@@ -1647,6 +1650,20 @@ function confirmarEliminacion() {
 }
 
 // ============================================================
+// REPORTE INDIVIDUAL (Ficha Técnica del Activo)
+// Se abre en una nueva pestaña para previsualizar antes de imprimir
+// ============================================================
+window.generarReporteActivo = function(id) {
+    var url = '/admin/reportes/ficha/activo-individual/' + id;
+
+    var ventana = window.open(url, '_blank');
+
+    if (!ventana) {
+        mostrarToast('Por favor, permita ventanas emergentes para generar el reporte.', 'warning');
+    }
+};
+
+// ============================================================
 // EXPORTACIÓN CONTEXTUAL (respeta filtros de pantalla)
 // ============================================================
 window.exportarInventario = function (formato) {
@@ -1674,35 +1691,35 @@ window.exportarInventario = function (formato) {
     }
 };
 
-    // ============================================================
-    // EXPORTACIÓN CONTEXTUAL - COMPONENTES
-    // ============================================================
-    window.exportarComponentes = function (formato) {
-        if (formato !== 'pdf' && formato !== 'xlsx') {
-            console.warn('Formato no soportado:', formato);
-            return;
-        }
+// ============================================================
+// EXPORTACIÓN CONTEXTUAL - COMPONENTES
+// ============================================================
+window.exportarComponentes = function (formato) {
+    if (formato !== 'pdf' && formato !== 'xlsx') {
+        console.warn('Formato no soportado:', formato);
+        return;
+    }
 
-        var buscarInput = document.getElementById('buscarComponentes');
-        var tipoSelect = document.getElementById('filtroTipoComponentes');
-        var estadoSelect = document.getElementById('filtroEstadoComponentes');
+    var buscarInput = document.getElementById('buscarComponentes');
+    var tipoSelect = document.getElementById('filtroTipoComponentes');
+    var estadoSelect = document.getElementById('filtroEstadoComponentes');
 
-        var params = new URLSearchParams();
+    var params = new URLSearchParams();
 
-        var buscar = buscarInput ? buscarInput.value.trim() : '';
-        if (buscar) params.append('buscar', buscar);
+    var buscar = buscarInput ? buscarInput.value.trim() : '';
+    if (buscar) params.append('buscar', buscar);
 
-        var tipo = tipoSelect ? tipoSelect.value : '';
-        if (tipo) params.append('tipo', tipo);
+    var tipo = tipoSelect ? tipoSelect.value : '';
+    if (tipo) params.append('tipo', tipo);
 
-        var estado = estadoSelect ? estadoSelect.value : '';
-        if (estado) params.append('estado', estado);
+    var estado = estadoSelect ? estadoSelect.value : '';
+    if (estado) params.append('estado', estado);
 
-        var qs = params.toString();
-        var url = '/admin/reportes/componentes-listado/export/' + formato + (qs ? '?' + qs : '');
+    var qs = params.toString();
+    var url = '/admin/reportes/componentes-listado/export/' + formato + (qs ? '?' + qs : '');
 
-        var ventana = window.open(url, '_blank');
-        if (!ventana) {
-            alert('Por favor, permita ventanas emergentes para exportar el reporte.');
-        }
-    };
+    var ventana = window.open(url, '_blank');
+    if (!ventana) {
+        alert('Por favor, permita ventanas emergentes para exportar el reporte.');
+    }
+};

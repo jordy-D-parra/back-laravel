@@ -3,6 +3,7 @@
 namespace App\Reports;
 
 use App\Reports\Contracts\ReportInterface;
+use App\Reports\Contracts\IndividualReportInterface;
 
 class ReportRegistry
 {
@@ -33,10 +34,20 @@ class ReportRegistry
         "auditoria"             => \App\Reports\Definitions\AuditoriaReport::class,
     ];
 
+    /**
+     * Reportes individuales (de un solo registro).
+     * Aqui se iran agregando los demas (solicitud, prestamo, soporte).
+     */
+    protected static array $individualReports = [
+        'activo-individual' => \App\Reports\Definitions\ActivoIndividualReport::class,
+    ];
+
+    // ============================================================
+    // REPORTES DE LISTADO
+    // ============================================================
     public static function make(string $key): ReportInterface
     {
         abort_unless(isset(self::$reports[$key]), 404, "Reporte " . $key . " no encontrado");
-
         return app(self::$reports[$key]);
     }
 
@@ -66,5 +77,19 @@ class ReportRegistry
     public static function keys(): array
     {
         return array_keys(self::$reports);
+    }
+
+    // ============================================================
+    // REPORTES INDIVIDUALES
+    // ============================================================
+    public static function makeIndividual(string $key): IndividualReportInterface
+    {
+        abort_unless(isset(self::$individualReports[$key]), 404, "Reporte individual " . $key . " no encontrado");
+        return app(self::$individualReports[$key]);
+    }
+
+    public static function hasIndividual(string $key): bool
+    {
+        return isset(self::$individualReports[$key]);
     }
 }

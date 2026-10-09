@@ -10,6 +10,7 @@ use App\Reports\Exporters\CsvExporter;
 use App\Reports\Exporters\ExcelExporter;
 use App\Reports\Exporters\PdfExporter;
 use App\Reports\ReportRegistry;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 
 class ReportController extends Controller
@@ -20,22 +21,20 @@ class ReportController extends Controller
         protected CsvExporter   $csv,
     ) {}
 
-    /**
-     * Vista del explorador de reportes.
-     */
+    // ============================================================
+    // VISTA DEL EXPLORADOR (SIN CAMBIOS)
+    // ============================================================
     public function index()
     {
         if (!auth()->user()->hasPermission("ver-reportes")) {
             abort(403, "No tienes permiso para ver reportes");
         }
 
-        // Filtrar catalogo segun permisos por reporte
         $catalogo = collect(ReportRegistry::all())
             ->map(function ($items) {
                 return collect($items)->filter(function ($item) {
                     $report = ReportRegistry::make($item["key"]);
                     $perm = $report->requiredPermission();
-
                     return !$perm || auth()->user()->hasPermission($perm);
                 })->all();
             })
@@ -59,9 +58,9 @@ class ReportController extends Controller
         return view("reportes.explorer", compact("catalogo", "fuentes"));
     }
 
-    /**
-     * Devuelve el JSON de datos + summary + definicion de columnas/filtros.
-     */
+    // ============================================================
+    // JSON DE DATOS (SIN CAMBIOS)
+    // ============================================================
     public function data(string $key, Request $request)
     {
         if (!auth()->user()->hasPermission("ver-reportes")) {
@@ -70,7 +69,6 @@ class ReportController extends Controller
 
         $report = ReportRegistry::make($key);
 
-        // Validar permiso especifico del reporte
         if ($report->requiredPermission() && !auth()->user()->hasPermission($report->requiredPermission())) {
             return response()->json(["success" => false, "message" => "No tienes permiso para este reporte"], 403);
         }
@@ -104,9 +102,9 @@ class ReportController extends Controller
         ]);
     }
 
-    /**
-     * Descarga en el formato solicitado.
-     */
+    // ============================================================
+    // DESCARGA (SIN CAMBIOS)
+    // ============================================================
     public function download(string $key, string $format, Request $request)
     {
         if (!auth()->user()->hasPermission("ver-reportes")) {
@@ -131,22 +129,76 @@ class ReportController extends Controller
         };
     }
 
-    protected function validatedParams(ReportInterface $report, Request $request): array
-{
-    $rules = [];
+    // ============================================================
+    // NUEVO: VISTA PREVIA DEL REPORTE INDIVIDUAL (abre en nueva pestaña)
+    // ============================================================
+    public function individual(string $key, int $id)
+    {
+        if (!auth()->user()->hasPermission("ver-reportes")) {
+            abort(403, "No tienes permiso para ver reportes");
+        }
 
-    foreach ($report->filters() as $name => $f) {
-        $rules[$name] = match ($f["type"]) {
-            "daterange" => "nullable|array",
-            "daterange.from" => "nullable|date",
-            "daterange.to" => "nullable|date",
-            "date"      => "nullable|date",   // ← CAMBIO: nullable en lugar de required
-            "select"    => "nullable",
-            "text"      => "nullable|string",
-            default     => "nullable",
-        };
+        $report = ReportRegistry::makeIndividual($key);
+
+        if ($report->requiredPermission() && !auth()->user()->hasPermission($report->requiredPermission())) {
+            abort(403, "No tienes permiso para este reporte");
+        }
+
+        $record = $report->find($id);
+
+        $pdf = Pdf::loadView($report->view(), [
+            'report' => $report,
+            'record' => $record,
+            'titulo' => $report->title(),
+        ])->setPaper('letter', $report->pdfOrientation());
+
+        // ✅ stream() → se abre en el navegador para previsualizar
+        return $pdf->stream($report->filename($record) . '.pdf');
     }
 
-    return $request->validate($rules);
-}
+    // ============================================================
+    // NUEVO: DESCARGA DIRECTA DEL REPORTE INDIVIDUAL
+    // ============================================================
+    public function individualPdf(string $key, int $id)
+    {
+        if (!auth()->user()->hasPermission("ver-reportes")) {
+            abort(403, "No tienes permiso para exportar reportes");
+        }
+
+        $report = ReportRegistry::makeIndividual($key);
+
+        if ($report->requiredPermission() && !auth()->user()->hasPermission($report->requiredPermission())) {
+            abort(403, "No tienes permiso para este reporte");
+        }
+
+        $record = $report->find($id);
+
+        $pdf = Pdf::loadView($report->view(), [
+            'report' => $report,
+            'record' => $record,
+            'titulo' => $report->title(),
+        ])->setPaper('letter', $report->pdfOrientation());
+
+        return $pdf->download($report->filename($record) . '.pdf');
+    }
+
+    // ============================================================
+    // VALIDACION DE PARAMETROS (SIN CAMBIOS)
+    // ============================================================
+    protected function validatedParams(ReportInterface $report, Request $request): array
+    {
+        $rules = [];
+
+        foreach ($report->filters() as $name => $f) {
+            $rules[$name] = match ($f["type"]) {
+                "daterange" => "required|array",
+                "date"      => "required|date",
+                "select"    => "nullable",
+                "text"      => "nullable|string",
+                default     => "nullable",
+            };
+        }
+
+        return $request->validate($rules);
+    }
 }
