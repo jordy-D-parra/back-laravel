@@ -70,6 +70,10 @@ export default defineConfig({
                 'resources/css/skeleton-loading.css',
                 'resources/css/smooth-modals.css',
                 'resources/js/validations.js',
+
+                // Nuevo explorador de reportes
+                'resources/css/admin-reportes-explorer.css',
+                'resources/js/admin-reportes-explorer.js',
             ],
             refresh: true,
         }),

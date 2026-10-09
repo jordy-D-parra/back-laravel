@@ -103,9 +103,11 @@
         {{-- PANEL 1: SOLICITUDES --}}
         {{-- ============================================ --}}
         <div class="tab-pane fade show active" id="panel-solicitudes" role="tabpanel">
-            <div class="filters-bar">
-                <div class="filtro-busqueda">
-                    <div class="input-group">
+            <div class="filters-bar" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
+
+                {{-- Fila 1: Buscador (izquierda) + Botones de exportación (derecha) --}}
+                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <div class="input-group" style="max-width: 420px; flex: 1; min-width: 240px;">
                         <span class="input-group-text">
                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
                                 <circle cx="11" cy="11" r="8"/>
@@ -114,10 +116,55 @@
                         </span>
                         <input type="text" class="form-control" id="searchInput" placeholder="Buscar solicitud...">
                     </div>
+
+                    {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL --}}
+                    @if(auth()->user()->hasPermission('ver-solicitudes'))
+                    <div class="d-flex gap-2">
+                        <button type="button"
+                                class="btn-export btn-export-pdf"
+                                onclick="exportarSolicitudes('pdf')"
+                                title="Exportar a PDF">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            PDF
+                        </button>
+                        <button type="button"
+                                class="btn-export btn-export-xlsx"
+                                onclick="exportarSolicitudes('xlsx')"
+                                title="Exportar a Excel">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            Excel
+                        </button>
+                    </div>
+                    @endif
                 </div>
-                <div class="d-flex gap-2 flex-wrap">
+
+                {{-- Fila 2: Filtros (estado + prioridad) + botón Nueva Solicitud --}}
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <select class="form-select form-select-sm" id="estadoFilter" style="width: 180px;">
+                        <option value="">Todos los estados</option>
+                        <option value="pendiente">Pendiente</option>
+                        <option value="aprobada">Aprobada</option>
+                        <option value="rechazada">Rechazada</option>
+                        <option value="cancelada">Cancelada</option>
+                        <option value="entregada">Entregada</option>
+                    </select>
+
+                    <select class="form-select form-select-sm" id="prioridadFilter" style="width: 180px;">
+                        <option value="">Todas las prioridades</option>
+                        <option value="baja">Baja</option>
+                        <option value="normal">Normal</option>
+                        <option value="alta">Alta</option>
+                        <option value="urgente">Urgente</option>
+                    </select>
+
                     @if(auth()->user()->hasPermission('crear-solicitud'))
-                    <button class="btn btn-primary-dark btn-accion" onclick="abrirModalCrear()" style="color: #fff">
+                    <button class="btn btn-primary-dark btn-accion ms-auto" onclick="abrirModalCrear()" style="color: #fff">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -126,6 +173,7 @@
                     </button>
                     @endif
                 </div>
+
             </div>
 
             <div class="table-container">
@@ -176,19 +224,21 @@
                     </span>
                     <input type="text" class="form-control" id="buscarCorreo" placeholder="Buscar por remitente, asunto...">
                 </div>
-                <select class="form-select" id="filtroCorreo" style="max-width: 200px;">
-                    <option value="">Todos</option>
-                    <option value="no_leidos">No leídos</option>
-                    <option value="no_procesados">Sin procesar</option>
-                    <option value="procesados">Procesados</option>
-                </select>
-                <button class="btn btn-primary-dark" onclick="revisarCorreos()" id="btnRevisarCorreos" style="color: #fff">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:4px;">
-                        <polyline points="23 4 23 10 17 10"/>
-                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                    </svg>
-                    Revisar ahora
-                </button>
+                <div class="d-flex gap-2 flex-wrap">
+                    <select class="form-select" id="filtroCorreo" style="max-width: 200px;">
+                        <option value="">Todos</option>
+                        <option value="no_leidos">No leídos</option>
+                        <option value="no_procesados">Sin procesar</option>
+                        <option value="procesados">Procesados</option>
+                    </select>
+                    <button class="btn btn-primary-dark" onclick="revisarCorreos()" id="btnRevisarCorreos" style="color: #fff">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:4px;">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                        Revisar ahora
+                    </button>
+                </div>
             </div>
 
             <div id="listaCorreos" class="p-3" style="background: white; border-radius: 12px;">

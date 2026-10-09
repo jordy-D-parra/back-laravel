@@ -1166,3 +1166,60 @@
     .detalle-modal-footer { padding: 1rem 1.25rem; }
     .detalle-info-grid { grid-template-columns: 1fr; }
 }
+/* ============================================================
+   BOTONES DE EXPORTACIÓN CONTEXTUAL
+   ============================================================ */
+.btn-export {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0.45rem 1rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    border: none;
+    cursor: pointer;
+    color: #ffffff;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    line-height: 1;
+}
+
+.btn-export svg {
+    flex-shrink: 0;
+    stroke: currentColor;
+}
+
+.btn-export-pdf {
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+.btn-export-pdf:hover {
+    background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+    color: #ffffff;
+}
+.btn-export-pdf:active { transform: translateY(0); }
+
+.btn-export-xlsx {
+    background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+}
+.btn-export-xlsx:hover {
+    background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
+    color: #ffffff;
+}
+.btn-export-xlsx:active { transform: translateY(0); }
+
+@media (max-width: 576px) {
+    .btn-export {
+        flex: 1;
+        justify-content: center;
+        padding: 0.5rem 0.75rem;
+        font-size: 0.78rem;
+    }
+}

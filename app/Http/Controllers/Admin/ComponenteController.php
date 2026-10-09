@@ -438,4 +438,35 @@ class ComponenteController extends Controller
 
         return null;
     }
+
+        /**
+     * Endpoint JSON filtrado para la pantalla de Inventario (tab Componentes).
+     * Usa el scope conFiltros() — mismo que usa ComponentesListadoReport.
+     */
+    public function listarFiltrado(Request $request)
+    {
+        if (!auth()->user()->hasPermission('ver-componentes')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        try {
+            $componentes = Componente::with([
+                    'activo:id,serial',
+                    'institucion:id,nombre',
+                    'departamento:id,nombre',
+                    'responsable:id,nombre',
+                ])
+                ->conFiltros($request->all())
+                ->orderByDesc('created_at')
+                ->get();
+
+            return response()->json(['success' => true, 'data' => $componentes]);
+        } catch (\Exception $e) {
+            \Log::error('Error en listarFiltrado componentes: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar componentes: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

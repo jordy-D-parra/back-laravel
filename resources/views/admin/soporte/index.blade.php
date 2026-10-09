@@ -96,22 +96,22 @@
     }
     .table {
         margin-bottom: 0;
-        font-size: 0.85rem;              /* ✅ igual que Préstamos */
+        font-size: 0.85rem;
     }
     .table thead th {
         background: #f8f9fc;
         color: #1e3c72;
         font-weight: 600;
-        font-size: 0.7rem;               /* ✅ igual que Préstamos */
+        font-size: 0.7rem;
         text-transform: uppercase;
         letter-spacing: 0.6px;
         border-bottom: 2px solid #1e3c72;
-        padding: 0.9rem 0.75rem;         /* ✅ igual que Préstamos */
+        padding: 0.9rem 0.75rem;
         white-space: nowrap;
     }
     .table tbody td {
         vertical-align: middle;
-        padding: 0.85rem 0.75rem;        /* ✅ igual que Préstamos */
+        padding: 0.85rem 0.75rem;
         border-bottom: 1px solid #e9ecef;
         font-size: 0.85rem;
         color: #0f172a;
@@ -134,9 +134,9 @@
        ============================================================ */
     .badge-estado {
         display: inline-block;
-        padding: 4px 10px;               /* ✅ igual que Préstamos */
+        padding: 4px 10px;
         border-radius: 20px;
-        font-size: 0.7rem;               /* ✅ igual que Préstamos */
+        font-size: 0.7rem;
         font-weight: 600;
         text-transform: uppercase;
         letter-spacing: 0.3px;
@@ -196,7 +196,7 @@
         color: #92400e;
         padding: 0.3rem 0.7rem;
         border-radius: 6px;
-        font-size: 0.75rem;              /* ✅ legible */
+        font-size: 0.75rem;
         font-weight: 600;
         transition: all 0.2s ease;
         display: inline-flex;
@@ -292,10 +292,10 @@
     }
     .nav-tabs-custom .nav-link {
         border: none;
-        padding: 0.85rem 1.5rem;         /* ✅ igual que Préstamos */
+        padding: 0.85rem 1.5rem;
         color: #6c757d;
         font-weight: 500;
-        font-size: 0.85rem;              /* ✅ igual que Préstamos */
+        font-size: 0.85rem;
         display: inline-flex;
         align-items: center;
         gap: 8px;
@@ -575,7 +575,9 @@
         {{-- ============================================ --}}
         <div class="tab-pane fade show active" id="panel-fichas" role="tabpanel">
 
-            {{-- Filtros --}}
+            {{-- ============================================================ --}}
+            {{-- FILTROS + BOTONES DE EXPORTACIÓN --}}
+            {{-- ============================================================ --}}
             <div class="filters-bar">
                 <div class="input-group" style="max-width: 350px;">
                     <span class="input-group-text">
@@ -595,6 +597,31 @@
                         <option value="finalizado">Finalizados</option>
                         <option value="rechazada">Rechazada</option>
                     </select>
+
+                    {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL (NUEVO) --}}
+                    @if(auth()->user()->hasPermission('ver-fichas-soporte'))
+                    <button type="button"
+                            class="btn-export btn-export-pdf"
+                            onclick="exportarSoporte('pdf')"
+                            title="Exportar a PDF">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        PDF
+                    </button>
+                    <button type="button"
+                            class="btn-export btn-export-xlsx"
+                            onclick="exportarSoporte('xlsx')"
+                            title="Exportar a Excel">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Excel
+                    </button>
+                    @endif
+
                     <button class="btn btn-outline-primary-dark btn-sm" id="limpiarFiltros">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 6h18M8 6V4h8v2M18 6v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V6"/>
@@ -768,7 +795,7 @@
                 </table>
             </div>
 
-            {{-- Paginación (mismo estilo que Instituciones) --}}
+            {{-- Paginación --}}
             <div class="pagination-bar" id="paginacionFichas">
                 <div class="pagination-info">
                     @if($fichas->total() > 0)
@@ -779,14 +806,12 @@
                     @endif
                 </div>
                 <div class="pagination-btns">
-                    {{-- Anterior --}}
                     <button class="pagination-btn {{ $fichas->onFirstPage() ? 'disabled' : '' }}"
                             onclick="cambiarPagina({{ $fichas->currentPage() - 1 }})"
                             {{ $fichas->onFirstPage() ? 'disabled' : '' }}>
                         «
                     </button>
 
-                    {{-- Números de página --}}
                     @php
                         $currentPage = $fichas->currentPage();
                         $lastPage = $fichas->lastPage();
@@ -806,14 +831,15 @@
                                 onclick="cambiarPagina({{ $i }})">
                             {{ $i }}
                         </button>
-                    @endfor                    @if($end < $lastPage)
+                    @endfor
+
+                    @if($end < $lastPage)
                         @if($end < $lastPage - 1)
                             <span class="pagination-ellipsis">...</span>
                         @endif
                         <button class="pagination-btn" onclick="cambiarPagina({{ $lastPage }})">{{ $lastPage }}</button>
                     @endif
 
-                    {{-- Siguiente --}}
                     <button class="pagination-btn {{ !$fichas->hasMorePages() ? 'disabled' : '' }}"
                             onclick="cambiarPagina({{ $fichas->currentPage() + 1 }})"
                             {{ !$fichas->hasMorePages() ? 'disabled' : '' }}>

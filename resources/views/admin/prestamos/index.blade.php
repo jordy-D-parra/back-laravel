@@ -121,6 +121,68 @@
             height: 14px;
             stroke: white;
         }
+
+        /* ============================================================
+           BOTONES DE EXPORTACIÓN CONTEXTUAL
+           ============================================================ */
+        .btn-export {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 0.45rem 1rem;
+            border-radius: 10px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            border: none;
+            cursor: pointer;
+            color: #ffffff;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+            line-height: 1;
+        }
+
+        .btn-export svg {
+            flex-shrink: 0;
+            stroke: currentColor;
+        }
+
+        .btn-export-pdf {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+        }
+        .btn-export-pdf:hover {
+            background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+            color: #ffffff;
+        }
+        .btn-export-pdf:active {
+            transform: translateY(0);
+        }
+
+        .btn-export-xlsx {
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+        }
+        .btn-export-xlsx:hover {
+            background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
+            color: #ffffff;
+        }
+        .btn-export-xlsx:active {
+            transform: translateY(0);
+        }
+
+        @media (max-width: 576px) {
+            .btn-export {
+                flex: 1;
+                justify-content: center;
+                padding: 0.5rem 0.75rem;
+                font-size: 0.78rem;
+            }
+        }
     </style>
 @endsection
 
@@ -243,7 +305,32 @@
                         <input type="text" class="form-control" id="buscarSolicitudes" placeholder="Buscar solicitud...">
                     </div>
                 </div>
-               
+
+                {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL --}}
+                @if(auth()->user()->hasPermission('ver-prestamos'))
+                <div class="d-flex gap-2">
+                    <button type="button"
+                            class="btn-export btn-export-pdf"
+                            onclick="exportarPrestamos('pdf')"
+                            title="Exportar a PDF">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        PDF
+                    </button>
+                    <button type="button"
+                            class="btn-export btn-export-xlsx"
+                            onclick="exportarPrestamos('xlsx')"
+                            title="Exportar a Excel">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Excel
+                    </button>
+                </div>
+                @endif
             </div>
             <div class="table-container" id="tablaSolicitudes">
                 <p class="text-center py-4 text-muted">Cargando...</p>
@@ -264,7 +351,32 @@
                         <input type="text" class="form-control" id="buscarActivos" placeholder="Buscar préstamo...">
                     </div>
                 </div>
-                
+
+                {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL --}}
+                @if(auth()->user()->hasPermission('ver-prestamos'))
+                <div class="d-flex gap-2">
+                    <button type="button"
+                            class="btn-export btn-export-pdf"
+                            onclick="exportarPrestamos('pdf')"
+                            title="Exportar a PDF">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        PDF
+                    </button>
+                    <button type="button"
+                            class="btn-export btn-export-xlsx"
+                            onclick="exportarPrestamos('xlsx')"
+                            title="Exportar a Excel">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Excel
+                    </button>
+                </div>
+                @endif
             </div>
             <div class="table-container" id="tablaActivos">
                 <p class="text-center py-4 text-muted">Cargando...</p>
@@ -285,7 +397,32 @@
                         <input type="text" class="form-control" id="buscarFinalizados" placeholder="Buscar préstamo...">
                     </div>
                 </div>
-                
+
+                {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL --}}
+                @if(auth()->user()->hasPermission('ver-prestamos'))
+                <div class="d-flex gap-2">
+                    <button type="button"
+                            class="btn-export btn-export-pdf"
+                            onclick="exportarPrestamos('pdf')"
+                            title="Exportar a PDF">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        PDF
+                    </button>
+                    <button type="button"
+                            class="btn-export btn-export-xlsx"
+                            onclick="exportarPrestamos('xlsx')"
+                            title="Exportar a Excel">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                        Excel
+                    </button>
+                </div>
+                @endif
             </div>
             <div class="table-container" id="tablaFinalizados">
                 <p class="text-center py-4 text-muted">Cargando...</p>
@@ -865,19 +1002,19 @@
         function cambiarEstadoPrestamo() {
             const select = document.getElementById('estadoPrestamo');
             const helpText = document.getElementById('estadoHelpText');
-            
+
             if (!select || !helpText) return;
-            
+
             const opciones = {
                 'pendiente': 'Los items se reservarán y no estarán disponibles para otros préstamos hasta que sean aprobados.',
                 'aprobado': 'Los items se marcarán como prestados inmediatamente.',
                 'entregado': 'Los items se marcarán como prestados inmediatamente.'
             };
-            
+
             helpText.textContent = opciones[select.value] || 'Los items se marcarán como prestados inmediatamente.';
             helpText.className = 'estado-help-text ' + select.value;
         }
-        
+
         // Ejecutar al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
             cambiarEstadoPrestamo();

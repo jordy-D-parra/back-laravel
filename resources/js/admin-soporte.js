@@ -1563,3 +1563,35 @@ window.confirmarEliminar = function (id) {
 };
 
 console.log('✅ Código de soporte técnico cargado completamente');
+// ============================================================
+// EXPORTACIÓN CONTEXTUAL DE SOPORTE TÉCNICO
+// ✅ Usa un enlace dinámico para evitar el bloqueo de pop-ups
+// ============================================================
+window.exportarSoporte = function (formato) {
+    if (formato !== 'pdf' && formato !== 'xlsx') {
+        console.warn('Formato no soportado:', formato);
+        return;
+    }
+
+    const buscarInput = document.getElementById('buscarFichas');
+    const estadoSelect = document.getElementById('filtroEstadoFichas');
+
+    const buscar = buscarInput ? buscarInput.value.trim() : '';
+    const estado = estadoSelect ? estadoSelect.value : '';
+
+    const params = new URLSearchParams();
+    if (buscar) params.append('buscar', buscar);
+    if (estado) params.append('estado', estado);
+
+    const qs = params.toString();
+    const url = '/admin/reportes/soporte-listado/export/' + formato + (qs ? '?' + qs : '');
+
+    // ✅ Crear un enlace temporal y hacer click → evita bloqueo de pop-ups
+    const link = document.createElement('a');
+    link.href = url;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};

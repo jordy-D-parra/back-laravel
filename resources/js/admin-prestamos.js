@@ -1811,3 +1811,56 @@ document.addEventListener('DOMContentLoaded', function() {
 
     console.log('✅ Módulo de préstamos inicializado correctamente');
 });
+
+    // ============================================================
+    // EXPORTACIÓN CONTEXTUAL (respeta filtros de la pantalla activa)
+    // ============================================================
+    window.exportarPrestamos = function (formato) {
+        if (formato !== 'pdf' && formato !== 'xlsx') {
+            console.warn('Formato no soportado:', formato);
+            return;
+        }
+
+        // Detectar qué pestaña está activa
+        const tabActiva = document.querySelector('#prestamosTabs .nav-link.active')?.id || 'solicitudes-tab';
+
+        let buscarInput, tipoSelect, estadoSelect, fechaDesde, fechaHasta;
+
+        if (tabActiva === 'solicitudes-tab') {
+            buscarInput = document.getElementById('buscarSolicitudes');
+        } else if (tabActiva === 'finalizados-tab') {
+            buscarInput = document.getElementById('buscarFinalizados');
+            estadoSelect = document.getElementById('filtroEstadoFinalizados');
+            fechaDesde = document.getElementById('filtroFechaDesde');
+            fechaHasta = document.getElementById('filtroFechaHasta');
+        } else {
+            buscarInput = document.getElementById('buscarActivos');
+            tipoSelect = document.getElementById('filtroTipoActivos');
+            estadoSelect = document.getElementById('filtroEstadoActivos');
+        }
+
+        const params = new URLSearchParams();
+
+        const buscar = buscarInput ? buscarInput.value.trim() : '';
+        if (buscar) params.append('buscar', buscar);
+
+        const tipo = tipoSelect ? tipoSelect.value : '';
+        if (tipo) params.append('tipo', tipo);
+
+        const estado = estadoSelect ? estadoSelect.value : '';
+        if (estado) params.append('estado', estado);
+
+        const desde = fechaDesde ? fechaDesde.value : '';
+        if (desde) params.append('fecha_desde', desde);
+
+        const hasta = fechaHasta ? fechaHasta.value : '';
+        if (hasta) params.append('fecha_hasta', hasta);
+
+        const qs = params.toString();
+        const url = '/admin/reportes/prestamos-listado/export/' + formato + (qs ? '?' + qs : '');
+
+        const ventana = window.open(url, '_blank');
+        if (!ventana) {
+            alert('Por favor, permita ventanas emergentes para exportar el reporte.');
+        }
+    };

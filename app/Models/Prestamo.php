@@ -99,4 +99,71 @@ class Prestamo extends Model
         $numero = $ultimo ? intval(substr($ultimo->codigo, -4)) + 1 : 1;
         return 'PRES-' . $anio . '-' . str_pad($numero, 4, '0', STR_PAD_LEFT);
     }
+
+        /**
+     * Scope: aplica los filtros de la pantalla de Préstamos.
+     * Reutilizado por PrestamoController::listar() y por PrestamosListadoReport.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  array  $filtros
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeConFiltros($query, array $filtros)
+    {
+        // ===== BÚSQUEDA LIBRE =====
+        if (!empty($filtros['buscar'])) {
+            $buscar = $filtros['buscar'];
+            $query->where(function ($q) use ($buscar) {
+                $q->where('codigo', 'ILIKE', "%{$buscar}%")
+                  ->orWhereHas('departamento', fn($sq) => $sq->where('nombre', 'ILIKE', "%{$buscar}%"))
+                  ->orWhereHas('institucion', fn($sq) => $sq->where('nombre', 'ILIKE', "%{$buscar}%"))
+                  ->orWhereHas('responsableReceptor', fn($sq) => $sq->where('nombre', 'ILIKE', "%{$buscar}%"))
+                  ->orWhereHas('responsableEmisor', fn($sq) => $sq->where('nombre', 'ILIKE', "%{$buscar}%"));
+            });
+        }
+
+        // ===== ESTADO =====
+        if (!empty($filtros['estado'])) {
+            $estado = $filtros['estado'];
+
+            if (is_string($estado) && str_contains($estado, ',')) {
+                $estado = explode(',', $estado);
+            }
+
+            if ($estado === 'vencido' || (is_array($estado) && count($estado) === 1 && $estado[0] === 'vencido')) {
+                $query->whereIn('estado', ['entregado', 'extendido'])
+                      ->where('fecha_devolucion_esperada', '<', now()->format('Y-m-d'));
+            } elseif (is_array($estado)) {
+                $query->whereIn('estado', $estado);
+            } else {
+                $query->where('estado', $estado);
+            }
+        }
+
+        // ===== TIPO =====
+        if (!empty($filtros['tipo'])) {
+            $query->where('tipo_prestamo', $filtros['tipo']);
+        }
+
+        // ===== DEPARTAMENTO =====
+        if (!empty($filtros['departamento_id'])) {
+            $query->where('departamento_id', $filtros['departamento_id']);
+        }
+
+        // ===== INSTITUCIÓN =====
+        if (!empty($filtros['institucion_id'])) {
+            $query->where('institucion_id', $filtros['institucion_id']);
+        }
+
+        // ===== FECHAS =====
+        if (!empty($filtros['fecha_desde'])) {
+            $query->where('fecha_prestamo', '>=', $filtros['fecha_desde']);
+        }
+
+        if (!empty($filtros['fecha_hasta'])) {
+            $query->where('fecha_prestamo', '<=', $filtros['fecha_hasta']);
+        }
+
+        return $query;
+    }
 }

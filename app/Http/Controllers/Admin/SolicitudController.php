@@ -42,57 +42,51 @@ class SolicitudController extends Controller
         $this->imapService = $imapService;
     }
 
-    // ============================================================
-    // INDEX
-    // ============================================================
-    public function index(Request $request)
+       public function index(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-solicitudes')) {
             abort(403, 'No tienes permiso para ver solicitudes');
         }
 
         $user = auth()->user();
+
         $query = Solicitud::with([
-            'detalles', 'institucion', 'departamento', 'responsable',
-            'usuario', 'usuario.trabajador', 'estado', 'municipio', 'parroquia'
+            'detalles',
+            'institucion',
+            'departamento',
+            'responsable',
+            'usuario',
+            'usuario.trabajador',
+            'estado',
+            'municipio',
+            'parroquia'
         ]);
 
+        // Si NO tiene permiso de aprobar, solo ve las suyas
         if (!$user->hasPermission('aprobar-solicitudes')) {
             $query->where('usuario_id', $user->id);
         }
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('institucion', fn($sq) => $sq->where('nombre', 'ILIKE', "%{$search}%"))
-                  ->orWhereHas('departamento', fn($sq) => $sq->where('nombre', 'ILIKE', "%{$search}%"))
-                  ->orWhere('justificacion', 'ILIKE', "%{$search}%")
-                  ->orWhere('id', 'LIKE', "%{$search}%");
-            });
-        }
-
-        if ($request->filled('estado')) {
-            $query->where('estado_solicitud', $request->estado);
-        }
-
-        if ($request->filled('prioridad')) {
-            $query->where('prioridad', $request->prioridad);
-        }
+        // ✅ Aplicar todos los filtros con el scope
+        $query->conFiltros($request->all());
 
         $perPage = $request->input('per_page', 10);
 
         try {
             $solicitudes = $query->orderBy('created_at', 'desc')
-                ->paginate($perPage)->appends($request->query());
+                ->paginate($perPage)
+                ->appends($request->query());
         } catch (\Exception $e) {
             Log::error('Error en consulta de solicitudes: ' . $e->getMessage());
             $solicitudes = new \Illuminate\Pagination\LengthAwarePaginator([], 0, $perPage);
         }
 
+        // Respuesta JSON (AJAX del frontend)
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json($solicitudes);
         }
 
+        // Datos para la vista Blade
         $activos = Activo::with(['modelo.marca', 'estatus'])->get();
         $componentes = Componente::where('estado', 'en_bodega')->get();
         $instituciones = Institucion::where('activo', true)->orderBy('nombre')->get();
@@ -100,11 +94,15 @@ class SolicitudController extends Controller
         $responsables = Responsable::orderBy('nombre')->get();
 
         return view('admin.solicitudes.index', compact(
-            'solicitudes', 'activos', 'componentes',
-            'instituciones', 'departamentos', 'responsables'
+            'solicitudes',
+            'activos',
+            'componentes',
+            'instituciones',
+            'departamentos',
+            'responsables'
         ));
     }
-
+    
     // ============================================================
     // NO LEÍDAS POR ADMIN
     // ============================================================

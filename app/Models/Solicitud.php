@@ -132,4 +132,63 @@ class Solicitud extends Model
     {
         return $query->where('estado_solicitud', 'pendiente');
     }
+
+        /**
+     * Scope: aplica los filtros de la pantalla de Solicitudes.
+     * Reutilizado por SolicitudController y por SolicitudesListadoReport.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  array  $filtros
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeConFiltros($query, array $filtros)
+    {
+        // ===== BÚSQUEDA LIBRE =====
+        if (!empty($filtros['buscar'])) {
+            $buscar = $filtros['buscar'];
+            $query->where(function ($q) use ($buscar) {
+                $q->where('id', 'LIKE', "%{$buscar}%")
+                  ->orWhere('justificacion', 'ILIKE', "%{$buscar}%")
+                  ->orWhereHas('departamento', fn($sq) => $sq->where('nombre', 'ILIKE', "%{$buscar}%"))
+                  ->orWhereHas('institucion', fn($sq) => $sq->where('nombre', 'ILIKE', "%{$buscar}%"))
+                  ->orWhereHas('responsable', fn($sq) => $sq->where('nombre', 'ILIKE', "%{$buscar}%"));
+            });
+        }
+
+        // ===== ESTADO =====
+        if (!empty($filtros['estado'])) {
+            $query->where('estado_solicitud', $filtros['estado']);
+        }
+
+        // ===== PRIORIDAD =====
+        if (!empty($filtros['prioridad'])) {
+            $query->where('prioridad', $filtros['prioridad']);
+        }
+
+        // ===== TIPO SOLICITANTE =====
+        if (!empty($filtros['tipo_solicitante'])) {
+            $query->where('tipo_solicitante', $filtros['tipo_solicitante']);
+        }
+
+        // ===== DEPARTAMENTO =====
+        if (!empty($filtros['departamento_id'])) {
+            $query->where('departamento_id', $filtros['departamento_id']);
+        }
+
+        // ===== INSTITUCIÓN =====
+        if (!empty($filtros['institucion_id'])) {
+            $query->where('institucion_id', $filtros['institucion_id']);
+        }
+
+        // ===== FECHAS =====
+        if (!empty($filtros['fecha_desde'])) {
+            $query->whereDate('fecha_solicitud', '>=', $filtros['fecha_desde']);
+        }
+
+        if (!empty($filtros['fecha_hasta'])) {
+            $query->whereDate('fecha_solicitud', '<=', $filtros['fecha_hasta']);
+        }
+
+        return $query;
+    }
 }

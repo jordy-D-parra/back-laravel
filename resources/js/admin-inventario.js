@@ -4,6 +4,7 @@
 // ✅ Tablas y paginación unificadas con el resto del sistema
 // ✅ Badge de estado del activo unificado con Préstamos
 // ✅ FIX: listener de institución/departamento usa .onchange (sin cloneNode)
+// ✅ NUEVO: Filtrado en servidor + Exportación contextual (PDF/Excel)
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -207,14 +208,13 @@ function getEstadoComponenteTexto(estado) {
 // HELPER: Badge de estado del ACTIVO (unificado con Préstamos)
 // ============================================================
 function getBadgeEstadoActivo(estado) {
-    // Normalizamos: minúsculas, sin espacios, sin acentos
     var normalizado = (estado || '')
         .toString()
         .toLowerCase()
         .trim()
         .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')   // quita tildes
-        .replace(/\s+/g, '-');             // espacios → guiones
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, '-');
 
     switch (normalizado) {
         case 'disponible':      return 'badge-estado badge-estado-disponible';
@@ -1425,11 +1425,10 @@ function guardarActivo() {
     });
 }
 
-// ============================================================
-// COMPONENTES (CRUD INDIVIDUAL)
-// ============================================================
 function cargarComponentes() {
-    fetch('/admin/componentes', { headers: { 'Accept': 'application/json' } })
+    fetch('/admin/componentes/filtrados', {
+        headers: { 'Accept': 'application/json' }
+    })
         .then(function(r) { return r.json(); })
         .then(function(response) {
             if (response.success) {
@@ -1437,6 +1436,9 @@ function cargarComponentes() {
                 componentesPage = 1;
                 aplicarFiltrosComponentes();
             }
+        })
+        .catch(function(error) {
+            console.error('Error al cargar componentes:', error);
         });
 }
 
@@ -1643,3 +1645,64 @@ function confirmarEliminacion() {
         elementoAEliminar = null;
     });
 }
+
+// ============================================================
+// EXPORTACIÓN CONTEXTUAL (respeta filtros de pantalla)
+// ============================================================
+window.exportarInventario = function (formato) {
+    if (formato !== 'pdf' && formato !== 'xlsx') {
+        console.warn('Formato no soportado:', formato);
+        return;
+    }
+
+    var buscarInput = document.getElementById('buscarActivos');
+    var estadoSelect = document.getElementById('filtroEstadoActivos');
+
+    var buscar = buscarInput ? buscarInput.value.trim() : '';
+    var estado = estadoSelect ? estadoSelect.value : '';
+
+    var params = new URLSearchParams();
+    if (buscar) params.append('buscar', buscar);
+    if (estado) params.append('estado', estado);
+
+    var qs = params.toString();
+    var url = '/admin/reportes/inventario-listado/export/' + formato + (qs ? '?' + qs : '');
+
+    var ventana = window.open(url, '_blank');
+    if (!ventana) {
+        alert('Por favor, permita ventanas emergentes para exportar el reporte.');
+    }
+};
+
+    // ============================================================
+    // EXPORTACIÓN CONTEXTUAL - COMPONENTES
+    // ============================================================
+    window.exportarComponentes = function (formato) {
+        if (formato !== 'pdf' && formato !== 'xlsx') {
+            console.warn('Formato no soportado:', formato);
+            return;
+        }
+
+        var buscarInput = document.getElementById('buscarComponentes');
+        var tipoSelect = document.getElementById('filtroTipoComponentes');
+        var estadoSelect = document.getElementById('filtroEstadoComponentes');
+
+        var params = new URLSearchParams();
+
+        var buscar = buscarInput ? buscarInput.value.trim() : '';
+        if (buscar) params.append('buscar', buscar);
+
+        var tipo = tipoSelect ? tipoSelect.value : '';
+        if (tipo) params.append('tipo', tipo);
+
+        var estado = estadoSelect ? estadoSelect.value : '';
+        if (estado) params.append('estado', estado);
+
+        var qs = params.toString();
+        var url = '/admin/reportes/componentes-listado/export/' + formato + (qs ? '?' + qs : '');
+
+        var ventana = window.open(url, '_blank');
+        if (!ventana) {
+            alert('Por favor, permita ventanas emergentes para exportar el reporte.');
+        }
+    };

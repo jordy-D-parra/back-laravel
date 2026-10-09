@@ -4,37 +4,32 @@
     <meta charset="UTF-8">
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>@yield('title', 'Dashboard') - Sistema de Gestión</title>
+    <title>@yield("title", "Dashboard") - Sistema de Gestion</title>
 
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="shortcut icon" href="{{ asset('favicon.ico') }}">
+    <link rel="icon" type="image/x-icon" href="{{ asset("favicon.ico") }}">
+    <link rel="shortcut icon" href="{{ asset("favicon.ico") }}">
 
-    {{-- CSS --}}
-    @vite(['resources/js/bootstrap.js'])
-    @vite(['resources/css/dashboard-layout.css'])
-    @vite(['resources/css/dashboard-home.css'])
-    @vite(['resources/css/user-avatar.css'])
+    @vite(["resources/js/bootstrap.js"])
+    @vite(["resources/css/dashboard-layout.css"])
+    @vite(["resources/css/dashboard-home.css"])
+    @vite(["resources/css/user-avatar.css"])
+    @vite(["resources/css/dark-mode.css"])
 
-    {{-- 🌙 MODO OSCURO: CSS --}}
-    @vite(['resources/css/dark-mode.css'])
-
-    @yield('styles')
+    @yield("styles")
 </head>
 <body>
 
-    {{-- 🌙 SCRIPT ANTI-FLASH (se ejecuta ANTES de pintar el body) --}}
     <script>
         (function() {
             try {
-                var guardado = localStorage.getItem('darkModeEnabled');
+                var guardado = localStorage.getItem("darkModeEnabled");
                 var activo = guardado !== null
-                    ? guardado === 'true'
-                    : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    ? guardado === "true"
+                    : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
                 if (activo) {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    document.addEventListener('DOMContentLoaded', function() {
-                        document.body.classList.add('dark-mode');
+                    document.documentElement.setAttribute("data-theme", "dark");
+                    document.addEventListener("DOMContentLoaded", function() {
+                        document.body.classList.add("dark-mode");
                     });
                 }
             } catch (e) {}
@@ -45,10 +40,10 @@
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="logo-container">
-                <img src="{{ asset('images/escudo-yaracuy.jpeg') }}" alt="Logo" class="logo-img">
+                <img src="{{ asset("images/escudo-yaracuy.jpeg") }}" alt="Logo" class="logo-img">
             </div>
-            <h3>Sistema de Gestión</h3>
-            <p>Inventario y Préstamos</p>
+            <h3>Sistema de Gestion</h3>
+            <p>Inventario y Prestamos</p>
         </div>
 
         @php
@@ -56,10 +51,10 @@
         @endphp
 
         <ul class="nav-menu">
-            {{-- ========== SECCIÓN PRINCIPAL ========== --}}
+            {{-- ========== SECCION PRINCIPAL ========== --}}
             <li class="nav-section">PRINCIPAL</li>
             <li class="nav-item">
-                <a href="{{ route('dashboard') }}" class="nav-link {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                <a href="{{ route("dashboard") }}" class="nav-link {{ request()->routeIs("dashboard") ? "active" : "" }}">
                     <span class="nav-icon">
                         <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-5v-8H9v8H4a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                     </span>
@@ -67,9 +62,8 @@
                 </a>
             </li>
 
-            {{-- Calendario --}}
             <li class="nav-item">
-                <a href="{{ route('calendario.index') }}" class="nav-link {{ request()->routeIs('calendario.*') ? 'active' : '' }}">
+                <a href="{{ route("calendario.index") }}" class="nav-link {{ request()->routeIs("calendario.*") ? "active" : "" }}">
                     <span class="nav-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
@@ -82,14 +76,13 @@
                 </a>
             </li>
 
-            {{-- Bandeja de entrada --}}
             @php
                 use App\Services\NotificacionService;
                 $notificacionService = app(NotificacionService::class);
                 $noLeidasMenu = $notificacionService->countNoLeidas(Auth::user());
             @endphp
             <li class="nav-item">
-                <a href="{{ route('admin.notificaciones.index') }}" class="nav-link {{ request()->routeIs('admin.notificaciones.*') ? 'active' : '' }}">
+                <a href="{{ route("admin.notificaciones.index") }}" class="nav-link {{ request()->routeIs("admin.notificaciones.*") ? "active" : "" }}">
                     <span class="nav-icon">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
@@ -106,10 +99,9 @@
             <li class="nav-divider"></li>
             <li class="nav-section">MAESTROS</li>
 
-            {{-- Entidades --}}
-            @if($user->hasPermission('ver-instituciones') || $user->hasPermission('ver-departamentos') || $user->hasPermission('ver-responsables'))
+            @if($user->hasPermission("ver-instituciones") || $user->hasPermission("ver-departamentos") || $user->hasPermission("ver-responsables"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.entidades.index') }}" class="nav-link {{ request()->routeIs('admin.entidades.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.entidades.index") }}" class="nav-link {{ request()->routeIs("admin.entidades.*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none">
                                 <rect x="4" y="8" width="16" height="12" rx="1"/>
@@ -121,10 +113,9 @@
                 </li>
             @endif
 
-            {{-- Catálogo de Equipos --}}
-            @if($user->hasPermission('ver-marcas') || $user->hasPermission('ver-categorias-equipos') || $user->hasPermission('ver-modelos'))
+            @if($user->hasPermission("ver-marcas") || $user->hasPermission("ver-categorias-equipos") || $user->hasPermission("ver-modelos"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.equipos.index') }}" class="nav-link {{ request()->routeIs('admin.equipos.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.equipos.index") }}" class="nav-link {{ request()->routeIs("admin.equipos.*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none">
                                 <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
@@ -137,16 +128,14 @@
                 </li>
             @endif
 
-            {{-- ========== GESTIÓN DE USUARIOS ========== --}}
-            @if($user->hasPermission('ver-roles') || $user->hasPermission('ver-trabajadores') || $user->hasPermission('ver-usuarios'))
+            @if($user->hasPermission("ver-roles") || $user->hasPermission("ver-trabajadores") || $user->hasPermission("ver-usuarios"))
                 <li class="nav-divider"></li>
-                <li class="nav-section">GESTIÓN DE USUARIOS</li>
+                <li class="nav-section">GESTION DE USUARIOS</li>
             @endif
 
-            {{-- Trabajadores --}}
-            @if($user->hasPermission('ver-trabajadores'))
+            @if($user->hasPermission("ver-trabajadores"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.trabajadores.index') }}" class="nav-link {{ request()->routeIs('admin.trabajadores.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.trabajadores.index") }}" class="nav-link {{ request()->routeIs("admin.trabajadores.*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                         </span>
@@ -155,10 +144,9 @@
                 </li>
             @endif
 
-            {{-- Usuarios --}}
-            @if($user->hasPermission('ver-usuarios'))
+            @if($user->hasPermission("ver-usuarios"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.usuarios.index') }}" class="nav-link {{ request()->routeIs('admin.usuarios.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.usuarios.index") }}" class="nav-link {{ request()->routeIs("admin.usuarios.*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
                         </span>
@@ -167,10 +155,9 @@
                 </li>
             @endif
 
-            {{-- Roles y Permisos --}}
-            @if($user->hasPermission('ver-roles'))
+            @if($user->hasPermission("ver-roles"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.roles.index') }}" class="nav-link {{ request()->routeIs('admin.roles.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.roles.index") }}" class="nav-link {{ request()->routeIs("admin.roles.*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8" fill="none">
                                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
@@ -183,16 +170,14 @@
                 </li>
             @endif
 
-            {{-- ========== PROCESOS ========== --}}
-            @if($user->hasPermission('ver-activos') || $user->hasPermission('ver-componentes') || $user->hasPermission('ver-prestamos') || $user->hasPermission('ver-solicitudes') || $user->hasPermission('ver-fichas-soporte'))
+            @if($user->hasPermission("ver-activos") || $user->hasPermission("ver-componentes") || $user->hasPermission("ver-prestamos") || $user->hasPermission("ver-solicitudes") || $user->hasPermission("ver-fichas-soporte"))
                 <li class="nav-divider"></li>
                 <li class="nav-section">PROCESOS</li>
             @endif
 
-            {{-- Solicitudes --}}
-            @if($user->hasPermission('ver-solicitudes'))
+            @if($user->hasPermission("ver-solicitudes"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.solicitudes.index') }}" class="nav-link {{ request()->routeIs('admin.solicitudes.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.solicitudes.index") }}" class="nav-link {{ request()->routeIs("admin.solicitudes.*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="2" y="4" width="20" height="16" rx="2"/>
@@ -204,10 +189,9 @@
                 </li>
             @endif
 
-            {{-- Préstamos --}}
-            @if($user->hasPermission('ver-prestamos'))
+            @if($user->hasPermission("ver-prestamos"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.prestamos.index') }}" class="nav-link {{ request()->routeIs('admin.prestamos.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.prestamos.index") }}" class="nav-link {{ request()->routeIs("admin.prestamos.*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="2" y="3" width="20" height="14" rx="2"/>
@@ -215,15 +199,14 @@
                                 <line x1="12" y1="17" x2="12" y2="21"/>
                             </svg>
                         </span>
-                        <span>Préstamos</span>
+                        <span>Prestamos</span>
                     </a>
                 </li>
             @endif
 
-            {{-- Inventario --}}
-            @if($user->hasPermission('ver-activos') || $user->hasPermission('ver-componentes'))
+            @if($user->hasPermission("ver-activos") || $user->hasPermission("ver-componentes"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.inventario.index') }}" class="nav-link {{ request()->routeIs('admin.inventario.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.inventario.index") }}" class="nav-link {{ request()->routeIs("admin.inventario.*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
@@ -235,10 +218,9 @@
                 </li>
             @endif
 
-            {{-- Soporte Técnico --}}
-            @if($user->hasPermission('ver-fichas-soporte'))
+            @if($user->hasPermission("ver-fichas-soporte"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.soporte.index') }}" class="nav-link {{ request()->routeIs('admin.soporte.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.soporte.index") }}" class="nav-link {{ request()->routeIs("admin.soporte.*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
@@ -246,7 +228,7 @@
                                 <line x1="12" y1="16" x2="12.01" y2="16"/>
                             </svg>
                         </span>
-                        <span>Soporte Técnico</span>
+                        <span>Soporte Tecnico</span>
                     </a>
                 </li>
             @endif
@@ -255,9 +237,9 @@
             <li class="nav-divider"></li>
             <li class="nav-section">REPORTES</li>
 
-            @if($user->hasPermission('ver-activos') || $user->hasPermission('ver-solicitudes') || $user->hasPermission('ver-fichas-soporte'))
+            @if($user->hasPermission("ver-reportes"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.reportes.index') }}" class="nav-link {{ request()->routeIs('admin.reportes.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.reportes.explorer") }}" class="nav-link {{ request()->routeIs("admin.reportes.explorer*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <path d="M3 3v18h18"/>
@@ -271,18 +253,17 @@
                 </li>
             @endif
 
-            {{-- Bitácora --}}
-            @if($user->hasPermission('ver-auditoria'))
+            @if($user->hasPermission("ver-auditoria"))
                 <li class="nav-item">
-                    <a href="{{ route('admin.auditoria.index') }}" class="nav-link {{ request()->routeIs('admin.auditoria.*') ? 'active' : '' }}">
+                    <a href="{{ route("admin.auditoria.index") }}" class="nav-link {{ request()->routeIs("admin.auditoria.*") ? "active" : "" }}">
                         <span class="nav-icon">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
                                 <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
                             </svg>
                         </span>
-                        <span>Bitácora</span>
-                        <span class="badge-count">Auditoría</span>
+                        <span>Bitacora</span>
+                        <span class="badge-count">Auditoria</span>
                     </a>
                 </li>
             @endif
@@ -307,12 +288,11 @@
                     <div class="datetime-value" id="currentTime"></div>
                 </div>
                 <div class="datetime-item">
-                    <div class="datetime-label">Día</div>
+                    <div class="datetime-label">Dia</div>
                     <div class="datetime-value" id="currentDay"></div>
                 </div>
             </div>
 
-            <!-- MENÚ DE USUARIO CON CAMPANITA Y AVATAR -->
             <div class="user-menu">
                 <x-notification-bell />
                 <x-user-avatar-menu />
@@ -321,17 +301,17 @@
                     @php
                         $usuario = Auth::user();
                         $trabajador = $usuario->trabajador;
-                        $rolNombre = $usuario->rol->nombre ?? 'sin_rol';
+                        $rolNombre = $usuario->rol->nombre ?? "sin_rol";
                         $rolDisplay = match($rolNombre) {
-                            'admin' => 'Administrador',
-                            'ingeniero' => 'Ingeniero',
-                            'tecnico' => 'Técnico',
-                            'secretaria' => 'Secretaria',
+                            "admin" => "Administrador",
+                            "ingeniero" => "Ingeniero",
+                            "tecnico" => "Tecnico",
+                            "secretaria" => "Secretaria",
                             default => ucfirst($rolNombre)
                         };
-                        $badgeClass = 'role-badge-' . $rolNombre;
-                        if (!in_array($rolNombre, ['admin', 'ingeniero', 'tecnico', 'secretaria'])) {
-                            $badgeClass = 'role-badge-default';
+                        $badgeClass = "role-badge-" . $rolNombre;
+                        if (!in_array($rolNombre, ["admin", "ingeniero", "tecnico", "secretaria"])) {
+                            $badgeClass = "role-badge-default";
                         }
                     @endphp
                     <p class="user-name">{{ $trabajador->nombre }} {{ $trabajador->apellido }}</p>
@@ -343,38 +323,35 @@
         </div>
 
         <div class="page-content">
-            @if(session('success'))
+            @if(session("success"))
                 <div class="alert-success-custom alert-dismissible fade show" role="alert">
-                    {{ session('success') }}
+                    {{ session("success") }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             @endif
 
-            @if(session('error'))
+            @if(session("error"))
                 <div class="alert-danger-custom alert-dismissible fade show" role="alert">
-                    {{ session('error') }}
+                    {{ session("error") }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             @endif
 
-            @if(session('status'))
+            @if(session("status"))
                 <div class="alert-info-custom alert-dismissible fade show" role="alert">
-                    {{ session('status') }}
+                    {{ session("status") }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
             @endif
 
-            @yield('content')
+            @yield("content")
         </div>
     </div>
 
-    {{-- MODAL DE PERFIL --}}
     <x-user-profile-modal />
 
-    {{-- 🌙 MODO OSCURO: JS --}}
-    @vite(['resources/js/dark-mode.js'])
+    @vite(["resources/js/dark-mode.js"])
 
-    {{-- 🆕 SISTEMA GLOBAL DE PERMISOS --}}
     <script>
         window.userPermissions = @json($authPermissions ?? []);
         window.authRol = @json($authRol ?? null);
@@ -399,15 +376,14 @@
         }
     </script>
 
-    @vite(['resources/js/dashboard-layout.js'])
-    @vite(['resources/js/app.js'])
-    @vite(['resources/js/user-avatar.js'])
+    @vite(["resources/js/dashboard-layout.js"])
+    @vite(["resources/js/app.js"])
+    @vite(["resources/js/user-avatar.js"])
 
-    @yield('scripts')
+    @yield("scripts")
 
     <script>
-        // Prevenir bfcache (back-forward cache) del navegador
-        window.addEventListener('pageshow', function (event) {
+        window.addEventListener("pageshow", function (event) {
             if (event.persisted) {
                 window.location.reload();
             }

@@ -120,4 +120,59 @@ class FichaSoporte extends Model
             default      => 'badge-estado',
         };
     }
+
+        /**
+     * Scope: aplica los filtros de la pantalla de Soporte Técnico.
+     * Reutilizado por FichaSoporteController::index() y por SoporteListadoReport.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  array  $filtros
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeConFiltros($query, array $filtros)
+    {
+        // ===== BÚSQUEDA LIBRE =====
+        if (!empty($filtros['buscar'])) {
+            $buscar = $filtros['buscar'];
+            $query->where(function ($q) use ($buscar) {
+                $q->where('tecnico_nombre', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('usuario_reporta_nombre', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('diagnostico', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('trabajo_realizado', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('observaciones', 'ILIKE', "%{$buscar}%")
+                  ->orWhereHas('activo', function ($sq) use ($buscar) {
+                      $sq->where('serial', 'ILIKE', "%{$buscar}%")
+                         ->orWhereHas('modelo', fn($sq2) =>
+                             $sq2->where('nombre', 'ILIKE', "%{$buscar}%"))
+                         ->orWhereHas('modelo.marca', fn($sq2) =>
+                             $sq2->where('nombre', 'ILIKE', "%{$buscar}%"));
+                  });
+            });
+        }
+
+        // ===== ESTADO =====
+        if (!empty($filtros['estado'])) {
+            $query->where('estado', $filtros['estado']);
+        }
+
+        // ===== TÉCNICO =====
+        if (!empty($filtros['tecnico_id'])) {
+            $query->where('tecnico_id', $filtros['tecnico_id']);
+        }
+
+        // ===== ACTIVO =====
+        if (!empty($filtros['activo_id'])) {
+            $query->where('activo_id', $filtros['activo_id']);
+        }
+
+        // ===== RANGO DE FECHAS (por fecha de ingreso) =====
+        if (!empty($filtros['fecha_desde'])) {
+            $query->whereDate('fecha_ingreso', '>=', $filtros['fecha_desde']);
+        }
+        if (!empty($filtros['fecha_hasta'])) {
+            $query->whereDate('fecha_ingreso', '<=', $filtros['fecha_hasta']);
+        }
+
+        return $query;
+    }
 }

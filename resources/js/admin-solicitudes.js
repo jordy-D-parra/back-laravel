@@ -1623,3 +1623,32 @@ document.getElementById('filtroCorreo')?.addEventListener('change', cargarCorreo
 // Actualizar badge periódicamente
 setInterval(actualizarBadgeCorreosSolicitudes, 30000);
 });
+
+    // ============================================================
+    // EXPORTACIÓN CONTEXTUAL - SOLICITUDES
+    // ============================================================
+    window.exportarSolicitudes = function (formato) {
+        if (formato !== 'pdf' && formato !== 'xlsx') {
+            console.warn('Formato no soportado:', formato);
+            return;
+        }
+
+        const params = new URLSearchParams();
+
+        const buscar = document.getElementById('searchInput')?.value?.trim() || '';
+        if (buscar) params.append('buscar', buscar);
+
+        const estado = document.getElementById('estadoFilter')?.value || '';
+        if (estado) params.append('estado', estado);
+
+        const prioridad = document.getElementById('prioridadFilter')?.value || '';
+        if (prioridad) params.append('prioridad', prioridad);
+
+        const qs = params.toString();
+        const url = '/admin/reportes/solicitudes-listado/export/' + formato + (qs ? '?' + qs : '');
+
+        const ventana = window.open(url, '_blank');
+        if (!ventana) {
+            alert('Por favor, permita ventanas emergentes para exportar el reporte.');
+        }
+    };

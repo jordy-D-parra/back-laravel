@@ -66,7 +66,7 @@ class PrestamoController extends Controller
     // ===========================
     // API: LISTAR PRÉSTAMOS
     // ===========================
-    public function listar(Request $request)
+       public function listar(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-prestamos')) {
             return response()->json(['success' => false, 'message' => 'No tienes permiso'], 403);
@@ -79,55 +79,9 @@ class PrestamoController extends Controller
             'responsableEmisor:id,nombre',
             'solicitud:id,estado_solicitud',
             'detalles.prestable',
-        ])->withCount('detalles');
-
-        if ($request->buscar) {
-            $buscar = $request->buscar;
-            $query->where(function($q) use ($buscar) {
-                $q->where('codigo', 'ILIKE', "%{$buscar}%")
-                  ->orWhereHas('departamento', fn($q) => $q->where('nombre', 'ILIKE', "%{$buscar}%"))
-                  ->orWhereHas('institucion', fn($q) => $q->where('nombre', 'ILIKE', "%{$buscar}%"))
-                  ->orWhereHas('responsableReceptor', fn($q) => $q->where('nombre', 'ILIKE', "%{$buscar}%"))
-                  ->orWhereHas('responsableEmisor', fn($q) => $q->where('nombre', 'ILIKE', "%{$buscar}%"));
-            });
-        }
-
-        if ($request->estado) {
-            $estados = $request->estado;
-
-            if (is_string($estados) && str_contains($estados, ',')) {
-                $estados = explode(',', $estados);
-            }
-
-            if ($estados === 'vencido' || (is_array($estados) && count($estados) === 1 && $estados[0] === 'vencido')) {
-                $query->whereIn('estado', ['entregado', 'extendido'])
-                    ->where('fecha_devolucion_esperada', '<', now()->format('Y-m-d'));
-            } elseif (is_array($estados)) {
-                $query->whereIn('estado', $estados);
-            } else {
-                $query->where('estado', $estados);
-            }
-        }
-
-        if ($request->tipo) {
-            $query->where('tipo_prestamo', $request->tipo);
-        }
-
-        if ($request->departamento_id) {
-            $query->where('departamento_id', $request->departamento_id);
-        }
-
-        if ($request->institucion_id) {
-            $query->where('institucion_id', $request->institucion_id);
-        }
-
-        if ($request->fecha_desde) {
-            $query->where('fecha_prestamo', '>=', $request->fecha_desde);
-        }
-
-        if ($request->fecha_hasta) {
-            $query->where('fecha_prestamo', '<=', $request->fecha_hasta);
-        }
+        ])
+        ->withCount('detalles')
+        ->conFiltros($request->all());
 
         $prestamos = $query->orderBy('created_at', 'desc')->paginate(10);
 

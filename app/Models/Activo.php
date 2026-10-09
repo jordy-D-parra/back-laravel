@@ -245,4 +245,61 @@ class Activo extends Model
     {
         return $this->fecha_fin_garantia && $this->fecha_fin_garantia->isPast();
     }
+
+        /**
+     * Scope: aplica los filtros de la pantalla de Inventario (tab Activos).
+     * Reutilizado por ActivoController::listarFiltrado() y por InventarioListadoReport.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  array  $filtros
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeConFiltros($query, array $filtros)
+    {
+        // ===== BÚSQUEDA LIBRE =====
+        if (!empty($filtros['buscar'])) {
+            $buscar = $filtros['buscar'];
+            $query->where(function ($q) use ($buscar) {
+                $q->where('serial', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('ubicacion', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('agrupacion', 'ILIKE', "%{$buscar}%")
+                  ->orWhereHas('modelo', fn($sq) =>
+                      $sq->where('nombre', 'ILIKE', "%{$buscar}%"))
+                  ->orWhereHas('modelo.marca', fn($sq) =>
+                      $sq->where('nombre', 'ILIKE', "%{$buscar}%"))
+                  ->orWhereHas('modelo.categoria', fn($sq) =>
+                      $sq->where('nombre', 'ILIKE', "%{$buscar}%"))
+                  ->orWhereHas('institucion', fn($sq) =>
+                      $sq->where('nombre', 'ILIKE', "%{$buscar}%"));
+            });
+        }
+
+        // ===== ESTADO =====
+        if (!empty($filtros['estado'])) {
+            $query->whereHas('estatus', fn($sq) =>
+                $sq->where('descripcion', $filtros['estado']));
+        }
+
+        // ===== MODELO =====
+        if (!empty($filtros['modelo_id'])) {
+            $query->where('modelo_id', $filtros['modelo_id']);
+        }
+
+        // ===== INSTITUCIÓN =====
+        if (!empty($filtros['institucion_id'])) {
+            $query->where('institucion_id', $filtros['institucion_id']);
+        }
+
+        // ===== DEPARTAMENTO =====
+        if (!empty($filtros['departamento_id'])) {
+            $query->where('departamento_id', $filtros['departamento_id']);
+        }
+
+        // ===== AGRUPACIÓN =====
+        if (!empty($filtros['agrupacion'])) {
+            $query->where('agrupacion', $filtros['agrupacion']);
+        }
+
+        return $query;
+    }
 }

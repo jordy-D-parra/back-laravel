@@ -34,21 +34,16 @@ class FichaSoporteController extends Controller
             abort(403, 'No tienes permiso para ver fichas de soporte');
         }
 
-        $query = FichaSoporte::with(['activo.modelo.marca', 'tecnico.trabajador', 'detalles']);
-
-        if ($request->filled('buscar')) {
-            $buscar = $request->buscar;
-            $query->where(function ($q) use ($buscar) {
-                $q->whereHas('activo', fn($q2) => $q2->where('serial', 'like', "%{$buscar}%"))
-                  ->orWhere('tecnico_nombre', 'like', "%{$buscar}%")
-                  ->orWhere('usuario_reporta_nombre', 'like', "%{$buscar}%")
-                  ->orWhere('diagnostico', 'like', "%{$buscar}%");
-            });
-        }
-
-        if ($request->filled('estado')) {
-            $query->where('estado', $request->estado);
-        }
+        // ✅ SCOPE REUTILIZABLE
+        $query = FichaSoporte::query()
+            ->with([
+                'activo.modelo.marca',
+                'activo.modelo.categoria',
+                'activo.institucion',
+                'tecnico.trabajador',
+                'detalles',
+            ])
+            ->conFiltros($request->all());
 
         $fichas = $query->orderBy('created_at', 'desc')->paginate(15);
 
@@ -61,23 +56,34 @@ class FichaSoporteController extends Controller
         $activosDisponibles = Activo::with('modelo.marca')
             ->whereDoesntHave('fichasSoporte', fn($q) => $q->where('estado', 'en_proceso'))
             ->when($estatusReparacion, fn($q) => $q->where('id_estatus', '!=', $estatusReparacion->id))
-            ->orderBy('serial')->get();
+            ->orderBy('serial')
+            ->get();
 
-        $tecnicos = Usuario::whereHas('rol', fn($q) => $q->whereIn('nombre', ['admin', 'ingeniero', 'tecnico']))
-            ->with('trabajador')->orderBy('usuario')->get();
+        $tecnicos = Usuario::whereHas('rol', fn($q) =>
+                $q->whereIn('nombre', ['admin', 'ingeniero', 'tecnico']))
+            ->with('trabajador')
+            ->orderBy('usuario')
+            ->get();
 
-        $totalFichas = FichaSoporte::count();
-        $enProceso = FichaSoporte::where('estado', 'en_proceso')->count();
-        $finalizados = FichaSoporte::where('estado', 'finalizado')->count();
-        $equiposReparacion = Activo::whereHas('estatus', fn($q) => $q->where('descripcion', 'En reparación'))->count();
+        $totalFichas       = FichaSoporte::count();
+        $enProceso         = FichaSoporte::where('estado', 'en_proceso')->count();
+        $finalizados       = FichaSoporte::where('estado', 'finalizado')->count();
+        $equiposReparacion = Activo::whereHas('estatus', fn($q) =>
+            $q->where('descripcion', 'En reparación'))->count();
 
-        $correosNoLeidos = CorreoRecibido::deTipoSoporte()->where('leido', false)->count();
+        $correosNoLeidos     = CorreoRecibido::deTipoSoporte()->where('leido', false)->count();
         $correosNoProcesados = CorreoRecibido::deTipoSoporte()->where('procesado', false)->count();
 
         return view('admin.soporte.index', compact(
-            'fichas', 'activosDisponibles', 'tecnicos', 'totalFichas',
-            'enProceso', 'finalizados', 'equiposReparacion',
-            'correosNoLeidos', 'correosNoProcesados'
+            'fichas',
+            'activosDisponibles',
+            'tecnicos',
+            'totalFichas',
+            'enProceso',
+            'finalizados',
+            'equiposReparacion',
+            'correosNoLeidos',
+            'correosNoProcesados'
         ));
     }
 
@@ -155,6 +161,125 @@ class FichaSoporteController extends Controller
     }
 
     // ============================================================
+    // STORE EQUIPO EXTERNO
+    // ✅ NUEVO: Crea un activo + ficha en una sola transacción
+    // ============================================================
+    public function storeEquipoExterno(Request $request)
+    {
+        if (!auth()->user()->hasPermission('crear-ficha-soporte')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                // Datos del activo
+                'serial' => 'required|string|max:100|unique:activos,serial',
+                'marca' => 'required|string|max:100',
+                'modelo_nombre' => 'required|string|max:100',
+                'categoria_id' => 'required|exists:categorias,id',
+                'institucion_id' => 'required|exists:instituciones,id',
+                'responsable_id' => 'required|exists:responsables,id',
+                'ubicacion' => 'nullable|string|max:100',
+                'fecha_adquisicion' => 'nullable|date',
+                'observaciones' => 'nullable|string',
+
+                // Datos de la ficha
+                'tecnico_id' => 'nullable|exists:usuarios,id',
+                'tecnico_nombre' => 'nullable|string|max:150',
+                'usuario_reporta_nombre' => 'required|string|max:150',
+                'diagnostico' => 'nullable|string|min:10',
+                'observaciones_ficha' => 'nullable|string',
+            ]);
+
+            DB::beginTransaction();
+
+            // 1. Crear marca si no existe
+            $marca = Marca::firstOrCreate(
+                ['nombre' => $validated['marca']],
+                ['activo' => true]
+            );
+
+            // 2. Crear modelo si no existe
+            $modelo = Modelo::firstOrCreate(
+                [
+                    'marca_id' => $marca->id,
+                    'nombre' => $validated['modelo_nombre'],
+                ],
+                [
+                    'categoria_id' => $validated['categoria_id'],
+                    'activo' => true,
+                ]
+            );
+
+            // 3. Crear activo con estatus "En reparación"
+            $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
+
+            $activo = Activo::create([
+                'serial' => $validated['serial'],
+                'modelo_id' => $modelo->id,
+                'id_estatus' => $estatusReparacion?->id,
+                'institucion_id' => $validated['institucion_id'],
+                'responsable_id' => $validated['responsable_id'],
+                'ubicacion' => $validated['ubicacion'] ?? 'Taller de reparación',
+                'fecha_adquisicion' => $validated['fecha_adquisicion'] ?? null,
+                'observaciones' => $validated['observaciones'] ?? null,
+            ]);
+
+            // 4. Crear ficha de soporte
+            $ficha = FichaSoporte::create([
+                'activo_id' => $activo->id,
+                'tecnico_id' => $validated['tecnico_id'] ?? null,
+                'tecnico_nombre' => $validated['tecnico_nombre'] ?? 'No asignado',
+                'usuario_reporta_id' => auth()->id(),
+                'usuario_reporta_nombre' => $validated['usuario_reporta_nombre'],
+                'fecha_ingreso' => now(),
+                'diagnostico' => $validated['diagnostico'] ?? null,
+                'observaciones' => $validated['observaciones_ficha'] ?? null,
+                'estado' => 'en_proceso',
+                'origen' => 'manual',
+            ]);
+
+            DB::commit();
+
+            // Despachar job de notificación
+            EnviarNotificacionFichaSoporte::dispatch($ficha->id, 'creada')
+                ->onQueue('notifications');
+
+            Log::info('✅ Job EnviarNotificacionFichaSoporte despachado (equipo externo)', [
+                'ficha_id' => $ficha->id,
+                'activo_id' => $activo->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Equipo externo registrado y ficha creada exitosamente. Se enviarán las notificaciones.',
+                'data' => [
+                    'activo_id' => $activo->id,
+                    'ficha_id' => $ficha->id,
+                ],
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Error al crear equipo externo: ' . $e->getMessage(), [
+                'user_id' => auth()->id(),
+                'request' => $request->all(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // ============================================================
     // SHOW
     // ============================================================
     public function show($id)
@@ -209,7 +334,6 @@ class FichaSoporteController extends Controller
 
     // ============================================================
     // ACEPTAR
-    // ✅ CORREGIDO: Despacha Job con evento 'aceptada' para notificar al responsable
     // ============================================================
     public function aceptar(Request $request, $id)
     {
@@ -242,7 +366,6 @@ class FichaSoporteController extends Controller
                 'fecha_requerida_entrega' => $validated['fecha_requerida_entrega'] ?? $ficha->fecha_requerida_entrega,
             ]);
 
-            // ✅ Despachar Job con evento 'aceptada' para notificar al responsable
             EnviarNotificacionFichaSoporte::dispatch($ficha->id, 'aceptada')
                 ->onQueue('notifications');
 
@@ -264,7 +387,6 @@ class FichaSoporteController extends Controller
 
     // ============================================================
     // RECHAZAR
-    // ✅ CORREGIDO: Despacha Job con evento 'rechazada' para notificar al responsable
     // ============================================================
     public function rechazar(Request $request, $id)
     {
@@ -308,7 +430,6 @@ class FichaSoporteController extends Controller
 
             DB::commit();
 
-            // ✅ Despachar Job con evento 'rechazada' para notificar al responsable
             EnviarNotificacionFichaSoporte::dispatch($ficha->id, 'rechazada')
                 ->onQueue('notifications');
 
@@ -331,114 +452,113 @@ class FichaSoporteController extends Controller
 
     // ============================================================
     // CLOSE - Finalizar ficha
-    // ✅ CORREGIDO: Despacha Job con evento 'finalizada' para notificar al responsable
     // ============================================================
-   public function close(Request $request, $id)
-{
-    if (!auth()->user()->hasPermission('cerrar-ficha-soporte')) {
-        return response()->json([
-            'success' => false,
-            'message' => 'No tienes permiso para cerrar fichas de soporte',
-        ], 403);
-    }
-
-    try {
-        $ficha = FichaSoporte::findOrFail($id);
-
-        if ($ficha->estado === 'finalizado') {
+    public function close(Request $request, $id)
+    {
+        if (!auth()->user()->hasPermission('cerrar-ficha-soporte')) {
             return response()->json([
                 'success' => false,
-                'message' => 'La ficha ya está finalizada',
-            ], 422);
+                'message' => 'No tienes permiso para cerrar fichas de soporte',
+            ], 403);
         }
 
-        $validated = $request->validate([
-            'trabajo_realizado' => 'nullable|string',
-            'observaciones_finales' => 'nullable|string',
-            'detalles' => 'nullable|array',
-        ]);
+        try {
+            $ficha = FichaSoporte::findOrFail($id);
 
-        DB::beginTransaction();
+            if ($ficha->estado === 'finalizado') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'La ficha ya está finalizada',
+                ], 422);
+            }
 
-        // 1. Actualizar detalles de componentes
-        if (isset($validated['detalles']) && is_array($validated['detalles'])) {
-            foreach ($validated['detalles'] as $detalleId => $det) {
-                if (isset($det['estado_salida'])) {
-                    FichaSoporteDetalle::where('id', $detalleId)->update([
-                        'estado_salida' => $det['estado_salida'],
-                        'observaciones' => $det['observaciones'] ?? null,
-                    ]);
+            $validated = $request->validate([
+                'trabajo_realizado' => 'nullable|string',
+                'observaciones_finales' => 'nullable|string',
+                'detalles' => 'nullable|array',
+            ]);
+
+            DB::beginTransaction();
+
+            // 1. Actualizar detalles de componentes
+            if (isset($validated['detalles']) && is_array($validated['detalles'])) {
+                foreach ($validated['detalles'] as $detalleId => $det) {
+                    if (isset($det['estado_salida'])) {
+                        FichaSoporteDetalle::where('id', $detalleId)->update([
+                            'estado_salida' => $det['estado_salida'],
+                            'observaciones' => $det['observaciones'] ?? null,
+                        ]);
+                    }
                 }
             }
-        }
 
-        // 2. Cerrar la ficha con fecha_salida explícita
-        $fechaSalida = now();
+            // 2. Cerrar la ficha con fecha_salida explícita
+            $fechaSalida = now();
 
-        $ficha->update([
-            'trabajo_realizado' => $validated['trabajo_realizado'] ?? $ficha->trabajo_realizado,
-            'observaciones' => $validated['observaciones_finales'] ?? $ficha->observaciones,
-            'fecha_salida' => $fechaSalida,
-            'estado' => 'finalizado',
-        ]);
+            $ficha->update([
+                'trabajo_realizado' => $validated['trabajo_realizado'] ?? $ficha->trabajo_realizado,
+                'observaciones' => $validated['observaciones_finales'] ?? $ficha->observaciones,
+                'fecha_salida' => $fechaSalida,
+                'estado' => 'finalizado',
+            ]);
 
-        // 3. Liberar el activo
-        $activo = Activo::find($ficha->activo_id);
-        if ($activo) {
-            $estatusDisponible = Estatus::where('descripcion', 'Disponible')->first();
-            if ($estatusDisponible) {
-                $activo->update(['id_estatus' => $estatusDisponible->id]);
+            // 3. Liberar el activo
+            $activo = Activo::find($ficha->activo_id);
+            if ($activo) {
+                $estatusDisponible = Estatus::where('descripcion', 'Disponible')->first();
+                if ($estatusDisponible) {
+                    $activo->update(['id_estatus' => $estatusDisponible->id]);
+                }
             }
-        }
 
-        DB::commit();
+            DB::commit();
 
-        // 4. Refrescar y verificar
-        $ficha->refresh();
+            // 4. Refrescar y verificar
+            $ficha->refresh();
 
-        Log::info('✅ [close] Ficha cerrada', [
-            'ficha_id' => $ficha->id,
-            'fecha_salida' => $ficha->fecha_salida,
-            'estado' => $ficha->estado,
-        ]);
-
-        // 5. Despachar job
-        EnviarNotificacionFichaSoporte::dispatch($ficha->id, 'finalizada')
-            ->onQueue('notifications');
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Ficha finalizada exitosamente',
-            'fecha_salida' => $ficha->fecha_salida?->format('d/m/Y H:i'),
-            'data' => [
-                'id' => $ficha->id,
+            Log::info('✅ [close] Ficha cerrada', [
+                'ficha_id' => $ficha->id,
+                'fecha_salida' => $ficha->fecha_salida,
                 'estado' => $ficha->estado,
-                'fecha_salida' => $ficha->fecha_salida?->toDateTimeString(),
-            ],
-        ]);
+            ]);
 
-    } catch (\Illuminate\Validation\ValidationException $e) {
-        DB::rollBack();
-        return response()->json([
-            'success' => false,
-            'message' => 'Error de validación',
-            'errors' => $e->errors(),
-        ], 422);
-    } catch (\Throwable $e) {
-        DB::rollBack();
-        Log::error('❌ [close] Error al cerrar ficha: ' . $e->getMessage(), [
-            'ficha_id' => $id,
-            'trace' => $e->getTraceAsString(),
-        ]);
-        return response()->json([
-            'success' => false,
-            'message' => 'Error: ' . $e->getMessage(),
-        ], 500);
+            // 5. Despachar job
+            EnviarNotificacionFichaSoporte::dispatch($ficha->id, 'finalizada')
+                ->onQueue('notifications');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ficha finalizada exitosamente',
+                'fecha_salida' => $ficha->fecha_salida?->format('d/m/Y H:i'),
+                'data' => [
+                    'id' => $ficha->id,
+                    'estado' => $ficha->estado,
+                    'fecha_salida' => $ficha->fecha_salida?->toDateTimeString(),
+                ],
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('❌ [close] Error al cerrar ficha: ' . $e->getMessage(), [
+                'ficha_id' => $id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
     }
-}
+
     // ============================================================
     // DESTROY
-    // ✅ CORREGIDO: Despacha Job con evento 'eliminada' para notificar al responsable
     // ============================================================
     public function destroy($id)
     {

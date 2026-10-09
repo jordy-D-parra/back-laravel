@@ -76,6 +76,40 @@ class ActivoController extends Controller
         }
     }
 
+        /**
+     * Endpoint JSON filtrado para la pantalla de Inventario.
+     * Usa el scope conFiltros() — mismo que usa InventarioListadoReport.
+     */
+    public function listarFiltrado(Request $request)
+    {
+        if (!auth()->user()->hasPermission('ver-activos')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        try {
+            $activos = Activo::with([
+                    'modelo.marca',
+                    'modelo.categoria',
+                    'estatus',
+                    'institucion',
+                    'departamento',
+                    'responsable',
+                    'componentes',
+                ])
+                ->conFiltros($request->all())
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return response()->json(['success' => true, 'data' => $activos]);
+        } catch (\Exception $e) {
+            \Log::error('Error en listarFiltrado activos: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar activos: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     // ============================================================
     // STORE — Crear activo + componentes en una transacción
     // ✅ RESPONSABLE AUTO-ASIGNADO desde institución/departamento

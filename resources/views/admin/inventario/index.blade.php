@@ -119,23 +119,56 @@
         {{-- TAB ACTIVOS --}}
         {{-- ============================================ --}}
         <div class="tab-pane fade show active" id="activos" role="tabpanel">
-            <div class="filters-bar">
-                <div class="input-group" style="max-width: 350px;">
-                    <span class="input-group-text">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                        </svg>
-                    </span>
-                    <input type="text" class="form-control" id="buscarActivos" placeholder="Buscar por serial, modelo, marca...">
+            <div class="filters-bar" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
+
+                {{-- Fila 1: Buscador (izquierda) + Botones de exportación (derecha) --}}
+                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <div class="input-group" style="max-width: 420px; flex: 1; min-width: 240px;">
+                        <span class="input-group-text">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </span>
+                        <input type="text" class="form-control" id="buscarActivos" placeholder="Buscar por serial, modelo, marca...">
+                    </div>
+
+                    {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL - ACTIVOS --}}
+                    @if(auth()->user()->hasPermission('ver-activos'))
+                    <div class="d-flex gap-2">
+                        <button type="button"
+                                class="btn-export btn-export-pdf"
+                                onclick="exportarInventario('pdf')"
+                                title="Exportar a PDF">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            PDF
+                        </button>
+                        <button type="button"
+                                class="btn-export btn-export-xlsx"
+                                onclick="exportarInventario('xlsx')"
+                                title="Exportar a Excel">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            Excel
+                        </button>
+                    </div>
+                    @endif
                 </div>
-                <div class="d-flex gap-2 align-items-center">
-                    <select class="form-select form-select-sm" id="filtroEstadoActivos" style="width: 180px;">
+
+                {{-- Fila 2: Select de estado --}}
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <select class="form-select form-select-sm" id="filtroEstadoActivos" style="width: 220px;">
                         <option value="">Todos los estados</option>
                         @foreach($estatusList as $estatus)
                             <option value="{{ $estatus->descripcion }}">{{ $estatus->descripcion }}</option>
                         @endforeach
                     </select>
                 </div>
+
             </div>
             <div class="table-container">
                 <table class="table table-hover align-middle mb-0">
@@ -161,26 +194,59 @@
         {{-- TAB COMPONENTES --}}
         {{-- ============================================ --}}
         <div class="tab-pane fade" id="componentes" role="tabpanel">
-            <div class="filters-bar">
-                <div class="input-group" style="max-width: 350px;">
-                    <span class="input-group-text">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
-                            <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                        </svg>
-                    </span>
-                    <input type="text" class="form-control" id="buscarComponentes" placeholder="Buscar por tipo, marca, serial...">
+            <div class="filters-bar" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
+
+                {{-- Fila 1: Buscador (izquierda) + Botones de exportación (derecha) --}}
+                <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                    <div class="input-group" style="max-width: 420px; flex: 1; min-width: 240px;">
+                        <span class="input-group-text">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                        </span>
+                        <input type="text" class="form-control" id="buscarComponentes" placeholder="Buscar por tipo, marca, serial...">
+                    </div>
+
+                    {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL - COMPONENTES --}}
+                    @if(auth()->user()->hasPermission('ver-componentes'))
+                    <div class="d-flex gap-2">
+                        <button type="button"
+                                class="btn-export btn-export-pdf"
+                                onclick="exportarComponentes('pdf')"
+                                title="Exportar a PDF">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            PDF
+                        </button>
+                        <button type="button"
+                                class="btn-export btn-export-xlsx"
+                                onclick="exportarComponentes('xlsx')"
+                                title="Exportar a Excel">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            Excel
+                        </button>
+                    </div>
+                    @endif
                 </div>
-                <div class="d-flex gap-2 align-items-center">
-                    <select class="form-select form-select-sm" id="filtroTipoComponentes" style="width: 170px;">
+
+                {{-- Fila 2: Select de tipo + Select de estado --}}
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <select class="form-select form-select-sm" id="filtroTipoComponentes" style="width: 220px;">
                         <option value="">Todos los tipos</option>
                     </select>
-                    <select class="form-select form-select-sm" id="filtroEstadoComponentes" style="width: 170px;">
+                    <select class="form-select form-select-sm" id="filtroEstadoComponentes" style="width: 220px;">
                         <option value="">Todos los estados</option>
                         @foreach($estadosComponentes as $estado)
                             <option value="{{ $estado['valor'] }}">{{ $estado['label'] }}</option>
                         @endforeach
                     </select>
                 </div>
+
             </div>
             <div class="table-container">
                 <table class="table table-hover align-middle mb-0">

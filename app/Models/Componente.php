@@ -170,4 +170,47 @@ class Componente extends Model
     {
         return $this->update(['reservado_en_prestamo_id' => null]);
     }
+
+        /**
+     * Scope: aplica los filtros de la pantalla de Inventario (tab Componentes).
+     * Reutilizado por ComponenteController::listarFiltrado() y por ComponentesListadoReport.
+     *
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  array  $filtros
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeConFiltros($query, array $filtros)
+    {
+        // ===== BÚSQUEDA LIBRE =====
+        if (!empty($filtros['buscar'])) {
+            $buscar = $filtros['buscar'];
+            $query->where(function ($q) use ($buscar) {
+                $q->where('tipo', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('marca', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('modelo', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('serial', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('capacidad', 'ILIKE', "%{$buscar}%")
+                  ->orWhere('ubicacion', 'ILIKE', "%{$buscar}%")
+                  ->orWhereHas('activo', fn($sq) => $sq->where('serial', 'ILIKE', "%{$buscar}%"))
+                  ->orWhereHas('institucion', fn($sq) => $sq->where('nombre', 'ILIKE', "%{$buscar}%"));
+            });
+        }
+
+        // ===== TIPO =====
+        if (!empty($filtros['tipo'])) {
+            $query->where('tipo', $filtros['tipo']);
+        }
+
+        // ===== ESTADO =====
+        if (!empty($filtros['estado'])) {
+            $query->where('estado', $filtros['estado']);
+        }
+
+        // ===== ACTIVO (solo si tiene o no) =====
+        if (!empty($filtros['activo_id'])) {
+            $query->where('activo_id', $filtros['activo_id']);
+        }
+
+        return $query;
+    }
 }
