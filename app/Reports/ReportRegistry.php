@@ -9,9 +9,11 @@ class ReportRegistry
 {
     protected static array $reports = [
         // ============ PRÉSTAMOS ============
-        "prestamos-periodo"     => \App\Reports\Definitions\PrestamosPeriodoReport::class,
-        "prestamos-vencidos"    => \App\Reports\Definitions\PrestamosVencidosReport::class,
-        "prestamos-listado"     => \App\Reports\Definitions\PrestamosListadoReport::class,
+        'prestamos-listado'      => \App\Reports\Definitions\PrestamosListadoReport::class,
+        'prestamos-proceso'      => \App\Reports\Definitions\PrestamosProcesoReport::class,
+        'prestamos-vencidos'     => \App\Reports\Definitions\PrestamosVencidosReport::class,
+        'prestamos-terminados'   => \App\Reports\Definitions\PrestamosTerminadosReport::class,
+        'prestamos-periodo'      => \App\Reports\Definitions\PrestamosPeriodoReport::class,
 
         // ============ INVENTARIO ============
         "inventario-listado"    => \App\Reports\Definitions\InventarioListadoReport::class,
@@ -41,6 +43,7 @@ class ReportRegistry
     protected static array $individualReports = [
         'activo-individual' => \App\Reports\Definitions\ActivoIndividualReport::class,
         'solicitud-individual' => \App\Reports\Definitions\SolicitudIndividualReport::class,
+        'prestamo-individual'   => \App\Reports\Definitions\PrestamoIndividualReport::class,
     ];
 
     // ============================================================

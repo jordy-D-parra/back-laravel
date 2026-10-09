@@ -254,7 +254,6 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
         })->middleware("permission:ver-componentes")->name("componentes.data");
 
         // ------ ACTIVOS ------
-        // ⚠️ IMPORTANTE: /activos/filtrados debe ir ANTES de /activos/{activo}
         Route::get("/activos/filtrados", [ActivoController::class, "listarFiltrado"])
             ->middleware("permission:ver-activos")
             ->name("activos.filtrados");
@@ -273,7 +272,6 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
         Route::patch("/activos/{activo}/toggle-status", [ActivoController::class, "toggleStatus"])->middleware("permission:cambiar-estatus-activo")->name("activos.toggle-status");
 
         // ------ COMPONENTES ------
-        // ⚠️ IMPORTANTE: /componentes/filtrados debe ir ANTES de /componentes/{componente}
         Route::get("/componentes/filtrados", [ComponenteController::class, "listarFiltrado"])
             ->middleware("permission:ver-componentes")
             ->name("componentes.filtrados");
@@ -393,13 +391,15 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
 
             // ============================================================
             // 1) REPORTES INDIVIDUALES (Ficha técnica de un solo registro)
-            //    Se declaran PRIMERO para evitar colisiones con /{key}/...
             //    Prefijo "/ficha/" no puede confundirse con un "key".
             //
             //    Keys soportadas actualmente:
             //      - activo-individual
             //      - solicitud-individual
-            //      - (proximos: prestamo-individual, soporte-individual)
+            //      - prestamo-individual
+            //
+            //    ✅ IMPORTANTE: declarar ANTES de "/{key}/..." para evitar
+            //       que Laravel interprete "ficha" como {key}.
             // ============================================================
             Route::get("/ficha/{key}/{id}", [ReportController::class, "individual"])
                 ->where("id", "[0-9]+")

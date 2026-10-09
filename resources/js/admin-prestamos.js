@@ -1,5 +1,7 @@
 // resources/js/admin-prestamos.js
 // ✅ Módulo de préstamos con paginación del cliente (8 items por página)
+// ✅ Exportación contextual con selector de reporte
+// ✅ Ficha técnica individual del préstamo (reporte PDF)
 
 document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
@@ -32,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="pagination-info">Mostrando ${((pageActual - 1) * ITEMS_POR_PAGINA) + 1} a ${Math.min(pageActual * ITEMS_POR_PAGINA, totalRegistros)} de ${totalRegistros} registros</div>
             <div class="pagination-btns">`;
 
-        // Anterior
         html += `<button class="pagination-btn ${pageActual === 1 ? 'disabled' : ''}"
                     onclick="window.cambiarPaginaPrestamo('${tipo}', ${pageActual - 1})" ${pageActual === 1 ? 'disabled' : ''}>«</button>`;
 
@@ -54,7 +55,6 @@ document.addEventListener('DOMContentLoaded', function() {
             html += `<button class="pagination-btn" onclick="window.cambiarPaginaPrestamo('${tipo}', ${totalPaginas})">${totalPaginas}</button>`;
         }
 
-        // Siguiente
         html += `<button class="pagination-btn ${pageActual === totalPaginas ? 'disabled' : ''}"
                     onclick="window.cambiarPaginaPrestamo('${tipo}', ${pageActual + 1})" ${pageActual === totalPaginas ? 'disabled' : ''}>»</button>`;
 
@@ -519,7 +519,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <thead><tr>
                     <th>Código</th><th>Destino</th><th>Solicitud</th><th>Responsable</th>
                     <th>Tipo</th><th>F. Préstamo</th><th>F. Devolución</th><th>Estado</th>
-                    ${esFinalizados ? '<th style="width:60px">Ver</th>' : '<th style="width:200px">Acciones</th>'}
+                    ${esFinalizados ? '<th style="width:100px">Acciones</th>' : '<th style="width:230px">Acciones</th>'}
                 </tr></thead>
                 <tbody>
         `;
@@ -532,6 +532,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 `<span class="badge-estado badge-estado-info">${escapeHtml(prestamo.solicitud_codigo)}</span>` :
                 '—';
             const destino = prestamo.destino_nombre || '—';
+
+            // ✅ BOTÓN DE FICHA TÉCNICA (siempre presente en cada fila)
+            const botonFicha = `
+                <button class="btn-action" onclick="generarFichaPrestamo(${prestamo.id})" title="Ficha técnica (PDF)" style="color:#1e3c72;">
+                    <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <line x1="10" y1="9" x2="8" y2="9"/>
+                    </svg>
+                </button>
+            `;
 
             html += `
                 <tr class="${vencido}">
@@ -548,6 +561,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <button class="btn-action text-info" onclick="verDetallePrestamo(${prestamo.id})" title="Ver detalle">
                                 <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                             </button>
+                            ${botonFicha}
             `;
 
             if (!esFinalizados) {
@@ -1249,6 +1263,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 html += `
                     <div class="modal-footer">
                         <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cerrar</button>
+                        <button type="button" class="btn btn-primary-dark" onclick="generarFichaPrestamo(${p.id})" style="color:#fff;">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" class="me-1">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                            </svg>
+                            Ficha Técnica
+                        </button>
                         ${p.estado === 'entregado' || p.estado === 'extendido' ? `
                             <button type="button" class="btn btn-primary-dark" onclick="generarActaPrestamo(${p.id})" style="color:#fff;">
                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" class="me-1">
@@ -1310,6 +1331,19 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!ventana) {
             showToast('Por favor, permita ventanas emergentes para generar el acta', 'warning');
             return;
+        }
+    };
+
+    // ============================================================
+    // GENERAR FICHA TÉCNICA INDIVIDUAL DEL PRÉSTAMO (Reporte PDF)
+    // ✅ Abre el PDF en una nueva pestaña para previsualizar/imprimir
+    // ============================================================
+    window.generarFichaPrestamo = function(id) {
+        const url = '/admin/reportes/ficha/prestamo-individual/' + id;
+        const ventana = window.open(url, '_blank');
+
+        if (!ventana) {
+            showToast('Por favor, permita ventanas emergentes para generar el reporte.', 'warning');
         }
     };
 
@@ -1812,55 +1846,62 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ Módulo de préstamos inicializado correctamente');
 });
 
-    // ============================================================
-    // EXPORTACIÓN CONTEXTUAL (respeta filtros de la pantalla activa)
-    // ============================================================
-    window.exportarPrestamos = function (formato) {
-        if (formato !== 'pdf' && formato !== 'xlsx') {
-            console.warn('Formato no soportado:', formato);
-            return;
-        }
+// ============================================================
+// EXPORTACIÓN CONTEXTUAL DE PRÉSTAMOS
+// ✅ Recibe el key del reporte y el formato
+// ✅ Respeta los filtros de la pantalla activa
+// ============================================================
+window.exportarPrestamos = function (reporteKey, formato) {
+    if (!reporteKey) {
+        console.warn('No se especificó el reporte');
+        return;
+    }
 
-        // Detectar qué pestaña está activa
-        const tabActiva = document.querySelector('#prestamosTabs .nav-link.active')?.id || 'solicitudes-tab';
+    if (formato !== 'pdf' && formato !== 'xlsx' && formato !== 'csv') {
+        console.warn('Formato no soportado:', formato);
+        return;
+    }
 
-        let buscarInput, tipoSelect, estadoSelect, fechaDesde, fechaHasta;
+    // ✅ Detectar qué pestaña está activa
+    const tabActiva = document.querySelector('#prestamosTabs .nav-link.active')?.id || 'solicitudes-tab';
 
-        if (tabActiva === 'solicitudes-tab') {
-            buscarInput = document.getElementById('buscarSolicitudes');
-        } else if (tabActiva === 'finalizados-tab') {
-            buscarInput = document.getElementById('buscarFinalizados');
-            estadoSelect = document.getElementById('filtroEstadoFinalizados');
-            fechaDesde = document.getElementById('filtroFechaDesde');
-            fechaHasta = document.getElementById('filtroFechaHasta');
-        } else {
-            buscarInput = document.getElementById('buscarActivos');
-            tipoSelect = document.getElementById('filtroTipoActivos');
-            estadoSelect = document.getElementById('filtroEstadoActivos');
-        }
+    let buscarInput, tipoSelect, estadoSelect, fechaDesde, fechaHasta;
 
-        const params = new URLSearchParams();
+    if (tabActiva === 'solicitudes-tab') {
+        buscarInput = document.getElementById('buscarSolicitudes');
+    } else if (tabActiva === 'finalizados-tab') {
+        buscarInput = document.getElementById('buscarFinalizados');
+        estadoSelect = document.getElementById('filtroEstadoFinalizados');
+        fechaDesde = document.getElementById('filtroFechaDesde');
+        fechaHasta = document.getElementById('filtroFechaHasta');
+    } else {
+        buscarInput = document.getElementById('buscarActivos');
+        tipoSelect = document.getElementById('filtroTipoActivos');
+        estadoSelect = document.getElementById('filtroEstadoActivos');
+    }
 
-        const buscar = buscarInput ? buscarInput.value.trim() : '';
-        if (buscar) params.append('buscar', buscar);
+    const params = new URLSearchParams();
 
-        const tipo = tipoSelect ? tipoSelect.value : '';
-        if (tipo) params.append('tipo', tipo);
+    const buscar = buscarInput ? buscarInput.value.trim() : '';
+    if (buscar) params.append('buscar', buscar);
 
-        const estado = estadoSelect ? estadoSelect.value : '';
-        if (estado) params.append('estado', estado);
+    const tipo = tipoSelect ? tipoSelect.value : '';
+    if (tipo) params.append('tipo', tipo);
 
-        const desde = fechaDesde ? fechaDesde.value : '';
-        if (desde) params.append('fecha_desde', desde);
+    const estado = estadoSelect ? estadoSelect.value : '';
+    if (estado) params.append('estado', estado);
 
-        const hasta = fechaHasta ? fechaHasta.value : '';
-        if (hasta) params.append('fecha_hasta', hasta);
+    const desde = fechaDesde ? fechaDesde.value : '';
+    if (desde) params.append('fecha_desde', desde);
 
-        const qs = params.toString();
-        const url = '/admin/reportes/prestamos-listado/export/' + formato + (qs ? '?' + qs : '');
+    const hasta = fechaHasta ? fechaHasta.value : '';
+    if (hasta) params.append('fecha_hasta', hasta);
 
-        const ventana = window.open(url, '_blank');
-        if (!ventana) {
-            alert('Por favor, permita ventanas emergentes para exportar el reporte.');
-        }
-    };
+    const qs = params.toString();
+    const url = `/admin/reportes/${reporteKey}/export/${formato}` + (qs ? '?' + qs : '');
+
+    const ventana = window.open(url, '_blank');
+    if (!ventana) {
+        alert('Por favor, permita ventanas emergentes para exportar el reporte.');
+    }
+};

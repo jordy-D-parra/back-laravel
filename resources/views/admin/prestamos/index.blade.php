@@ -33,7 +33,6 @@
             font-size: 0.65rem;
         }
 
-        /* Badge de reserva */
         .badge-reservado {
             background: #fef3c7 !important;
             color: #92400e !important;
@@ -52,7 +51,6 @@
             stroke: #92400e;
         }
 
-        /* Item deshabilitado en búsqueda */
         .result-item.disabled {
             opacity: 0.6;
             cursor: not-allowed !important;
@@ -63,14 +61,12 @@
             transform: none !important;
         }
 
-        /* Estado del préstamo en el timeline */
         .prestamo-timeline .step.reservado .step-icon {
             background: #fef3c7;
             border-color: #f59e0b;
             color: #92400e;
         }
 
-        /* Select de estado con colores */
         #estadoPrestamo option[value="pendiente"] { color: #92400e; }
         #estadoPrestamo option[value="aprobado"] { color: #155724; }
         #estadoPrestamo option[value="entregado"] { color: #004085; }
@@ -85,7 +81,6 @@
         .estado-help-text.aprobado { color: #155724; }
         .estado-help-text.entregado { color: #004085; }
 
-        /* Estilos para el select de estado */
         .estado-option-icon {
             display: inline-flex;
             align-items: center;
@@ -97,7 +92,6 @@
             vertical-align: middle;
         }
 
-        /* Botón acta de devolución */
         .btn-acta-devolucion {
             background: #28a745;
             color: white;
@@ -175,6 +169,79 @@
             transform: translateY(0);
         }
 
+        /* ============================================================
+           DROPDOWN DE REPORTES EN EL HEADER
+           ============================================================ */
+        .page-header .btn-header {
+            background: rgba(255, 255, 255, 0.15);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            color: white;
+            border-radius: 10px;
+            padding: 0.55rem 1.25rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+        .page-header .btn-header:hover,
+        .page-header .btn-header:focus {
+            background: rgba(255, 255, 255, 0.25);
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            outline: none;
+        }
+        .page-header .btn-header svg {
+            stroke: white;
+            flex-shrink: 0;
+        }
+
+        .page-header .dropdown-menu {
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+            padding: 0.5rem;
+            min-width: 290px;
+            margin-top: 0.5rem;
+        }
+
+        .page-header .dropdown-header {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6c757d;
+            font-weight: 700;
+            padding: 0.5rem 0.9rem;
+        }
+
+        .page-header .dropdown-item {
+            border-radius: 8px;
+            padding: 0.6rem 0.9rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1e3c72;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+        .page-header .dropdown-item:hover {
+            background: #eef3fc;
+            color: #1e3c72;
+            transform: translateX(2px);
+        }
+        .page-header .dropdown-item svg {
+            flex-shrink: 0;
+        }
+        .page-header .dropdown-divider {
+            margin: 0.4rem 0;
+            border-color: #e9ecef;
+        }
+
         @media (max-width: 576px) {
             .btn-export {
                 flex: 1;
@@ -202,6 +269,85 @@
             </h4>
             <p>Registro, control y seguimiento de préstamos de equipos y componentes</p>
         </div>
+
+        {{-- ========== DROPDOWN DE REPORTES ========== --}}
+        @if(auth()->user()->hasPermission('ver-reportes'))
+        <div class="dropdown">
+            <button class="btn-header dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                Reportes
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li>
+                    <h6 class="dropdown-header">Exportar Préstamos</h6>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#" onclick="exportarPrestamos('prestamos-listado', 'pdf'); return false;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2"/>
+                            <line x1="9" y1="3" x2="9" y2="21"/>
+                        </svg>
+                        Listado Completo (PDF)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#" onclick="exportarPrestamos('prestamos-proceso', 'pdf'); return false;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                        Préstamos en Proceso (PDF)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#" onclick="exportarPrestamos('prestamos-vencidos', 'pdf'); return false;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2">
+                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                            <line x1="12" y1="9" x2="12" y2="13"/>
+                            <line x1="12" y1="17" x2="12.01" y2="17"/>
+                        </svg>
+                        Préstamos Vencidos (PDF)
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item" href="#" onclick="exportarPrestamos('prestamos-terminados', 'pdf'); return false;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        Préstamos Terminados (PDF)
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" href="#" onclick="exportarPrestamos('prestamos-periodo', 'pdf'); return false;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
+                            <path d="M3 3v18h18"/>
+                            <path d="M18 17V9"/>
+                            <path d="M13 17V5"/>
+                            <path d="M8 17v-3"/>
+                        </svg>
+                        Préstamos por Período (PDF)
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <a class="dropdown-item" href="{{ route('admin.reportes.explorer') }}" target="_blank">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6c757d" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                        Explorador de Reportes
+                    </a>
+                </li>
+            </ul>
+        </div>
+        @endif
     </div>
 
     <!-- ========== TARJETAS DE ESTADÍSTICAS ========== -->
@@ -306,13 +452,13 @@
                     </div>
                 </div>
 
-                {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL --}}
-                @if(auth()->user()->hasPermission('ver-prestamos'))
+                {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL - SOLICITUDES --}}
+                @if(auth()->user()->hasPermission('ver-reportes'))
                 <div class="d-flex gap-2">
                     <button type="button"
                             class="btn-export btn-export-pdf"
-                            onclick="exportarPrestamos('pdf')"
-                            title="Exportar a PDF">
+                            onclick="exportarPrestamos('prestamos-listado', 'pdf')"
+                            title="Exportar solicitudes a PDF">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
@@ -321,8 +467,8 @@
                     </button>
                     <button type="button"
                             class="btn-export btn-export-xlsx"
-                            onclick="exportarPrestamos('xlsx')"
-                            title="Exportar a Excel">
+                            onclick="exportarPrestamos('prestamos-listado', 'xlsx')"
+                            title="Exportar solicitudes a Excel">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
@@ -352,13 +498,13 @@
                     </div>
                 </div>
 
-                {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL --}}
-                @if(auth()->user()->hasPermission('ver-prestamos'))
+                {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL - ACTIVOS --}}
+                @if(auth()->user()->hasPermission('ver-reportes'))
                 <div class="d-flex gap-2">
                     <button type="button"
                             class="btn-export btn-export-pdf"
-                            onclick="exportarPrestamos('pdf')"
-                            title="Exportar a PDF">
+                            onclick="exportarPrestamos('prestamos-proceso', 'pdf')"
+                            title="Exportar préstamos activos a PDF">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
@@ -367,8 +513,8 @@
                     </button>
                     <button type="button"
                             class="btn-export btn-export-xlsx"
-                            onclick="exportarPrestamos('xlsx')"
-                            title="Exportar a Excel">
+                            onclick="exportarPrestamos('prestamos-proceso', 'xlsx')"
+                            title="Exportar préstamos activos a Excel">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
@@ -398,13 +544,13 @@
                     </div>
                 </div>
 
-                {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL --}}
-                @if(auth()->user()->hasPermission('ver-prestamos'))
+                {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL - FINALIZADOS --}}
+                @if(auth()->user()->hasPermission('ver-reportes'))
                 <div class="d-flex gap-2">
                     <button type="button"
                             class="btn-export btn-export-pdf"
-                            onclick="exportarPrestamos('pdf')"
-                            title="Exportar a PDF">
+                            onclick="exportarPrestamos('prestamos-terminados', 'pdf')"
+                            title="Exportar préstamos finalizados a PDF">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
@@ -413,8 +559,8 @@
                     </button>
                     <button type="button"
                             class="btn-export btn-export-xlsx"
-                            onclick="exportarPrestamos('xlsx')"
-                            title="Exportar a Excel">
+                            onclick="exportarPrestamos('prestamos-terminados', 'xlsx')"
+                            title="Exportar préstamos finalizados a Excel">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                             <polyline points="14 2 14 8 20 8"/>
@@ -472,34 +618,9 @@
                                 <div class="col-md-4 mb-3">
                                     <label class="form-label">Estado Inicial <span class="text-danger">*</span></label>
                                     <select class="form-select" id="estadoPrestamo" name="estado" onchange="cambiarEstadoPrestamo()">
-                                        <option value="pendiente">
-                                            <span class="estado-option-icon">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                                                    <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                                                    <line x1="8" y1="21" x2="16" y2="21"/>
-                                                    <line x1="12" y1="17" x2="12" y2="21"/>
-                                                </svg>
-                                                Pendiente (Reservar items)
-                                            </span>
-                                        </option>
-                                        <option value="aprobado" selected>
-                                            <span class="estado-option-icon">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                                                    <polyline points="20 6 9 17 4 12"/>
-                                                </svg>
-                                                Aprobado (Prestar items)
-                                            </span>
-                                        </option>
-                                        <option value="entregado">
-                                            <span class="estado-option-icon">
-                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;">
-                                                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                                    <path d="M2 17l10 5 10-5"/>
-                                                    <path d="M2 12l10 5 10-5"/>
-                                                </svg>
-                                                Entregado (Prestar items)
-                                            </span>
-                                        </option>
+                                        <option value="pendiente">Pendiente (Reservar items)</option>
+                                        <option value="aprobado" selected>Aprobado (Prestar items)</option>
+                                        <option value="entregado">Entregado (Prestar items)</option>
                                     </select>
                                     <small class="estado-help-text" id="estadoHelpText">Los items se marcarán como prestados inmediatamente</small>
                                 </div>
@@ -690,7 +811,6 @@
             <div class="modal-body" id="detallePrestamoContenido"></div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cerrar</button>
-                <!-- Los botones de actas se agregan dinámicamente desde JavaScript -->
             </div>
         </div>
     </div>
@@ -713,7 +833,6 @@
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Información del préstamo -->
                     <div class="alert alert-info">
                         <div class="d-flex justify-content-between flex-wrap">
                             <span><strong>Código:</strong> <span id="devolucionCodigo">---</span></span>
@@ -722,13 +841,11 @@
                         </div>
                     </div>
 
-                    <!-- Fecha de devolución -->
                     <div class="mb-3">
                         <label class="form-label">Fecha de Devolución <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" id="fechaDevolucionReal" name="fecha_devolucion_real" required>
                     </div>
 
-                    <!-- Items a devolver -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Items a devolver</label>
                         <p class="text-muted small">Selecciona los items que se devuelven y su estado actual</p>
@@ -737,7 +854,6 @@
                         </div>
                     </div>
 
-                    <!-- Observaciones -->
                     <div class="mb-3">
                         <label class="form-label">Observaciones de la devolución</label>
                         <textarea class="form-control" id="observacionesDevolucion" name="observaciones" rows="3"></textarea>
@@ -757,7 +873,7 @@
     </div>
 </div>
 
-<!-- ========== 🆕 MODAL CONFIRMAR ACTA DE DEVOLUCIÓN ========== -->
+<!-- Modal Confirmar Acta de Devolución -->
 <div class="modal fade" id="modalConfirmarActaDevolucion" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm modal-dialog-centered">
         <div class="modal-content">
@@ -812,7 +928,6 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Información del préstamo -->
                     <div class="alert alert-info">
                         <div class="d-flex justify-content-between flex-wrap">
                             <span><strong>Código:</strong> <span id="extensionCodigo">---</span></span>
@@ -822,7 +937,6 @@
                         </div>
                     </div>
 
-                    <!-- Tipo de extensión -->
                     <div class="mb-3">
                         <label class="form-label fw-bold">Tipo de Extensión <span class="text-danger">*</span></label>
                         <div class="d-flex gap-3">
@@ -843,7 +957,6 @@
                         </div>
                     </div>
 
-                    <!-- Items a extender (parcial) -->
                     <div class="mb-3" id="itemsExtensionContainer" style="display:none;">
                         <label class="form-label fw-bold">Selecciona los items a extender</label>
                         <p class="text-muted small">Selecciona uno o más items para extender su fecha de devolución</p>
@@ -852,14 +965,12 @@
                         </div>
                     </div>
 
-                    <!-- Nueva fecha -->
                     <div class="mb-3">
                         <label class="form-label">Nueva Fecha de Devolución <span class="text-danger">*</span></label>
                         <input type="date" class="form-control" id="fechaNuevaExtension" name="fecha_nueva" required>
                         <small class="text-muted">La fecha debe ser posterior a la fecha actual de devolución</small>
                     </div>
 
-                    <!-- Motivo -->
                     <div class="mb-3">
                         <label class="form-label">Motivo de la Extensión <span class="text-danger">*</span></label>
                         <textarea class="form-control" id="motivoExtension" name="motivo" rows="3" required></textarea>
@@ -1015,7 +1126,6 @@
             helpText.className = 'estado-help-text ' + select.value;
         }
 
-        // Ejecutar al cargar la página
         document.addEventListener('DOMContentLoaded', function() {
             cambiarEstadoPrestamo();
         });
