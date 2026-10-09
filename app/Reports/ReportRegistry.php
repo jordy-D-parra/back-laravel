@@ -38,12 +38,12 @@ class ReportRegistry
 
     /**
      * Reportes individuales (de un solo registro).
-     * Aqui se iran agregando los demas (solicitud, prestamo, soporte).
      */
     protected static array $individualReports = [
-        'activo-individual' => \App\Reports\Definitions\ActivoIndividualReport::class,
-        'solicitud-individual' => \App\Reports\Definitions\SolicitudIndividualReport::class,
+        'activo-individual'     => \App\Reports\Definitions\ActivoIndividualReport::class,
+        'solicitud-individual'  => \App\Reports\Definitions\SolicitudIndividualReport::class,
         'prestamo-individual'   => \App\Reports\Definitions\PrestamoIndividualReport::class,
+        'soporte-individual'    => \App\Reports\Definitions\SoporteIndividualReport::class,   // ✅ ESTA ES LA QUE FALTA
     ];
 
     // ============================================================

@@ -391,21 +391,21 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
 
             // ============================================================
             // 1) REPORTES INDIVIDUALES (Ficha técnica de un solo registro)
-            //    Prefijo "/ficha/" no puede confundirse con un "key".
+            //    ✅ VAN PRIMERO para que no las capture "/{key}/..."
             //
-            //    Keys soportadas actualmente:
+            //    Keys soportadas:
             //      - activo-individual
             //      - solicitud-individual
             //      - prestamo-individual
-            //
-            //    ✅ IMPORTANTE: declarar ANTES de "/{key}/..." para evitar
-            //       que Laravel interprete "ficha" como {key}.
+            //      - soporte-individual
             // ============================================================
             Route::get("/ficha/{key}/{id}", [ReportController::class, "individual"])
+                ->where("key", "[a-z\-]+")
                 ->where("id", "[0-9]+")
                 ->name("individual");
 
             Route::get("/ficha/{key}/{id}/pdf", [ReportController::class, "individualPdf"])
+                ->where("key", "[a-z\-]+")
                 ->where("id", "[0-9]+")
                 ->name("individual.pdf");
 
@@ -418,10 +418,19 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
 
             // ============================================================
             // 3) EXPLORADOR DE REPORTES (listados)
+            //    ⚠️ EXCLUIMOS "ficha" y "explorer" con regex negativa
+            //       para que NO capturen las rutas de arriba.
             // ============================================================
             Route::get("/explorer", [ReportController::class, "index"])->name("explorer");
-            Route::get("/{key}/data", [ReportController::class, "data"])->name("data");
-            Route::get("/{key}/export/{format}", [ReportController::class, "download"])->name("export");
+
+            Route::get("/{key}/data", [ReportController::class, "data"])
+                ->where("key", "(?!ficha$|explorer$)[a-z\-]+")
+                ->name("data");
+
+            Route::get("/{key}/export/{format}", [ReportController::class, "download"])
+                ->where("key", "(?!ficha$|explorer$)[a-z\-]+")
+                ->where("format", "pdf|xlsx|csv")
+                ->name("export");
 
             // ============================================================
             // 4) Rutas legacy (redirigen al explorador)

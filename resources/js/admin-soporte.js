@@ -3,6 +3,7 @@
 // ✅ Sin parpadeo: el Blade renderiza inicial, el JS solo re-renderiza al interactuar
 // ✅ renderizarTabla() genera el mismo HTML que el Blade
 // ✅ Soporta todos los estados: en_proceso, aceptada, rechazada, finalizado, cancelada
+// ✅ NUEVO: Botón de reporte individual (Ficha Técnica de Soporte) por fila
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -93,7 +94,6 @@ function estaVencida(fechaRequerida, estado) {
     return hoy > req;
 }
 
-// ✅ Normaliza cualquier fecha al formato Y-m-d que acepta input[type=date]
 function normalizarFechaParaInput(fechaStr) {
     if (!fechaStr) return '';
 
@@ -146,7 +146,6 @@ function mostrarNotificacion(tipo, mensaje) {
     }, 5000);
 }
 
-// Estilos de animación
 (function inyectarEstilos() {
     if (document.getElementById('soporte-animaciones')) return;
     const style = document.createElement('style');
@@ -184,7 +183,7 @@ function actualizarEstadisticas() {
 }
 
 // ============================================================
-// FICHAS: RENDERIZADO (mismo HTML que el Blade)
+// FICHAS: RENDERIZADO (con botón de reporte)
 // ============================================================
 function renderizarTabla() {
     const tbody = document.getElementById('tablaFichas');
@@ -205,24 +204,16 @@ function renderizarTabla() {
 
     let html = '';
     for (const f of fichasData) {
-        // ----- Fechas con formato completo -----
+        // Fechas
         const fechaIngresoHtml = f.fecha_ingreso
-            ? `
-                <small class="fw-medium">${formatearFechaCorta(f.fecha_ingreso)}</small>
-                <br>
-                <small class="text-muted">${formatearHoraCorta(f.fecha_ingreso)}</small>
-              `
+            ? `<small class="fw-medium">${formatearFechaCorta(f.fecha_ingreso)}</small><br><small class="text-muted">${formatearHoraCorta(f.fecha_ingreso)}</small>`
             : '<small class="text-muted">---</small>';
 
         const fechaSalidaHtml = f.fecha_salida
-            ? `
-                <small class="fw-medium" style="color: #1e7e34;">${formatearFechaCorta(f.fecha_salida)}</small>
-                <br>
-                <small class="text-muted">${formatearHoraCorta(f.fecha_salida)}</small>
-              `
+            ? `<small class="fw-medium" style="color: #1e7e34;">${formatearFechaCorta(f.fecha_salida)}</small><br><small class="text-muted">${formatearHoraCorta(f.fecha_salida)}</small>`
             : '<small class="text-muted">---</small>';
 
-        // ----- Fecha requerida con badge -----
+        // Fecha requerida
         let fechaRequeridaHtml = '<span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>';
         if (f.fecha_requerida_entrega) {
             const dias = calcularDiasRestantes(f.fecha_requerida_entrega, f.estado);
@@ -242,14 +233,12 @@ function renderizarTabla() {
             fechaRequeridaHtml = `<span class="badge-fecha-entrega ${clase}">${texto}</span>`;
         }
 
-        // ----- Activo -----
+        // Activo
         const activoHtml = f.activo
-            ? `<span class="fw-medium" style="color:#1e3c72;">${escapeHtml(f.activo.serial)}</span>
-               <br>
-               <small class="text-muted">${escapeHtml(f.activo.modelo?.nombre || 'N/A')}</small>`
+            ? `<span class="fw-medium" style="color:#1e3c72;">${escapeHtml(f.activo.serial)}</span><br><small class="text-muted">${escapeHtml(f.activo.modelo?.nombre || 'N/A')}</small>`
             : `<span class="text-muted">Equipo externo</span>`;
 
-        // ----- Estado -----
+        // Estado
         let estadoLabel = 'En Proceso';
         let estadoBadge = 'badge-estado-en-proceso';
         switch (f.estado) {
@@ -263,13 +252,13 @@ function renderizarTabla() {
                 estadoBadge = 'badge-estado';
         }
 
-        // ----- Botón cerrar -----
+        // Botón cerrar
         const puedeCerrar = ['en_proceso', 'aceptada'].includes(f.estado);
         const botonCerrar = puedeCerrar
             ? `<button type="button" class="btn-cerrar-ficha" onclick="abrirModalCerrarFicha(${f.id})" title="Cerrar ficha">✓ Cerrar</button>`
             : '';
 
-        // ----- Botón eliminar -----
+        // Botón eliminar
         const puedeEliminar = window.authUserHasPermission
             ? window.authUserHasPermission('eliminar-ficha-soporte')
             : true;
@@ -283,7 +272,6 @@ function renderizarTabla() {
                </button>`
             : '';
 
-        // ----- Fila -----
         html += `
             <tr>
                 <td data-label="Activo">${activoHtml}</td>
@@ -300,6 +288,15 @@ function renderizarTabla() {
                                 <circle cx="12" cy="12" r="10"/>
                                 <path d="M12 8v4"/>
                                 <path d="M12 16h.01"/>
+                            </svg>
+                        </button>
+                        <button type="button" class="btn-action btn-reporte" onclick="generarReporteSoporte(${f.id})" title="Ficha técnica (PDF)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                <polyline points="14 2 14 8 20 8"/>
+                                <line x1="16" y1="13" x2="8" y2="13"/>
+                                <line x1="16" y1="17" x2="8" y2="17"/>
+                                <line x1="10" y1="9" x2="8" y2="9"/>
                             </svg>
                         </button>
                         ${botonCerrar}
@@ -324,7 +321,6 @@ function renderizarPaginacion() {
         return;
     }
 
-    // Info
     const inicio = ((currentPage - 1) * perPage) + 1;
     const fin = Math.min(currentPage * perPage, totalRegistros);
 
@@ -335,12 +331,10 @@ function renderizarPaginacion() {
         <div class="pagination-btns">
     `;
 
-    // Anterior
     html += `<button class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}"
                 onclick="cambiarPagina(${currentPage - 1})"
                 ${currentPage === 1 ? 'disabled' : ''}>«</button>`;
 
-    // Números
     let start = Math.max(1, currentPage - 2);
     let end = Math.min(lastPage, currentPage + 2);
 
@@ -359,7 +353,6 @@ function renderizarPaginacion() {
         html += `<button class="pagination-btn" onclick="cambiarPagina(${lastPage})">${lastPage}</button>`;
     }
 
-    // Siguiente
     html += `<button class="pagination-btn ${currentPage === lastPage ? 'disabled' : ''}"
                 onclick="cambiarPagina(${currentPage + 1})"
                 ${currentPage === lastPage ? 'disabled' : ''}>»</button>`;
@@ -435,14 +428,25 @@ function aplicarFiltrosConDebounce() {
 }
 
 // ============================================================
+// GENERAR REPORTE INDIVIDUAL (Ficha Técnica de Soporte)
+// ✅ Abre el PDF en una nueva pestaña para previsualizar/imprimir
+// ============================================================
+window.generarReporteSoporte = function(id) {
+    const url = '/admin/reportes/ficha/soporte-individual/' + id;
+
+    const ventana = window.open(url, '_blank');
+
+    if (!ventana) {
+        mostrarNotificacion('warning', 'Por favor, permita ventanas emergentes para generar el reporte.');
+    }
+};
+
+// ============================================================
 // CORREOS DE SOPORTE TÉCNICO
 // ============================================================
 window.cargarCorreosSoporte = async function () {
     const container = document.getElementById('listaCorreos');
-    if (!container) {
-        console.warn('No se encontró #listaCorreos');
-        return;
-    }
+    if (!container) return;
 
     const buscar = document.getElementById('buscarCorreo')?.value || '';
     const filtro = document.getElementById('filtroCorreo')?.value || '';
@@ -468,19 +472,13 @@ window.cargarCorreosSoporte = async function () {
 
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const data = await response.json();
-        console.log('Correos recibidos:', data);
         renderizarCorreosSoporte(data.data || []);
 
     } catch (error) {
         console.error('Error al cargar correos:', error);
         container.innerHTML = `
             <div class="text-center py-5 text-danger">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <p class="mt-2">Error al cargar correos: ${escapeHtml(error.message)}</p>
+                <p>Error al cargar correos: ${escapeHtml(error.message)}</p>
                 <button class="btn btn-sm btn-primary-dark mt-2" onclick="cargarCorreosSoporte()">Reintentar</button>
             </div>
         `;
@@ -605,14 +603,12 @@ window.abrirCorreoSoporte = async function (id) {
         document.getElementById('correoCuerpoSoporte').textContent =
             correoSoporteActual.body_text || '(Sin contenido)';
 
-        // Prellenar campos con datos extraídos
         const datos = correoSoporteActual.datos_extraidos || {};
         if (datos.problema) {
             const el = document.getElementById('wzDiagnostico');
             if (el) el.value = datos.problema;
         }
 
-        // Normalizar la fecha al formato Y-m-d
         const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
         if (fechaRaw) {
             const el = document.getElementById('wzFechaRequeridaSoporte');
@@ -669,14 +665,12 @@ window.iniciarWizardSoporte = function () {
     document.getElementById('wizardContainerSoporte').style.display = 'block';
     document.getElementById('wizardCorreoSoporteId').value = correoSoporteActual.id;
 
-    // Pre-llenar campos desde datos_extraidos
     const datos = correoSoporteActual.datos_extraidos || {};
     if (datos.problema) {
         const el = document.getElementById('wzDiagnostico');
         if (el) el.value = datos.problema;
     }
 
-    // Normalizar la fecha al formato Y-m-d
     const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
     if (fechaRaw) {
         const el = document.getElementById('wzFechaRequeridaSoporte');
@@ -693,7 +687,6 @@ window.iniciarWizardSoporte = function () {
         if (el) el.value = correoSoporteActual.from_name;
     }
 
-    // Pre-llenar institución y responsable si están disponibles
     if (datos.serial) {
         fetch(`/admin/activos?buscar=${encodeURIComponent(datos.serial)}`, {
             headers: { 'Accept': 'application/json' },
@@ -889,11 +882,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // ========== CARGA INICIAL ==========
-    // ✅ NO llamar a cargarPagina() aquí.
-    // El Blade ya renderiza la tabla con los datos iniciales.
-    // El JS solo debe pedir datos cuando el usuario interactúe
-    // (buscar, filtrar, cambiar de página, cerrar/eliminar una ficha).
     actualizarBadgeCorreosSoporte();
 
     // ========== SUBMIT FORM CERRAR FICHA ==========
@@ -1018,7 +1006,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const tabCorreos = document.getElementById('tab-correos');
     if (tabCorreos) {
         tabCorreos.addEventListener('shown.bs.tab', function () {
-            console.log('Tab de correos activado, cargando correos...');
             cargarCorreosSoporte();
             actualizarBadgeCorreosSoporte();
         });
@@ -1129,16 +1116,7 @@ window.verDetalle = async function (id) {
         const result = await response.json();
 
         if (!result.success || !result.data) {
-            modalBody.innerHTML = `
-                <div class="text-center text-danger py-5">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                    </svg>
-                    <p class="mt-2">Error al cargar el detalle de la ficha</p>
-                </div>
-            `;
+            modalBody.innerHTML = `<div class="text-center text-danger py-5"><p>Error al cargar el detalle</p></div>`;
             return;
         }
 
@@ -1211,264 +1189,57 @@ window.verDetalle = async function (id) {
         } else {
             componentesHtml = `
                 <div class="text-center text-muted py-3" style="font-size:0.85rem;">
-                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5">
-                        <rect x="2" y="6" width="20" height="12" rx="2"/>
-                    </svg>
                     <p class="mb-0 mt-2">No hay componentes registrados para esta ficha</p>
                 </div>
             `;
         }
 
         const html = `
-            <style>
-                .ficha-detalle-wrap { font-family: inherit; }
-                .ficha-header {
-                    background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-                    margin: -1rem -1rem 1.5rem -1rem;
-                    padding: 1.5rem;
-                    border-radius: 12px 12px 0 0;
-                    color: white;
-                    position: relative;
-                    overflow: hidden;
-                }
-                .ficha-header::after {
-                    content: '';
-                    position: absolute;
-                    top: -50%;
-                    right: -10%;
-                    width: 200px;
-                    height: 200px;
-                    background: rgba(255,255,255,0.05);
-                    border-radius: 50%;
-                }
-                .ficha-header h4 {
-                    font-size: 1.35rem;
-                    font-weight: 700;
-                    margin: 0;
-                }
-                .ficha-header .subtitulo {
-                    font-size: 0.85rem;
-                    opacity: 0.85;
-                    margin-top: 4px;
-                }
-                .estado-badge {
-                    background: ${estadoBg};
-                    color: white;
-                    padding: 0.45rem 1rem;
-                    border-radius: 30px;
-                    font-size: 0.8rem;
-                    font-weight: 600;
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-                    white-space: nowrap;
-                }
-                .info-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-                    gap: 1rem;
-                    margin-bottom: 1.5rem;
-                }
-                .info-card {
-                    background: #f8f9fc;
-                    border-radius: 10px;
-                    padding: 0.85rem 1rem;
-                    border-left: 4px solid #1e3c72;
-                    transition: all 0.2s ease;
-                }
-                .info-card:hover {
-                    background: #eef2ff;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 10px rgba(30,60,114,0.08);
-                }
-                .info-card .info-label {
-                    font-size: 0.7rem;
-                    text-transform: uppercase;
-                    letter-spacing: 0.5px;
-                    color: #6c757d;
-                    font-weight: 700;
-                    margin-bottom: 4px;
-                    display: flex;
-                    align-items: center;
-                    gap: 5px;
-                }
-                .info-card .info-value {
-                    font-size: 0.92rem;
-                    font-weight: 600;
-                    color: #2c3e50;
-                    word-break: break-word;
-                }
-                .seccion-titulo {
-                    font-size: 0.95rem;
-                    font-weight: 700;
-                    color: #1e3c72;
-                    margin-bottom: 0.75rem;
-                    padding-bottom: 0.5rem;
-                    border-bottom: 2px solid #e9ecef;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                }
-                .seccion-titulo svg { flex-shrink: 0; }
-                .texto-bloque {
-                    background: #f8f9fc;
-                    border-radius: 8px;
-                    padding: 0.85rem 1rem;
-                    font-size: 0.9rem;
-                    color: #2c3e50;
-                    line-height: 1.55;
-                    white-space: pre-wrap;
-                    word-break: break-word;
-                    min-height: 44px;
-                    border-left: 3px solid #dee2e6;
-                }
-                .texto-bloque.vacio {
-                    color: #adb5bd;
-                    font-style: italic;
-                }
-                .texto-bloque.diagnostico { border-left-color: #f6c23e; }
-                .texto-bloque.trabajo { border-left-color: #1e7e34; }
-                .texto-bloque.observaciones { border-left-color: #17a2b8; }
-                .componentes-grid {
-                    display: grid;
-                    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-                    gap: 0.75rem;
-                }
-                .componente-card {
-                    background: #f8f9fc;
-                    border: 1px solid #e9ecef;
-                    border-radius: 10px;
-                    padding: 0.85rem 1rem;
-                    transition: all 0.2s ease;
-                }
-                .componente-card:hover {
-                    border-color: #1e3c72;
-                    box-shadow: 0 4px 10px rgba(30,60,114,0.08);
-                }
-                .componente-nombre {
-                    font-weight: 600;
-                    color: #1e3c72;
-                    font-size: 0.88rem;
-                }
-                .componente-obs {
-                    font-size: 0.8rem;
-                    color: #6c757d;
-                    margin-top: 6px;
-                    padding-top: 6px;
-                    border-top: 1px dashed #dee2e6;
-                }
-                .fecha-badge {
-                    display: inline-flex;
-                    align-items: center;
-                    gap: 6px;
-                    padding: 0.3rem 0.75rem;
-                    border-radius: 20px;
-                    font-size: 0.78rem;
-                    font-weight: 600;
-                }
-                .fecha-badge.ingreso { background: #e7f1ff; color: #1e3c72; }
-                .fecha-badge.salida { background: #e8f5e9; color: #1e7e34; }
-                .fecha-badge.requerida { background: #fff8e1; color: #a67c00; }
-                .fecha-badge.pendiente { background: #f0f0f0; color: #6c757d; }
-            </style>
-
             <div class="ficha-detalle-wrap">
                 <div class="ficha-header">
                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                         <div>
-                            <h4>
-                                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:6px; vertical-align:middle;">
-                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                                </svg>
-                                Ficha de Soporte #${f.id}
-                            </h4>
+                            <h4>Ficha de Soporte #${f.id}</h4>
                             <div class="subtitulo">
                                 <strong>${escapeHtml(serial)}</strong> · ${escapeHtml(marca)} ${escapeHtml(modelo)}
                             </div>
                         </div>
-                        <span class="estado-badge">${estadoIcono} ${estadoTexto}</span>
+                        <span class="estado-badge" style="background: ${estadoBg}; color: white; padding: 0.45rem 1rem; border-radius: 30px; font-size: 0.8rem; font-weight: 600;">
+                            ${estadoIcono} ${estadoTexto}
+                        </span>
                     </div>
                 </div>
 
                 <div class="info-grid">
                     <div class="info-card">
-                        <div class="info-label">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                <circle cx="12" cy="7" r="4"/>
-                            </svg>
-                            Técnico Asignado
-                        </div>
+                        <div class="info-label">Técnico Asignado</div>
                         <div class="info-value">${escapeHtml(f.tecnico_nombre || 'No asignado')}</div>
                     </div>
-
                     <div class="info-card">
-                        <div class="info-label">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                <circle cx="12" cy="7" r="4"/>
-                            </svg>
-                            Usuario Reporta
-                        </div>
+                        <div class="info-label">Usuario Reporta</div>
                         <div class="info-value">${escapeHtml(f.usuario_reporta_nombre || 'No especificado')}</div>
                     </div>
-
                     <div class="info-card">
-                        <div class="info-label">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M3 21h18"/>
-                                <path d="M5 21V7l8-4v18"/>
-                                <path d="M19 21V11l-6-4"/>
-                            </svg>
-                            Institución
-                        </div>
+                        <div class="info-label">Institución</div>
                         <div class="info-value">${escapeHtml(institucion)}</div>
                     </div>
-
                     <div class="info-card">
-                        <div class="info-label">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                <circle cx="12" cy="7" r="4"/>
-                            </svg>
-                            Responsable
-                        </div>
+                        <div class="info-label">Responsable</div>
                         <div class="info-value">${escapeHtml(responsable)}</div>
                     </div>
                 </div>
 
                 <div class="mb-4">
-                    <div class="seccion-titulo">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                            <line x1="16" y1="2" x2="16" y2="6"/>
-                            <line x1="8" y1="2" x2="8" y2="6"/>
-                            <line x1="3" y1="10" x2="21" y2="10"/>
-                        </svg>
-                        Fechas del Proceso
-                    </div>
+                    <div class="seccion-titulo">Fechas del Proceso</div>
                     <div class="d-flex flex-wrap gap-2">
-                        <span class="fecha-badge ingreso">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <polyline points="23 4 23 10 17 10"/>
-                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                            </svg>
+                        <span class="fecha-badge ingreso" style="background: #e7f1ff; color: #1e3c72; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600;">
                             Ingreso: ${fechaIngreso}
                         </span>
-                        <span class="fecha-badge ${f.fecha_salida ? 'salida' : 'pendiente'}">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                <polyline points="22 4 12 14.01 9 11.01"/>
-                            </svg>
+                        <span class="fecha-badge" style="background: ${f.fecha_salida ? '#e8f5e9' : '#f0f0f0'}; color: ${f.fecha_salida ? '#1e7e34' : '#6c757d'}; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600;">
                             Salida: ${fechaSalida}
                         </span>
                         ${fechaRequerida ? `
-                            <span class="fecha-badge requerida">
-                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <polyline points="12 6 12 12 16 14"/>
-                                </svg>
+                            <span class="fecha-badge" style="background: #fff8e1; color: #a67c00; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600;">
                                 Requerida: ${fechaRequerida}
                             </span>
                         ` : ''}
@@ -1476,59 +1247,31 @@ window.verDetalle = async function (id) {
                 </div>
 
                 <div class="mb-4">
-                    <div class="seccion-titulo">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
-                            <path d="M9 11l3 3L22 4"/>
-                            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
-                        </svg>
-                        Diagnóstico Inicial
-                    </div>
-                    <div class="texto-bloque diagnostico ${!f.diagnostico ? 'vacio' : ''}">
+                    <div class="seccion-titulo">Diagnóstico Inicial</div>
+                    <div style="background: #f8f9fc; border-left: 3px solid #f6c23e; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.9rem; color: #2c3e50; line-height: 1.55; white-space: pre-wrap;">
                         ${escapeHtml(f.diagnostico || 'No se registró diagnóstico inicial.')}
                     </div>
                 </div>
 
                 ${f.trabajo_realizado ? `
                     <div class="mb-4">
-                        <div class="seccion-titulo">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
-                                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-                            </svg>
-                            Trabajo Realizado
-                        </div>
-                        <div class="texto-bloque trabajo">
+                        <div class="seccion-titulo">Trabajo Realizado</div>
+                        <div style="background: #f8f9fc; border-left: 3px solid #1e7e34; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.9rem; color: #2c3e50; line-height: 1.55; white-space: pre-wrap;">
                             ${escapeHtml(f.trabajo_realizado)}
                         </div>
                     </div>
                 ` : ''}
 
                 <div class="mb-4">
-                    <div class="seccion-titulo">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                        </svg>
-                        Observaciones
-                    </div>
-                    <div class="texto-bloque observaciones ${!f.observaciones ? 'vacio' : ''}">
+                    <div class="seccion-titulo">Observaciones</div>
+                    <div style="background: #f8f9fc; border-left: 3px solid #17a2b8; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.9rem; color: #2c3e50; line-height: 1.55; white-space: pre-wrap;">
                         ${escapeHtml(f.observaciones || 'Sin observaciones registradas.')}
                     </div>
                 </div>
 
                 <div class="mb-2">
-                    <div class="seccion-titulo">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2">
-                            <rect x="2" y="6" width="20" height="12" rx="2"/>
-                            <line x1="6" y1="10" x2="6" y2="14"/>
-                            <line x1="10" y1="10" x2="10" y2="14"/>
-                            <line x1="14" y1="10" x2="14" y2="14"/>
-                            <line x1="18" y1="10" x2="18" y2="14"/>
-                        </svg>
-                        Componentes Revisados
-                        <span class="badge bg-secondary ms-2" style="font-size:0.7rem;">
-                            ${f.detalles?.length || 0}
-                        </span>
-                    </div>
-                    <div class="componentes-grid">
+                    <div class="seccion-titulo">Componentes Revisados (${f.detalles?.length || 0})</div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem;">
                         ${componentesHtml}
                     </div>
                 </div>
@@ -1540,16 +1283,7 @@ window.verDetalle = async function (id) {
 
     } catch (error) {
         console.error('Error:', error);
-        modalBody.innerHTML = `
-            <div class="text-center text-danger py-5">
-                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                    <circle cx="12" cy="12" r="10"/>
-                    <line x1="12" y1="8" x2="12" y2="12"/>
-                    <line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                <p class="mt-2">Error de conexión al cargar el detalle</p>
-            </div>
-        `;
+        modalBody.innerHTML = `<div class="text-center text-danger py-5"><p>Error al cargar el detalle</p></div>`;
     }
 };
 
@@ -1562,10 +1296,8 @@ window.confirmarEliminar = function (id) {
     new bootstrap.Modal(document.getElementById('modalEliminar')).show();
 };
 
-console.log('✅ Código de soporte técnico cargado completamente');
 // ============================================================
 // EXPORTACIÓN CONTEXTUAL DE SOPORTE TÉCNICO
-// ✅ Usa un enlace dinámico para evitar el bloqueo de pop-ups
 // ============================================================
 window.exportarSoporte = function (formato) {
     if (formato !== 'pdf' && formato !== 'xlsx') {
@@ -1586,7 +1318,6 @@ window.exportarSoporte = function (formato) {
     const qs = params.toString();
     const url = '/admin/reportes/soporte-listado/export/' + formato + (qs ? '?' + qs : '');
 
-    // ✅ Crear un enlace temporal y hacer click → evita bloqueo de pop-ups
     const link = document.createElement('a');
     link.href = url;
     link.target = '_blank';
@@ -1595,3 +1326,5 @@ window.exportarSoporte = function (formato) {
     link.click();
     document.body.removeChild(link);
 };
+
+console.log('✅ Código de soporte técnico cargado completamente');

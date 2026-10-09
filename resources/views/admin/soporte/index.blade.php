@@ -9,7 +9,6 @@
        OVERRIDES ALINEADOS CON PRÉSTAMOS / INVENTARIO / ENTIDADES
        ============================================================ */
 
-    /* Header con gradiente */
     .page-header {
         background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
         border-radius: 16px;
@@ -171,7 +170,6 @@
         border: 1px solid #94a3b8;
     }
 
-    /* Badge fecha de entrega */
     .badge-fecha-entrega {
         display: inline-flex;
         align-items: center;
@@ -212,7 +210,7 @@
         color: #78350f;
     }
 
-    /* Botones de acción — tamaño legible */
+    /* Botones de acción */
     .btn-action {
         background: transparent;
         border: none;
@@ -233,6 +231,13 @@
     .btn-action.text-danger:hover {
         background: #fee2e2;
         color: #c5221f;
+    }
+    .btn-action.btn-reporte {
+        color: #1e3c72;
+    }
+    .btn-action.btn-reporte:hover {
+        background: #eef3fc;
+        color: #2a5298;
     }
 
     /* ============================================================
@@ -335,7 +340,7 @@
     }
 
     /* ============================================================
-       PAGINACIÓN (idéntica al módulo de Instituciones)
+       PAGINACIÓN
        ============================================================ */
     .pagination-bar {
         display: flex;
@@ -410,7 +415,45 @@
         font-size: 0.82rem;
     }
 
-    /* Responsive tabla en móvil */
+    /* ============================================================
+       BOTONES DE EXPORTACIÓN CONTEXTUAL
+       ============================================================ */
+    .btn-export {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        padding: 0.45rem 1rem;
+        border-radius: 10px;
+        font-size: 0.82rem;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        border: none;
+        cursor: pointer;
+        color: #ffffff;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        white-space: nowrap;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        line-height: 1;
+    }
+    .btn-export svg { flex-shrink: 0; stroke: currentColor; }
+
+    .btn-export-pdf { background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); }
+    .btn-export-pdf:hover {
+        background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(220, 38, 38, 0.35);
+        color: #ffffff;
+    }
+    .btn-export-xlsx { background: linear-gradient(135deg, #16a34a 0%, #15803d 100%); }
+    .btn-export-xlsx:hover {
+        background: linear-gradient(135deg, #15803d 0%, #166534 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
+        color: #ffffff;
+    }
+
+    /* Responsive */
     @media (max-width: 576px) {
         .table thead { display: none; }
         .table tbody td {
@@ -440,6 +483,12 @@
         .table tbody td:last-child { border-bottom: none; }
         .pagination-bar { flex-direction: column; align-items: center; }
         .pagination-btn { min-width: 32px; height: 32px; font-size: 0.75rem; }
+        .btn-export {
+            flex: 1;
+            justify-content: center;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.78rem;
+        }
     }
 </style>
 @endsection
@@ -598,7 +647,7 @@
                         <option value="rechazada">Rechazada</option>
                     </select>
 
-                    {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL (NUEVO) --}}
+                    {{-- BOTONES DE EXPORTACIÓN CONTEXTUAL --}}
                     @if(auth()->user()->hasPermission('ver-fichas-soporte'))
                     <button type="button"
                             class="btn-export btn-export-pdf"
@@ -751,12 +800,26 @@
                             {{-- Acciones --}}
                             <td data-label="Acciones" class="text-end">
                                 <div class="d-flex gap-1 justify-content-end">
+                                    {{-- Ver detalle --}}
                                     <button type="button" class="btn-action"
                                             onclick="verDetalle({{ $ficha->id }})" title="Ver detalle">
                                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <circle cx="12" cy="12" r="10"/>
                                             <path d="M12 8v4"/>
                                             <path d="M12 16h.01"/>
+                                        </svg>
+                                    </button>
+
+                                    {{-- ✅ NUEVO: Botón de Ficha Técnica (PDF) --}}
+                                    <button type="button" class="btn-action btn-reporte"
+                                            onclick="generarReporteSoporte({{ $ficha->id }})"
+                                            title="Ficha técnica (PDF)">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                            <polyline points="14 2 14 8 20 8"/>
+                                            <line x1="16" y1="13" x2="8" y2="13"/>
+                                            <line x1="16" y1="17" x2="8" y2="17"/>
+                                            <line x1="10" y1="9" x2="8" y2="9"/>
                                         </svg>
                                     </button>
 
