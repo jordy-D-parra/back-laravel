@@ -386,7 +386,7 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
             Route::get("/devolucion/imprimir/{id}", [ActaDevolucionController::class, "imprimir"])->name("devolucion.imprimir");
         });
 
-               // ============================================================
+        // ============================================================
         // REPORTES
         // ============================================================
         Route::prefix("reportes")->name("reportes.")->middleware("permission:ver-reportes")->group(function () {
@@ -395,6 +395,11 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
             // 1) REPORTES INDIVIDUALES (Ficha técnica de un solo registro)
             //    Se declaran PRIMERO para evitar colisiones con /{key}/...
             //    Prefijo "/ficha/" no puede confundirse con un "key".
+            //
+            //    Keys soportadas actualmente:
+            //      - activo-individual
+            //      - solicitud-individual
+            //      - (proximos: prestamo-individual, soporte-individual)
             // ============================================================
             Route::get("/ficha/{key}/{id}", [ReportController::class, "individual"])
                 ->where("id", "[0-9]+")

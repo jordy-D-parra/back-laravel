@@ -40,6 +40,7 @@ class ReportRegistry
      */
     protected static array $individualReports = [
         'activo-individual' => \App\Reports\Definitions\ActivoIndividualReport::class,
+        'solicitud-individual' => \App\Reports\Definitions\SolicitudIndividualReport::class,
     ];
 
     // ============================================================
