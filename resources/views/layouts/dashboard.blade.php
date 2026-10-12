@@ -381,6 +381,45 @@
     @vite(["resources/js/user-avatar.js"])
 
     @yield("scripts")
+        @yield("scripts")
+
+    <script>
+        // ============================================================
+        // FIX: Modal fantasma / backdrop huérfano de Bootstrap 5
+        // ============================================================
+        document.addEventListener('hidden.bs.modal', function () {
+            // Si ya no hay ningún modal abierto, limpiamos cualquier backdrop huérfano
+            const modalesAbiertos = document.querySelectorAll('.modal.show').length;
+
+            if (modalesAbiertos === 0) {
+                // Remover todos los backdrops huérfanos
+                document.querySelectorAll('.modal-backdrop').forEach(function (bd) {
+                    bd.remove();
+                });
+
+                // Quitar las clases que bloquean el scroll del body
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }
+        });
+
+        // FIX adicional: si por alguna razón el backdrop aparece sin modal, limpiarlo
+        const observer = new MutationObserver(function () {
+            const backdrops = document.querySelectorAll('.modal-backdrop');
+            const modalesAbiertos = document.querySelectorAll('.modal.show').length;
+
+            if (backdrops.length > 0 && modalesAbiertos === 0) {
+                backdrops.forEach(function (bd) { bd.remove(); });
+                document.body.classList.remove('modal-open');
+                document.body.style.removeProperty('overflow');
+                document.body.style.removeProperty('padding-right');
+            }
+        });
+
+        observer.observe(document.body, { childList: true, subtree: true });
+    </script>
+</body>
 
     <script>
         window.addEventListener("pageshow", function (event) {

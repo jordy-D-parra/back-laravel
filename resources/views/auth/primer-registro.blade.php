@@ -197,6 +197,19 @@
                     </div>
                 </div>
 
+                <div class="mb-3">
+                    <label for="email" class="form-label small">
+                        <svg class="emoji-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="2" y="4" width="20" height="16" rx="2" stroke="currentColor" fill="none"/>
+                            <path d="M22 6l-10 7L2 6" stroke="currentColor" fill="none"/>
+                        </svg>
+                        Correo Electrónico (Email)
+                    </label>
+                    <input type="email" class="form-control" id="email" name="email"
+                           value="{{ old('email') }}" placeholder="usuario@ejemplo.com" required>
+                    <small class="text-muted">Este correo se usará para el envío de notificaciones del sistema.</small>
+                </div>
+
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label for="nombre" class="form-label small">

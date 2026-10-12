@@ -18,6 +18,23 @@ document.addEventListener('DOMContentLoaded', function () {
     let usuariosFiltrados = [];
     let paginaActual = 1;
 
+    // ============================================================
+    // ✅ FIX: HELPER GLOBAL PARA LIMPIAR BACKDROPS HUÉRFANOS
+    // ============================================================
+    function limpiarBackdrops() {
+        // Solo limpiamos si NO hay ningún modal realmente visible
+        const modalesVisibles = document.querySelectorAll('.modal.show').length;
+        if (modalesVisibles > 0) return;
+
+        document.querySelectorAll('.modal-backdrop').forEach(function (bd) {
+            bd.remove();
+        });
+
+        document.body.classList.remove('modal-open');
+        document.body.style.removeProperty('overflow');
+        document.body.style.removeProperty('padding-right');
+    }
+
     // ===========================
     // FUNCIÓN: MOSTRAR NOTIFICACIÓN
     // ===========================
@@ -245,6 +262,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // EDITAR
         document.querySelectorAll('.btn-editar-usuario').forEach(btn => {
             btn.addEventListener('click', function () {
+                // ✅ FIX: limpiar backdrops antes de abrir este modal
+                limpiarBackdrops();
+
                 const id = this.dataset.id;
                 const usuario = this.dataset.usuario;
                 const rolId = this.dataset.rolId;
@@ -276,6 +296,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // VER DETALLE
         document.querySelectorAll('.btn-ver-usuario').forEach(btn => {
             btn.addEventListener('click', function () {
+                // ✅ FIX: limpiar backdrops antes de abrir este modal
+                limpiarBackdrops();
+
                 const id = this.dataset.id;
                 fetch('/admin/usuarios/' + id + '/detalle')
                     .then(response => response.json())
@@ -345,6 +368,9 @@ document.addEventListener('DOMContentLoaded', function () {
         // ELIMINAR
         document.querySelectorAll('.btn-eliminar-usuario').forEach(btn => {
             btn.addEventListener('click', function () {
+                // ✅ FIX: limpiar backdrops antes de abrir este modal
+                limpiarBackdrops();
+
                 const id = this.dataset.id;
                 const usuario = this.dataset.usuario;
 
@@ -403,9 +429,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // MODAL CONTRASEÑA
     // ============================================================
     function mostrarModalContraseña(usuario, password) {
+        // ✅ FIX: limpiar backdrops huérfanos antes de insertar el nuevo modal
+        limpiarBackdrops();
+
         const passwordLimpia = String(password).trim();
         const usuarioLimpio = String(usuario).trim();
 
+        // Eliminar cualquier modal previo con el mismo ID
         let modalExistente = document.getElementById('modalPasswordDisplay');
         if (modalExistente) modalExistente.remove();
 
@@ -456,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             </div>
 
                             <div class="alert alert-warning mt-3 mb-0" style="font-size: 0.8rem; border-radius: 10px;">
-                                <strong>⚠️ Importante:</strong> Copie esta contraseña ahora. No se volverá a mostrar.
+                                <strong>Importante:</strong> Copie esta contraseña ahora. No se volverá a mostrar.
                             </div>
                         </div>
                         <div class="modal-footer border-0 px-4 pb-4 justify-content-center">
@@ -505,7 +535,7 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         function mostrarFeedbackCopiado() {
-            btnCopiar.innerHTML = '✅ ¡Copiada!';
+            btnCopiar.innerHTML = '¡Copiada!';
             btnCopiar.style.background = '#22c55e';
             setTimeout(() => {
                 btnCopiar.innerHTML = 'Copiar contraseña';
@@ -516,8 +546,10 @@ document.addEventListener('DOMContentLoaded', function () {
         btnCopiar.addEventListener('click', copiarAlPortapapeles);
         displayBox.addEventListener('click', copiarAlPortapapeles);
 
+        // ✅ FIX: al cerrarse, eliminar el modal Y limpiar backdrops huérfanos
         modalElement.addEventListener('hidden.bs.modal', function () {
             modalElement.remove();
+            setTimeout(limpiarBackdrops, 100);
         });
     }
 
@@ -640,7 +672,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     warningDiv.id = 'trabajadorTieneUsuarioWarning';
                     warningDiv.className = 'alert alert-warning mt-2 py-2';
                     warningDiv.style.cssText = 'font-size:0.85rem; border-radius:8px;';
-                    warningDiv.innerHTML = `⚠️ Este trabajador ya tiene un usuario asignado.`;
+                    warningDiv.innerHTML = `Este trabajador ya tiene un usuario asignado.`;
                     if (infoDiv && infoDiv.parentNode) {
                         infoDiv.parentNode.insertBefore(warningDiv, infoDiv.nextSibling);
                     }
@@ -669,6 +701,9 @@ document.addEventListener('DOMContentLoaded', function () {
     const btnNuevoUsuario = document.querySelector('[data-bs-target="#modalUsuario"]');
     if (btnNuevoUsuario) {
         btnNuevoUsuario.addEventListener('click', function () {
+            // ✅ FIX: limpiar backdrops antes de abrir el modal
+            limpiarBackdrops();
+
             formUsuario.reset();
             document.getElementById('usuarioMethod').value = 'POST';
             formUsuario.action = '/admin/usuarios';
@@ -762,13 +797,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
                     mostrarNotificacion('success', data.message || 'Usuario guardado exitosamente');
 
+                    // ✅ FIX: esperar a que el modal se cierre completamente y limpiar backdrops
+                    // antes de abrir el siguiente modal de contraseña
+                    setTimeout(() => {
+                        limpiarBackdrops();
+                    }, 350);
+
                     if (data.new_password && data.new_usuario) {
                         setTimeout(() => {
                             mostrarModalContraseña(data.new_usuario, data.new_password);
-                        }, 500);
+                        }, 700);
                     }
 
-                    setTimeout(() => location.reload(), 3000);
+                    setTimeout(() => location.reload(), 3500);
                 } else {
                     mostrarNotificacion('error', data.message || 'Error al guardar usuario');
                     if (data.errors) {
@@ -819,11 +860,22 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 5000);
     });
 
+    // ============================================================
+    // ✅ FIX: LISTENER GLOBAL PARA LIMPIAR BACKDROPS AL CERRAR MODALES
+    // ============================================================
+    document.addEventListener('hidden.bs.modal', function () {
+        // Solo limpiamos si ya no queda ningún modal abierto
+        const modalesAbiertos = document.querySelectorAll('.modal.show').length;
+        if (modalesAbiertos === 0) {
+            setTimeout(limpiarBackdrops, 150);
+        }
+    });
+
     // ===========================
     // INICIALIZACIÓN
     // ===========================
     cargarDatosDesdeBlade();
     bindEventosBotones();
 
-    console.log('✅ Módulo de usuarios inicializado con paginación');
+    console.log('Módulo de usuarios inicializado con paginación');
 });
