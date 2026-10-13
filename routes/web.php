@@ -18,11 +18,7 @@ use App\Http\Controllers\Admin\ModeloComponenteController;
 use App\Http\Controllers\Admin\ActivoController;
 use App\Http\Controllers\Admin\ComponenteController;
 use App\Http\Controllers\Admin\InventarioController;
-<<<<<<< HEAD
-use App\Http\Controllers\Admin\ImportController;             // ✅ NUEVO
-=======
 use App\Http\Controllers\Admin\ImportController;          
->>>>>>> origin/main
 use App\Http\Controllers\Admin\SolicitudController;
 use App\Http\Controllers\Admin\FichaSoporteController;
 use App\Http\Controllers\Admin\PrestamoController;
