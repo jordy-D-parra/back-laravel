@@ -8,6 +8,7 @@ use App\Models\FichaSoporte;
 use App\Models\Usuario;
 use App\Models\Responsable;
 use App\Models\Activo;
+use App\Models\Notificacion;
 use App\Services\NotificacionService;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -63,6 +64,7 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
             'activo.modelo.marca',
             'activo.modelo.categoria',
             'activo.institucion',
+            'activo.departamento',
             'activo.responsable',
             'tecnico.trabajador',
             'detalles.componente',
@@ -97,11 +99,12 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
             Log::warning("⚠️ [Job Soporte] No hay responsable con email", [
                 'ficha_id' => $ficha->id,
                 'activo_id' => $ficha->activo_id,
+                'departamento_id' => $ficha->activo?->departamento_id,
+                'institucion_id' => $ficha->activo?->institucion_id,
             ]);
             return;
         }
 
-        $equipo = $this->nombreEquipo($ficha);
         $titulo = $this->tituloResponsable();
         $mensaje = $this->mensajeResponsable($ficha, $responsable);
 
@@ -111,6 +114,24 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
             'email' => $responsable->email,
             'evento' => $this->evento,
         ]);
+
+        // ✅ NUEVO: Registrar notificación externa en la BD (usuario_id = null)
+        try {
+            Notificacion::create([
+                'usuario_id' => null,
+                'tipo' => 'soporte',
+                'titulo' => $titulo,
+                'mensaje' => $mensaje,
+                'url' => null,
+                'fecha_envio' => now(),
+                'leida' => false,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error("❌ [Job Soporte] Error al registrar notificación externa", [
+                'ficha_id' => $ficha->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         try {
             $service->enviarAResponsable(
@@ -189,7 +210,12 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
     }
 
     /**
-     * Obtiene el responsable con email, con MÚLTIPLES fallbacks.
+     * ✅ CORREGIDO: Obtiene el responsable con email, con fallbacks LIMITADOS
+     * al ámbito correcto (departamento del activo primero, luego institución).
+     *
+     * NO se salta a "cualquier responsable de la institución" si el activo
+     * tiene un departamento asignado pero ese departamento no tiene responsable.
+     * Esto evita que el correo llegue a una persona equivocada.
      */
     protected function obtenerResponsableConEmail(?Activo $activo): ?Responsable
     {
@@ -198,7 +224,7 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
             return null;
         }
 
-        // 1. Responsable directo del activo
+        // 1. Responsable directo del activo (SIEMPRE prioritario)
         if ($activo->responsable && !empty($activo->responsable->email)) {
             Log::info("✅ [Job Soporte] Usando responsable directo del activo", [
                 'activo_id' => $activo->id,
@@ -208,7 +234,7 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
             return $activo->responsable;
         }
 
-        // 2. Responsable del departamento del activo
+        // 2. Responsable del departamento del activo (mismo ámbito)
         if ($activo->departamento_id) {
             $respDepto = Responsable::where('departamento_id', $activo->departamento_id)
                 ->where('activo', true)
@@ -224,9 +250,17 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
                 ]);
                 return $respDepto;
             }
+
+            // ⚠️ El activo tiene departamento pero ese departamento NO tiene responsable.
+            // NO hacemos fallback a la institución para evitar enviar a persona equivocada.
+            Log::warning("⚠️ [Job Soporte] Departamento sin responsable con email. NO se hará fallback a institución.", [
+                'activo_id' => $activo->id,
+                'departamento_id' => $activo->departamento_id,
+            ]);
+            return null;
         }
 
-        // 3. Responsable institucional (sin departamento)
+        // 3. Responsable institucional (solo si el activo NO tiene departamento)
         if ($activo->institucion_id) {
             $respInst = Responsable::where('institucion_id', $activo->institucion_id)
                 ->whereNull('departamento_id')
@@ -243,22 +277,13 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
                 ]);
                 return $respInst;
             }
-
-            // 4. Cualquier responsable de la institución
-            $respCualquiera = Responsable::where('institucion_id', $activo->institucion_id)
-                ->where('activo', true)
-                ->whereNotNull('email')
-                ->where('email', '!=', '')
-                ->first();
-
-            if ($respCualquiera) {
-                Log::info("✅ [Job Soporte] Usando cualquier responsable de la institución", [
-                    'activo_id' => $activo->id,
-                    'email' => $respCualquiera->email,
-                ]);
-                return $respCualquiera;
-            }
         }
+
+        Log::warning("❌ [Job Soporte] No se encontró responsable con email", [
+            'activo_id' => $activo->id,
+            'departamento_id' => $activo->departamento_id,
+            'institucion_id' => $activo->institucion_id,
+        ]);
 
         return null;
     }

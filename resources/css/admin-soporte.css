@@ -912,3 +912,274 @@
         font-size: 0.78rem;
     }
 }
+
+/* ============================================================
+   WIZARD DE CONVERSIÓN DE CORREO → FICHA DE SOPORTE
+   (4 pasos: Equipo → Institución → Técnico → Confirmar)
+   ============================================================ */
+
+/* ---- Contenedor de cada paso ---- */
+.wizard-step-soporte {
+    display: none;
+    animation: wizardFadeIn 0.35s ease;
+}
+
+.wizard-step-soporte.active {
+    display: block;
+}
+
+@keyframes wizardFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ---- Indicador circular de paso ---- */
+.step-circle {
+    display: inline-block;
+    width: 32px;
+    height: 32px;
+    line-height: 32px;
+    text-align: center;
+    border-radius: 50%;
+    background: var(--border-light);
+    color: var(--text-muted);
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-right: 6px;
+    transition: var(--transition);
+    vertical-align: middle;
+}
+
+.step-circle.active {
+    background: var(--primary-dark);
+    color: white;
+    box-shadow: 0 0 0 4px rgba(30, 60, 114, 0.15);
+    transform: scale(1.05);
+}
+
+.step-circle.completed {
+    background: var(--success-color);
+    color: white;
+    box-shadow: 0 0 0 4px rgba(30, 126, 52, 0.15);
+}
+
+/* ---- Barra de progreso del wizard ---- */
+#wizardProgressSoporte {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--primary-dark), var(--primary-light));
+    transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ---- Encabezados internos del wizard ---- */
+.wizard-step-soporte h6 {
+    color: var(--primary-dark);
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--border-light);
+}
+
+/* ---- Tarjeta informativa dentro del wizard ---- */
+#infoCorreoSoporte .alert-info {
+    background: var(--primary-lighter);
+    border: 1px solid #c5d5f0;
+    border-left: 4px solid var(--primary-dark);
+    border-radius: var(--radius-md);
+    color: var(--text-dark);
+    padding: 1rem 1.25rem;
+}
+
+#infoCorreoSoporte .alert-info strong {
+    color: var(--primary-dark);
+}
+
+#correoCuerpoSoporte {
+    background: var(--bg-light);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: var(--text-dark);
+}
+
+/* ---- Aviso de equipo existente en el paso 2 ---- */
+#avisoEquipoExistente {
+    background: #e7f1ff;
+    border: 1px solid #c5d5f0;
+    border-left: 4px solid var(--primary-dark);
+    border-radius: var(--radius-md);
+    color: var(--primary-dark);
+    font-size: 0.85rem;
+    padding: 0.75rem 1rem;
+}
+
+/* ---- Alertas dentro del wizard (confirmación) ---- */
+.wizard-step-soporte .alert-success {
+    background: #ecfdf5;
+    border: 1px solid #a7f3d0;
+    border-left: 4px solid var(--success-color);
+    border-radius: var(--radius-md);
+    color: #065f46;
+    padding: 1rem 1.25rem;
+}
+
+.wizard-step-soporte .alert-success h6 {
+    color: #065f46;
+    border-bottom: none;
+    padding-bottom: 0;
+    margin-bottom: 0.75rem;
+}
+
+.wizard-step-soporte .alert-success ul {
+    padding-left: 1.25rem;
+    margin-bottom: 0;
+}
+
+.wizard-step-soporte .alert-success ul li {
+    margin-bottom: 0.35rem;
+    font-size: 0.88rem;
+}
+
+.wizard-step-soporte .alert-success ul li strong {
+    color: #065f46;
+}
+
+/* ---- Instrucciones de notificación ---- */
+.wizard-step-soporte .alert-info {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-left: 4px solid #3b82f6;
+    border-radius: var(--radius-md);
+    color: #1e40af;
+    padding: 1rem 1.25rem;
+    font-size: 0.88rem;
+}
+
+.wizard-step-soporte .alert-info strong {
+    color: #1e40af;
+}
+
+.wizard-step-soporte .alert-info ul {
+    padding-left: 1.25rem;
+    margin-bottom: 0;
+}
+
+.wizard-step-soporte .alert-info ul li {
+    margin-bottom: 0.25rem;
+}
+
+/* ---- Botones de navegación del wizard ---- */
+.wizard-step-soporte .btn-primary-dark,
+.wizard-step-soporte .btn-outline-primary-dark,
+.wizard-step-soporte .btn-success {
+    padding: 0.6rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.88rem;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.wizard-step-soporte .btn-success {
+    background: linear-gradient(135deg, var(--success-color) 0%, #28a745 100%);
+    border: none;
+    color: white;
+    box-shadow: 0 4px 12px rgba(30, 126, 52, 0.2);
+}
+
+.wizard-step-soporte .btn-success:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(30, 126, 52, 0.35);
+    color: white;
+}
+
+/* ---- Formularios dentro del wizard ---- */
+.wizard-step-soporte .form-label {
+    font-weight: 600;
+    font-size: 0.82rem;
+    color: var(--primary-dark);
+    margin-bottom: 0.4rem;
+}
+
+.wizard-step-soporte .form-control,
+.wizard-step-soporte .form-select {
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    padding: 0.6rem 0.9rem;
+    font-size: 0.88rem;
+    transition: var(--transition);
+}
+
+.wizard-step-soporte .form-control:focus,
+.wizard-step-soporte .form-select:focus {
+    border-color: var(--primary-dark);
+    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.12);
+}
+
+.wizard-step-soporte .form-check-input {
+    cursor: pointer;
+    border-radius: 50%;
+}
+
+.wizard-step-soporte .form-check-input:checked {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.wizard-step-soporte .form-check-label {
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: var(--text-dark);
+}
+
+.wizard-step-soporte .form-check-label strong {
+    color: var(--primary-dark);
+}
+
+/* ---- Responsive del wizard ---- */
+@media (max-width: 768px) {
+    .step-circle {
+        width: 26px;
+        height: 26px;
+        line-height: 26px;
+        font-size: 0.72rem;
+        margin-right: 3px;
+    }
+
+    .wizard-step-soporte h6 {
+        font-size: 0.9rem;
+    }
+
+    .wizard-step-soporte .btn-primary-dark,
+    .wizard-step-soporte .btn-outline-primary-dark,
+    .wizard-step-soporte .btn-success {
+        padding: 0.5rem 1.1rem;
+        font-size: 0.82rem;
+    }
+
+    #infoCorreoSoporte .alert-info,
+    .wizard-step-soporte .alert-success,
+    .wizard-step-soporte .alert-info {
+        padding: 0.75rem 1rem;
+        font-size: 0.82rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .step-circle {
+        width: 22px;
+        height: 22px;
+        line-height: 22px;
+        font-size: 0.65rem;
+        margin-right: 2px;
+    }
+
+    .wizard-step-soporte .d-flex.justify-content-between {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+}

@@ -349,7 +349,7 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
             Route::post("/{solicitud}/leer", [SolicitudController::class, "marcarLeida"])->middleware("permission:aprobar-solicitudes")->where("solicitud", "[0-9]+")->name("leer");
         });
 
-        // ============================================================
+                // ============================================================
         // SOPORTE TECNICO
         // ============================================================
         Route::prefix("soporte")->name("soporte.")->group(function () {
@@ -372,6 +372,17 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
             Route::put("/{id}", [FichaSoporteController::class, "update"])->middleware("permission:editar-ficha-soporte")->where("id", "[0-9]+")->name("update");
             Route::delete("/{id}", [FichaSoporteController::class, "destroy"])->middleware("permission:eliminar-ficha-soporte")->where("id", "[0-9]+")->name("destroy");
             Route::post("/{id}/close", [FichaSoporteController::class, "close"])->middleware("permission:cerrar-ficha-soporte")->where("id", "[0-9]+")->name("close");
+
+            // ✅ NUEVO: Aceptar y Rechazar ficha (despachan notificación al responsable)
+            Route::post("/{id}/aceptar", [FichaSoporteController::class, "aceptar"])
+                ->middleware("permission:editar-ficha-soporte")
+                ->where("id", "[0-9]+")
+                ->name("aceptar");
+
+            Route::post("/{id}/rechazar", [FichaSoporteController::class, "rechazar"])
+                ->middleware("permission:editar-ficha-soporte")
+                ->where("id", "[0-9]+")
+                ->name("rechazar");
         });
 
         // ============================================================

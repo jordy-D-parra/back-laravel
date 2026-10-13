@@ -727,7 +727,7 @@ class FichaSoporteController extends Controller
         ]);
     }
 
-    // ============================================================
+       // ============================================================
     // CONVERTIR CORREO EN FICHA (Wizard)
     // ============================================================
     public function correoConvertir(Request $request, $id)
@@ -759,22 +759,30 @@ class FichaSoporteController extends Controller
             $validated = $request->validate([
                 'tipo_equipo' => 'required|in:existente,nuevo',
                 'activo_id' => 'required_if:tipo_equipo,existente|nullable|exists:activos,id',
+
                 'nuevo_equipo' => 'required_if:tipo_equipo,nuevo|nullable|array',
                 'nuevo_equipo.serial' => 'required_if:tipo_equipo,nuevo|nullable|string|max:100|unique:activos,serial',
                 'nuevo_equipo.marca' => 'required_if:tipo_equipo,nuevo|nullable|string|max:100',
                 'nuevo_equipo.modelo_nombre' => 'required_if:tipo_equipo,nuevo|nullable|string|max:100',
                 'nuevo_equipo.categoria_id' => 'required_if:tipo_equipo,nuevo|nullable|exists:categorias,id',
                 'nuevo_equipo.institucion_id' => 'required_if:tipo_equipo,nuevo|nullable|exists:instituciones,id',
+                'nuevo_equipo.departamento_id' => 'nullable|exists:departamentos,id',
                 'nuevo_equipo.responsable_id' => 'required_if:tipo_equipo,nuevo|nullable|exists:responsables,id',
                 'nuevo_equipo.ubicacion' => 'nullable|string|max:100',
                 'nuevo_equipo.fecha_adquisicion' => 'nullable|date',
+
                 'tecnico_id' => 'nullable|exists:usuarios,id',
                 'tecnico_nombre' => 'nullable|string|max:150',
                 'usuario_reporta_nombre' => 'required|string|max:150',
                 'diagnostico' => 'required|string|min:10',
                 'observaciones' => 'nullable|string',
                 'fecha_requerida_entrega' => 'required|date|after_or_equal:' . $hoy,
+
+                // ✅ NUEVO: estado inicial
+                'estado_inicial' => 'nullable|in:en_proceso,aceptada,rechazada',
             ]);
+
+            $estadoInicial = $validated['estado_inicial'] ?? 'en_proceso';
 
             DB::beginTransaction();
 
@@ -782,6 +790,7 @@ class FichaSoporteController extends Controller
 
             if ($validated['tipo_equipo'] === 'nuevo' && !empty($validated['nuevo_equipo'])) {
                 $nuevo = $validated['nuevo_equipo'];
+
                 $marca = Marca::firstOrCreate(['nombre' => $nuevo['marca']], ['activo' => true]);
                 $modelo = Modelo::firstOrCreate(
                     ['marca_id' => $marca->id, 'nombre' => $nuevo['modelo_nombre']],
@@ -795,10 +804,12 @@ class FichaSoporteController extends Controller
                     'modelo_id' => $modelo->id,
                     'id_estatus' => $estatusReparacion?->id,
                     'institucion_id' => $nuevo['institucion_id'],
+                    'departamento_id' => $nuevo['departamento_id'] ?? null,
                     'responsable_id' => $nuevo['responsable_id'],
                     'ubicacion' => $nuevo['ubicacion'] ?? 'Taller de reparación',
                     'fecha_adquisicion' => $nuevo['fecha_adquisicion'] ?? null,
                 ]);
+
                 $activoId = $activo->id;
             } else {
                 $activoId = $validated['activo_id'];
@@ -820,7 +831,8 @@ class FichaSoporteController extends Controller
                 'fecha_requerida_entrega' => $validated['fecha_requerida_entrega'],
                 'diagnostico' => $validated['diagnostico'],
                 'observaciones' => $validated['observaciones'] ?? null,
-                'estado' => 'en_proceso',
+                'estado' => $estadoInicial,
+                'fecha_aceptacion' => $estadoInicial === 'aceptada' ? now() : null,
                 'origen' => 'correo',
             ]);
 
@@ -833,13 +845,21 @@ class FichaSoporteController extends Controller
 
             DB::commit();
 
-            // ✅ Despachar Job con evento 'creada'
-            EnviarNotificacionFichaSoporte::dispatch($ficha->id, 'creada', $correo->id)
+            // ✅ Determinar el evento correcto según el estado inicial
+            $eventoNotificacion = match($estadoInicial) {
+                'aceptada' => 'aceptada',
+                'rechazada' => 'rechazada',
+                default => 'creada',
+            };
+
+            EnviarNotificacionFichaSoporte::dispatch($ficha->id, $eventoNotificacion, $correo->id)
                 ->onQueue('notifications');
 
-            Log::info('✅ Job EnviarNotificacionFichaSoporte despachado (creada desde correo)', [
+            Log::info('✅ Job EnviarNotificacionFichaSoporte despachado (desde correo)', [
                 'ficha_id' => $ficha->id,
                 'correo_id' => $correo->id,
+                'evento' => $eventoNotificacion,
+                'estado_inicial' => $estadoInicial,
             ]);
 
             return response()->json([

@@ -1,9 +1,4 @@
 // resources/js/admin-soporte.js
-// ✅ VERSIÓN COMPLETA Y CORREGIDA
-// ✅ Sin parpadeo: el Blade renderiza inicial, el JS solo re-renderiza al interactuar
-// ✅ renderizarTabla() genera el mismo HTML que el Blade
-// ✅ Soporta todos los estados: en_proceso, aceptada, rechazada, finalizado, cancelada
-// ✅ NUEVO: Botón de reporte individual (Ficha Técnica de Soporte) por fila
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -183,7 +178,7 @@ function actualizarEstadisticas() {
 }
 
 // ============================================================
-// FICHAS: RENDERIZADO (con botón de reporte)
+// FICHAS: RENDERIZADO (con botones aceptar/rechazar)
 // ============================================================
 function renderizarTabla() {
     const tbody = document.getElementById('tablaFichas');
@@ -258,6 +253,27 @@ function renderizarTabla() {
             ? `<button type="button" class="btn-cerrar-ficha" onclick="abrirModalCerrarFicha(${f.id})" title="Cerrar ficha">✓ Cerrar</button>`
             : '';
 
+        // Botones Aceptar / Rechazar (solo si está en_proceso)
+        const botonesAceptarRechazar = f.estado === 'en_proceso'
+            ? `
+                <button type="button" class="btn-action text-success"
+                        onclick="aceptarFicha(${f.id})"
+                        title="Aceptar ficha (notifica al responsable)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                </button>
+                <button type="button" class="btn-action text-danger"
+                        onclick="rechazarFicha(${f.id})"
+                        title="Rechazar ficha (notifica al responsable)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            `
+            : '';
+
         // Botón eliminar
         const puedeEliminar = window.authUserHasPermission
             ? window.authUserHasPermission('eliminar-ficha-soporte')
@@ -299,6 +315,7 @@ function renderizarTabla() {
                                 <line x1="10" y1="9" x2="8" y2="9"/>
                             </svg>
                         </button>
+                        ${botonesAceptarRechazar}
                         ${botonCerrar}
                         ${botonEliminar}
                     </div>
@@ -442,6 +459,77 @@ window.generarReporteSoporte = function(id) {
 };
 
 // ============================================================
+// ✅ ACEPTAR FICHA
+// ============================================================
+window.aceptarFicha = async function (id) {
+    if (!confirm('¿Aceptar esta ficha de soporte?\n\nSe notificará al responsable por correo electrónico.')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`/admin/soporte/${id}/aceptar`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({})
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarNotificacion('success', data.message || 'Ficha aceptada exitosamente');
+            cargarPagina(currentPage);
+        } else {
+            mostrarNotificacion('error', data.message || 'Error al aceptar la ficha');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('error', 'Error de conexión al aceptar la ficha');
+    }
+};
+
+// ============================================================
+// ✅ RECHAZAR FICHA
+// ============================================================
+window.rechazarFicha = async function (id) {
+    const motivo = prompt('Motivo del rechazo (mínimo 10 caracteres):');
+
+    if (!motivo || motivo.trim().length < 10) {
+        mostrarNotificacion('warning', 'El motivo debe tener al menos 10 caracteres');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/admin/soporte/${id}/rechazar`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json',
+                'Content-Type': 'application/json'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({ motivo_rechazo: motivo.trim() })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            mostrarNotificacion('success', data.message || 'Ficha rechazada exitosamente');
+            cargarPagina(currentPage);
+        } else {
+            mostrarNotificacion('error', data.message || 'Error al rechazar la ficha');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        mostrarNotificacion('error', 'Error de conexión al rechazar la ficha');
+    }
+};
+
+// ============================================================
 // CORREOS DE SOPORTE TÉCNICO
 // ============================================================
 window.cargarCorreosSoporte = async function () {
@@ -578,7 +666,24 @@ window.revisarCorreos = async function () {
     }
 };
 
+// ============================================================
+// ABRIR CORREO DE SOPORTE (corregido para evitar warning aria-hidden)
+// ============================================================
 window.abrirCorreoSoporte = async function (id) {
+    // ✅ FIX: quitar el foco del elemento activo ANTES de abrir el modal
+    // Esto evita el warning "Blocked aria-hidden on an element because its descendant retained focus"
+    if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+    }
+
+    // ✅ FIX: cerrar cualquier modal previamente abierto para no encadenar
+    document.querySelectorAll('.modal.show').forEach(function (modalAbierto) {
+        try {
+            const instance = bootstrap.Modal.getInstance(modalAbierto);
+            if (instance) instance.hide();
+        } catch (e) { /* ignorar */ }
+    });
+
     try {
         const response = await fetch(`/admin/soporte/correos/${id}`, {
             headers: { 'Accept': 'application/json' },
@@ -646,7 +751,42 @@ window.abrirCorreoSoporte = async function (id) {
         document.getElementById('infoCorreoSoporte').style.display = 'block';
         document.getElementById('botonIniciarWizardSoporte').style.display = 'block';
 
-        new bootstrap.Modal(document.getElementById('modalCorreoSoporte')).show();
+        // ✅ FIX: listeners para limpiar el foco antes/después del modal
+        const modalEl = document.getElementById('modalCorreoSoporte');
+
+        if (modalEl.dataset.focusFixBound !== '1') {
+            modalEl.dataset.focusFixBound = '1';
+
+            modalEl.addEventListener('show.bs.modal', function () {
+                if (document.activeElement && document.activeElement !== document.body) {
+                    document.activeElement.blur();
+                }
+            });
+
+            modalEl.addEventListener('shown.bs.modal', function () {
+                const focused = document.activeElement;
+                if (focused && !modalEl.contains(focused)) {
+                    modalEl.focus();
+                }
+            });
+
+            modalEl.addEventListener('hide.bs.modal', function () {
+                if (document.activeElement && modalEl.contains(document.activeElement)) {
+                    document.activeElement.blur();
+                }
+            });
+
+            modalEl.addEventListener('hidden.bs.modal', function () {
+                if (document.activeElement && document.activeElement !== document.body) {
+                    document.activeElement.blur();
+                }
+                document.body.focus();
+            });
+        }
+
+        // ✅ Abrir el modal
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
 
     } catch (error) {
         console.error('Error:', error);
@@ -655,7 +795,7 @@ window.abrirCorreoSoporte = async function (id) {
 };
 
 // ============================================================
-// WIZARD DE CONVERSIÓN DE CORREO → FICHA
+// WIZARD DE CONVERSIÓN DE CORREO → FICHA (4 PASOS)
 // ============================================================
 window.iniciarWizardSoporte = function () {
     if (!correoSoporteActual) return;
@@ -687,6 +827,21 @@ window.iniciarWizardSoporte = function () {
         if (el) el.value = correoSoporteActual.from_name;
     }
 
+    // ✅ AUTO-RELLENAR CAMPOS DEL PASO 2
+    const institucionId = datos.institucion_id || datos.institution_id || null;
+    const departamentoId = datos.departamento_id || datos.department_id || null;
+    const responsableId  = datos.responsable_id || datos.responsableId || null;
+
+    if (institucionId) {
+        const selInst = document.getElementById('wzInstitucionSoporte');
+        if (selInst) {
+            selInst.value = institucionId;
+            cargarDepartamentosWizardSoporte(institucionId, departamentoId);
+            cargarResponsablesWizardSoporte(institucionId, departamentoId, responsableId);
+        }
+    }
+
+    // Si el correo trae serial, intentar encontrar el activo
     if (datos.serial) {
         fetch(`/admin/activos?buscar=${encodeURIComponent(datos.serial)}`, {
             headers: { 'Accept': 'application/json' },
@@ -701,9 +856,11 @@ window.iniciarWizardSoporte = function () {
                     if (selectActivo.options.length <= 1) {
                         cargarActivosEnWizard().then(() => {
                             selectActivo.value = activo.id;
+                            actualizarVistaInstitucionWizard();
                         });
                     } else {
                         selectActivo.value = activo.id;
+                        actualizarVistaInstitucionWizard();
                     }
                 }
                 const radioExistente = document.getElementById('equipoExistente');
@@ -739,6 +896,95 @@ window.iniciarWizardSoporte = function () {
     irPasoSoporte(1);
 };
 
+// ✅ Cargar departamentos al cambiar la institución
+function cargarDepartamentosWizardSoporte(institucionId, departamentoSeleccionado) {
+    const selDepto = document.getElementById('wzDepartamentoSoporte');
+    if (!selDepto) return;
+
+    if (!institucionId) {
+        selDepto.innerHTML = '<option value="">Sin departamento</option>';
+        return;
+    }
+
+    selDepto.innerHTML = '<option value="">Cargando...</option>';
+
+    fetch(`/admin/departamentos/por-institucion/${institucionId}`, {
+        headers: { 'Accept': 'application/json' },
+        credentials: 'same-origin'
+    })
+    .then(r => r.json())
+    .then(data => {
+        const lista = data.data || [];
+        selDepto.innerHTML = '<option value="">Sin departamento</option>';
+        lista.forEach(d => {
+            const sel = (departamentoSeleccionado && String(departamentoSeleccionado) === String(d.id)) ? 'selected' : '';
+            selDepto.innerHTML += `<option value="${d.id}" ${sel}>${escapeHtml(d.nombre)}</option>`;
+        });
+    })
+    .catch(() => {
+        selDepto.innerHTML = '<option value="">Error al cargar</option>';
+    });
+}
+
+// ✅ Cargar responsables al cambiar institución o departamento
+function cargarResponsablesWizardSoporte(institucionId, departamentoId, responsableSeleccionado) {
+    const selResp = document.getElementById('wzResponsableSoporte');
+    if (!selResp) return;
+
+    if (!institucionId) {
+        selResp.innerHTML = '<option value="">Seleccionar institución primero</option>';
+        return;
+    }
+
+    selResp.innerHTML = '<option value="">Cargando...</option>';
+
+    const params = new URLSearchParams({
+        institucion_id: institucionId,
+        todos: '1',
+        _t: Date.now()
+    });
+    if (departamentoId) {
+        params.append('departamento_id', departamentoId);
+    }
+
+    fetch(`/admin/responsables?${params.toString()}`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'Cache-Control': 'no-cache'
+        },
+        credentials: 'same-origin'
+    })
+    .then(r => r.json())
+    .then(data => {
+        const lista = data.data || data || [];
+        selResp.innerHTML = '<option value="">Seleccionar responsable...</option>';
+        lista.forEach(resp => {
+            const sel = (responsableSeleccionado && String(responsableSeleccionado) === String(resp.id)) ? 'selected' : '';
+            const cargo = resp.cargo ? ` - ${resp.cargo}` : '';
+            selResp.innerHTML += `<option value="${resp.id}" ${sel}>${escapeHtml(resp.nombre)}${escapeHtml(cargo)}</option>`;
+        });
+    })
+    .catch(() => {
+        selResp.innerHTML = '<option value="">Error al cargar</option>';
+    });
+}
+
+// ✅ Mostrar/ocultar campos de institución según tipo de equipo
+function actualizarVistaInstitucionWizard() {
+    const tipo = document.querySelector('input[name="tipo_equipo"]:checked')?.value;
+    const aviso = document.getElementById('avisoEquipoExistente');
+    const campos = document.getElementById('camposInstitucionNuevo');
+
+    if (tipo === 'existente') {
+        if (aviso) aviso.style.display = 'block';
+        if (campos) campos.style.display = 'none';
+    } else {
+        if (aviso) aviso.style.display = 'none';
+        if (campos) campos.style.display = 'block';
+    }
+}
+
 function cargarActivosEnWizard() {
     return new Promise((resolve) => {
         const select = document.getElementById('wzActivoId');
@@ -766,14 +1012,16 @@ function cargarActivosEnWizard() {
 }
 
 window.irPasoSoporte = function (paso) {
-    if (paso < 1 || paso > 3) return;
+    if (paso < 1 || paso > 4) return;
+
     if (paso === 2 && !validarPasoSoporte1()) return;
     if (paso === 3 && !validarPasoSoporte2()) return;
+    if (paso === 4 && !validarPasoSoporte3()) return;
 
     document.querySelectorAll('.wizard-step-soporte').forEach(el => el.style.display = 'none');
     document.getElementById('stepSop' + paso).style.display = 'block';
 
-    [1, 2, 3].forEach(i => {
+    [1, 2, 3, 4].forEach(i => {
         const circle = document.getElementById('stepSop' + i + 'Circle');
         if (!circle) return;
         circle.classList.remove('active', 'completed');
@@ -783,9 +1031,10 @@ window.irPasoSoporte = function (paso) {
     });
 
     const progress = document.getElementById('wizardProgressSoporte');
-    if (progress) progress.style.width = (((paso - 1) / 2) * 100 + 33) + '%';
+    if (progress) progress.style.width = (((paso - 1) / 3) * 75 + 25) + '%';
 
-    if (paso === 3) generarResumenSoporte();
+    if (paso === 2) actualizarVistaInstitucionWizard();
+    if (paso === 4) generarResumenSoporte();
 };
 
 function validarPasoSoporte1() {
@@ -801,18 +1050,36 @@ function validarPasoSoporte1() {
         const marca = document.querySelector('input[name="nuevo_equipo[marca]"]').value;
         const modelo = document.querySelector('input[name="nuevo_equipo[modelo_nombre]"]').value;
         const categoria = document.querySelector('select[name="nuevo_equipo[categoria_id]"]').value;
-        const institucion = document.querySelector('select[name="nuevo_equipo[institucion_id]"]').value;
-        const responsable = document.querySelector('select[name="nuevo_equipo[responsable_id]"]').value;
 
-        if (!serial || !marca || !modelo || !categoria || !institucion || !responsable) {
-            mostrarNotificacion('warning', 'Complete todos los campos del equipo nuevo');
+        if (!serial || !marca || !modelo || !categoria) {
+            mostrarNotificacion('warning', 'Complete todos los campos del equipo nuevo (serial, marca, modelo, categoría)');
             return false;
         }
     }
     return true;
 }
 
+// ✅ Validación del Paso 2: Institución y Responsable (solo si es equipo nuevo)
 function validarPasoSoporte2() {
+    const tipo = document.querySelector('input[name="tipo_equipo"]:checked')?.value;
+    if (tipo === 'existente') return true;
+
+    const institucion = document.getElementById('wzInstitucionSoporte')?.value;
+    const responsable = document.getElementById('wzResponsableSoporte')?.value;
+
+    if (!institucion) {
+        mostrarNotificacion('warning', 'Seleccione una institución');
+        return false;
+    }
+    if (!responsable) {
+        mostrarNotificacion('warning', 'Seleccione un responsable');
+        return false;
+    }
+    return true;
+}
+
+// ✅ Validación del Paso 3: Técnico y Fechas
+function validarPasoSoporte3() {
     const usuario = document.getElementById('wzUsuarioReporta').value.trim();
     const diagnostico = document.getElementById('wzDiagnostico').value.trim();
     const fecha = document.getElementById('wzFechaRequeridaSoporte').value;
@@ -846,7 +1113,18 @@ function generarResumenSoporte() {
     } else {
         const serial = document.querySelector('input[name="nuevo_equipo[serial]"]').value;
         const marca = document.querySelector('input[name="nuevo_equipo[marca]"]').value;
-        items.push(`<li><strong>Equipo nuevo:</strong> ${marca} (${serial})</li>`);
+        const modelo = document.querySelector('input[name="nuevo_equipo[modelo_nombre]"]').value;
+        const instSel = document.getElementById('wzInstitucionSoporte');
+        const respSel = document.getElementById('wzResponsableSoporte');
+
+        items.push(`<li><strong>Equipo nuevo:</strong> ${escapeHtml(marca)} ${escapeHtml(modelo)} (${escapeHtml(serial)})</li>`);
+
+        if (instSel && instSel.selectedIndex >= 0 && instSel.value) {
+            items.push(`<li><strong>Institución:</strong> ${instSel.options[instSel.selectedIndex].text}</li>`);
+        }
+        if (respSel && respSel.selectedIndex >= 0 && respSel.value) {
+            items.push(`<li><strong>Responsable:</strong> ${respSel.options[respSel.selectedIndex].text}</li>`);
+        }
     }
 
     const tecnico = document.getElementById('wzTecnicoSoporte');
@@ -854,9 +1132,14 @@ function generarResumenSoporte() {
         items.push(`<li><strong>Técnico:</strong> ${tecnico.options[tecnico.selectedIndex].text}</li>`);
     }
 
-    items.push(`<li><strong>Reporta:</strong> ${document.getElementById('wzUsuarioReporta').value}</li>`);
-    items.push(`<li><strong>Diagnóstico:</strong> ${document.getElementById('wzDiagnostico').value}</li>`);
+    items.push(`<li><strong>Reporta:</strong> ${escapeHtml(document.getElementById('wzUsuarioReporta').value)}</li>`);
+    items.push(`<li><strong>Diagnóstico:</strong> ${escapeHtml(document.getElementById('wzDiagnostico').value)}</li>`);
     items.push(`<li><strong>Fecha requerida:</strong> ${document.getElementById('wzFechaRequeridaSoporte').value}</li>`);
+
+    const estadoSel = document.getElementById('wzEstadoInicial');
+    if (estadoSel && estadoSel.selectedIndex >= 0) {
+        items.push(`<li><strong>Estado inicial:</strong> ${estadoSel.options[estadoSel.selectedIndex].text}</li>`);
+    }
 
     lista.innerHTML = items.join('');
 }
@@ -934,6 +1217,10 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             if (!validarPasoSoporte2()) {
                 irPasoSoporte(2);
+                return;
+            }
+            if (!validarPasoSoporte3()) {
+                irPasoSoporte(3);
                 return;
             }
 
@@ -1028,14 +1315,29 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // ========== TOGGLE EQUIPO EXISTENTE/NUEVO (Wizard) ==========
     document.querySelectorAll('input[name="tipo_equipo"]').forEach(radio => {
-        radio.addEventListener('change', function () {
-            const valor = this.value;
-            const elExist = document.getElementById('equipoExistenteFields');
-            const elNuevo = document.getElementById('equipoNuevoFields');
-            if (elExist) elExist.style.display = valor === 'existente' ? 'block' : 'none';
-            if (elNuevo) elNuevo.style.display = valor === 'nuevo' ? 'block' : 'none';
-        });
+        radio.addEventListener('change', actualizarVistaInstitucionWizard);
     });
+
+    // ========== LISTENERS DEL WIZARD: institución → departamentos → responsables ==========
+    const selInstWz = document.getElementById('wzInstitucionSoporte');
+    if (selInstWz) {
+        selInstWz.addEventListener('change', function () {
+            const instId = this.value;
+            cargarDepartamentosWizardSoporte(instId);
+            cargarResponsablesWizardSoporte(instId);
+        });
+    }
+
+    const selDeptoWz = document.getElementById('wzDepartamentoSoporte');
+    if (selDeptoWz) {
+        selDeptoWz.addEventListener('change', function () {
+            const deptoId = this.value;
+            const instId = document.getElementById('wzInstitucionSoporte')?.value;
+            if (instId) {
+                cargarResponsablesWizardSoporte(instId, deptoId);
+            }
+        });
+    }
 
     // ========== REFRESCO AUTOMÁTICO DEL BADGE ==========
     setInterval(actualizarBadgeCorreosSoporte, 30000);
@@ -1045,6 +1347,11 @@ document.addEventListener('DOMContentLoaded', function () {
 // CERRAR FICHA (abrir modal)
 // ============================================================
 window.abrirModalCerrarFicha = async function (id) {
+    // ✅ FIX: quitar foco activo antes de abrir
+    if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+    }
+
     try {
         const response = await fetch(`/admin/soporte/${id}/componentes`, {
             headers: { 'Accept': 'application/json' },
@@ -1099,6 +1406,11 @@ window.abrirModalCerrarFicha = async function (id) {
 // VER DETALLE DE FICHA
 // ============================================================
 window.verDetalle = async function (id) {
+    // ✅ FIX: quitar foco activo antes de abrir
+    if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+    }
+
     const modalBody = document.getElementById('detalleContenido');
     modalBody.innerHTML = `
         <div class="text-center py-5">
@@ -1291,6 +1603,11 @@ window.verDetalle = async function (id) {
 // CONFIRMAR ELIMINAR (abrir modal)
 // ============================================================
 window.confirmarEliminar = function (id) {
+    // ✅ FIX: quitar foco activo antes de abrir
+    if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+    }
+
     fichaAEliminar = id;
     document.getElementById('deleteNombre').textContent = `Ficha #${id}`;
     new bootstrap.Modal(document.getElementById('modalEliminar')).show();

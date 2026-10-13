@@ -14,21 +14,32 @@ return new class extends Migration
             $table->string('from_email');
             $table->string('from_name')->nullable();
             $table->string('subject')->nullable();
-            $table->string('tipo', 20)->default('solicitud')->after('subject');
+            $table->string('tipo', 20)->default('solicitud');
             $table->text('body_text')->nullable();
             $table->text('body_html')->nullable();
             $table->json('attachments')->nullable();
             $table->timestamp('received_at')->nullable();
             $table->boolean('leido')->default(false);
             $table->boolean('procesado')->default(false);
-            $table->foreignId('solicitud_id')->nullable()
-                  ->constrained('solicitudes')->onDelete('set null');
-            $table->foreignId('ficha_soporte_id')->nullable()->after('solicitud_id')
-                  ->constrained('fichas_soporte')->onDelete('set null');
+
+            $table->foreignId('solicitud_id')
+                  ->nullable()
+                  ->constrained('solicitudes')
+                  ->onDelete('set null');
+
+            // ✅ Columna simple (sin FK) para evitar dependencia circular con fichas_soporte.
+            //    La FK real vive en fichas_soporte.correo_id
+            $table->unsignedBigInteger('ficha_soporte_id')->nullable();
+            $table->index('ficha_soporte_id');
+
             $table->json('datos_extraidos')->nullable();
-            $table->date('fecha_requerida_entrega')->nullable()->after('datos_extraidos');
-            $table->foreignId('usuario_id')->nullable()
-                  ->constrained('usuarios')->onDelete('set null');
+            $table->date('fecha_requerida_entrega')->nullable();
+
+            $table->foreignId('usuario_id')
+                  ->nullable()
+                  ->constrained('usuarios')
+                  ->onDelete('set null');
+
             $table->timestamps();
 
             $table->index('leido');

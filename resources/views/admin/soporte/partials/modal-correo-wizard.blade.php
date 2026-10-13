@@ -39,12 +39,13 @@
                     <div class="mb-4">
                         <div class="d-flex justify-content-between">
                             <span><span class="step-circle active" id="stepSop1Circle">1</span> Equipo</span>
-                            <span><span class="step-circle" id="stepSop2Circle">2</span> Técnico y Fechas</span>
-                            <span><span class="step-circle" id="stepSop3Circle">3</span> Confirmar</span>
+                            <span><span class="step-circle" id="stepSop2Circle">2</span> Institución</span>
+                            <span><span class="step-circle" id="stepSop3Circle">3</span> Técnico y Fechas</span>
+                            <span><span class="step-circle" id="stepSop4Circle">4</span> Confirmar</span>
                         </div>
                         <div class="progress mt-3" style="height: 4px;">
                             <div class="progress-bar" id="wizardProgressSoporte"
-                                 style="width: 33%; background: linear-gradient(90deg, #1e3c72, #2a5298);"></div>
+                                 style="width: 25%; background: linear-gradient(90deg, #1e3c72, #2a5298);"></div>
                         </div>
                     </div>
 
@@ -92,7 +93,7 @@
                                 </div>
                             </div>
 
-                            {{-- Equipo nuevo --}}
+                            {{-- Equipo nuevo: SOLO datos básicos, marca/modelo/categoría --}}
                             <div id="equipoNuevoFields" style="display: none;">
                                 <div class="row g-3">
                                     <div class="col-md-6">
@@ -116,33 +117,6 @@
                                             @endforeach
                                         </select>
                                     </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Institución *</label>
-                                        <select name="nuevo_equipo[institucion_id]" class="form-select">
-                                            <option value="">Seleccionar...</option>
-                                            @foreach(\App\Models\Institucion::where('activo', true)->get() as $inst)
-                                                <option value="{{ $inst->id }}">{{ $inst->nombre }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Responsable *</label>
-                                        <select name="nuevo_equipo[responsable_id]" class="form-select">
-                                            <option value="">Seleccionar...</option>
-                                            @foreach(\App\Models\Responsable::where('activo', true)->get() as $resp)
-                                                <option value="{{ $resp->id }}">{{ $resp->nombre }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-12">
-                                        <label class="form-label">Ubicación</label>
-                                        <input type="text" name="nuevo_equipo[ubicacion]" class="form-control"
-                                               placeholder="Taller de reparación">
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label class="form-label">Fecha de Adquisición</label>
-                                        <input type="date" name="nuevo_equipo[fecha_adquisicion]" class="form-control">
-                                    </div>
                                 </div>
                             </div>
 
@@ -153,9 +127,61 @@
                             </div>
                         </div>
 
-                        {{-- ============ PASO 2: TÉCNICO Y FECHAS ============ --}}
+                        {{-- ============ PASO 2: INSTITUCIÓN Y RESPONSABLE ============ --}}
                         <div class="wizard-step-soporte" id="stepSop2" style="display: none;">
-                            <h6 class="fw-bold mb-3" style="color: #1e3c72;">Paso 2: Técnico y Fechas</h6>
+                            <h6 class="fw-bold mb-3" style="color: #1e3c72;">Paso 2: Institución y Responsable</h6>
+
+                            {{-- Aviso si es equipo existente --}}
+                            <div id="avisoEquipoExistente" class="alert alert-info py-2" style="display: none; font-size: 0.85rem;">
+                                ℹ️ El equipo ya está en el inventario. La institución y el responsable se heredarán automáticamente del activo seleccionado.
+                            </div>
+
+                            {{-- Solo se muestran si es equipo NUEVO --}}
+                            <div id="camposInstitucionNuevo">
+                                <div class="mb-3">
+                                    <label class="form-label">Institución *</label>
+                                    <select name="nuevo_equipo[institucion_id]" id="wzInstitucionSoporte" class="form-select">
+                                        <option value="">Seleccionar institución...</option>
+                                        @foreach(\App\Models\Institucion::where('activo', true)->orderBy('nombre')->get() as $inst)
+                                            <option value="{{ $inst->id }}">{{ $inst->nombre }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Departamento (opcional)</label>
+                                    <select name="nuevo_equipo[departamento_id]" id="wzDepartamentoSoporte" class="form-select">
+                                        <option value="">Sin departamento</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Responsable *</label>
+                                    <select name="nuevo_equipo[responsable_id]" id="wzResponsableSoporte" class="form-select">
+                                        <option value="">Seleccionar institución primero</option>
+                                    </select>
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Ubicación</label>
+                                    <input type="text" name="nuevo_equipo[ubicacion]" class="form-control"
+                                           value="Taller de reparación" placeholder="Taller de reparación">
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <button type="button" class="btn btn-outline-primary-dark" onclick="irPasoSoporte(1)">
+                                    ← Anterior
+                                </button>
+                                <button type="button" class="btn btn-primary-dark" onclick="irPasoSoporte(3)">
+                                    Siguiente →
+                                </button>
+                            </div>
+                        </div>
+
+                        {{-- ============ PASO 3: TÉCNICO Y FECHAS ============ --}}
+                        <div class="wizard-step-soporte" id="stepSop3" style="display: none;">
+                            <h6 class="fw-bold mb-3" style="color: #1e3c72;">Paso 3: Técnico y Fechas</h6>
 
                             <div class="mb-3">
                                 <label class="form-label">Técnico Responsable</label>
@@ -196,18 +222,32 @@
                             </div>
 
                             <div class="d-flex justify-content-between mt-4">
-                                <button type="button" class="btn btn-outline-primary-dark" onclick="irPasoSoporte(1)">
+                                <button type="button" class="btn btn-outline-primary-dark" onclick="irPasoSoporte(2)">
                                     ← Anterior
                                 </button>
-                                <button type="button" class="btn btn-primary-dark" onclick="irPasoSoporte(3)">
+                                <button type="button" class="btn btn-primary-dark" onclick="irPasoSoporte(4)">
                                     Siguiente →
                                 </button>
                             </div>
                         </div>
 
-                        {{-- ============ PASO 3: CONFIRMAR ============ --}}
-                        <div class="wizard-step-soporte" id="stepSop3" style="display: none;">
-                            <h6 class="fw-bold mb-3" style="color: #1e3c72;">Paso 3: Confirmar y Crear Ficha</h6>
+                        {{-- ============ PASO 4: CONFIRMAR ============ --}}
+                        <div class="wizard-step-soporte" id="stepSop4" style="display: none;">
+                            <h6 class="fw-bold mb-3" style="color: #1e3c72;">Paso 4: Confirmar y Crear Ficha</h6>
+
+                            {{-- ✅ Selector de estado inicial --}}
+                            <div class="mb-3">
+                                <label class="form-label fw-bold">Estado Inicial de la Ficha <span class="text-danger">*</span></label>
+                                <select name="estado_inicial" id="wzEstadoInicial" class="form-select" required>
+                                    <option value="en_proceso" selected>En Proceso (recomendado)</option>
+                                    <option value="aceptada">Aceptada (notifica inmediatamente al responsable)</option>
+                                    <option value="rechazada">Rechazada</option>
+                                </select>
+                                <small class="text-muted">
+                                    Si elige <strong>Aceptada</strong>, el responsable recibirá un correo notificándole que su solicitud fue aceptada.
+                                    Si elige <strong>En Proceso</strong>, recibirá un correo informándole que su solicitud está siendo evaluada.
+                                </small>
+                            </div>
 
                             <div class="alert alert-success">
                                 <h6 class="fw-bold">Resumen de la Ficha de Soporte</h6>
@@ -217,15 +257,16 @@
                             </div>
 
                             <div class="alert alert-info">
-                                <strong>📬 Se enviarán 2 notificaciones:</strong>
+                                <strong>📬 Se enviarán notificaciones a:</strong>
                                 <ul class="mb-0 mt-2">
+                                    <li>Al <strong>responsable del equipo</strong> (según institución/departamento del activo)</li>
                                     <li>Al <strong>técnico asignado</strong> con los detalles de la ficha</li>
-                                    <li>Al <strong>administrador</strong> para su seguimiento</li>
+                                    <li>A los <strong>administradores</strong> para su seguimiento</li>
                                 </ul>
                             </div>
 
                             <div class="d-flex justify-content-between mt-4">
-                                <button type="button" class="btn btn-outline-primary-dark" onclick="irPasoSoporte(2)">
+                                <button type="button" class="btn btn-outline-primary-dark" onclick="irPasoSoporte(3)">
                                     ← Anterior
                                 </button>
                                 <button type="submit" class="btn btn-success" id="btnGuardarWizardSoporte">
