@@ -24,14 +24,16 @@ class Activo extends Model
         'especificaciones_tecnicas',
         'agrupacion',
         'observaciones',
-        'reservado_en_prestamo_id',   // ✅ AGREGADO
+        'reservado_en_prestamo_id',
+        'datos_incompletos',   // ✅ NUEVO
     ];
 
     protected $casts = [
         'especificaciones_tecnicas' => 'json',
-        'fecha_adquisicion' => 'date',
-        'fecha_fin_garantia' => 'date',
-        'vida_util_anos' => 'integer',
+        'datos_incompletos'         => 'json',   // ✅ NUEVO
+        'fecha_adquisicion'         => 'date',
+        'fecha_fin_garantia'        => 'date',
+        'vida_util_anos'            => 'integer',
     ];
 
     // ============================================================
@@ -131,6 +133,33 @@ class Activo extends Model
         return $this->modelo?->marca;
     }
 
+    /**
+     * ✅ NUEVO: Indica si el activo tiene datos incompletos.
+     * Útil para mostrar un badge/filtro en la tabla de inventario.
+     */
+    public function getTieneDatosIncompletosAttribute(): bool
+    {
+        return !empty($this->datos_incompletos);
+    }
+
+    /**
+     * ✅ NUEVO: Devuelve la lista de campos faltantes.
+     * Ej: ['institucion', 'responsable', 'categoria']
+     */
+    public function getCamposFaltantesAttribute(): array
+    {
+        return $this->datos_incompletos['campos_faltantes'] ?? [];
+    }
+
+    /**
+     * ✅ NUEVO: Devuelve los valores originales que no se pudieron resolver.
+     * Ej: ['institucion' => 'Alcaldía de Nirgua', 'departamento' => 'Sistemas']
+     */
+    public function getValoresOriginalesAttribute(): array
+    {
+        return $this->datos_incompletos['valores_originales'] ?? [];
+    }
+
     // ============================================================
     // SCOPES
     // ============================================================
@@ -163,6 +192,22 @@ class Activo extends Model
         return $query->whereHas('prestamoDetalles.prestamo', function ($q) {
             $q->whereIn('estado', ['entregado', 'extendido', 'aprobado']);
         });
+    }
+
+    /**
+     * ✅ NUEVO: Scope para activos con datos incompletos.
+     */
+    public function scopeIncompletos($query)
+    {
+        return $query->whereNotNull('datos_incompletos');
+    }
+
+    /**
+     * ✅ NUEVO: Scope para activos SIN datos incompletos.
+     */
+    public function scopeCompletos($query)
+    {
+        return $query->whereNull('datos_incompletos');
     }
 
     // ============================================================
@@ -246,13 +291,9 @@ class Activo extends Model
         return $this->fecha_fin_garantia && $this->fecha_fin_garantia->isPast();
     }
 
-        /**
+    /**
      * Scope: aplica los filtros de la pantalla de Inventario (tab Activos).
      * Reutilizado por ActivoController::listarFiltrado() y por InventarioListadoReport.
-     *
-     * @param  \Illuminate\Database\Eloquent\Builder  $query
-     * @param  array  $filtros
-     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function scopeConFiltros($query, array $filtros)
     {
@@ -298,6 +339,15 @@ class Activo extends Model
         // ===== AGRUPACIÓN =====
         if (!empty($filtros['agrupacion'])) {
             $query->where('agrupacion', $filtros['agrupacion']);
+        }
+
+        // ===== ✅ NUEVO: DATOS INCOMPLETOS =====
+        if (isset($filtros['incompletos'])) {
+            if ($filtros['incompletos'] === 'si' || $filtros['incompletos'] === '1' || $filtros['incompletos'] === true) {
+                $query->whereNotNull('datos_incompletos');
+            } elseif ($filtros['incompletos'] === 'no' || $filtros['incompletos'] === '0' || $filtros['incompletos'] === false) {
+                $query->whereNull('datos_incompletos');
+            }
         }
 
         return $query;

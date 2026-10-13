@@ -1,0 +1,999 @@
+/* ============================================================
+   MÓDULO DE IMPORTACIÓN DE ACTIVOS
+   Estilos del tab "Importar" dentro del módulo Inventario
+   ============================================================ */
+
+:root {
+    --import-primary-dark: #1e3c72;
+    --import-primary-light: #2a5298;
+    --import-primary-lighter: #eef3fc;
+    --import-success: #1e7e34;
+    --import-success-light: #d4edda;
+    --import-danger: #c5221f;
+    --import-danger-light: #f8d7da;
+    --import-warning: #f6c23e;
+    --import-warning-light: #fff9e6;
+    --import-border: #e9ecef;
+    --import-text-muted: #6c757d;
+    --import-bg-light: #f8f9fc;
+    --import-radius: 0.75rem;
+    --import-radius-lg: 1rem;
+    --import-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --import-shadow-md: 0 4px 16px rgba(30, 60, 114, 0.08);
+    --import-shadow-lg: 0 12px 32px rgba(30, 60, 114, 0.15);
+}
+
+/* ============================================================
+   CONTENEDOR PRINCIPAL
+   ============================================================ */
+.importar-app {
+    padding: 1.5rem;
+    background: #ffffff;
+    border-radius: 0 0 var(--import-radius) var(--import-radius);
+}
+
+.importar-estado {
+    animation: importar-fadeIn 0.3s ease;
+}
+
+@keyframes importar-fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ============================================================
+   HERO / ENCABEZADO
+   ============================================================ */
+.importar-hero {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, var(--import-primary-lighter) 0%, #e0e9f7 100%);
+    border-radius: var(--import-radius-lg);
+    border-left: 4px solid var(--import-primary-dark);
+    margin-bottom: 1.5rem;
+}
+
+.importar-hero-icono {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    border-radius: 14px;
+    background: var(--import-primary-dark);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(30, 60, 114, 0.25);
+}
+
+.importar-hero-texto h4 {
+    margin: 0 0 4px 0;
+    color: var(--import-primary-dark);
+    font-weight: 700;
+    font-size: 1.15rem;
+}
+
+.importar-hero-texto p {
+    margin: 0;
+    color: var(--import-text-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+}
+
+/* ============================================================
+   PASOS (Paso 1, Paso 2, ...)
+   ============================================================ */
+.importar-paso {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+    padding: 1.25rem 1.5rem;
+    background: #ffffff;
+    border: 1px solid var(--import-border);
+    border-radius: var(--import-radius-lg);
+    transition: all 0.25s ease;
+}
+
+.importar-paso:hover {
+    border-color: rgba(30, 60, 114, 0.15);
+    box-shadow: var(--import-shadow-md);
+}
+
+.importar-paso-numero {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 50%;
+    background: var(--import-primary-dark);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+    box-shadow: 0 2px 8px rgba(30, 60, 114, 0.25);
+}
+
+.importar-paso-contenido {
+    flex: 1;
+    min-width: 0;
+}
+
+.importar-paso-titulo {
+    font-weight: 700;
+    color: var(--import-primary-dark);
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.importar-paso-descripcion {
+    color: var(--import-text-muted);
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+}
+
+/* ============================================================
+   DROPZONE (subida de archivo)
+   ============================================================ */
+.importar-form {
+    margin-top: 0.75rem;
+}
+
+.importar-input-file {
+    display: none;
+}
+
+.importar-dropzone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 2rem 1rem;
+    background: var(--import-bg-light);
+    border: 2px dashed rgba(30, 60, 114, 0.25);
+    border-radius: var(--import-radius-lg);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    text-align: center;
+    user-select: none;
+}
+
+.importar-dropzone:hover {
+    background: var(--import-primary-lighter);
+    border-color: var(--import-primary-dark);
+    transform: translateY(-2px);
+}
+
+.importar-dropzone.importar-dropzone-arrastrando {
+    background: var(--import-primary-lighter);
+    border-color: var(--import-primary-dark);
+    border-style: solid;
+    box-shadow: 0 0 0 4px rgba(30, 60, 114, 0.1);
+}
+
+.importar-dropzone-icono {
+    color: var(--import-primary-dark);
+    opacity: 0.7;
+    transition: all 0.25s ease;
+}
+
+.importar-dropzone:hover .importar-dropzone-icono {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.importar-dropzone-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.importar-dropzone-texto strong {
+    color: var(--import-primary-dark);
+    font-size: 0.95rem;
+    font-weight: 700;
+}
+
+.importar-dropzone-texto span {
+    color: var(--import-text-muted);
+    font-size: 0.8rem;
+}
+
+/* ============================================================
+   INFO DEL ARCHIVO SELECCIONADO
+   ============================================================ */
+.importar-info-archivo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    padding: 0.85rem 1.1rem;
+    background: linear-gradient(135deg, #e8f5e9 0%, #d4edda 100%);
+    border: 1px solid #a8d5b3;
+    border-radius: var(--import-radius);
+    animation: importar-fadeIn 0.3s ease;
+}
+
+.importar-info-archivo-icono {
+    color: var(--import-success);
+    flex-shrink: 0;
+}
+
+.importar-info-archivo-detalles {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.importar-info-archivo-detalles strong {
+    color: var(--import-success);
+    font-size: 0.9rem;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.importar-info-archivo-detalles span {
+    color: var(--import-text-muted);
+    font-size: 0.75rem;
+}
+
+.importar-info-archivo-quitar {
+    background: transparent;
+    border: none;
+    color: var(--import-danger);
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.importar-info-archivo-quitar:hover {
+    background: rgba(197, 34, 31, 0.1);
+    transform: scale(1.1);
+}
+
+/* ============================================================
+   ACCIONES
+   ============================================================ */
+.importar-acciones {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.importar-preview-acciones {
+    display: flex;
+    justify-content: space-between;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    padding-top: 1.5rem;
+    margin-top: 1.5rem;
+    border-top: 1px solid var(--import-border);
+}
+
+/* ============================================================
+   ESTADOS DE CARGA (analizando / procesando)
+   ============================================================ */
+.importar-loading-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    background: #ffffff;
+    border: 1px solid var(--import-border);
+    border-radius: var(--import-radius-lg);
+    text-align: center;
+    box-shadow: var(--import-shadow-sm);
+    min-height: 340px;
+}
+
+.importar-loading-spinner {
+    width: 56px;
+    height: 56px;
+    border: 4px solid var(--import-primary-lighter);
+    border-top-color: var(--import-primary-dark);
+    border-radius: 50%;
+    animation: importar-spin 0.8s linear infinite;
+    margin-bottom: 1.5rem;
+}
+
+@keyframes importar-spin {
+    to { transform: rotate(360deg); }
+}
+
+.importar-loading-titulo {
+    color: var(--import-primary-dark);
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem 0;
+}
+
+.importar-loading-descripcion {
+    color: var(--import-text-muted);
+    font-size: 0.9rem;
+    margin: 0 0 0.5rem 0;
+    max-width: 400px;
+}
+
+.importar-loading-nombre {
+    color: var(--import-primary-dark);
+    font-size: 0.85rem;
+    font-weight: 600;
+    background: var(--import-primary-lighter);
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-top: 0.75rem;
+}
+
+/* ============================================================
+   PREVIEW HEADER
+   ============================================================ */
+.importar-preview-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    background: linear-gradient(135deg, #e8f5e9 0%, #d4edda 100%);
+    border-radius: var(--import-radius-lg);
+    border-left: 4px solid var(--import-success);
+    margin-bottom: 1.5rem;
+}
+
+.importar-preview-header-icono {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 12px;
+    background: var(--import-success);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(30, 126, 52, 0.25);
+}
+
+.importar-preview-header-texto h5 {
+    margin: 0 0 4px 0;
+    color: #155724;
+    font-weight: 700;
+    font-size: 1rem;
+    word-break: break-word;
+}
+
+.importar-preview-header-texto p {
+    margin: 0;
+    color: #155724;
+    font-size: 0.85rem;
+    opacity: 0.85;
+}
+
+.importar-preview-alerta-critica {
+    color: var(--import-danger);
+    font-weight: 700;
+}
+
+/* ============================================================
+   SECCIONES
+   ============================================================ */
+.importar-seccion {
+    margin-bottom: 1.75rem;
+    padding: 1.25rem 1.5rem;
+    background: #ffffff;
+    border: 1px solid var(--import-border);
+    border-radius: var(--import-radius-lg);
+    box-shadow: var(--import-shadow-sm);
+}
+
+.importar-seccion-titulo {
+    display: flex;
+    gap: 0.85rem;
+    align-items: flex-start;
+    margin-bottom: 1.25rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--import-border);
+}
+
+.importar-seccion-titulo-icono {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 10px;
+    background: var(--import-primary-lighter);
+    color: var(--import-primary-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.importar-seccion-titulo-icono-warn {
+    background: var(--import-warning-light);
+    color: #856404;
+}
+
+.importar-seccion-titulo-icono-error {
+    background: var(--import-danger-light);
+    color: var(--import-danger);
+}
+
+.importar-seccion-titulo h6 {
+    margin: 0 0 3px 0;
+    color: var(--import-primary-dark);
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+
+.importar-seccion-titulo p {
+    margin: 0;
+    color: var(--import-text-muted);
+    font-size: 0.82rem;
+    line-height: 1.5;
+}
+
+/* ============================================================
+   TABLA DE MAPEO
+   ============================================================ */
+.importar-tabla-mapeo-wrapper {
+    overflow-x: auto;
+    border-radius: var(--import-radius);
+    border: 1px solid var(--import-border);
+}
+
+.importar-tabla-mapeo {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+}
+
+.importar-tabla-mapeo thead th {
+    background: var(--import-bg-light);
+    color: var(--import-primary-dark);
+    font-weight: 700;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.85rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--import-border);
+    white-space: nowrap;
+}
+
+.importar-tabla-mapeo tbody td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--import-border);
+    vertical-align: middle;
+}
+
+.importar-tabla-mapeo tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.importar-tabla-mapeo tbody tr:hover {
+    background: var(--import-bg-light);
+}
+
+.importar-mapeo-columna {
+    font-weight: 600;
+    color: var(--import-primary-dark);
+}
+
+.importar-mapeo-select {
+    border-radius: 8px;
+    border: 1px solid var(--import-border);
+    font-size: 0.85rem;
+    transition: all 0.2s ease;
+}
+
+.importar-mapeo-select:focus {
+    border-color: var(--import-primary-dark);
+    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
+}
+
+.importar-mapeo-select.importar-select-critico {
+    border-color: var(--import-warning);
+    background: var(--import-warning-light);
+}
+
+.importar-mapeo-confianza {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.importar-confianza-alta {
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #10b981;
+}
+
+.importar-confianza-media {
+    background: var(--import-warning-light);
+    color: #92400e;
+    border: 1px solid var(--import-warning);
+}
+
+.importar-confianza-baja {
+    background: var(--import-danger-light);
+    color: #991b1b;
+    border: 1px solid #ef4444;
+}
+
+.importar-confianza-nula {
+    background: var(--import-bg-light);
+    color: var(--import-text-muted);
+    border: 1px solid var(--import-border);
+}
+
+/* ============================================================
+   ENTIDADES NO RECONOCIDAS
+   ============================================================ */
+.importar-entidad-seccion {
+    margin-bottom: 1.5rem;
+    padding: 1rem 1.25rem;
+    background: var(--import-warning-light);
+    border-left: 3px solid var(--import-warning);
+    border-radius: var(--import-radius);
+}
+
+.importar-entidad-seccion:last-child {
+    margin-bottom: 0;
+}
+
+.importar-entidad-titulo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px dashed rgba(133, 100, 4, 0.2);
+}
+
+.importar-entidad-titulo-icono {
+    font-size: 1.1rem;
+}
+
+.importar-entidad-titulo-texto {
+    font-weight: 700;
+    color: #856404;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.importar-entidad-titulo-count {
+    background: var(--import-warning);
+    color: #ffffff;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    margin-left: auto;
+}
+
+.importar-entidad-item {
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.5rem;
+    background: #ffffff;
+    border: 1px solid var(--import-border);
+    border-radius: var(--import-radius);
+    transition: all 0.2s ease;
+}
+
+.importar-entidad-item:last-child {
+    margin-bottom: 0;
+}
+
+.importar-entidad-item:hover {
+    border-color: rgba(30, 60, 114, 0.2);
+    box-shadow: 0 2px 6px rgba(30, 60, 114, 0.05);
+}
+
+.importar-entidad-item-nombre {
+    font-weight: 700;
+    color: var(--import-primary-dark);
+    font-size: 0.92rem;
+    margin-bottom: 0.6rem;
+    word-break: break-word;
+}
+
+.importar-entidad-item-acciones {
+    display: flex;
+    gap: 1.25rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
+.importar-radio {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.85rem;
+    color: var(--import-primary-dark);
+    transition: color 0.2s ease;
+}
+
+.importar-radio:hover {
+    color: var(--import-primary-light);
+}
+
+.importar-radio input[type="radio"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--import-primary-dark);
+}
+
+.importar-entidad-item-vincular {
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--import-border);
+    animation: importar-fadeIn 0.2s ease;
+}
+
+.importar-vincular-select {
+    border-radius: 8px;
+    border: 1px solid var(--import-border);
+    font-size: 0.85rem;
+    max-width: 400px;
+}
+
+.importar-vincular-select:focus {
+    border-color: var(--import-primary-dark);
+    box-shadow: 0 0 0 3px rgba(30, 60, 114, 0.1);
+}
+
+/* Acción masiva */
+.importar-acciones-masivas {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px dashed rgba(133, 100, 4, 0.2);
+}
+
+.importar-acciones-masivas .btn {
+    font-size: 0.78rem;
+    padding: 0.35rem 0.85rem;
+}
+
+/* ============================================================
+   RESULTADO
+   ============================================================ */
+.importar-resumen {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.importar-resumen-item {
+    background: #ffffff;
+    border: 1px solid var(--import-border);
+    border-radius: var(--import-radius-lg);
+    padding: 1.25rem 1rem;
+    text-align: center;
+    border-top: 3px solid var(--import-primary-dark);
+    transition: all 0.25s ease;
+}
+
+.importar-resumen-item:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--import-shadow-md);
+}
+
+.importar-resumen-numero {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--import-primary-dark);
+    line-height: 1.1;
+    margin-bottom: 4px;
+}
+
+.importar-resumen-label {
+    font-size: 0.72rem;
+    color: var(--import-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-weight: 700;
+}
+
+.importar-resumen-exito {
+    border-top-color: var(--import-success);
+}
+
+.importar-resumen-exito .importar-resumen-numero {
+    color: var(--import-success);
+}
+
+.importar-resumen-error {
+    border-top-color: var(--import-danger);
+}
+
+.importar-resumen-error .importar-resumen-numero {
+    color: var(--import-danger);
+}
+
+.importar-resumen-advertencia {
+    border-top-color: var(--import-warning);
+}
+
+.importar-resumen-advertencia .importar-resumen-numero {
+    color: #856404;
+}
+
+/* ============================================================
+   TABLAS DE ERRORES Y ADVERTENCIAS
+   ============================================================ */
+.importar-tabla-errores-wrapper {
+    max-height: 420px;
+    overflow-y: auto;
+    border-radius: var(--import-radius);
+    border: 1px solid var(--import-border);
+}
+
+.importar-tabla-errores {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.importar-tabla-errores thead th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: var(--import-bg-light);
+    color: var(--import-primary-dark);
+    font-weight: 700;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--import-border);
+}
+
+.importar-tabla-errores tbody td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--import-border);
+    vertical-align: top;
+}
+
+.importar-tabla-errores tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.importar-tabla-errores tbody tr:hover {
+    background: var(--import-bg-light);
+}
+
+.importar-error-fila {
+    font-weight: 700;
+    color: var(--import-primary-dark);
+}
+
+.importar-error-columna {
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+    color: var(--import-text-muted);
+}
+
+.importar-error-valor {
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: var(--import-danger);
+    word-break: break-word;
+}
+
+.importar-error-motivo {
+    color: #334155;
+    line-height: 1.4;
+}
+
+.importar-advertencia-serial {
+    font-weight: 700;
+    color: var(--import-primary-dark);
+    font-family: 'Courier New', monospace;
+}
+
+.importar-advertencia-motivo {
+    color: #92400e;
+    line-height: 1.4;
+}
+
+.importar-advertencia-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    background: var(--import-primary-lighter);
+    color: var(--import-primary-dark);
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.importar-advertencia-link:hover {
+    background: var(--import-primary-dark);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+/* ============================================================
+   SCROLLBAR PERSONALIZADO
+   ============================================================ */
+.importar-tabla-errores-wrapper::-webkit-scrollbar,
+.importar-tabla-mapeo-wrapper::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.importar-tabla-errores-wrapper::-webkit-scrollbar-track,
+.importar-tabla-mapeo-wrapper::-webkit-scrollbar-track {
+    background: var(--import-bg-light);
+    border-radius: 4px;
+}
+
+.importar-tabla-errores-wrapper::-webkit-scrollbar-thumb,
+.importar-tabla-mapeo-wrapper::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.importar-tabla-errores-wrapper::-webkit-scrollbar-thumb:hover,
+.importar-tabla-mapeo-wrapper::-webkit-scrollbar-thumb:hover {
+    background: var(--import-primary-dark);
+}
+
+/* ============================================================
+   BOTONES (reutilizamos estilos del sistema)
+   ============================================================ */
+.btn-primary-dark {
+    background: linear-gradient(135deg, var(--import-primary-dark) 0%, var(--import-primary-light) 100%);
+    border: none;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.55rem 1.35rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.25s ease;
+}
+
+.btn-primary-dark:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(30, 60, 114, 0.3);
+    color: #ffffff;
+}
+
+.btn-primary-dark:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.btn-outline-primary-dark {
+    background: transparent;
+    border: 1.5px solid var(--import-primary-dark);
+    color: var(--import-primary-dark);
+    font-weight: 600;
+    padding: 0.5rem 1.2rem;
+    border-radius: 10px;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.25s ease;
+}
+
+.btn-outline-primary-dark:hover {
+    background: var(--import-primary-dark);
+    color: #ffffff;
+    transform: translateY(-2px);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+    .importar-app {
+        padding: 1rem;
+    }
+
+    .importar-hero {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .importar-paso {
+        flex-direction: column;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+
+    .importar-paso-numero {
+        align-self: flex-start;
+    }
+
+    .importar-preview-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .importar-entidad-item-acciones {
+        flex-direction: column;
+        gap: 0.6rem;
+    }
+
+    .importar-preview-acciones {
+        flex-direction: column-reverse;
+    }
+
+    .importar-preview-acciones .btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .importar-resumen {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .importar-resumen-numero {
+        font-size: 1.6rem;
+    }
+
+    .importar-tabla-mapeo,
+    .importar-tabla-errores {
+        font-size: 0.8rem;
+    }
+
+    .importar-tabla-mapeo thead th,
+    .importar-tabla-errores thead th {
+        padding: 0.6rem 0.7rem;
+    }
+
+    .importar-tabla-mapeo tbody td,
+    .importar-tabla-errores tbody td {
+        padding: 0.55rem 0.7rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .importar-resumen {
+        grid-template-columns: 1fr;
+    }
+
+    .importar-seccion {
+        padding: 1rem;
+    }
+
+    .importar-loading-card {
+        padding: 2.5rem 1rem;
+    }
+}

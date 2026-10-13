@@ -36,6 +36,10 @@ export default defineConfig({
                 'resources/css/admin-inventario.css',
                 'resources/js/admin-inventario.js',
 
+                // ✅ Módulo de Importación de Activos (dentro de Inventario)
+                'resources/css/admin-importar.css',
+                'resources/js/admin-importar.js',
+
                 // Módulo de Roles
                 'resources/css/admin-roles.css',
                 'resources/js/admin-roles.js',
@@ -56,7 +60,7 @@ export default defineConfig({
                 'resources/css/admin-soporte.css',
                 'resources/js/admin-soporte.js',
 
-                //Modulo de Reportes
+                // Módulo de Reportes
                 'resources/css/admin-reportes.css',
                 'resources/js/admin-reportes.js',
 
@@ -64,14 +68,13 @@ export default defineConfig({
                 'resources/css/auth/login.css',
                 'resources/js/auth/login.js',
 
-                // React y otros
+                // React y otros CSS
                 'resources/js/app.jsx',
                 'resources/css/contrast-system.css',
                 'resources/css/skeleton-loading.css',
                 'resources/css/smooth-modals.css',
-                'resources/js/validations.js',
 
-                // Nuevo explorador de reportes
+                // Explorador de reportes
                 'resources/css/admin-reportes-explorer.css',
                 'resources/js/admin-reportes-explorer.js',
             ],

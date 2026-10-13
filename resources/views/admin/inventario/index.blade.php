@@ -4,6 +4,7 @@
 
 @section('styles')
     @vite(['resources/css/admin-inventario.css'])
+    @vite(['resources/css/admin-importar.css'])
 @endsection
 
 @section('content')
@@ -111,6 +112,22 @@
                 <span class="tab-badge" id="badgeComponentes">{{ $totalComponentes ?? 0 }}</span>
             </button>
         </li>
+
+        {{-- ============================================================ --}}
+        {{-- TAB IMPORTAR (solo si tiene permiso de crear activo)         --}}
+        {{-- ============================================================ --}}
+        @if(auth()->user()->hasPermission('crear-activo'))
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="importar-tab" data-bs-toggle="tab" data-bs-target="#importar" type="button" role="tab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                Importar
+            </button>
+        </li>
+        @endif
     </ul>
 
     <div class="tab-content">
@@ -132,7 +149,6 @@
                         <input type="text" class="form-control" id="buscarActivos" placeholder="Buscar por serial, modelo, marca...">
                     </div>
 
-                    {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL - ACTIVOS --}}
                     @if(auth()->user()->hasPermission('ver-activos'))
                     <div class="d-flex gap-2">
                         <button type="button"
@@ -159,7 +175,6 @@
                     @endif
                 </div>
 
-                {{-- Fila 2: Select de estado --}}
                 <div class="d-flex gap-2 align-items-center flex-wrap">
                     <select class="form-select form-select-sm" id="filtroEstadoActivos" style="width: 220px;">
                         <option value="">Todos los estados</option>
@@ -196,7 +211,6 @@
         <div class="tab-pane fade" id="componentes" role="tabpanel">
             <div class="filters-bar" style="flex-direction: column; align-items: stretch; gap: 0.75rem;">
 
-                {{-- Fila 1: Buscador (izquierda) + Botones de exportación (derecha) --}}
                 <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
                     <div class="input-group" style="max-width: 420px; flex: 1; min-width: 240px;">
                         <span class="input-group-text">
@@ -207,7 +221,6 @@
                         <input type="text" class="form-control" id="buscarComponentes" placeholder="Buscar por tipo, marca, serial...">
                     </div>
 
-                    {{-- ✅ BOTONES DE EXPORTACIÓN CONTEXTUAL - COMPONENTES --}}
                     @if(auth()->user()->hasPermission('ver-componentes'))
                     <div class="d-flex gap-2">
                         <button type="button"
@@ -234,7 +247,6 @@
                     @endif
                 </div>
 
-                {{-- Fila 2: Select de tipo + Select de estado --}}
                 <div class="d-flex gap-2 align-items-center flex-wrap">
                     <select class="form-select form-select-sm" id="filtroTipoComponentes" style="width: 220px;">
                         <option value="">Todos los tipos</option>
@@ -268,11 +280,21 @@
             </div>
             <div id="paginacionComponentes"></div>
         </div>
+
+        {{-- ============================================ --}}
+        {{-- TAB IMPORTAR --}}
+        {{-- ============================================ --}}
+        @if(auth()->user()->hasPermission('crear-activo'))
+        <div class="tab-pane fade" id="importar" role="tabpanel">
+            @include('admin.inventario.partials.tab-importar')
+        </div>
+        @endif
+
     </div>
 </div>
 
 {{-- ============================================================ --}}
-{{-- MODALES --}}
+{{-- MODALES (igual que antes)                                     --}}
 {{-- ============================================================ --}}
 
 {{-- Modal Activo --}}
@@ -534,4 +556,26 @@
 
 @section('scripts')
     @vite(['resources/js/admin-inventario.js'])
+    @vite(['resources/js/admin-importar.js'])
+
+    <script>
+        // ============================================================
+        // Activar el tab "importar" si la URL trae ?tab=importar
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function () {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('tab') === 'importar') {
+                const tabBtn = document.getElementById('importar-tab');
+                if (tabBtn) {
+                    const tab = new bootstrap.Tab(tabBtn);
+                    tab.show();
+
+                    // Limpiar el query string
+                    const url = new URL(window.location.href);
+                    url.searchParams.delete('tab');
+                    window.history.replaceState({}, '', url.toString());
+                }
+            }
+        });
+    </script>
 @endsection

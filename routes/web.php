@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\ModeloComponenteController;
 use App\Http\Controllers\Admin\ActivoController;
 use App\Http\Controllers\Admin\ComponenteController;
 use App\Http\Controllers\Admin\InventarioController;
+use App\Http\Controllers\Admin\ImportController;             // ✅ NUEVO
 use App\Http\Controllers\Admin\SolicitudController;
 use App\Http\Controllers\Admin\FichaSoporteController;
 use App\Http\Controllers\Admin\PrestamoController;
@@ -297,6 +298,29 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
         Route::delete("/componentes/{componente}", [ComponenteController::class, "destroy"])->middleware("permission:eliminar-componente")->name("componentes.destroy");
         Route::patch("/componentes/{componente}/toggle-status", [ComponenteController::class, "toggleStatus"])->middleware("permission:editar-componente")->name("componentes.toggle-status");
 
+                // ============================================================
+        // IMPORTACIÓN DE ACTIVOS DESDE EXCEL
+        // ============================================================
+        Route::prefix("importar")->name("importar.")->middleware("permission:crear-activo")->group(function () {
+
+            // Redirige al tab de importar en Inventario
+            Route::get("/", function () {
+                return redirect()->route('admin.inventario.index', ['tab' => 'importar']);
+            })->name("index");
+
+            // Descarga de plantilla (generada inline en el controlador)
+            Route::get("/plantilla", [ImportController::class, "descargarPlantilla"])->name("plantilla");
+
+            // Análisis y procesamiento
+            Route::post("/analizar", [ImportController::class, "analizar"])->name("analizar");
+            Route::post("/procesar", [ImportController::class, "procesar"])->name("procesar");
+
+            // Cancelar importación (limpia archivo temporal)
+            Route::post("/cancelar/{session_id}", [ImportController::class, "cancelar"])
+                ->where("session_id", "[a-zA-Z0-9_\-]+")
+                ->name("cancelar");
+        });
+
         // ============================================================
         // PRESTAMOS
         // ============================================================
@@ -349,7 +373,7 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
             Route::post("/{solicitud}/leer", [SolicitudController::class, "marcarLeida"])->middleware("permission:aprobar-solicitudes")->where("solicitud", "[0-9]+")->name("leer");
         });
 
-                // ============================================================
+        // ============================================================
         // SOPORTE TECNICO
         // ============================================================
         Route::prefix("soporte")->name("soporte.")->group(function () {
@@ -373,7 +397,7 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
             Route::delete("/{id}", [FichaSoporteController::class, "destroy"])->middleware("permission:eliminar-ficha-soporte")->where("id", "[0-9]+")->name("destroy");
             Route::post("/{id}/close", [FichaSoporteController::class, "close"])->middleware("permission:cerrar-ficha-soporte")->where("id", "[0-9]+")->name("close");
 
-            // ✅ NUEVO: Aceptar y Rechazar ficha (despachan notificación al responsable)
+            // ✅ Aceptar y Rechazar ficha (despachan notificación al responsable)
             Route::post("/{id}/aceptar", [FichaSoporteController::class, "aceptar"])
                 ->middleware("permission:editar-ficha-soporte")
                 ->where("id", "[0-9]+")
@@ -403,12 +427,6 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
             // ============================================================
             // 1) REPORTES INDIVIDUALES (Ficha técnica de un solo registro)
             //    ✅ VAN PRIMERO para que no las capture "/{key}/..."
-            //
-            //    Keys soportadas:
-            //      - activo-individual
-            //      - solicitud-individual
-            //      - prestamo-individual
-            //      - soporte-individual
             // ============================================================
             Route::get("/ficha/{key}/{id}", [ReportController::class, "individual"])
                 ->where("key", "[a-z\-]+")
@@ -430,7 +448,6 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
             // ============================================================
             // 3) EXPLORADOR DE REPORTES (listados)
             //    ⚠️ EXCLUIMOS "ficha" y "explorer" con regex negativa
-            //       para que NO capturen las rutas de arriba.
             // ============================================================
             Route::get("/explorer", [ReportController::class, "index"])->name("explorer");
 
