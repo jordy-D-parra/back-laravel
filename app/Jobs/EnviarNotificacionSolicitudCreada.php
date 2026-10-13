@@ -23,11 +23,6 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
     public array $backoff = [60, 300, 900];
     public int $timeout = 120;
 
-    /**
-     * ⚠️ IMPORTANTE: NO usar "public string $evento" como promoted property
-     * porque los jobs viejos no lo tienen serializado y falla.
-     * En su lugar, declarar la propiedad con valor por defecto normal.
-     */
     public string $evento = 'creada';
 
     public function __construct(
@@ -39,7 +34,6 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
 
     public function handle(NotificacionService $notificacionService): void
     {
-        // ✅ FIX: Normalizar $evento siempre, por si viene vacío o null
         $evento = $this->evento ?? 'creada';
         if (empty($evento)) {
             $evento = 'creada';
@@ -67,7 +61,8 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
 
         $this->notificarResponsable($solicitud, $notificacionService);
         $this->notificarSolicitante($solicitud, $notificacionService);
-        $this->notificarAdmins($solicitud, $notificacionService);
+
+        // ❌ ELIMINADO: $this->notificarAdmins($solicitud, $notificacionService);
 
         Log::info("✅ [Job Solicitud] Notificación completada", [
             'solicitud_id' => $solicitud->id,
@@ -264,32 +259,8 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
         }
     }
 
-    protected function notificarAdmins(Solicitud $solicitud, NotificacionService $service): void
-    {
-        $admins = Usuario::whereHas('rol', function ($q) {
-            $q->whereIn('nombre', ['admin', 'super_admin']);
-        })->where('status', 'activo')->with('trabajador')->get();
-
-        $mensaje = "Solicitud #SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . ".\n";
-        $mensaje .= "Evento: " . strtoupper($this->evento) . "\n";
-        $mensaje .= "Prioridad: " . strtoupper($solicitud->prioridad) . "\n";
-
-        foreach ($admins as $admin) {
-            if (!$admin->email) continue;
-
-            try {
-                $service->enviarAUsuario(
-                    $admin,
-                    '📋 ' . ucfirst($this->evento) . ' Solicitud de Préstamo',
-                    $mensaje,
-                    'solicitud',
-                    route('admin.solicitudes.index')
-                );
-            } catch (\Throwable $e) {
-                Log::error("❌ [Job Solicitud] Error al notificar admin: " . $e->getMessage());
-            }
-        }
-    }
+    // ❌ MÉTODO ELIMINADO: notificarAdmins()
+    // protected function notificarAdmins(Solicitud $solicitud, NotificacionService $service): void { ... }
 
     protected function obtenerResponsableConEmail(Solicitud $solicitud): ?Responsable
     {

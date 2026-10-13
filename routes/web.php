@@ -18,7 +18,11 @@ use App\Http\Controllers\Admin\ModeloComponenteController;
 use App\Http\Controllers\Admin\ActivoController;
 use App\Http\Controllers\Admin\ComponenteController;
 use App\Http\Controllers\Admin\InventarioController;
+<<<<<<< HEAD
 use App\Http\Controllers\Admin\ImportController;             // ✅ NUEVO
+=======
+use App\Http\Controllers\Admin\ImportController;          
+>>>>>>> origin/main
 use App\Http\Controllers\Admin\SolicitudController;
 use App\Http\Controllers\Admin\FichaSoporteController;
 use App\Http\Controllers\Admin\PrestamoController;
@@ -316,6 +320,22 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
             Route::post("/procesar", [ImportController::class, "procesar"])->name("procesar");
 
             // Cancelar importación (limpia archivo temporal)
+            Route::post("/cancelar/{session_id}", [ImportController::class, "cancelar"])
+                ->where("session_id", "[a-zA-Z0-9_\-]+")
+                ->name("cancelar");
+        });
+
+        // ============================================================
+        // IMPORTACIÓN DE ACTIVOS DESDE EXCEL  ✅ NUEVO
+        // ============================================================
+        Route::prefix("importar")->name("importar.")->middleware("permission:crear-activo")->group(function () {
+            Route::get("/", [ImportController::class, "index"])->name("index");
+            Route::get("/plantilla", [ImportController::class, "descargarPlantilla"])->name("plantilla");
+            Route::post("/analizar", [ImportController::class, "analizar"])->name("analizar");
+            Route::post("/procesar", [ImportController::class, "procesar"])->name("procesar");
+            Route::get("/errores/{session_id}", [ImportController::class, "descargarErrores"])
+                ->where("session_id", "[a-zA-Z0-9_\-]+")
+                ->name("errores");
             Route::post("/cancelar/{session_id}", [ImportController::class, "cancelar"])
                 ->where("session_id", "[a-zA-Z0-9_\-]+")
                 ->name("cancelar");

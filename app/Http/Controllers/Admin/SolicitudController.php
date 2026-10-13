@@ -42,7 +42,7 @@ class SolicitudController extends Controller
         $this->imapService = $imapService;
     }
 
-       public function index(Request $request)
+    public function index(Request $request)
     {
         if (!auth()->user()->hasPermission('ver-solicitudes')) {
             abort(403, 'No tienes permiso para ver solicitudes');
@@ -102,7 +102,7 @@ class SolicitudController extends Controller
             'responsables'
         ));
     }
-    
+
     // ============================================================
     // NO LEÍDAS POR ADMIN
     // ============================================================
@@ -490,7 +490,8 @@ class SolicitudController extends Controller
 
     // ============================================================
     // APPROVE - APROBAR CON ACTA
-    // ✅ CORREGIDO: Despacha Job con evento 'aprobada' para notificar al responsable
+    // ✅ Despacha Job con evento 'aprobada'
+    // ✅ Notifica al solicitante SOLO si NO es admin
     // ============================================================
     public function approve(Request $request, $id)
     {
@@ -548,11 +549,18 @@ class SolicitudController extends Controller
                 ]);
             }
 
-            // Notificar al solicitante interno (campanita + correo)
+            // ✅ Notificar al solicitante interno (campanita + correo)
+            //    EXCLUYE al admin/super_admin
             try {
-                if ($solicitud->usuario && $solicitud->usuario->email) {
+                $solicitante = $solicitud->usuario;
+
+                if ($solicitante
+                    && $solicitante->email
+                    && !$solicitante->isAdmin()
+                    && !$solicitante->isSuperAdmin()
+                ) {
                     $notificacion = Notificacion::create([
-                        'usuario_id' => $solicitud->usuario->id,
+                        'usuario_id' => $solicitante->id,
                         'tipo' => 'solicitud',
                         'titulo' => '✅ Solicitud Aprobada',
                         'mensaje' => "Tu solicitud #{$solicitud->id} ha sido aprobada.",
@@ -561,12 +569,18 @@ class SolicitudController extends Controller
                         'leida' => false,
                     ]);
 
-                    Mail::to($solicitud->usuario->email)->send(
+                    Mail::to($solicitante->email)->send(
                         new NotificacionMail(
                             $notificacion,
-                            $solicitud->usuario->trabajador?->nombre ?? $solicitud->usuario->usuario
+                            $solicitante->trabajador?->nombre ?? $solicitante->usuario
                         )
                     );
+                } else {
+                    Log::info("🚫 Omitida notificación de aprobación al admin/super_admin", [
+                        'solicitud_id' => $solicitud->id,
+                        'usuario_id' => $solicitante?->id,
+                        'rol' => $solicitante?->rol?->nombre,
+                    ]);
                 }
             } catch (\Throwable $e) {
                 Log::error('Error al notificar aprobación al solicitante: ' . $e->getMessage());
@@ -592,7 +606,8 @@ class SolicitudController extends Controller
 
     // ============================================================
     // REJECT - RECHAZAR
-    // ✅ CORREGIDO: Despacha Job con evento 'rechazada' para notificar al responsable
+    // ✅ Despacha Job con evento 'rechazada'
+    // ✅ Notifica al solicitante SOLO si NO es admin
     // ============================================================
     public function reject(Request $request, $id)
     {
@@ -636,11 +651,18 @@ class SolicitudController extends Controller
                 'solicitud_id' => $solicitud->id,
             ]);
 
-            // Notificar al solicitante interno (campanita + correo)
+            // ✅ Notificar al solicitante interno (campanita + correo)
+            //    EXCLUYE al admin/super_admin
             try {
-                if ($solicitud->usuario && $solicitud->usuario->email) {
+                $solicitante = $solicitud->usuario;
+
+                if ($solicitante
+                    && $solicitante->email
+                    && !$solicitante->isAdmin()
+                    && !$solicitante->isSuperAdmin()
+                ) {
                     $notificacion = Notificacion::create([
-                        'usuario_id' => $solicitud->usuario->id,
+                        'usuario_id' => $solicitante->id,
                         'tipo' => 'solicitud',
                         'titulo' => '❌ Solicitud Rechazada',
                         'mensaje' => "Tu solicitud #{$solicitud->id} ha sido rechazada. Motivo: {$validated['motivo']}",
@@ -649,12 +671,18 @@ class SolicitudController extends Controller
                         'leida' => false,
                     ]);
 
-                    Mail::to($solicitud->usuario->email)->send(
+                    Mail::to($solicitante->email)->send(
                         new NotificacionMail(
                             $notificacion,
-                            $solicitud->usuario->trabajador?->nombre ?? $solicitud->usuario->usuario
+                            $solicitante->trabajador?->nombre ?? $solicitante->usuario
                         )
                     );
+                } else {
+                    Log::info("🚫 Omitida notificación de rechazo al admin/super_admin", [
+                        'solicitud_id' => $solicitud->id,
+                        'usuario_id' => $solicitante?->id,
+                        'rol' => $solicitante?->rol?->nombre,
+                    ]);
                 }
             } catch (\Throwable $e) {
                 Log::error('Error al notificar rechazo al solicitante: ' . $e->getMessage());
@@ -680,7 +708,7 @@ class SolicitudController extends Controller
 
     // ============================================================
     // CANCEL
-    // ✅ CORREGIDO: Despacha Job con evento 'cancelada' para notificar al responsable
+    // ✅ Despacha Job con evento 'cancelada'
     // ============================================================
     public function cancel($id)
     {

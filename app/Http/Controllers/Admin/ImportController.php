@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Exports\ErroresImportExport;
+use App\Exports\PlantillaActivosExport;
 use App\Imports\ActivosImport;
 use App\Services\Importacion\ExcelColumnMapper;
 use Illuminate\Http\Request;
@@ -13,21 +15,16 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 /**
  * Controlador del módulo de importación de activos desde Excel.
  *
  * Endpoints:
- *   GET  /admin/importar                       → redirect al tab de inventario
+ *   GET  /admin/importar                       → vista principal
  *   GET  /admin/importar/plantilla             → descarga plantilla Excel
  *   POST /admin/importar/analizar              → sube Excel, detecta mapeo, devuelve JSON
  *   POST /admin/importar/procesar              → procesa con mapeo+decisiones, devuelve resultado
+ *   GET  /admin/importar/errores/{session_id}  → descarga Excel de errores
  *   POST /admin/importar/cancelar/{session_id} → limpia archivo temporal
  */
 class ImportController extends Controller
@@ -55,11 +52,11 @@ class ImportController extends Controller
     }
 
     // ============================================================
-    // REDIRECT AL TAB DE IMPORTAR EN INVENTARIO
+    // VISTA PRINCIPAL
     // ============================================================
 
     /**
-     * Redirige al tab de importar dentro del módulo de Inventario.
+     * Muestra la vista principal del módulo de importación.
      */
     public function index()
     {
@@ -67,16 +64,15 @@ class ImportController extends Controller
             abort(403, 'No tienes permiso para importar activos');
         }
 
-        return redirect()->route('admin.inventario.index', ['tab' => 'importar']);
+        return view('admin.importar.index');
     }
 
     // ============================================================
-    // DESCARGA DE PLANTILLA (generada inline)
+    // DESCARGA DE PLANTILLA
     // ============================================================
 
     /**
      * Descarga la plantilla de Excel con las columnas exactas que espera el sistema.
-     * Se genera inline con PhpSpreadsheet (sin clase Export separada).
      */
     public function descargarPlantilla()
     {
@@ -84,125 +80,9 @@ class ImportController extends Controller
             abort(403, 'No tienes permiso para descargar la plantilla');
         }
 
-        $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Plantilla Activos');
+        $export = new PlantillaActivosExport();
 
-        // ============================================================
-        // Cabeceras oficiales (orden recomendado)
-        // ============================================================
-        $cabeceras = [
-            'Serial'              => 22,
-            'Marca'               => 18,
-            'Modelo'              => 26,
-            'Categoría'           => 18,
-            'Institución'         => 30,
-            'Departamento'        => 22,
-            'Ubicación'           => 22,
-            'Fecha Adquisición'   => 18,
-            'Fecha Fin Garantía'  => 18,
-            'Vida Útil (años)'    => 16,
-            'Estatus'             => 16,
-            'Observaciones'       => 40,
-        ];
-
-        $col = 1;
-        foreach ($cabeceras as $titulo => $ancho) {
-            $letra = Coordinate::stringFromColumnIndex($col);
-
-            $sheet->setCellValue("{$letra}1", $titulo);
-            $sheet->getColumnDimension($letra)->setWidth($ancho);
-
-            $sheet->getStyle("{$letra}1")->applyFromArray([
-                'font' => [
-                    'bold'  => true,
-                    'color' => ['rgb' => 'FFFFFF'],
-                    'size'  => 11,
-                ],
-                'fill' => [
-                    'fillType'   => Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => '1E3C72'],
-                ],
-                'alignment' => [
-                    'horizontal' => Alignment::HORIZONTAL_CENTER,
-                    'vertical'   => Alignment::VERTICAL_CENTER,
-                ],
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color'       => ['rgb' => 'FFFFFF'],
-                    ],
-                ],
-            ]);
-
-            $col++;
-        }
-
-        $sheet->getRowDimension(1)->setRowHeight(24);
-        $sheet->freezePane('A2');
-
-        // ============================================================
-        // Fila de ejemplo
-        // ============================================================
-        $letraFinal = Coordinate::stringFromColumnIndex(count($cabeceras));
-
-        $sheet->mergeCells("A2:{$letraFinal}2");
-        $sheet->setCellValue(
-            'A2',
-            'Ejemplo: SN-001 | Dell | Latitude 5540 | Laptop | Gobernación del Estado Yaracuy | Informática | Piso 3 | 15/03/2024 | 15/03/2027 | 3 | Bueno | Equipo nuevo'
-        );
-        $sheet->getStyle('A2')->applyFromArray([
-            'font' => [
-                'italic' => true,
-                'color'  => ['rgb' => '6C757D'],
-                'size'   => 9,
-            ],
-            'fill' => [
-                'fillType'   => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => 'F8F9FA'],
-            ],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_LEFT,
-            ],
-        ]);
-        $sheet->getRowDimension(2)->setRowHeight(20);
-
-        // ============================================================
-        // Nota al pie
-        // ============================================================
-        $sheet->mergeCells("A4:{$letraFinal}4");
-        $sheet->setCellValue(
-            'A4',
-            'Nota: La fila de ejemplo puede eliminarse. Las columnas "Serial" y "Modelo" son obligatorias. Si una institución o marca no existe, se te pedirá resolverla antes de importar.'
-        );
-        $sheet->getStyle('A4')->applyFromArray([
-            'font' => [
-                'italic' => true,
-                'color'  => ['rgb' => '856404'],
-                'size'   => 9,
-            ],
-            'fill' => [
-                'fillType'   => Fill::FILL_SOLID,
-                'startColor' => ['rgb' => 'FFF9E6'],
-            ],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_LEFT,
-                'wrapText'   => true,
-            ],
-        ]);
-        $sheet->getRowDimension(4)->setRowHeight(30);
-
-        // ============================================================
-        // Descargar
-        // ============================================================
-        $nombreArchivo = 'plantilla_activos_' . now()->format('Ymd_His') . '.xlsx';
-
-        return response()->streamDownload(function () use ($spreadsheet) {
-            $writer = new Xlsx($spreadsheet);
-            $writer->save('php://output');
-        }, $nombreArchivo, [
-            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        ]);
+        return $export->download();
     }
 
     // ============================================================
@@ -222,6 +102,9 @@ class ImportController extends Controller
             ], 403);
         }
 
+        // ------------------------------------------------------------
+        // 1. Validar el archivo
+        // ------------------------------------------------------------
         $request->validate([
             'archivo' => [
                 'required',
@@ -239,30 +122,38 @@ class ImportController extends Controller
             $archivo = $request->file('archivo');
             $sessionId = $this->generarSessionId();
 
-            // 1. Guardar el archivo temporalmente
+            // ------------------------------------------------------------
+            // 2. Guardar el archivo temporalmente
+            // ------------------------------------------------------------
             $rutaRelativa = $this->guardarArchivoTemporal($archivo, $sessionId);
             $rutaAbsoluta = Storage::disk('local')->path($rutaRelativa);
 
-            // 2. Detectar mapeo de columnas
+            // ------------------------------------------------------------
+            // 3. Detectar mapeo de columnas
+            // ------------------------------------------------------------
             $mapeo = $this->mapper->detectarMapeo($rutaAbsoluta);
 
-            // 3. Detectar entidades no reconocidas
+            // ------------------------------------------------------------
+            // 4. Detectar entidades no reconocidas
+            // ------------------------------------------------------------
             $entidadesNoReconocidas = $this->mapper->detectarEntidadesNoReconocidas(
                 $rutaAbsoluta,
                 $mapeo['mapeo']
             );
 
-            // 4. Guardar metadata en caché
+            // ------------------------------------------------------------
+            // 5. Guardar metadata en caché (para el paso de "procesar")
+            // ------------------------------------------------------------
             $metadata = [
-                'session_id'      => $sessionId,
-                'ruta_relativa'   => $rutaRelativa,
-                'ruta_absoluta'   => $rutaAbsoluta,
+                'session_id'    => $sessionId,
+                'ruta_relativa' => $rutaRelativa,
+                'ruta_absoluta' => $rutaAbsoluta,
                 'nombre_original' => $archivo->getClientOriginalName(),
-                'cabeceras'       => $mapeo['cabeceras'],
-                'mapeo'           => $mapeo['mapeo'],
-                'total_filas'     => $mapeo['total_filas'],
-                'creado_por'      => auth()->id(),
-                'creado_en'       => now()->toDateTimeString(),
+                'cabeceras'     => $mapeo['cabeceras'],
+                'mapeo'         => $mapeo['mapeo'],
+                'total_filas'   => $mapeo['total_filas'],
+                'creado_por'    => auth()->id(),
+                'creado_en'     => now()->toDateTimeString(),
             ];
 
             Cache::put(
@@ -271,6 +162,9 @@ class ImportController extends Controller
                 now()->addMinutes(self::TTL_CACHE_MINUTOS)
             );
 
+            // ------------------------------------------------------------
+            // 6. Log
+            // ------------------------------------------------------------
             Log::info('[ImportController] Excel analizado', [
                 'session_id'  => $sessionId,
                 'archivo'     => $archivo->getClientOriginalName(),
@@ -278,6 +172,9 @@ class ImportController extends Controller
                 'user_id'     => auth()->id(),
             ]);
 
+            // ------------------------------------------------------------
+            // 7. Respuesta
+            // ------------------------------------------------------------
             return response()->json([
                 'success'    => true,
                 'message'    => 'Archivo analizado correctamente.',
@@ -359,6 +256,7 @@ class ImportController extends Controller
             ], 410);
         }
 
+        // Validar que el usuario que procesa sea el mismo que subió el archivo
         if (($metadata['creado_por'] ?? null) !== auth()->id()) {
             return response()->json([
                 'success' => false,
@@ -366,6 +264,7 @@ class ImportController extends Controller
             ], 403);
         }
 
+        // Validar que el archivo sigue existiendo
         $rutaAbsoluta = $metadata['ruta_absoluta'] ?? null;
 
         if ($rutaAbsoluta === null || !File::exists($rutaAbsoluta)) {
@@ -376,7 +275,8 @@ class ImportController extends Controller
         }
 
         // ------------------------------------------------------------
-        // 3. Normalizar el mapeo
+        // 3. Normalizar el mapeo (el frontend puede enviarlo como array
+        //    o como objeto con índices)
         // ------------------------------------------------------------
         $mapeoNormalizado = $this->normalizarMapeoEntrada($mapeo, $metadata);
 
@@ -387,6 +287,7 @@ class ImportController extends Controller
             ], 422);
         }
 
+        // Validar que el mapeo tenga al menos el campo "serial"
         $tieneSerial = false;
         foreach ($mapeoNormalizado as $entrada) {
             if (($entrada['campo'] ?? null) === 'serial') {
@@ -416,36 +317,35 @@ class ImportController extends Controller
             $resultado = $import->procesar();
 
             // ------------------------------------------------------------
-            // 5. Enriquecer advertencias con el activo_id
+            // 5. Guardar resultado en caché para permitir descarga de errores
             // ------------------------------------------------------------
-            $advertenciasConId = [];
-            $exitosPorSerial = [];
-
-            foreach ($import->getExitos() as $exito) {
-                $exitosPorSerial[$exito['serial']] = $exito['activo_id'];
-            }
-
-            foreach ($resultado['advertencias'] as $adv) {
-                $serial = $adv['serial'] ?? null;
-                $activoId = $serial !== null ? ($exitosPorSerial[$serial] ?? null) : null;
-
-                $advertenciasConId[] = array_merge($adv, ['activo_id' => $activoId]);
+            if (!empty($resultado['errores'])) {
+                Cache::put(
+                    $cacheKey . '_errores',
+                    [
+                        'errores'         => $resultado['errores'],
+                        'nombre_original' => $metadata['nombre_original'] ?? 'importacion.xlsx',
+                        'cabeceras'       => $metadata['cabeceras'] ?? [],
+                        'mapeo'           => $mapeoNormalizado,
+                    ],
+                    now()->addMinutes(self::TTL_CACHE_MINUTOS)
+                );
             }
 
             // ------------------------------------------------------------
             // 6. Log
             // ------------------------------------------------------------
             Log::info('[ImportController] Importación procesada', [
-                'session_id'   => $sessionId,
-                'exitos'       => $resultado['exitos'],
-                'errores'      => count($resultado['errores']),
+                'session_id'  => $sessionId,
+                'exitos'      => $resultado['exitos'],
+                'errores'     => count($resultado['errores']),
                 'advertencias' => count($resultado['advertencias']),
-                'tiempo'       => $resultado['tiempo_segundos'],
-                'user_id'      => auth()->id(),
+                'tiempo'      => $resultado['tiempo_segundos'],
+                'user_id'     => auth()->id(),
             ]);
 
             // ------------------------------------------------------------
-            // 7. Respuesta (SIN url_errores porque no hay Excel de errores)
+            // 7. Respuesta
             // ------------------------------------------------------------
             return response()->json([
                 'success' => true,
@@ -456,9 +356,12 @@ class ImportController extends Controller
                     'total_filas'         => $resultado['total_filas'],
                     'tiempo_segundos'     => $resultado['tiempo_segundos'],
                     'errores'             => $resultado['errores'],
-                    'advertencias'        => $advertenciasConId,
+                    'advertencias'        => $resultado['advertencias'],
                     'total_errores'       => count($resultado['errores']),
-                    'total_advertencias'  => count($advertenciasConId),
+                    'total_advertencias'  => count($resultado['advertencias']),
+                    'url_errores'         => !empty($resultado['errores'])
+                        ? route('admin.importar.errores', ['session_id' => $sessionId])
+                        : null,
                 ],
             ]);
 
@@ -473,6 +376,43 @@ class ImportController extends Controller
                 'success' => false,
                 'message' => 'Error al procesar la importación: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    // ============================================================
+    // DESCARGA DE ERRORES
+    // ============================================================
+
+    /**
+     * Genera y descarga un Excel con las filas que fallaron durante la importación.
+     */
+    public function descargarErrores(string $sessionId)
+    {
+        if (!auth()->user()->hasPermission('crear-activo')) {
+            abort(403, 'No tienes permiso para descargar el reporte de errores');
+        }
+
+        $cacheKey = self::PREFIJO_CACHE . $sessionId . '_errores';
+        $metadata = Cache::get($cacheKey);
+
+        if ($metadata === null) {
+            abort(404, 'El reporte de errores ya no está disponible. Vuelve a procesar la importación.');
+        }
+
+        try {
+            $export = new ErroresImportExport(
+                errores:        $metadata['errores'] ?? [],
+                nombreOriginal: $metadata['nombre_original'] ?? 'importacion.xlsx',
+                cabeceras:      $metadata['cabeceras'] ?? [],
+                mapeo:          $metadata['mapeo'] ?? []
+            );
+
+            return $export->download($sessionId);
+
+        } catch (\Throwable $e) {
+            Log::error('[ImportController] Error al generar Excel de errores: ' . $e->getMessage());
+
+            abort(500, 'Error al generar el Excel de errores: ' . $e->getMessage());
         }
     }
 
@@ -496,18 +436,21 @@ class ImportController extends Controller
         $cacheKey = self::PREFIJO_CACHE . $sessionId;
         $metadata = Cache::get($cacheKey);
 
+        // Limpiar archivo temporal
         if ($metadata !== null && !empty($metadata['ruta_relativa'])) {
             try {
                 Storage::disk('local')->delete($metadata['ruta_relativa']);
             } catch (\Throwable $e) {
                 Log::warning('[ImportController] No se pudo borrar el archivo temporal', [
-                    'ruta'  => $metadata['ruta_relativa'],
+                    'ruta' => $metadata['ruta_relativa'],
                     'error' => $e->getMessage(),
                 ]);
             }
         }
 
+        // Limpiar caché
         Cache::forget($cacheKey);
+        Cache::forget($cacheKey . '_errores');
 
         return response()->json([
             'success' => true,
@@ -529,6 +472,8 @@ class ImportController extends Controller
 
     /**
      * Guarda el archivo subido en storage/app/private/imports/{sessionId}.{ext}.
+     *
+     * @return string  Ruta relativa (para usar con Storage::disk('local'))
      */
     private function guardarArchivoTemporal($archivo, string $sessionId): string
     {
@@ -540,15 +485,21 @@ class ImportController extends Controller
 
         $nombreArchivo = $sessionId . '.' . $extension;
 
-        return $archivo->storeAs(
+        // Guardar en storage/app/private/imports/
+        $rutaRelativa = $archivo->storeAs(
             self::DIRECTORIO_TEMP,
             $nombreArchivo,
             'local'
         );
+
+        return $rutaRelativa;
     }
 
     /**
      * Formatea el mapeo para enviarlo al frontend de manera consistente.
+     *
+     * @param array $mapeo  Mapeo interno (nombre_columna => info)
+     * @return array<int, array>
      */
     private function formatearMapeoParaFrontend(array $mapeo): array
     {
@@ -589,7 +540,11 @@ class ImportController extends Controller
     }
 
     /**
-     * Normaliza el mapeo enviado desde el frontend.
+     * Normaliza el mapeo enviado desde el frontend. El frontend puede enviarlo:
+     *   - Como array de objetos: [ {columna_excel, campo, indice}, ... ]
+     *   - Como objeto indexado:  { "N° Serie": {campo, indice}, ... }
+     *
+     * @return array<string, array>  mapeo normalizado
      */
     private function normalizarMapeoEntrada(array $mapeo, array $metadata): array
     {
@@ -606,6 +561,7 @@ class ImportController extends Controller
                     continue;
                 }
 
+                // Recuperar índice si no viene
                 if ($indice === null) {
                     $indice = $this->buscarIndiceColumna($nombreColumna, $metadata['mapeo'] ?? []);
                 }
@@ -675,15 +631,15 @@ class ImportController extends Controller
         $partes = [];
 
         if ($resultado['exitos'] > 0) {
-            $partes[] = "{$resultado['exitos']} activo(s) importado(s)";
+            $partes[] = "✅ {$resultado['exitos']} activo(s) importado(s)";
         }
 
         if (count($resultado['errores']) > 0) {
-            $partes[] = count($resultado['errores']) . " fila(s) con error";
+            $partes[] = "❌ " . count($resultado['errores']) . " fila(s) con error";
         }
 
         if (count($resultado['advertencias']) > 0) {
-            $partes[] = count($resultado['advertencias']) . " advertencia(s)";
+            $partes[] = "⚠️ " . count($resultado['advertencias']) . " advertencia(s)";
         }
 
         if (empty($partes)) {

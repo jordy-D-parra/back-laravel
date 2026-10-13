@@ -42,7 +42,7 @@ class NotificacionService
             // Verificar configuración de correo
             $mailer = config('mail.default');
             $fromAddress = config('mail.from.address');
-            
+
             Log::debug("📧 [NotificacionService] Configuración de correo", [
                 'mailer' => $mailer,
                 'from_address' => $fromAddress,
@@ -71,7 +71,7 @@ class NotificacionService
                 'trace' => $e->getTraceAsString(),
                 'mailer' => config('mail.default'),
             ]);
-            
+
             // No lanzar la excepción para que no detenga el proceso
             // pero registramos el error
             return false;
@@ -80,6 +80,9 @@ class NotificacionService
 
     /**
      * Envía una notificación interna (campanita) y opcionalmente por email.
+     *
+     * ✅ EXCLUYE a los administradores y super_administradores:
+     *    Por diseño del sistema, el admin NO recibe notificaciones automáticas.
      */
     public function enviarAUsuario(
         Usuario $usuario,
@@ -89,6 +92,17 @@ class NotificacionService
         ?string $url = null,
         bool $enviarEmail = true
     ): bool {
+        // ✅ FILTRO: si el destinatario es admin o super_admin, NO se le notifica
+        if ($usuario->isAdmin() || $usuario->isSuperAdmin()) {
+            Log::info("🚫 [NotificacionService] Omitida notificación a administrador", [
+                'usuario_id' => $usuario->id,
+                'usuario'    => $usuario->usuario,
+                'rol'        => $usuario->rol?->nombre,
+                'titulo'     => $titulo,
+            ]);
+            return false;
+        }
+
         // Crear notificación en el sistema (campanita)
         try {
             $this->crearNotificacionSistema($usuario, $titulo, $mensaje, $tipo, $url);
@@ -102,7 +116,7 @@ class NotificacionService
         // Enviar por email si se solicita
         if ($enviarEmail) {
             $email = $this->obtenerEmailUsuario($usuario);
-            
+
             if ($email) {
                 return $this->enviarAResponsable(
                     $email,
@@ -193,12 +207,12 @@ class NotificacionService
     public function marcarComoLeida(int $id, Usuario $usuario): bool
     {
         $notificacion = $usuario->notificaciones()->find($id);
-        
+
         if ($notificacion) {
             $notificacion->update(['leida' => true]);
             return true;
         }
-        
+
         return false;
     }
 
