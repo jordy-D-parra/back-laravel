@@ -54,7 +54,7 @@
                         <input type="hidden" id="wizardCorreoSoporteId">
 
                         {{-- ============ PASO 1: EQUIPO ============ --}}
-                        <div class="wizard-step-soporte active" id="stepSop1">
+                        <div class="wizard-step-soporte active" id="stepSop1" style="display: block;">
                             <h6 class="fw-bold mb-3" style="color: #1e3c72;">Paso 1: Equipo a Reparar</h6>
 
                             <div class="mb-3">
@@ -133,7 +133,7 @@
 
                             {{-- Aviso si es equipo existente --}}
                             <div id="avisoEquipoExistente" class="alert alert-info py-2" style="display: none; font-size: 0.85rem;">
-                                ℹ️ El equipo ya está en el inventario. La institución y el responsable se heredarán automáticamente del activo seleccionado.
+                                 El equipo ya está en el inventario. La institución y el responsable se heredarán automáticamente del activo seleccionado.
                             </div>
 
                             {{-- Solo se muestran si es equipo NUEVO --}}
@@ -235,7 +235,7 @@
                         <div class="wizard-step-soporte" id="stepSop4" style="display: none;">
                             <h6 class="fw-bold mb-3" style="color: #1e3c72;">Paso 4: Confirmar y Crear Ficha</h6>
 
-                            {{-- ✅ Selector de estado inicial --}}
+                            {{-- Selector de estado inicial --}}
                             <div class="mb-3">
                                 <label class="form-label fw-bold">Estado Inicial de la Ficha <span class="text-danger">*</span></label>
                                 <select name="estado_inicial" id="wzEstadoInicial" class="form-select" required>
@@ -257,7 +257,7 @@
                             </div>
 
                             <div class="alert alert-info">
-                                <strong>📬 Se enviarán notificaciones a:</strong>
+                                <strong>Se enviarán notificaciones a:</strong>
                                 <ul class="mb-0 mt-2">
                                     <li>Al <strong>responsable del equipo</strong> (según institución/departamento del activo)</li>
                                     <li>Al <strong>técnico asignado</strong> con los detalles de la ficha</li>

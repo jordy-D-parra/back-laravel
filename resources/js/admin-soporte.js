@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 toast.style.transform = 'translateX(100%)';
                 setTimeout(() => toast.remove(), 300);
             }
-        }, 5000);
+        }, 6000);
     }
 
     function debounce(func, wait) {
@@ -194,7 +194,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 badgeFecha = `<span class="badge-fecha-entrega ${clase}">${texto}</span>`;
             }
 
-            // ✅ Técnico: mostrar nombre, o "No asignado" si no hay
             const tecnicoTexto = f.tecnico_nombre
                 ? escapeHtml(f.tecnico_nombre)
                 : (f.tecnico_id
@@ -457,7 +456,7 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.disabled = true;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Finalizando...';
 
-        fetch(`/admin/soporte/${id}/cerrar`, {
+        fetch(`/admin/soporte/${id}/close`, {
             method: 'POST',
             headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
             body: new FormData(this)
@@ -669,7 +668,6 @@ document.addEventListener('DOMContentLoaded', function () {
         }, 300));
     }
 
-    // ✅ Seleccionar técnico: guarda ID Y NOMBRE
     function seleccionarTecnicoFicha(tecnico, nombreCompleto) {
         document.getElementById('fichaTecnicoId').value = tecnico.id;
         document.getElementById('fichaTecnicoNombre').value = nombreCompleto;
@@ -1048,7 +1046,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // ============================================================
-    // WIZARD DE CORREO A FICHA
+    // ✅ WIZARD DE CORREO A FICHA — CORREGIDO
     // ============================================================
     window.iniciarWizardSoporte = function() {
         if (!correoActualSoporte) return;
@@ -1060,30 +1058,379 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const datos = correoActualSoporte.datos_extraidos || {};
 
-        if (datos.problema) document.getElementById('wzDiagnostico').value = datos.problema;
-        if (datos.fecha_requerida) document.getElementById('wzFechaRequeridaSoporte').value = datos.fecha_requerida;
+        // ✅ Rellenar datos extraídos del correo
+        if (datos.problema) {
+            document.getElementById('wzDiagnostico').value = datos.problema;
+        }
+        if (datos.fecha_requerida) {
+            document.getElementById('wzFechaRequeridaSoporte').value = datos.fecha_requerida;
+        }
 
+        // ✅ Rellenar los campos del equipo externo con lo extraído del correo
+        const equipoNuevoFields = document.getElementById('equipoNuevoFields');
+        if (equipoNuevoFields) {
+            const inputSerial = equipoNuevoFields.querySelector('input[name="nuevo_equipo[serial]"]');
+            const inputMarca = equipoNuevoFields.querySelector('input[name="nuevo_equipo[marca]"]');
+            const inputModelo = equipoNuevoFields.querySelector('input[name="nuevo_equipo[modelo_nombre]"]');
+
+            if (inputSerial && datos.serial) {
+                inputSerial.value = datos.serial;
+            }
+            if (inputMarca && datos.marca) {
+                inputMarca.value = datos.marca;
+            }
+            if (inputModelo && datos.modelo) {
+                inputModelo.value = datos.modelo;
+            } else if (inputModelo && datos.equipo) {
+                inputModelo.value = datos.equipo;
+            }
+        }
+
+        // ✅ Rellenar el usuario que reporta con el nombre del remitente del correo
+        const inputUsuarioReporta = document.getElementById('wzUsuarioReporta');
+        if (inputUsuarioReporta && correoActualSoporte.from_name) {
+            inputUsuarioReporta.value = correoActualSoporte.from_name;
+        } else if (inputUsuarioReporta && correoActualSoporte.from_email) {
+            inputUsuarioReporta.value = correoActualSoporte.from_email;
+        }
+
+        // ✅ Inicializar listeners del wizard
+        inicializarWizardSoporte();
+
+        // ✅ Reiniciar el wizard en el paso 1 (limpiando estilos inline)
         irPasoSoporte(1);
     };
 
-    window.irPasoSoporte = function(paso) {
-        document.querySelectorAll('.wizard-step-soporte').forEach(el => el.classList.remove('active'));
-        const stepEl = document.getElementById('stepSop' + paso);
-        if (stepEl) stepEl.classList.add('active');
+    // ============================================================
+    // ✅ NUEVO: Inicializar listeners del wizard de soporte
+    // ============================================================
+    function inicializarWizardSoporte() {
+        const radioExistente = document.getElementById('equipoExistente');
+        const radioNuevo = document.getElementById('equipoNuevo');
+        const camposExistente = document.getElementById('equipoExistenteFields');
+        const camposNuevo = document.getElementById('equipoNuevoFields');
+        const avisoExistente = document.getElementById('avisoEquipoExistente');
+        const camposInstitucionNuevo = document.getElementById('camposInstitucionNuevo');
 
+        function aplicarTipoEquipo(tipo) {
+            if (tipo === 'existente') {
+                if (camposExistente) camposExistente.style.display = 'block';
+                if (camposNuevo) camposNuevo.style.display = 'none';
+                if (avisoExistente) avisoExistente.style.display = 'block';
+                if (camposInstitucionNuevo) camposInstitucionNuevo.style.display = 'none';
+            } else {
+                if (camposExistente) camposExistente.style.display = 'none';
+                if (camposNuevo) camposNuevo.style.display = 'block';
+                if (avisoExistente) avisoExistente.style.display = 'none';
+                if (camposInstitucionNuevo) camposInstitucionNuevo.style.display = 'block';
+            }
+        }
+
+        // Limpiar listeners previos (evitar duplicados)
+        if (radioExistente) {
+            radioExistente.onchange = () => aplicarTipoEquipo('existente');
+        }
+        if (radioNuevo) {
+            radioNuevo.onchange = () => aplicarTipoEquipo('nuevo');
+        }
+
+        // Aplicar estado inicial
+        const tipoActual = radioNuevo?.checked ? 'nuevo' : 'existente';
+        aplicarTipoEquipo(tipoActual);
+
+        // ✅ Listener del select de institución para cargar departamentos
+        const selectInstitucion = document.getElementById('wzInstitucionSoporte');
+        const selectDepartamento = document.getElementById('wzDepartamentoSoporte');
+        const selectResponsable = document.getElementById('wzResponsableSoporte');
+
+        if (selectInstitucion) {
+            selectInstitucion.onchange = function() {
+                const instId = this.value;
+
+                if (selectDepartamento) {
+                    selectDepartamento.innerHTML = '<option value="">Sin departamento</option>';
+                }
+                if (selectResponsable) {
+                    selectResponsable.innerHTML = '<option value="">Seleccionar institución primero</option>';
+                }
+
+                if (!instId) return;
+
+                // Cargar departamentos
+                fetch(`/admin/departamentos/por-institucion/${instId}`, {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    const lista = data.data || [];
+                    if (selectDepartamento) {
+                        selectDepartamento.innerHTML = '<option value="">Sin departamento</option>';
+                        lista.forEach(d => {
+                            selectDepartamento.innerHTML += `<option value="${d.id}">${escapeHtml(d.nombre)}</option>`;
+                        });
+                    }
+                })
+                .catch(err => console.error('Error al cargar departamentos:', err));
+
+                // Cargar responsables de la institución
+                fetch(`/admin/api/institucion/${instId}/responsable`, {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (selectResponsable) {
+                        selectResponsable.innerHTML = '<option value="">Seleccionar responsable...</option>';
+                        if (data.responsable) {
+                            selectResponsable.innerHTML += `<option value="${data.responsable.id}">${escapeHtml(data.responsable.nombre)}</option>`;
+                        }
+                    }
+                })
+                .catch(err => console.error('Error al cargar responsable:', err));
+            };
+        }
+
+        // ✅ Listener del select de departamento para cargar responsables
+        if (selectDepartamento) {
+            selectDepartamento.onchange = function() {
+                const deptoId = this.value;
+                if (!deptoId) return;
+
+                fetch(`/admin/api/departamento/${deptoId}/responsable`, {
+                    headers: { 'Accept': 'application/json' }
+                })
+                .then(r => r.json())
+                .then(data => {
+                    if (selectResponsable && data.responsable) {
+                        selectResponsable.innerHTML = `<option value="${data.responsable.id}">${escapeHtml(data.responsable.nombre)}</option>`;
+                    }
+                })
+                .catch(err => console.error('Error al cargar responsable del departamento:', err));
+            };
+        }
+
+        // ✅ Listener del select de activo existente (opcional, para mostrar info)
+        const selectActivo = document.getElementById('wzActivoId');
+        if (selectActivo) {
+            selectActivo.onchange = function() {
+                // Podríamos cargar info adicional del activo si fuera necesario
+            };
+        }
+    }
+
+    // ============================================================
+    // ✅ irPasoSoporte — CORREGIDO (limpia el style inline)
+    // ============================================================
+    window.irPasoSoporte = function(paso) {
+        // 1. Ocultar TODOS los pasos: quitar clase Y limpiar style inline
+        document.querySelectorAll('.wizard-step-soporte').forEach(el => {
+            el.classList.remove('active');
+            el.style.display = 'none';   // ← CLAVE: forzamos ocultar
+        });
+
+        // 2. Mostrar el paso solicitado
+        const stepEl = document.getElementById('stepSop' + paso);
+        if (stepEl) {
+            stepEl.classList.add('active');
+            stepEl.style.display = 'block';   // ← CLAVE: forzamos mostrar
+        }
+
+        // 3. Actualizar círculos indicadores
         [1, 2, 3, 4].forEach(i => {
             const circle = document.getElementById('stepSop' + i + 'Circle');
             if (!circle) return;
+
             circle.classList.remove('active', 'completed');
-            if (i < paso) { circle.classList.add('completed'); circle.textContent = '✓'; }
-            else if (i === paso) { circle.classList.add('active'); circle.textContent = i; }
-            else { circle.textContent = i; }
+
+            if (i < paso) {
+                circle.classList.add('completed');
+                circle.textContent = '✓';
+            } else if (i === paso) {
+                circle.classList.add('active');
+                circle.textContent = i;
+            } else {
+                circle.textContent = i;
+            }
         });
 
+        // 4. Actualizar barra de progreso
         const progreso = ((paso - 1) / 3) * 100 + 25;
         const bar = document.getElementById('wizardProgressSoporte');
         if (bar) bar.style.width = Math.min(progreso, 100) + '%';
+
+        // ✅ NUEVO: Si es el paso 4, generar el resumen
+        if (paso === 4) {
+            generarResumenFichaSoporte();
+        }
     };
+
+    // ============================================================
+    // ✅ NUEVO: Generar el resumen del paso 4
+    // ============================================================
+    function generarResumenFichaSoporte() {
+        const contenedor = document.getElementById('resumenFichaSoporte');
+        if (!contenedor) return;
+
+        const form = document.getElementById('formWizardSoporte');
+        if (!form) return;
+
+        const formData = new FormData(form);
+
+        // Datos básicos
+        const tipoEquipo = formData.get('tipo_equipo') || 'existente';
+        const usuarioReporta = formData.get('usuario_reporta_nombre') || 'No especificado';
+        const diagnostico = formData.get('diagnostico') || 'No especificado';
+        const fechaRequerida = formData.get('fecha_requerida_entrega') || 'No especificada';
+        const observaciones = formData.get('observaciones') || 'Sin observaciones';
+        const estadoInicial = formData.get('estado_inicial') || 'en_proceso';
+
+        const estadoLabel = estadoInicial === 'aceptada' ? 'Aceptada' :
+                            estadoInicial === 'rechazada' ? 'Rechazada' : 'En Proceso';
+
+        // Datos del equipo
+        let equipoInfo = '';
+        let tecnicoInfo = '';
+
+        if (tipoEquipo === 'existente') {
+            const activoId = formData.get('activo_id');
+            const selectActivo = document.getElementById('wzActivoId');
+            const activoTexto = selectActivo && activoId
+                ? selectActivo.options[selectActivo.selectedIndex]?.text || 'No seleccionado'
+                : 'No seleccionado';
+            equipoInfo = `Equipo del inventario: <strong>${escapeHtml(activoTexto.trim())}</strong>`;
+        } else {
+            const serial = formData.get('nuevo_equipo[serial]') || 'N/A';
+            const marca = formData.get('nuevo_equipo[marca]') || 'N/A';
+            const modelo = formData.get('nuevo_equipo[modelo_nombre]') || 'N/A';
+            const institucion = formData.get('nuevo_equipo[institucion_id]') || 'N/A';
+            const responsable = formData.get('nuevo_equipo[responsable_id]') || 'N/A';
+
+            const selectInst = document.getElementById('wzInstitucionSoporte');
+            const instTexto = selectInst && institucion
+                ? selectInst.options[selectInst.selectedIndex]?.text || 'N/A'
+                : 'N/A';
+
+            const selectResp = document.getElementById('wzResponsableSoporte');
+            const respTexto = selectResp && responsable
+                ? selectResp.options[selectResp.selectedIndex]?.text || 'N/A'
+                : 'N/A';
+
+            equipoInfo = `Equipo nuevo: <strong>${escapeHtml(serial)}</strong> · ${escapeHtml(marca)} ${escapeHtml(modelo)}<br>` +
+                         `Institución: <strong>${escapeHtml(instTexto)}</strong><br>` +
+                         `Responsable: <strong>${escapeHtml(respTexto)}</strong>`;
+        }
+
+        // Técnico
+        const tecnicoSelect = document.getElementById('wzTecnicoSoporte');
+        const tecnicoId = formData.get('tecnico_id');
+        if (tecnicoId && tecnicoSelect) {
+            tecnicoInfo = tecnicoSelect.options[tecnicoSelect.selectedIndex]?.text || 'No asignado';
+        } else {
+            tecnicoInfo = 'No asignado';
+        }
+
+        contenedor.innerHTML = `
+            <li><strong>Tipo de equipo:</strong> ${tipoEquipo === 'existente' ? 'Existente (inventario)' : 'Nuevo (externo)'}</li>
+            <li>${equipoInfo}</li>
+            <li><strong>Técnico asignado:</strong> ${escapeHtml(tecnicoInfo.trim())}</li>
+            <li><strong>Usuario que reporta:</strong> ${escapeHtml(usuarioReporta)}</li>
+            <li><strong>Fecha requerida:</strong> ${escapeHtml(fechaRequerida)}</li>
+            <li><strong>Estado inicial:</strong> ${estadoLabel}</li>
+            <li><strong>Diagnóstico:</strong> ${escapeHtml(diagnostico.substring(0, 120))}${diagnostico.length > 120 ? '...' : ''}</li>
+            <li><strong>Observaciones:</strong> ${escapeHtml(observaciones.substring(0, 80))}${observaciones.length > 80 ? '...' : ''}</li>
+        `;
+    }
+
+    // ============================================================
+    // ✅ NUEVO: Handler del submit del wizard de soporte
+    // ============================================================
+    document.getElementById('formWizardSoporte')?.addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const correoId = document.getElementById('wizardCorreoSoporteId').value;
+        if (!correoId) {
+            mostrarNotificacion('error', 'No se encontró el correo de origen.');
+            return;
+        }
+
+        const btn = document.getElementById('btnGuardarWizardSoporte');
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creando ficha...';
+
+        try {
+            // Construir FormData (el form ya contiene todo lo necesario)
+            const formData = new FormData(this);
+
+            // Validar tipo_equipo y campos requeridos según el caso
+            const tipoEquipo = formData.get('tipo_equipo');
+            if (tipoEquipo === 'existente') {
+                if (!formData.get('activo_id')) {
+                    mostrarNotificacion('warning', 'Debe seleccionar un activo del inventario.');
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                    return;
+                }
+            } else {
+                if (!formData.get('nuevo_equipo[serial]') ||
+                    !formData.get('nuevo_equipo[marca]') ||
+                    !formData.get('nuevo_equipo[modelo_nombre]') ||
+                    !formData.get('nuevo_equipo[categoria_id]') ||
+                    !formData.get('nuevo_equipo[institucion_id]') ||
+                    !formData.get('nuevo_equipo[responsable_id]')) {
+                    mostrarNotificacion('warning', 'Complete todos los campos obligatorios del equipo nuevo.');
+                    btn.disabled = false;
+                    btn.innerHTML = original;
+                    return;
+                }
+            }
+
+            const response = await fetch(`/admin/soporte/correos/${correoId}/convertir`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                body: formData
+            });
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (parseErr) {
+                console.error('Respuesta no JSON:', parseErr);
+                mostrarNotificacion('error', 'Respuesta inválida del servidor.');
+                return;
+            }
+
+            if (data.success) {
+                // Cerrar el modal
+                const modal = bootstrap.Modal.getInstance(document.getElementById('modalCorreoSoporte'));
+                if (modal) modal.hide();
+
+                mostrarNotificacion('success', data.message || 'Ficha de soporte creada exitosamente.');
+
+                // Recargar la lista de fichas y actualizar contador
+                cargarFichas(1);
+                actualizarBadgeCorreosSoporte();
+                cargarCorreosSoporte();
+            } else {
+                let msg = data.message || 'Error al crear la ficha de soporte.';
+                if (data.errors) {
+                    const errores = Object.values(data.errors).flat();
+                    msg += '\n\n' + errores.join('\n');
+                }
+                mostrarNotificacion('error', msg);
+            }
+        } catch (error) {
+            console.error('Error al crear la ficha:', error);
+            mostrarNotificacion('error', 'Error de conexión: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        }
+    });
 
     // ============================================================
     // INICIALIZACIÓN
