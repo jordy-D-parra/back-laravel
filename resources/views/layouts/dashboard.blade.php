@@ -233,25 +233,9 @@
                 </li>
             @endif
 
-            {{-- ========== REPORTES ========== --}}
+            {{-- ========== Seguimiento ========== --}}
             <li class="nav-divider"></li>
-            <li class="nav-section">REPORTES</li>
-
-            @if($user->hasPermission("ver-reportes"))
-                <li class="nav-item">
-                    <a href="{{ route("admin.reportes.explorer") }}" class="nav-link {{ request()->routeIs("admin.reportes.explorer*") ? "active" : "" }}">
-                        <span class="nav-icon">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                                <path d="M3 3v18h18"/>
-                                <path d="M18 17V9"/>
-                                <path d="M13 17V5"/>
-                                <path d="M8 17v-3"/>
-                            </svg>
-                        </span>
-                        <span>Reportes</span>
-                    </a>
-                </li>
-            @endif
+            <li class="nav-section">Auditoria</li>
 
             @if($user->hasPermission("ver-auditoria"))
                 <li class="nav-item">
