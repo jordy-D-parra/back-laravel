@@ -401,6 +401,10 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
                 Route::post("/{id}/convertir", [FichaSoporteController::class, "correoConvertir"])->middleware("permission:crear-ficha-soporte")->where("id", "[0-9]+")->name("convertir");
             });
 
+            Route::get("/tecnicos-asignados", [FichaSoporteController::class, "getTecnicosAsignados"])
+                ->middleware("permission:ver-fichas-soporte")
+                ->name("tecnicos-asignados");
+
             Route::middleware("permission:ver-fichas-soporte")->group(function () {
                 Route::get("/", [FichaSoporteController::class, "index"])->name("index");
                 Route::get("/{id}", [FichaSoporteController::class, "show"])->where("id", "[0-9]+")->name("show");
@@ -645,14 +649,24 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
 
         // ============================================================
         // API TECNICOS
+        // ✅ Listado con conteo semanal de reparaciones
         // ============================================================
         Route::prefix("api")->group(function () {
+
+            // ✅ LISTADO DE TÉCNICOS con conteo semanal de reparaciones
             Route::get("/tecnicos", function (Request $request) {
                 $search = $request->get("search");
+                $inicioSemana = now()->startOfWeek();
+                $finSemana = now()->endOfWeek();
 
                 $query = App\Models\Usuario::whereHas("rol", function ($q) {
-                    $q->whereIn("nombre", ["tecnico", "admin", "ingeniero"]);
-                })->with("trabajador");
+                        $q->whereIn("nombre", ["tecnico", "admin", "ingeniero"]);
+                    })
+                    ->with("trabajador")
+                    ->withCount(['fichasSoporteAsignadas as reparaciones_semana' => function ($q) use ($inicioSemana, $finSemana) {
+                        $q->whereIn('estado', ['en_proceso', 'aceptada'])
+                          ->whereBetween('fecha_ingreso', [$inicioSemana, $finSemana]);
+                    }]);
 
                 if ($search) {
                     $query->where(function ($q) use ($search) {
@@ -665,7 +679,22 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
                     });
                 }
 
-                return response()->json($query->limit(15)->get());
+                $tecnicos = $query->limit(15)->get()->map(function ($t) {
+                    return [
+                        'id' => $t->id,
+                        'usuario' => $t->usuario,
+                        'trabajador' => $t->trabajador ? [
+                            'cedula' => $t->trabajador->cedula,
+                            'nombre' => $t->trabajador->nombre,
+                            'apellido' => $t->trabajador->apellido,
+                            'cargo' => $t->trabajador->cargo,
+                        ] : null,
+                        'reparaciones_semana' => $t->reparaciones_semana ?? 0,
+                        'cupos_disponibles' => max(0, 5 - ($t->reparaciones_semana ?? 0)),
+                    ];
+                });
+
+                return response()->json($tecnicos);
             });
 
             Route::get("/tecnicos/{id}", function ($id) {

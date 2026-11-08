@@ -18,7 +18,7 @@ class Usuario extends Authenticatable
     protected $fillable = [
         'usuario',
         'password',
-        'remember_token',        // ← ✅ AGREGADO
+        'remember_token',
         'must_change_password',
         'status',
         'ultimo_login',
@@ -61,6 +61,12 @@ class Usuario extends Authenticatable
     public function notificacionesNoLeidas(): HasMany
     {
         return $this->notificaciones()->where('leida', false);
+    }
+
+    // ✅ NUEVO: Relación con fichas de soporte asignadas (como técnico)
+    public function fichasSoporteAsignadas(): HasMany
+    {
+        return $this->hasMany(FichaSoporte::class, 'tecnico_id');
     }
 
     // ============================================================

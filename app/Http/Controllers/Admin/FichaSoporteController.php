@@ -87,8 +87,71 @@ class FichaSoporteController extends Controller
         ));
     }
 
+    public function getTecnicosAsignados()
+    {
+        try {
+            // 1. Obtener todas las fichas de soporte que están en proceso y tienen un técnico asignado.
+            $fichasEnProceso = FichaSoporte::with([
+                'activo.modelo.marca',
+                'activo.institucion',
+                'tecnico.trabajador'
+            ])
+            ->where('estado', 'en_proceso')
+            ->whereNotNull('tecnico_id')
+            ->orderBy('fecha_ingreso', 'asc')
+            ->get();
+
+            // 2. Agrupar las fichas por el nombre del técnico.
+            $tecnicosConEquipos = $fichasEnProceso->groupBy('tecnico_id')->map(function ($fichas, $tecnicoId) {
+                $tecnico = $fichas->first()->tecnico;
+                if (!$tecnico) {
+                    return null;
+                }
+
+                $nombreTecnico = $tecnico->trabajador
+                    ? trim($tecnico->trabajador->nombre . ' ' . $tecnico->trabajador->apellido)
+                    : $tecnico->usuario;
+
+                return [
+                    'tecnico' => [
+                        'id' => $tecnico->id,
+                        'nombre' => $nombreTecnico,
+                    ],
+                    'equipos' => $fichas->map(function ($ficha) {
+                        $activo = $ficha->activo;
+                        return [
+                            'ficha_id' => $ficha->id,
+                            'equipo_serial' => $activo ? $activo->serial : 'Equipo Externo',
+                            'equipo_nombre' => $activo && $activo->modelo
+                                ? (($activo->modelo->marca->nombre ?? '') . ' ' . $activo->modelo->nombre)
+                                : 'Equipo no especificado',
+                            'institucion' => $activo && $activo->institucion ? $activo->institucion->nombre : 'N/A',
+                            'fecha_ingreso' => $ficha->fecha_ingreso ? $ficha->fecha_ingreso->format('d/m/Y') : 'N/A',
+                            'diagnostico' => $ficha->diagnostico,
+                        ];
+                    })->values(),
+                ];
+            })->filter()->values();
+
+            return response()->json([
+                'success' => true,
+                'data' => $tecnicosConEquipos,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error al obtener técnicos asignados: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cargar los técnicos asignados: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     // ============================================================
     // STORE - Crear ficha manual
+    // ✅ Valida límite semanal de 5 reparaciones por técnico
+    // ✅ Resuelve y persiste tecnico_nombre
     // ============================================================
     public function store(Request $request)
     {
@@ -107,12 +170,29 @@ class FichaSoporteController extends Controller
                 'fecha_requerida_entrega' => 'nullable|date|after_or_equal:today',
             ]);
 
+            // ✅ REGLA DE NEGOCIO: máximo 5 reparaciones semanales por técnico
+            if (!empty($validated['tecnico_id'])) {
+                $validacion = $this->validarLimiteSemanalTecnico((int) $validated['tecnico_id']);
+                if (!$validacion['permitido']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $validacion['mensaje'],
+                    ], 422);
+                }
+            }
+
+            // ✅ Si viene técnico pero no nombre, resolverlo automáticamente
+            $tecnicoNombre = $validated['tecnico_nombre'] ?? null;
+            if (!empty($validated['tecnico_id']) && empty($tecnicoNombre)) {
+                $tecnicoNombre = $this->resolverNombreTecnico((int) $validated['tecnico_id']);
+            }
+
             DB::beginTransaction();
 
             $ficha = FichaSoporte::create([
                 'activo_id' => $validated['activo_id'],
                 'tecnico_id' => $validated['tecnico_id'] ?? null,
-                'tecnico_nombre' => $validated['tecnico_nombre'] ?? null,
+                'tecnico_nombre' => $tecnicoNombre ?? 'No asignado',
                 'usuario_reporta_id' => auth()->id(),
                 'usuario_reporta_nombre' => $validated['usuario_reporta_nombre'],
                 'fecha_ingreso' => now(),
@@ -162,7 +242,8 @@ class FichaSoporteController extends Controller
 
     // ============================================================
     // STORE EQUIPO EXTERNO
-    // ✅ NUEVO: Crea un activo + ficha en una sola transacción
+    // ✅ Valida límite semanal de 5 reparaciones por técnico
+    // ✅ Resuelve y persiste tecnico_nombre
     // ============================================================
     public function storeEquipoExterno(Request $request)
     {
@@ -190,6 +271,23 @@ class FichaSoporteController extends Controller
                 'diagnostico' => 'nullable|string|min:10',
                 'observaciones_ficha' => 'nullable|string',
             ]);
+
+            // ✅ REGLA DE NEGOCIO: máximo 5 reparaciones semanales por técnico
+            if (!empty($validated['tecnico_id'])) {
+                $validacion = $this->validarLimiteSemanalTecnico((int) $validated['tecnico_id']);
+                if (!$validacion['permitido']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $validacion['mensaje'],
+                    ], 422);
+                }
+            }
+
+            // ✅ Resolver nombre del técnico si no viene
+            $tecnicoNombre = $validated['tecnico_nombre'] ?? null;
+            if (!empty($validated['tecnico_id']) && empty($tecnicoNombre)) {
+                $tecnicoNombre = $this->resolverNombreTecnico((int) $validated['tecnico_id']);
+            }
 
             DB::beginTransaction();
 
@@ -229,7 +327,7 @@ class FichaSoporteController extends Controller
             $ficha = FichaSoporte::create([
                 'activo_id' => $activo->id,
                 'tecnico_id' => $validated['tecnico_id'] ?? null,
-                'tecnico_nombre' => $validated['tecnico_nombre'] ?? 'No asignado',
+                'tecnico_nombre' => $tecnicoNombre ?? 'No asignado',
                 'usuario_reporta_id' => auth()->id(),
                 'usuario_reporta_nombre' => $validated['usuario_reporta_nombre'],
                 'fecha_ingreso' => now(),
@@ -727,8 +825,10 @@ class FichaSoporteController extends Controller
         ]);
     }
 
-       // ============================================================
+    // ============================================================
     // CONVERTIR CORREO EN FICHA (Wizard)
+    // ✅ Valida límite semanal de 5 reparaciones por técnico
+    // ✅ Resuelve y persiste tecnico_nombre
     // ============================================================
     public function correoConvertir(Request $request, $id)
     {
@@ -782,6 +882,23 @@ class FichaSoporteController extends Controller
                 'estado_inicial' => 'nullable|in:en_proceso,aceptada,rechazada',
             ]);
 
+            // ✅ REGLA DE NEGOCIO: máximo 5 reparaciones semanales por técnico
+            if (!empty($validated['tecnico_id'])) {
+                $validacion = $this->validarLimiteSemanalTecnico((int) $validated['tecnico_id']);
+                if (!$validacion['permitido']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $validacion['mensaje'],
+                    ], 422);
+                }
+            }
+
+            // ✅ Resolver nombre del técnico si no viene
+            $tecnicoNombre = $validated['tecnico_nombre'] ?? null;
+            if (!empty($validated['tecnico_id']) && empty($tecnicoNombre)) {
+                $tecnicoNombre = $this->resolverNombreTecnico((int) $validated['tecnico_id']);
+            }
+
             $estadoInicial = $validated['estado_inicial'] ?? 'en_proceso';
 
             DB::beginTransaction();
@@ -824,7 +941,7 @@ class FichaSoporteController extends Controller
                 'activo_id' => $activoId,
                 'correo_id' => $correo->id,
                 'tecnico_id' => $validated['tecnico_id'] ?? null,
-                'tecnico_nombre' => $validated['tecnico_nombre'] ?? 'No asignado',
+                'tecnico_nombre' => $tecnicoNombre ?? 'No asignado',
                 'usuario_reporta_id' => auth()->id(),
                 'usuario_reporta_nombre' => $validated['usuario_reporta_nombre'],
                 'fecha_ingreso' => now(),
@@ -884,5 +1001,66 @@ class FichaSoporteController extends Controller
                 'message' => 'Error: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    // ============================================================
+    // HELPER: Resolver nombre del técnico
+    // ============================================================
+    private function resolverNombreTecnico(int $tecnicoId): string
+    {
+        $tecnico = Usuario::with('trabajador')->find($tecnicoId);
+
+        if (!$tecnico) {
+            return 'No asignado';
+        }
+
+        if ($tecnico->trabajador) {
+            return trim($tecnico->trabajador->nombre . ' ' . $tecnico->trabajador->apellido);
+        }
+
+        return $tecnico->usuario;
+    }
+
+    // ============================================================
+    // HELPER: Validar límite semanal de reparaciones por técnico
+    // Regla: máximo 5 fichas activas por semana (lunes a domingo)
+    // ============================================================
+    private function validarLimiteSemanalTecnico(int $tecnicoId): array
+    {
+        $inicioSemana = now()->startOfWeek();  // Lunes
+        $finSemana    = now()->endOfWeek();    // Domingo
+
+        // Contar fichas activas asignadas al técnico en la semana actual
+        $fichasActivasSemana = FichaSoporte::where('tecnico_id', $tecnicoId)
+            ->whereIn('estado', ['en_proceso', 'aceptada'])
+            ->whereBetween('fecha_ingreso', [$inicioSemana, $finSemana])
+            ->count();
+
+        $limiteSemanal = 5;
+
+        if ($fichasActivasSemana >= $limiteSemanal) {
+            $tecnico = Usuario::with('trabajador')->find($tecnicoId);
+            $nombreTecnico = $tecnico
+                ? ($tecnico->trabajador
+                    ? trim($tecnico->trabajador->nombre . ' ' . $tecnico->trabajador->apellido)
+                    : $tecnico->usuario)
+                : 'El técnico seleccionado';
+
+            return [
+                'permitido' => false,
+                'mensaje' => "⚠️ El técnico {$nombreTecnico} ya tiene "
+                    . "{$fichasActivasSemana} reparaciones activas esta semana "
+                    . "(límite: {$limiteSemana}).\n\n"
+                    . "Por favor, selecciona otro técnico o espera a que finalice alguna reparación.",
+                'fichas_activas' => $fichasActivasSemana,
+                'limite' => $limiteSemanal,
+            ];
+        }
+
+        return [
+            'permitido' => true,
+            'fichas_activas' => $fichasActivasSemana,
+            'disponibles' => $limiteSemanal - $fichasActivasSemana,
+        ];
     }
 }

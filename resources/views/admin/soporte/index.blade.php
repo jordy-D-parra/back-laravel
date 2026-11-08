@@ -98,6 +98,18 @@
             </button>
         </li>
         @endif
+        {{-- ✅ NUEVO TAB: TÉCNICOS ASIGNADOS --}}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="tab-tecnicos-asignados" data-bs-toggle="tab" data-bs-target="#panel-tecnicos-asignados" type="button" role="tab">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="9" cy="7" r="4"></circle>
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                Técnicos Asignados
+            </button>
+        </li>
     </ul>
 
     <div class="tab-content">
@@ -430,6 +442,22 @@
             </div>
         </div>
         @endif
+
+        {{-- ============================================ --}}
+        {{-- PANEL 3: TÉCNICOS ASIGNADOS --}}
+        {{-- ============================================ --}}
+        <div class="tab-pane fade" id="panel-tecnicos-asignados" role="tabpanel">
+            <div class="row mt-3">
+                <div class="col-12">
+                    <div id="tecnicos-asignados-container">
+                        <div class="text-center py-5 text-muted">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2">Cargando técnicos y equipos asignados...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -750,6 +778,24 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-danger" id="btnConfirmarEliminar">Eliminar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{{-- ✅ NUEVO MODAL: Detalle de Equipo en Reparación (Técnicos Asignados) --}}
+<div class="modal fade" id="modalDetalleEquipoReparacion" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="detalleEquipoReparacionLabel">Detalle del Equipo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="detalleEquipoReparacionBody">
+                <!-- Contenido dinámico -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-primary-dark" data-bs-dismiss="modal">Cerrar</button>
             </div>
         </div>
     </div>

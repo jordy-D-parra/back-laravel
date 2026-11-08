@@ -1,1620 +1,1111 @@
 // resources/js/admin-soporte.js
 
-// ============================================================
-// VARIABLES GLOBALES
-// ============================================================
-let fichasData = [];
-let currentPage = 1;
-let lastPage = 1;
-let perPage = 10;
-let totalRegistros = 0;
-let timeoutBusqueda = null;
-let fichaAEliminar = null;
-let activosEnProceso = [];
-let todosActivos = [];
+document.addEventListener('DOMContentLoaded', function () {
 
-// Correos de soporte
-let correoSoporteActual = null;
-const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+    // ============================================================
+    // VARIABLES GLOBALES
+    // ============================================================
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    let fichasData = [];
+    let currentPage = 1;
+    let lastPage = 1;
+    let timeoutBusqueda = null;
+    let fichaAEliminar = null;
+    let correoActualSoporte = null;
+    let itemWizardSoporteCount = 0;
+    let intervaloNotificaciones = null;
 
-let filtros = {
-    search: '',
-    estado: ''
-};
-
-// ============================================================
-// UTILIDADES
-// ============================================================
-function escapeHtml(text) {
-    if (text === null || text === undefined) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
-}
-
-function formatearFechaHora(fecha) {
-    if (!fecha) return '-';
-    const d = new Date(fecha);
-    if (isNaN(d.getTime())) return fecha;
-    return d.toLocaleDateString('es-ES', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-    });
-}
-
-function formatearFechaCorta(fecha) {
-    if (!fecha) return '---';
-    const d = new Date(fecha);
-    if (isNaN(d.getTime())) return fecha;
-    return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function formatearHoraCorta(fecha) {
-    if (!fecha) return '';
-    const d = new Date(fecha);
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-}
-
-function calcularDiasRestantes(fechaRequerida, estado) {
-    if (!fechaRequerida) return null;
-    if (estado === 'finalizado') return 0;
-
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
-    let fechaStr = String(fechaRequerida);
-    if (!fechaStr.includes('T')) fechaStr = fechaStr + 'T00:00:00';
-
-    const req = new Date(fechaStr);
-    if (isNaN(req.getTime())) return null;
-
-    const diffMs = req - hoy;
-    return Math.round(diffMs / (1000 * 60 * 60 * 24));
-}
-
-function estaVencida(fechaRequerida, estado) {
-    if (!fechaRequerida) return false;
-    if (estado === 'finalizado') return false;
-
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-
-    let fechaStr = String(fechaRequerida);
-    if (!fechaStr.includes('T')) fechaStr = fechaStr + 'T00:00:00';
-
-    const req = new Date(fechaStr);
-    if (isNaN(req.getTime())) return false;
-
-    return hoy > req;
-}
-
-function normalizarFechaParaInput(fechaStr) {
-    if (!fechaStr) return '';
-
-    if (/^\d{4}-\d{2}-\d{2}$/.test(fechaStr)) return fechaStr;
-
-    const match = fechaStr.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-    if (match) {
-        const dia = match[1].padStart(2, '0');
-        const mes = match[2].padStart(2, '0');
-        const anio = match[3];
-        return `${anio}-${mes}-${dia}`;
+    // ============================================================
+    // HELPERS
+    // ============================================================
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
     }
 
-    const d = new Date(fechaStr);
-    if (!isNaN(d.getTime())) {
-        return d.toISOString().split('T')[0];
-    }
-
-    return '';
-}
-
-function mostrarNotificacion(tipo, mensaje) {
-    let container = document.getElementById('notification-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'notification-container';
-        container.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; width: 320px;';
-        document.body.appendChild(container);
-    }
-
-    const colores = { success: '#28a745', error: '#dc3545', warning: '#ffc107', info: '#17a2b8' };
-    const iconos = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-
-    const toast = document.createElement('div');
-    toast.style.cssText = `
-        background: ${colores[tipo] || colores.info}; color: white;
-        border-radius: 10px; padding: 12px 16px; margin-bottom: 10px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        display: flex; align-items: center; gap: 12px;
-        cursor: pointer; animation: slideIn 0.3s ease-out;
-        white-space: pre-line; font-size: 0.9rem;
-    `;
-    toast.innerHTML = `<span style="font-size:1.2rem;">${iconos[tipo] || 'ℹ️'}</span><span style="flex:1">${mensaje}</span>`;
-
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.transition = 'opacity 0.3s';
-        toast.style.opacity = '0';
-        setTimeout(() => toast.remove(), 300);
-    }, 5000);
-}
-
-(function inyectarEstilos() {
-    if (document.getElementById('soporte-animaciones')) return;
-    const style = document.createElement('style');
-    style.id = 'soporte-animaciones';
-    style.textContent = `
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+    function formatearFecha(fecha) {
+        if (!fecha) return '---';
+        if (fecha instanceof Date) {
+            return fecha.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
         }
-    `;
-    document.head.appendChild(style);
-})();
-
-// ============================================================
-// FICHAS: ESTADÍSTICAS
-// ============================================================
-function actualizarEstadisticas() {
-    const total = fichasData.length;
-    const enProceso = fichasData.filter(f => f.estado === 'en_proceso').length;
-    const finalizados = fichasData.filter(f => f.estado === 'finalizado').length;
-
-    const statsTotal = document.getElementById('statsTotal');
-    if (statsTotal) statsTotal.textContent = total;
-
-    const statsEnProceso = document.getElementById('statsEnProceso');
-    if (statsEnProceso) statsEnProceso.textContent = enProceso;
-
-    const statsFinalizados = document.getElementById('statsFinalizados');
-    if (statsFinalizados) statsFinalizados.textContent = finalizados;
-
-    const statsEquiposReparacion = document.getElementById('statsEquiposReparacion');
-    if (statsEquiposReparacion) statsEquiposReparacion.textContent = enProceso;
-
-    activosEnProceso = fichasData.filter(f => f.estado === 'en_proceso').map(f => f.activo_id);
-}
-
-// ============================================================
-// FICHAS: RENDERIZADO (con botones aceptar/rechazar)
-// ============================================================
-function renderizarTabla() {
-    const tbody = document.getElementById('tablaFichas');
-    if (!tbody) return;
-
-    if (fichasData.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="8" class="text-center py-5 text-muted">
-                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
-                        <rect x="2" y="6" width="20" height="12" rx="2"/>
-                    </svg>
-                    <p>No hay fichas de soporte registradas</p>
-                </td>
-            </tr>`;
-        return;
+        let str = String(fecha).trim();
+        if (!str) return '---';
+        let dateStr = str.includes('T') ? str : `${str}T00:00:00`;
+        let d = new Date(dateStr);
+        if (isNaN(d.getTime())) return '---';
+        return d.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
-    let html = '';
-    for (const f of fichasData) {
-        // Fechas
-        const fechaIngresoHtml = f.fecha_ingreso
-            ? `<small class="fw-medium">${formatearFechaCorta(f.fecha_ingreso)}</small><br><small class="text-muted">${formatearHoraCorta(f.fecha_ingreso)}</small>`
-            : '<small class="text-muted">---</small>';
+    function formatearFechaHora(fecha) {
+        if (!fecha) return '---';
+        const d = new Date(fecha);
+        if (isNaN(d.getTime())) return fecha;
+        return d.toLocaleDateString('es-ES', {
+            day: '2-digit', month: '2-digit', year: 'numeric',
+            hour: '2-digit', minute: '2-digit'
+        });
+    }
 
-        const fechaSalidaHtml = f.fecha_salida
-            ? `<small class="fw-medium" style="color: #1e7e34;">${formatearFechaCorta(f.fecha_salida)}</small><br><small class="text-muted">${formatearHoraCorta(f.fecha_salida)}</small>`
-            : '<small class="text-muted">---</small>';
+    function mostrarNotificacion(tipo, mensaje) {
+        const container = document.getElementById('notification-container');
+        if (!container) return;
 
-        // Fecha requerida
-        let fechaRequeridaHtml = '<span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>';
-        if (f.fecha_requerida_entrega) {
-            const dias = calcularDiasRestantes(f.fecha_requerida_entrega, f.estado);
-            const vencida = estaVencida(f.fecha_requerida_entrega, f.estado);
+        const colores = { success: '#1e7e34', error: '#c5221f', warning: '#f6c23e', info: '#1e3c72' };
+        const iconos = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
 
-            let clase = 'badge-fecha-vigente';
-            let texto = formatearFechaCorta(f.fecha_requerida_entrega);
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            background: ${colores[tipo] || colores.info}; color: white;
+            border-radius: 12px; padding: 14px 18px; margin-bottom: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+            display: flex; align-items: center; gap: 12px;
+            font-size: 0.9rem; font-weight: 500;
+            animation: slideInRight 0.3s ease-out;
+            cursor: pointer; white-space: pre-line; line-height: 1.4;
+        `;
+        toast.innerHTML = `
+            <span style="flex-shrink:0; display:flex;">${iconos[tipo] || iconos.info}</span>
+            <span style="flex:1;">${escapeHtml(mensaje)}</span>
+        `;
 
-            if (vencida) {
-                clase = 'badge-fecha-vencida';
-                texto += ' (Vencida)';
-            } else if (dias !== null && dias <= 3) {
-                clase = 'badge-fecha-proxima';
-                texto += ` (${dias} d)`;
+        toast.addEventListener('click', () => {
+            toast.style.transition = 'all 0.3s ease';
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateX(100%)';
+            setTimeout(() => toast.remove(), 300);
+        });
+
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.style.transition = 'all 0.3s ease';
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(100%)';
+                setTimeout(() => toast.remove(), 300);
+            }
+        }, 5000);
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function (...args) {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => func.apply(this, args), wait);
+        };
+    }
+
+    // ============================================================
+    // CARGA DE FICHAS
+    // ============================================================
+    function cargarFichas(page) {
+        page = page || 1;
+
+        const buscar = document.getElementById('buscarFichas')?.value || '';
+        const estado = document.getElementById('filtroEstadoFichas')?.value || '';
+
+        const params = new URLSearchParams({ page, buscar, estado });
+
+        const tbody = document.getElementById('tablaFichas');
+        if (tbody) {
+            tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted">Cargando fichas...</p>
+            </td></tr>`;
+        }
+
+        fetch(`/admin/soporte?${params.toString()}`, {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            const fichas = data.data || [];
+            fichasData = fichas;
+            currentPage = data.current_page || 1;
+            lastPage = data.last_page || 1;
+            renderizarFichas(fichas);
+            renderizarPaginacionFichas();
+        })
+        .catch(error => {
+            console.error('Error al cargar fichas:', error);
+            if (tbody) tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">Error al cargar fichas: ${escapeHtml(error.message)}</td></tr>`;
+        });
+    }
+
+    function renderizarFichas(fichas) {
+        const tbody = document.getElementById('tablaFichas');
+        if (!tbody) return;
+
+        if (!fichas || fichas.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5" class="mb-2">
+                            <rect x="2" y="6" width="20" height="12" rx="2"/>
+                        </svg>
+                        <p>No hay fichas de soporte registradas</p>
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+
+        let html = '';
+
+        fichas.forEach(f => {
+            const activo = f.activo || {};
+            const modelo = activo.modelo || {};
+            const estado = f.estado || 'en_proceso';
+            const estadoLabel = estado === 'en_proceso' ? 'En Proceso' :
+                                estado === 'finalizado' ? 'Finalizado' :
+                                estado === 'aceptada' ? 'Aceptada' :
+                                estado === 'rechazada' ? 'Rechazada' :
+                                estado === 'cancelada' ? 'Cancelada' : estado;
+
+            const estadoBadge = estado === 'en_proceso' ? 'badge-estado-en-proceso' :
+                                estado === 'finalizado' ? 'badge-estado-finalizado' :
+                                estado === 'aceptada' ? 'badge-estado-pendiente' :
+                                estado === 'rechazada' ? 'badge-estado-rechazado' :
+                                estado === 'cancelada' ? 'badge-estado-cancelado' : 'badge-estado';
+
+            let badgeFecha = '<span class="badge-fecha-entrega badge-fecha-sin">Sin fecha</span>';
+            if (f.fecha_requerida_entrega) {
+                const fechaStr = formatearFecha(f.fecha_requerida_entrega);
+                const estaVencida = new Date(f.fecha_requerida_entrega) < new Date() && estado !== 'finalizado';
+                let dias = null;
+                if (!estaVencida) {
+                    const hoy = new Date();
+                    hoy.setHours(0,0,0,0);
+                    const fReq = new Date(f.fecha_requerida_entrega);
+                    fReq.setHours(0,0,0,0);
+                    dias = Math.round((fReq - hoy) / (1000 * 60 * 60 * 24));
+                }
+                let clase = 'badge-fecha-vigente';
+                let texto = fechaStr;
+                if (estaVencida) {
+                    clase = 'badge-fecha-vencida';
+                    texto += ' (Vencida)';
+                } else if (dias !== null && dias <= 3) {
+                    clase = 'badge-fecha-proxima';
+                    texto += ` (${dias} d)`;
+                }
+                badgeFecha = `<span class="badge-fecha-entrega ${clase}">${texto}</span>`;
             }
 
-            fechaRequeridaHtml = `<span class="badge-fecha-entrega ${clase}">${texto}</span>`;
-        }
+            // ✅ Técnico: mostrar nombre, o "No asignado" si no hay
+            const tecnicoTexto = f.tecnico_nombre
+                ? escapeHtml(f.tecnico_nombre)
+                : (f.tecnico_id
+                    ? '<span class="text-warning">Sin nombre</span>'
+                    : '<span class="text-muted">No asignado</span>');
 
-        // Activo
-        const activoHtml = f.activo
-            ? `<span class="fw-medium" style="color:#1e3c72;">${escapeHtml(f.activo.serial)}</span><br><small class="text-muted">${escapeHtml(f.activo.modelo?.nombre || 'N/A')}</small>`
-            : `<span class="text-muted">Equipo externo</span>`;
+            html += `
+                <tr>
+                    <td data-label="Activo">
+                        ${activo.serial ? `
+                            <span class="fw-medium" style="color:#1e3c72;">${escapeHtml(activo.serial)}</span>
+                            <br>
+                            <small class="text-muted">${escapeHtml(modelo.nombre || 'N/A')}</small>
+                        ` : '<span class="text-muted">Equipo externo</span>'}
+                    </td>
+                    <td data-label="Técnico">${tecnicoTexto}</td>
+                    <td data-label="Reporta">${escapeHtml(f.usuario_reporta_nombre || '---')}</td>
+                    <td data-label="Ingreso">
+                        ${f.fecha_ingreso ? `
+                            <small class="fw-medium">${formatearFecha(f.fecha_ingreso)}</small>
+                        ` : '<small class="text-muted">---</small>'}
+                    </td>
+                    <td data-label="F. Requerida">${badgeFecha}</td>
+                    <td data-label="Salida">
+                        ${f.fecha_salida ? `
+                            <small class="fw-medium" style="color:#1e7e34;">${formatearFecha(f.fecha_salida)}</small>
+                        ` : '<small class="text-muted">---</small>'}
+                    </td>
+                    <td data-label="Estado">
+                        <span class="badge-estado ${estadoBadge}">${estadoLabel}</span>
+                    </td>
+                    <td data-label="Acciones" class="text-end">
+                        <div class="d-flex gap-1 justify-content-end">
+                            <button type="button" class="btn-action" onclick="verDetalle(${f.id})" title="Ver detalle">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"/>
+                                    <path d="M12 8v4"/>
+                                    <path d="M12 16h.01"/>
+                                </svg>
+                            </button>
+                            <button type="button" class="btn-action btn-reporte" onclick="generarReporteSoporte(${f.id})" title="Ficha técnica (PDF)">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                    <polyline points="14 2 14 8 20 8"/>
+                                    <line x1="16" y1="13" x2="8" y2="13"/>
+                                    <line x1="16" y1="17" x2="8" y2="17"/>
+                                    <line x1="10" y1="9" x2="8" y2="9"/>
+                                </svg>
+                            </button>
+                            ${(estado === 'en_proceso' || estado === 'aceptada') ? `
+                                <button type="button" class="btn-cerrar-ficha" onclick="abrirModalCerrarFicha(${f.id})" title="Cerrar ficha">
+                                    ✓ Cerrar
+                                </button>
+                            ` : ''}
+                            <button type="button" class="btn-action text-danger" onclick="confirmarEliminar(${f.id})" title="Eliminar">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `;
+        });
 
-        // Estado
-        let estadoLabel = 'En Proceso';
-        let estadoBadge = 'badge-estado-en-proceso';
-        switch (f.estado) {
-            case 'en_proceso': estadoLabel = 'En Proceso'; estadoBadge = 'badge-estado-en-proceso'; break;
-            case 'aceptada':   estadoLabel = 'Aceptada';   estadoBadge = 'badge-estado-pendiente';   break;
-            case 'rechazada':  estadoLabel = 'Rechazada';  estadoBadge = 'badge-estado-rechazado';   break;
-            case 'finalizado': estadoLabel = 'Finalizado'; estadoBadge = 'badge-estado-finalizado'; break;
-            case 'cancelada':  estadoLabel = 'Cancelada';  estadoBadge = 'badge-estado-cancelado';  break;
-            default:
-                estadoLabel = f.estado ? f.estado.charAt(0).toUpperCase() + f.estado.slice(1) : 'En Proceso';
-                estadoBadge = 'badge-estado';
-        }
-
-        // Botón cerrar
-        const puedeCerrar = ['en_proceso', 'aceptada'].includes(f.estado);
-        const botonCerrar = puedeCerrar
-            ? `<button type="button" class="btn-cerrar-ficha" onclick="abrirModalCerrarFicha(${f.id})" title="Cerrar ficha">✓ Cerrar</button>`
-            : '';
-
-        // Botones Aceptar / Rechazar (solo si está en_proceso)
-        const botonesAceptarRechazar = f.estado === 'en_proceso'
-            ? `
-                <button type="button" class="btn-action text-success"
-                        onclick="aceptarFicha(${f.id})"
-                        title="Aceptar ficha (notifica al responsable)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="20 6 9 17 4 12"/>
-                    </svg>
-                </button>
-                <button type="button" class="btn-action text-danger"
-                        onclick="rechazarFicha(${f.id})"
-                        title="Rechazar ficha (notifica al responsable)">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            `
-            : '';
-
-        // Botón eliminar
-        const puedeEliminar = window.authUserHasPermission
-            ? window.authUserHasPermission('eliminar-ficha-soporte')
-            : true;
-
-        const botonEliminar = puedeEliminar
-            ? `<button type="button" class="btn-action text-danger" onclick="confirmarEliminar(${f.id})" title="Eliminar">
-                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                       <polyline points="3 6 5 6 21 6"/>
-                       <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                   </svg>
-               </button>`
-            : '';
-
-        html += `
-            <tr>
-                <td data-label="Activo">${activoHtml}</td>
-                <td data-label="Técnico">${escapeHtml(f.tecnico_nombre || '---')}</td>
-                <td data-label="Reporta">${escapeHtml(f.usuario_reporta_nombre || '---')}</td>
-                <td data-label="Ingreso">${fechaIngresoHtml}</td>
-                <td data-label="F. Requerida">${fechaRequeridaHtml}</td>
-                <td data-label="Salida">${fechaSalidaHtml}</td>
-                <td data-label="Estado"><span class="badge-estado ${estadoBadge}">${estadoLabel}</span></td>
-                <td data-label="Acciones" class="text-end">
-                    <div class="d-flex gap-1 justify-content-end">
-                        <button type="button" class="btn-action" onclick="verDetalle(${f.id})" title="Ver detalle">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M12 8v4"/>
-                                <path d="M12 16h.01"/>
-                            </svg>
-                        </button>
-                        <button type="button" class="btn-action btn-reporte" onclick="generarReporteSoporte(${f.id})" title="Ficha técnica (PDF)">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                <polyline points="14 2 14 8 20 8"/>
-                                <line x1="16" y1="13" x2="8" y2="13"/>
-                                <line x1="16" y1="17" x2="8" y2="17"/>
-                                <line x1="10" y1="9" x2="8" y2="9"/>
-                            </svg>
-                        </button>
-                        ${botonesAceptarRechazar}
-                        ${botonCerrar}
-                        ${botonEliminar}
-                    </div>
-                </td>
-            </tr>
-        `;
-    }
-    tbody.innerHTML = html;
-}
-
-function renderizarPaginacion() {
-    const container = document.getElementById('paginacionFichas');
-    if (!container) return;
-
-    if (lastPage <= 1) {
-        container.innerHTML = `
-            <div class="pagination-info">Mostrando ${fichasData.length} de ${totalRegistros} registros</div>
-            <div class="pagination-btns"></div>
-        `;
-        return;
+        tbody.innerHTML = html;
     }
 
-    const inicio = ((currentPage - 1) * perPage) + 1;
-    const fin = Math.min(currentPage * perPage, totalRegistros);
+    function renderizarPaginacionFichas() {
+        const container = document.getElementById('paginacionFichas');
+        if (!container) return;
 
-    let html = `
-        <div class="pagination-info">
-            Mostrando ${inicio} a ${fin} de ${totalRegistros} registros
+        const start = Math.max(1, currentPage - 2);
+        const end = Math.min(lastPage, currentPage + 2);
+
+        let html = `<div class="pagination-info">
+            ${lastPage > 0 ? `Página ${currentPage} de ${lastPage}` : 'Sin registros'}
         </div>
         <div class="pagination-btns">
-    `;
+            <button class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}"
+                    onclick="cambiarPagina(${currentPage - 1})"
+                    ${currentPage === 1 ? 'disabled' : ''}>«</button>
+        `;
 
-    html += `<button class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}"
-                onclick="cambiarPagina(${currentPage - 1})"
-                ${currentPage === 1 ? 'disabled' : ''}>«</button>`;
-
-    let start = Math.max(1, currentPage - 2);
-    let end = Math.min(lastPage, currentPage + 2);
-
-    if (start > 1) {
-        html += `<button class="pagination-btn" onclick="cambiarPagina(1)">1</button>`;
-        if (start > 2) html += `<span class="pagination-ellipsis">...</span>`;
-    }
-
-    for (let i = start; i <= end; i++) {
-        html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}"
-                    onclick="cambiarPagina(${i})">${i}</button>`;
-    }
-
-    if (end < lastPage) {
-        if (end < lastPage - 1) html += `<span class="pagination-ellipsis">...</span>`;
-        html += `<button class="pagination-btn" onclick="cambiarPagina(${lastPage})">${lastPage}</button>`;
-    }
-
-    html += `<button class="pagination-btn ${currentPage === lastPage ? 'disabled' : ''}"
-                onclick="cambiarPagina(${currentPage + 1})"
-                ${currentPage === lastPage ? 'disabled' : ''}>»</button>`;
-
-    html += `</div>`;
-
-    container.innerHTML = html;
-}
-
-window.cambiarPagina = function (page) {
-    if (page < 1 || page > lastPage) return;
-    currentPage = page;
-    cargarPagina(currentPage);
-};
-
-// ============================================================
-// FICHAS: CARGA DE DATOS
-// ============================================================
-async function cargarPagina(page) {
-    try {
-        const params = new URLSearchParams({
-            page: page,
-            per_page: perPage,
-            buscar: filtros.search,
-            estado: filtros.estado
-        });
-
-        const response = await fetch(`/admin/soporte?${params.toString()}`, {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            credentials: 'same-origin'
-        });
-
-        if (!response.ok) throw new Error('Error al cargar datos');
-        const data = await response.json();
-
-        fichasData = data.data || [];
-        currentPage = data.current_page || 1;
-        lastPage = data.last_page || 1;
-        perPage = data.per_page || 10;
-        totalRegistros = data.total || 0;
-
-        renderizarTabla();
-        actualizarEstadisticas();
-        renderizarPaginacion();
-
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarNotificacion('error', 'No se pudieron cargar las fichas');
-        const tabla = document.getElementById('tablaFichas');
-        if (tabla) {
-            tabla.innerHTML = '<tr><td colspan="8" class="text-center py-4 text-danger">Error al cargar los datos</td></tr>';
+        if (start > 1) {
+            html += `<button class="pagination-btn" onclick="cambiarPagina(1)">1</button>`;
+            if (start > 2) html += `<span class="pagination-ellipsis">...</span>`;
         }
-    }
-}
 
-function aplicarFiltros() {
-    const buscarInput = document.getElementById('buscarFichas');
-    const estadoSelect = document.getElementById('filtroEstadoFichas');
-    filtros = {
-        search: buscarInput?.value || '',
-        estado: estadoSelect?.value || ''
+        for (let i = start; i <= end; i++) {
+            html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}"
+                            onclick="cambiarPagina(${i})">${i}</button>`;
+        }
+
+        if (end < lastPage) {
+            if (end < lastPage - 1) html += `<span class="pagination-ellipsis">...</span>`;
+            html += `<button class="pagination-btn" onclick="cambiarPagina(${lastPage})">${lastPage}</button>`;
+        }
+
+        html += `<button class="pagination-btn ${currentPage === lastPage ? 'disabled' : ''}"
+                        onclick="cambiarPagina(${currentPage + 1})"
+                        ${currentPage === lastPage ? 'disabled' : ''}>»</button>
+        </div>`;
+
+        container.innerHTML = html;
+    }
+
+    window.cambiarPagina = function(page) {
+        if (page < 1 || page > lastPage) return;
+        currentPage = page;
+        cargarFichas(currentPage);
+        document.querySelector('#tablaFichas')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     };
-    currentPage = 1;
-    cargarPagina(1);
-}
 
-function aplicarFiltrosConDebounce() {
-    clearTimeout(timeoutBusqueda);
-    timeoutBusqueda = setTimeout(() => aplicarFiltros(), 300);
-}
+    // ============================================================
+    // DETALLE DE FICHA
+    // ============================================================
+    window.verDetalle = function(id) {
+        const modal = new bootstrap.Modal(document.getElementById('modalDetalle'));
+        const body = document.getElementById('detalleContenido');
 
-// ============================================================
-// GENERAR REPORTE INDIVIDUAL (Ficha Técnica de Soporte)
-// ✅ Abre el PDF en una nueva pestaña para previsualizar/imprimir
-// ============================================================
-window.generarReporteSoporte = function(id) {
-    const url = '/admin/reportes/ficha/soporte-individual/' + id;
-
-    const ventana = window.open(url, '_blank');
-
-    if (!ventana) {
-        mostrarNotificacion('warning', 'Por favor, permita ventanas emergentes para generar el reporte.');
-    }
-};
-
-// ============================================================
-// ✅ ACEPTAR FICHA
-// ============================================================
-window.aceptarFicha = async function (id) {
-    if (!confirm('¿Aceptar esta ficha de soporte?\n\nSe notificará al responsable por correo electrónico.')) {
-        return;
-    }
-
-    try {
-        const response = await fetch(`/admin/soporte/${id}/aceptar`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({})
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            mostrarNotificacion('success', data.message || 'Ficha aceptada exitosamente');
-            cargarPagina(currentPage);
-        } else {
-            mostrarNotificacion('error', data.message || 'Error al aceptar la ficha');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarNotificacion('error', 'Error de conexión al aceptar la ficha');
-    }
-};
-
-// ============================================================
-// ✅ RECHAZAR FICHA
-// ============================================================
-window.rechazarFicha = async function (id) {
-    const motivo = prompt('Motivo del rechazo (mínimo 10 caracteres):');
-
-    if (!motivo || motivo.trim().length < 10) {
-        mostrarNotificacion('warning', 'El motivo debe tener al menos 10 caracteres');
-        return;
-    }
-
-    try {
-        const response = await fetch(`/admin/soporte/${id}/rechazar`, {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json',
-                'Content-Type': 'application/json'
-            },
-            credentials: 'same-origin',
-            body: JSON.stringify({ motivo_rechazo: motivo.trim() })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            mostrarNotificacion('success', data.message || 'Ficha rechazada exitosamente');
-            cargarPagina(currentPage);
-        } else {
-            mostrarNotificacion('error', data.message || 'Error al rechazar la ficha');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarNotificacion('error', 'Error de conexión al rechazar la ficha');
-    }
-};
-
-// ============================================================
-// CORREOS DE SOPORTE TÉCNICO
-// ============================================================
-window.cargarCorreosSoporte = async function () {
-    const container = document.getElementById('listaCorreos');
-    if (!container) return;
-
-    const buscar = document.getElementById('buscarCorreo')?.value || '';
-    const filtro = document.getElementById('filtroCorreo')?.value || '';
-    const params = new URLSearchParams();
-    if (buscar) params.append('buscar', buscar);
-    if (filtro) params.append('filtro', filtro);
-
-    container.innerHTML = `
-        <div class="text-center py-5 text-muted">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2">Cargando correos...</p>
-        </div>
-    `;
-
-    try {
-        const response = await fetch(`/admin/soporte/correos/lista?${params}`, {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            credentials: 'same-origin'
-        });
-
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-        renderizarCorreosSoporte(data.data || []);
-
-    } catch (error) {
-        console.error('Error al cargar correos:', error);
-        container.innerHTML = `
-            <div class="text-center py-5 text-danger">
-                <p>Error al cargar correos: ${escapeHtml(error.message)}</p>
-                <button class="btn btn-sm btn-primary-dark mt-2" onclick="cargarCorreosSoporte()">Reintentar</button>
-            </div>
-        `;
-    }
-};
-
-function renderizarCorreosSoporte(correos) {
-    const container = document.getElementById('listaCorreos');
-    if (!container) return;
-
-    if (!correos.length) {
-        container.innerHTML = `
-            <div class="text-center py-5 text-muted">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5">
-                    <rect x="2" y="4" width="20" height="16" rx="2"/>
-                    <path d="M22 7l-10 7L2 7"/>
-                </svg>
-                <p class="mt-3">No hay correos de soporte recibidos</p>
-                <p class="small">Haz clic en "Revisar ahora" para buscar nuevos correos</p>
-            </div>
-        `;
-        return;
-    }
-
-    let html = '';
-    correos.forEach(c => {
-        const clases = ['correo-item'];
-        if (!c.leido) clases.push('no-leido');
-        if (c.procesado) clases.push('procesado');
-        const badge = !c.leido ? '<span class="badge-nueva">NUEVO</span>' : '';
-
-        html += `
-            <div class="${clases.join(' ')}" onclick="abrirCorreoSoporte(${c.id})">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div style="flex:1">
-                        <div class="fw-bold">${escapeHtml(c.from_name || c.from_email)} ${badge}</div>
-                        <div class="text-muted small">${escapeHtml(c.from_email)}</div>
-                        <div class="fw-semibold mt-1">${escapeHtml(c.subject || '(Sin asunto)')}</div>
-                        <div class="text-muted small mt-1">${escapeHtml((c.body_text || '').substring(0, 150))}...</div>
-                    </div>
-                    <div class="text-end ms-3">
-                        <div class="small text-muted">${formatearFechaHora(c.received_at)}</div>
-                    </div>
-                </div>
-            </div>
-        `;
-    });
-    container.innerHTML = html;
-}
-
-window.actualizarBadgeCorreosSoporte = async function () {
-    try {
-        const response = await fetch('/admin/soporte/correos/contador', {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'same-origin'
-        });
-        const data = await response.json();
-        if (data.success) {
-            const badge = document.getElementById('tabCorreosBadge');
-            if (badge && data.no_procesados > 0) {
-                badge.textContent = data.no_procesados;
-                badge.style.display = 'inline-block';
-            } else if (badge) {
-                badge.style.display = 'none';
-            }
-        }
-    } catch (error) {
-        console.error('Error al actualizar badge:', error);
-    }
-};
-
-window.revisarCorreos = async function () {
-    const btn = document.getElementById('btnRevisarCorreos');
-    if (!btn) return;
-    const original = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Revisando...';
-    btn.disabled = true;
-
-    try {
-        const response = await fetch('/admin/soporte/correos/revisar', {
-            method: 'POST',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json'
-            },
-            credentials: 'same-origin'
-        });
-        const data = await response.json();
-        mostrarNotificacion('info', data.message || 'Revisión completada');
-        cargarCorreosSoporte();
-        actualizarBadgeCorreosSoporte();
-    } catch (error) {
-        mostrarNotificacion('error', 'Error al revisar correos: ' + error.message);
-    } finally {
-        btn.innerHTML = original;
-        btn.disabled = false;
-    }
-};
-
-// ============================================================
-// ABRIR CORREO DE SOPORTE (corregido para evitar warning aria-hidden)
-// ============================================================
-window.abrirCorreoSoporte = async function (id) {
-    // ✅ FIX: quitar el foco del elemento activo ANTES de abrir el modal
-    // Esto evita el warning "Blocked aria-hidden on an element because its descendant retained focus"
-    if (document.activeElement && document.activeElement !== document.body) {
-        document.activeElement.blur();
-    }
-
-    // ✅ FIX: cerrar cualquier modal previamente abierto para no encadenar
-    document.querySelectorAll('.modal.show').forEach(function (modalAbierto) {
-        try {
-            const instance = bootstrap.Modal.getInstance(modalAbierto);
-            if (instance) instance.hide();
-        } catch (e) { /* ignorar */ }
-    });
-
-    try {
-        const response = await fetch(`/admin/soporte/correos/${id}`, {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'same-origin'
-        });
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        const data = await response.json();
-
-        if (!data.success) {
-            mostrarNotificacion('error', 'Error al cargar el correo');
-            return;
-        }
-
-        correoSoporteActual = data.data;
-
-        document.getElementById('correoFromSoporte').textContent =
-            `${correoSoporteActual.from_name || ''} <${correoSoporteActual.from_email}>`;
-        document.getElementById('correoFechaSoporte').textContent =
-            formatearFechaHora(correoSoporteActual.received_at);
-        document.getElementById('correoAsuntoSoporte').textContent =
-            correoSoporteActual.subject || '(Sin asunto)';
-        document.getElementById('correoCuerpoSoporte').textContent =
-            correoSoporteActual.body_text || '(Sin contenido)';
-
-        const datos = correoSoporteActual.datos_extraidos || {};
-        if (datos.problema) {
-            const el = document.getElementById('wzDiagnostico');
-            if (el) el.value = datos.problema;
-        }
-
-        const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
-        if (fechaRaw) {
-            const el = document.getElementById('wzFechaRequeridaSoporte');
-            if (el) {
-                const fechaNormalizada = normalizarFechaParaInput(fechaRaw);
-                if (fechaNormalizada) {
-                    el.value = fechaNormalizada;
-                }
-            }
-        }
-
-        if (correoSoporteActual.from_name) {
-            const el = document.getElementById('wzUsuarioReporta');
-            if (el) el.value = correoSoporteActual.from_name;
-        }
-
-        if (correoSoporteActual.procesado) {
-            document.getElementById('botonIniciarWizardSoporte').innerHTML = `
-                <div class="alert alert-success">
-                    ✅ Este correo ya fue convertido en la ficha de soporte #${correoSoporteActual.ficha_soporte_id}
-                </div>
-            `;
-        } else {
-            document.getElementById('botonIniciarWizardSoporte').innerHTML = `
-                <button class="btn btn-success btn-lg" onclick="iniciarWizardSoporte()">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:6px;">
-                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                    </svg>
-                    Convertir en Ficha de Soporte (Wizard)
-                </button>
-            `;
-        }
-
-        document.getElementById('wizardContainerSoporte').style.display = 'none';
-        document.getElementById('infoCorreoSoporte').style.display = 'block';
-        document.getElementById('botonIniciarWizardSoporte').style.display = 'block';
-
-        // ✅ FIX: listeners para limpiar el foco antes/después del modal
-        const modalEl = document.getElementById('modalCorreoSoporte');
-
-        if (modalEl.dataset.focusFixBound !== '1') {
-            modalEl.dataset.focusFixBound = '1';
-
-            modalEl.addEventListener('show.bs.modal', function () {
-                if (document.activeElement && document.activeElement !== document.body) {
-                    document.activeElement.blur();
-                }
-            });
-
-            modalEl.addEventListener('shown.bs.modal', function () {
-                const focused = document.activeElement;
-                if (focused && !modalEl.contains(focused)) {
-                    modalEl.focus();
-                }
-            });
-
-            modalEl.addEventListener('hide.bs.modal', function () {
-                if (document.activeElement && modalEl.contains(document.activeElement)) {
-                    document.activeElement.blur();
-                }
-            });
-
-            modalEl.addEventListener('hidden.bs.modal', function () {
-                if (document.activeElement && document.activeElement !== document.body) {
-                    document.activeElement.blur();
-                }
-                document.body.focus();
-            });
-        }
-
-        // ✅ Abrir el modal
-        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        body.innerHTML = `<div class="text-center py-5"><div class="spinner-border text-primary" role="status"></div><p class="mt-3 text-muted">Cargando detalles...</p></div>`;
         modal.show();
 
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarNotificacion('error', 'Error al cargar el correo: ' + error.message);
-    }
-};
+        fetch(`/admin/soporte/${id}`, { headers: { 'Accept': 'application/json' } })
+        .then(r => r.json())
+        .then(data => {
+            const f = data.data || data;
+            body.innerHTML = `
+                <div class="ficha-detalle-wrap">
+                    <div class="ficha-header">
+                        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+                            <div>
+                                <h4>Ficha #${f.id}</h4>
+                                <div class="subtitulo">${escapeHtml(f.activo?.serial || 'Equipo Externo')} · ${escapeHtml(f.activo?.modelo?.marca?.nombre || '')} ${escapeHtml(f.activo?.modelo?.nombre || '')}</div>
+                            </div>
+                            <span class="estado-badge" style="background: ${f.estado === 'en_proceso' ? '#f59e0b' : f.estado === 'finalizado' ? '#1e7e34' : '#6c757d'};">
+                                ${f.estado === 'en_proceso' ? 'En Proceso' : f.estado === 'finalizado' ? 'Finalizado' : f.estado}
+                            </span>
+                        </div>
+                    </div>
 
-// ============================================================
-// WIZARD DE CONVERSIÓN DE CORREO → FICHA (4 PASOS)
-// ============================================================
-window.iniciarWizardSoporte = function () {
-    if (!correoSoporteActual) return;
+                    <div class="info-grid">
+                        <div class="info-card">
+                            <div class="info-label">Técnico</div>
+                            <div class="info-value">${escapeHtml(f.tecnico_nombre || 'No asignado')}</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Reporta</div>
+                            <div class="info-value">${escapeHtml(f.usuario_reporta_nombre || 'No especificado')}</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Institución</div>
+                            <div class="info-value">${escapeHtml(f.activo?.institucion?.nombre || 'N/A')}</div>
+                        </div>
+                        <div class="info-card">
+                            <div class="info-label">Fecha Ingreso</div>
+                            <div class="info-value">${formatearFecha(f.fecha_ingreso)}</div>
+                        </div>
+                    </div>
 
-    document.getElementById('infoCorreoSoporte').style.display = 'none';
-    document.getElementById('botonIniciarWizardSoporte').style.display = 'none';
-    document.getElementById('wizardContainerSoporte').style.display = 'block';
-    document.getElementById('wizardCorreoSoporteId').value = correoSoporteActual.id;
+                    <div class="seccion-titulo">Diagnóstico</div>
+                    <div class="texto-bloque diagnostico">${escapeHtml(f.diagnostico || 'Sin diagnóstico registrado.')}</div>
 
-    const datos = correoSoporteActual.datos_extraidos || {};
-    if (datos.problema) {
-        const el = document.getElementById('wzDiagnostico');
-        if (el) el.value = datos.problema;
-    }
+                    <div class="seccion-titulo">Trabajo Realizado</div>
+                    <div class="texto-bloque trabajo">${escapeHtml(f.trabajo_realizado || 'Sin trabajo registrado.')}</div>
 
-    const fechaRaw = datos.fecha_requerida || correoSoporteActual.fecha_requerida_entrega;
-    if (fechaRaw) {
-        const el = document.getElementById('wzFechaRequeridaSoporte');
-        if (el) {
-            const fechaNormalizada = normalizarFechaParaInput(fechaRaw);
-            if (fechaNormalizada) {
-                el.value = fechaNormalizada;
+                    <div class="seccion-titulo">Observaciones</div>
+                    <div class="texto-bloque observaciones">${escapeHtml(f.observaciones || 'Sin observaciones.')}</div>
+
+                    <div class="seccion-titulo">Componentes Revisados</div>
+                    <div class="componentes-grid">
+                        ${(f.detalles || []).map(d => `
+                            <div class="componente-card">
+                                <div class="componente-nombre">${escapeHtml(d.componente_nombre || d.componente?.tipo || 'Componente')}</div>
+                                <div class="componente-obs">
+                                    Estado Ingreso: <strong>${escapeHtml(d.estado_ingreso || 'N/A')}</strong><br>
+                                    Estado Salida: <strong>${escapeHtml(d.estado_salida || 'N/A')}</strong>
+                                    ${d.observaciones ? `<br>${escapeHtml(d.observaciones)}` : ''}
+                                </div>
+                            </div>
+                        `).join('') || '<p class="text-muted">No hay componentes registrados.</p>'}
+                    </div>
+                </div>
+            `;
+        })
+        .catch(err => {
+            console.error(err);
+            body.innerHTML = `<div class="alert alert-danger">Error al cargar los detalles.</div>`;
+        });
+    };
+
+    // ============================================================
+    // GENERAR REPORTE INDIVIDUAL
+    // ============================================================
+    window.generarReporteSoporte = function(id) {
+        const url = `/admin/reportes/ficha/soporte-individual/${id}`;
+        const ventana = window.open(url, '_blank');
+        if (!ventana) {
+            mostrarNotificacion('warning', 'Por favor, permita ventanas emergentes para generar el reporte.');
+        }
+    };
+
+    // ============================================================
+    // CERRAR FICHA
+    // ============================================================
+    window.abrirModalCerrarFicha = function(id) {
+        document.getElementById('cerrarFichaId').value = id;
+        document.getElementById('cerrarTrabajoRealizado').value = '';
+        document.getElementById('cerrarObservacionesFinales').value = '';
+        document.getElementById('componentesContainer').innerHTML = '<div class="text-center py-3 text-muted">Cargando componentes...</div>';
+
+        new bootstrap.Modal(document.getElementById('modalCerrarFicha')).show();
+
+        fetch(`/admin/soporte/${id}`, { headers: { 'Accept': 'application/json' } })
+        .then(r => r.json())
+        .then(data => {
+            const f = data.data || data;
+            const detalles = f.detalles || [];
+
+            if (detalles.length === 0) {
+                document.getElementById('componentesContainer').innerHTML = '<p class="text-muted">No hay componentes registrados.</p>';
+                return;
             }
-        }
-    }
 
-    if (correoSoporteActual.from_name) {
-        const el = document.getElementById('wzUsuarioReporta');
-        if (el) el.value = correoSoporteActual.from_name;
-    }
+            let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Componente</th><th>Estado Ingreso</th><th>Estado Salida</th><th>Observaciones</th></tr></thead><tbody>';
+            detalles.forEach(d => {
+                html += `
+                    <tr>
+                        <td><strong>${escapeHtml(d.componente_nombre || d.componente?.tipo || 'Componente')}</strong></td>
+                        <td>${escapeHtml(d.estado_ingreso || 'N/A')}</td>
+                        <td>
+                            <select class="form-select form-select-sm" name="componentes[${d.id}][estado_salida]">
+                                <option value="funcionando">Funcionando</option>
+                                <option value="reparado">Reparado</option>
+                                <option value="reemplazado">Reemplazado</option>
+                                <option value="dañado">Dañado</option>
+                                <option value="no_aplica">No aplica</option>
+                            </select>
+                        </td>
+                        <td><input type="text" class="form-control form-control-sm" name="componentes[${d.id}][observaciones]" value="${escapeHtml(d.observaciones || '')}"></td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table></div>';
+            document.getElementById('componentesContainer').innerHTML = html;
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById('componentesContainer').innerHTML = '<p class="text-danger">Error al cargar componentes.</p>';
+        });
+    };
 
-    // ✅ AUTO-RELLENAR CAMPOS DEL PASO 2
-    const institucionId = datos.institucion_id || datos.institution_id || null;
-    const departamentoId = datos.departamento_id || datos.department_id || null;
-    const responsableId  = datos.responsable_id || datos.responsableId || null;
+    document.getElementById('formCerrarFicha')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const id = document.getElementById('cerrarFichaId').value;
+        const btn = this.querySelector('button[type="submit"]');
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Finalizando...';
 
-    if (institucionId) {
-        const selInst = document.getElementById('wzInstitucionSoporte');
-        if (selInst) {
-            selInst.value = institucionId;
-            cargarDepartamentosWizardSoporte(institucionId, departamentoId);
-            cargarResponsablesWizardSoporte(institucionId, departamentoId, responsableId);
-        }
-    }
-
-    // Si el correo trae serial, intentar encontrar el activo
-    if (datos.serial) {
-        fetch(`/admin/activos?buscar=${encodeURIComponent(datos.serial)}`, {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'same-origin'
+        fetch(`/admin/soporte/${id}/cerrar`, {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            body: new FormData(this)
         })
         .then(r => r.json())
-        .then(response => {
-            if (response.success && response.data && response.data.length > 0) {
-                const activo = response.data[0];
-                const selectActivo = document.getElementById('wzActivoId');
-                if (selectActivo) {
-                    if (selectActivo.options.length <= 1) {
-                        cargarActivosEnWizard().then(() => {
-                            selectActivo.value = activo.id;
-                            actualizarVistaInstitucionWizard();
-                        });
-                    } else {
-                        selectActivo.value = activo.id;
-                        actualizarVistaInstitucionWizard();
-                    }
-                }
-                const radioExistente = document.getElementById('equipoExistente');
-                if (radioExistente) {
-                    radioExistente.checked = true;
-                    document.getElementById('equipoExistenteFields').style.display = 'block';
-                    document.getElementById('equipoNuevoFields').style.display = 'none';
-                }
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('modalCerrarFicha')).hide();
+                mostrarNotificacion('success', data.message || 'Ficha cerrada exitosamente');
+                cargarFichas(currentPage);
             } else {
-                const radioNuevo = document.getElementById('equipoNuevo');
-                if (radioNuevo) {
-                    radioNuevo.checked = true;
-                    document.getElementById('equipoExistenteFields').style.display = 'none';
-                    document.getElementById('equipoNuevoFields').style.display = 'block';
-                }
-                if (datos.marca) {
-                    const el = document.querySelector('input[name="nuevo_equipo[marca]"]');
-                    if (el) el.value = datos.marca;
-                }
-                if (datos.modelo) {
-                    const el = document.querySelector('input[name="nuevo_equipo[modelo_nombre]"]');
-                    if (el) el.value = datos.modelo;
-                }
-                if (datos.serial) {
-                    const el = document.querySelector('input[name="nuevo_equipo[serial]"]');
-                    if (el) el.value = datos.serial;
-                }
+                mostrarNotificacion('error', data.message || 'Error al cerrar la ficha');
             }
         })
-        .catch(error => console.error('Error al buscar activo:', error));
-    }
-
-    irPasoSoporte(1);
-};
-
-// ✅ Cargar departamentos al cambiar la institución
-function cargarDepartamentosWizardSoporte(institucionId, departamentoSeleccionado) {
-    const selDepto = document.getElementById('wzDepartamentoSoporte');
-    if (!selDepto) return;
-
-    if (!institucionId) {
-        selDepto.innerHTML = '<option value="">Sin departamento</option>';
-        return;
-    }
-
-    selDepto.innerHTML = '<option value="">Cargando...</option>';
-
-    fetch(`/admin/departamentos/por-institucion/${institucionId}`, {
-        headers: { 'Accept': 'application/json' },
-        credentials: 'same-origin'
-    })
-    .then(r => r.json())
-    .then(data => {
-        const lista = data.data || [];
-        selDepto.innerHTML = '<option value="">Sin departamento</option>';
-        lista.forEach(d => {
-            const sel = (departamentoSeleccionado && String(departamentoSeleccionado) === String(d.id)) ? 'selected' : '';
-            selDepto.innerHTML += `<option value="${d.id}" ${sel}>${escapeHtml(d.nombre)}</option>`;
+        .catch(err => mostrarNotificacion('error', 'Error de conexión: ' + err.message))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = original;
         });
-    })
-    .catch(() => {
-        selDepto.innerHTML = '<option value="">Error al cargar</option>';
     });
-}
 
-// ✅ Cargar responsables al cambiar institución o departamento
-function cargarResponsablesWizardSoporte(institucionId, departamentoId, responsableSeleccionado) {
-    const selResp = document.getElementById('wzResponsableSoporte');
-    if (!selResp) return;
+    // ============================================================
+    // ELIMINAR FICHA
+    // ============================================================
+    window.confirmarEliminar = function(id) {
+        fichaAEliminar = id;
+        document.getElementById('deleteNombre').textContent = `#${id}`;
+        new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+    };
 
-    if (!institucionId) {
-        selResp.innerHTML = '<option value="">Seleccionar institución primero</option>';
-        return;
-    }
+    document.getElementById('btnConfirmarEliminar')?.addEventListener('click', function() {
+        if (!fichaAEliminar) return;
 
-    selResp.innerHTML = '<option value="">Cargando...</option>';
+        const btn = this;
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Eliminando...';
 
-    const params = new URLSearchParams({
-        institucion_id: institucionId,
-        todos: '1',
-        _t: Date.now()
-    });
-    if (departamentoId) {
-        params.append('departamento_id', departamentoId);
-    }
-
-    fetch(`/admin/responsables?${params.toString()}`, {
-        headers: {
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-            'Cache-Control': 'no-cache'
-        },
-        credentials: 'same-origin'
-    })
-    .then(r => r.json())
-    .then(data => {
-        const lista = data.data || data || [];
-        selResp.innerHTML = '<option value="">Seleccionar responsable...</option>';
-        lista.forEach(resp => {
-            const sel = (responsableSeleccionado && String(responsableSeleccionado) === String(resp.id)) ? 'selected' : '';
-            const cargo = resp.cargo ? ` - ${resp.cargo}` : '';
-            selResp.innerHTML += `<option value="${resp.id}" ${sel}>${escapeHtml(resp.nombre)}${escapeHtml(cargo)}</option>`;
+        fetch(`/admin/soporte/${fichaAEliminar}`, {
+            method: 'DELETE',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
+                mostrarNotificacion('success', data.message || 'Ficha eliminada');
+                cargarFichas(currentPage);
+            } else {
+                mostrarNotificacion('error', data.message || 'Error al eliminar');
+            }
+        })
+        .catch(err => mostrarNotificacion('error', 'Error de conexión: ' + err.message))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = original;
         });
-    })
-    .catch(() => {
-        selResp.innerHTML = '<option value="">Error al cargar</option>';
     });
-}
 
-// ✅ Mostrar/ocultar campos de institución según tipo de equipo
-function actualizarVistaInstitucionWizard() {
-    const tipo = document.querySelector('input[name="tipo_equipo"]:checked')?.value;
-    const aviso = document.getElementById('avisoEquipoExistente');
-    const campos = document.getElementById('camposInstitucionNuevo');
+    // ============================================================
+    // CREAR FICHA MANUAL
+    // ============================================================
+    const inputActivo = document.getElementById('activoBuscarInput');
+    const dropdownActivo = document.getElementById('activoDropdown');
+    const infoActivo = document.getElementById('activoSeleccionadoInfo');
 
-    if (tipo === 'existente') {
-        if (aviso) aviso.style.display = 'block';
-        if (campos) campos.style.display = 'none';
-    } else {
-        if (aviso) aviso.style.display = 'none';
-        if (campos) campos.style.display = 'block';
+    if (inputActivo) {
+        inputActivo.addEventListener('input', debounce(function() {
+            const buscar = this.value.trim();
+            if (buscar.length < 2) {
+                dropdownActivo.style.display = 'none';
+                return;
+            }
+
+            fetch(`/admin/activos?buscar=${encodeURIComponent(buscar)}`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(data => {
+                const activos = data.data || [];
+                if (activos.length === 0) {
+                    dropdownActivo.innerHTML = '<div class="list-group-item text-muted">No se encontraron activos</div>';
+                } else {
+                    dropdownActivo.innerHTML = activos.slice(0, 10).map(a => `
+                        <a href="#" class="list-group-item list-group-item-action" onclick="seleccionarActivoFicha(${a.id}, '${escapeHtml(a.serial)}', '${escapeHtml((a.modelo?.marca?.nombre || '') + ' ' + (a.modelo?.nombre || ''))}'); return false;">
+                            <strong>${escapeHtml(a.serial)}</strong>
+                            <small class="d-block text-muted">${escapeHtml(a.modelo?.marca?.nombre || '')} ${escapeHtml(a.modelo?.nombre || '')}</small>
+                        </a>
+                    `).join('');
+                }
+                dropdownActivo.style.display = 'block';
+            })
+            .catch(err => console.error(err));
+        }, 300));
     }
-}
 
-function cargarActivosEnWizard() {
-    return new Promise((resolve) => {
-        const select = document.getElementById('wzActivoId');
-        if (!select || select.options.length > 1) {
-            resolve();
+    window.seleccionarActivoFicha = function(id, serial, equipo) {
+        document.getElementById('fichaActivoId').value = id;
+        document.getElementById('activoBuscarInput').value = `${serial} - ${equipo}`;
+        dropdownActivo.style.display = 'none';
+        infoActivo.innerHTML = `✅ <strong>${escapeHtml(serial)}</strong> - ${escapeHtml(equipo)}
+            <button type="button" class="btn btn-sm btn-outline-danger float-end" onclick="window.limpiarActivoSeleccionado()">✕</button>`;
+        infoActivo.style.display = 'block';
+    };
+
+    window.limpiarActivoSeleccionado = function() {
+        document.getElementById('fichaActivoId').value = '';
+        document.getElementById('activoBuscarInput').value = '';
+        infoActivo.style.display = 'none';
+    };
+
+    document.getElementById('formCrearFicha')?.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const btn = this.querySelector('button[type="submit"]');
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creando...';
+
+        fetch('/admin/soporte', {
+            method: 'POST',
+            headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+            body: new FormData(this)
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('modalCrearFicha')).hide();
+                mostrarNotificacion('success', data.message || 'Ficha creada exitosamente');
+                cargarFichas(1);
+            } else {
+                let msg = data.message || 'Error al crear la ficha';
+                if (data.errors) msg += '\n' + Object.values(data.errors).flat().join('\n');
+                mostrarNotificacion('error', msg);
+            }
+        })
+        .catch(err => mostrarNotificacion('error', 'Error de conexión: ' + err.message))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        });
+    });
+
+    // ============================================================
+    // ✅ BUSCADOR DE TÉCNICOS CON CUPOS DISPONIBLES
+    // ============================================================
+    const tecnicoBuscarInput = document.getElementById('tecnicoBuscarInput');
+    const tecnicoSearchResults = document.getElementById('tecnicoSearchResults');
+
+    if (tecnicoBuscarInput) {
+        tecnicoBuscarInput.addEventListener('input', debounce(function() {
+            const buscar = this.value.trim();
+
+            if (buscar.length < 2) {
+                tecnicoSearchResults.style.display = 'none';
+                return;
+            }
+
+            tecnicoSearchResults.style.display = 'block';
+            tecnicoSearchResults.innerHTML = '<div class="p-2 text-muted small">Buscando técnicos...</div>';
+
+            fetch(`/admin/api/tecnicos?search=${encodeURIComponent(buscar)}`, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(r => r.json())
+            .then(tecnicos => {
+                if (!tecnicos || tecnicos.length === 0) {
+                    tecnicoSearchResults.innerHTML = '<div class="p-2 text-muted small">No se encontraron técnicos</div>';
+                    return;
+                }
+
+                tecnicoSearchResults.innerHTML = '';
+
+                tecnicos.forEach(t => {
+                    const trabajador = t.trabajador;
+                    const nombreCompleto = trabajador
+                        ? `${trabajador.nombre} ${trabajador.apellido}`.trim()
+                        : t.usuario;
+
+                    const cupos = t.cupos_disponibles !== undefined ? t.cupos_disponibles : 5;
+                    const disponible = cupos > 0;
+
+                    const item = document.createElement('div');
+                    item.className = 'p-2 ' + (disponible ? '' : 'text-muted');
+                    item.style.cssText = `border-bottom: 1px solid #e9ecef; cursor: ${disponible ? 'pointer' : 'not-allowed'}; ${disponible ? '' : 'opacity: 0.6;'}`;
+
+                    item.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${escapeHtml(nombreCompleto)}</strong><br>
+                                <small class="text-muted">C.I: ${escapeHtml(trabajador?.cedula || 'N/A')} · ${escapeHtml(t.usuario)}</small>
+                            </div>
+                            <span class="badge ${disponible ? 'bg-success' : 'bg-danger'}">
+                                ${disponible ? cupos + ' cupo(s)' : 'Sin cupo'}
+                            </span>
+                        </div>
+                    `;
+
+                    if (disponible) {
+                        item.addEventListener('click', () => seleccionarTecnicoFicha(t, nombreCompleto));
+                    }
+
+                    tecnicoSearchResults.appendChild(item);
+                });
+            })
+            .catch(err => {
+                console.error(err);
+                tecnicoSearchResults.innerHTML = '<div class="p-2 text-danger small">Error al buscar técnicos</div>';
+            });
+        }, 300));
+    }
+
+    // ✅ Seleccionar técnico: guarda ID Y NOMBRE
+    function seleccionarTecnicoFicha(tecnico, nombreCompleto) {
+        document.getElementById('fichaTecnicoId').value = tecnico.id;
+        document.getElementById('fichaTecnicoNombre').value = nombreCompleto;
+
+        document.getElementById('tecnicoEncontradoNombre').textContent = nombreCompleto;
+        document.getElementById('tecnicoEncontradoCedula').textContent =
+            `C.I: ${tecnico.trabajador?.cedula || 'N/A'}`;
+        document.getElementById('tecnicoEncontradoUsuario').textContent =
+            `Usuario: ${tecnico.usuario}`;
+
+        document.getElementById('tecnicoEncontrado').style.display = 'block';
+        tecnicoSearchResults.style.display = 'none';
+        tecnicoBuscarInput.value = '';
+    }
+
+    // ============================================================
+    // EVENTOS DE FILTROS
+    // ============================================================
+    document.getElementById('buscarFichas')?.addEventListener('input', debounce(() => {
+        currentPage = 1;
+        cargarFichas(1);
+    }, 300));
+
+    document.getElementById('filtroEstadoFichas')?.addEventListener('change', () => {
+        currentPage = 1;
+        cargarFichas(1);
+    });
+
+    document.getElementById('limpiarFiltros')?.addEventListener('click', function() {
+        const buscar = document.getElementById('buscarFichas');
+        const estado = document.getElementById('filtroEstadoFichas');
+        if (buscar) buscar.value = '';
+        if (estado) estado.value = '';
+        currentPage = 1;
+        cargarFichas(1);
+    });
+
+    // ============================================================
+    // ✅ TÉCNICOS ASIGNADOS
+    // ============================================================
+    const tabTecnicosAsignados = document.getElementById('tab-tecnicos-asignados');
+    const containerTecnicos = document.getElementById('tecnicos-asignados-container');
+
+    if (tabTecnicosAsignados) {
+        tabTecnicosAsignados.addEventListener('shown.bs.tab', function() {
+            cargarTecnicosAsignados();
+        });
+    }
+
+    async function cargarTecnicosAsignados() {
+        if (!containerTecnicos) return;
+
+        containerTecnicos.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">Cargando técnicos y equipos asignados...</p>
+            </div>
+        `;
+
+        try {
+           const response = await fetch("/admin/soporte/tecnicos-asignados", {
+                headers: { 'Accept': 'application/json' }
+            });
+            const data = await response.json();
+
+            if (!data.success) {
+                throw new Error(data.message || 'Error al cargar los datos.');
+            }
+
+            renderizarTecnicosAsignados(data.data);
+
+        } catch (error) {
+            console.error('Error al cargar técnicos asignados:', error);
+            containerTecnicos.innerHTML = `<div class="alert alert-danger">Error: ${escapeHtml(error.message)}</div>`;
+        }
+    }
+
+    function renderizarTecnicosAsignados(tecnicos) {
+        if (!tecnicos || tecnicos.length === 0) {
+            containerTecnicos.innerHTML = `
+                <div class="sin-tecnicos">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                    <h5>No hay técnicos con equipos en reparación</h5>
+                    <p>Todos los equipos han sido reparados o no tienen técnico asignado.</p>
+                </div>
+            `;
             return;
         }
 
-        fetch('/admin/activos', {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'same-origin'
-        })
-        .then(r => r.json())
-        .then(response => {
-            if (response.success) {
-                select.innerHTML = '<option value="">Seleccionar activo...</option>';
-                response.data.forEach(act => {
-                    select.innerHTML += `<option value="${act.id}">${escapeHtml(act.serial)} - ${escapeHtml(act.modelo?.marca?.nombre || '')} ${escapeHtml(act.modelo?.nombre || '')}</option>`;
-                });
-            }
-            resolve();
-        })
-        .catch(() => resolve());
-    });
-}
-
-window.irPasoSoporte = function (paso) {
-    if (paso < 1 || paso > 4) return;
-
-    if (paso === 2 && !validarPasoSoporte1()) return;
-    if (paso === 3 && !validarPasoSoporte2()) return;
-    if (paso === 4 && !validarPasoSoporte3()) return;
-
-    document.querySelectorAll('.wizard-step-soporte').forEach(el => el.style.display = 'none');
-    document.getElementById('stepSop' + paso).style.display = 'block';
-
-    [1, 2, 3, 4].forEach(i => {
-        const circle = document.getElementById('stepSop' + i + 'Circle');
-        if (!circle) return;
-        circle.classList.remove('active', 'completed');
-        if (i < paso) { circle.classList.add('completed'); circle.textContent = '✓'; }
-        else if (i === paso) { circle.classList.add('active'); circle.textContent = i; }
-        else { circle.textContent = i; }
-    });
-
-    const progress = document.getElementById('wizardProgressSoporte');
-    if (progress) progress.style.width = (((paso - 1) / 3) * 75 + 25) + '%';
-
-    if (paso === 2) actualizarVistaInstitucionWizard();
-    if (paso === 4) generarResumenSoporte();
-};
-
-function validarPasoSoporte1() {
-    const tipo = document.querySelector('input[name="tipo_equipo"]:checked')?.value;
-    if (tipo === 'existente') {
-        const activo = document.getElementById('wzActivoId').value;
-        if (!activo) {
-            mostrarNotificacion('warning', 'Seleccione un activo del inventario');
-            return false;
-        }
-    } else {
-        const serial = document.querySelector('input[name="nuevo_equipo[serial]"]').value;
-        const marca = document.querySelector('input[name="nuevo_equipo[marca]"]').value;
-        const modelo = document.querySelector('input[name="nuevo_equipo[modelo_nombre]"]').value;
-        const categoria = document.querySelector('select[name="nuevo_equipo[categoria_id]"]').value;
-
-        if (!serial || !marca || !modelo || !categoria) {
-            mostrarNotificacion('warning', 'Complete todos los campos del equipo nuevo (serial, marca, modelo, categoría)');
-            return false;
-        }
-    }
-    return true;
-}
-
-// ✅ Validación del Paso 2: Institución y Responsable (solo si es equipo nuevo)
-function validarPasoSoporte2() {
-    const tipo = document.querySelector('input[name="tipo_equipo"]:checked')?.value;
-    if (tipo === 'existente') return true;
-
-    const institucion = document.getElementById('wzInstitucionSoporte')?.value;
-    const responsable = document.getElementById('wzResponsableSoporte')?.value;
-
-    if (!institucion) {
-        mostrarNotificacion('warning', 'Seleccione una institución');
-        return false;
-    }
-    if (!responsable) {
-        mostrarNotificacion('warning', 'Seleccione un responsable');
-        return false;
-    }
-    return true;
-}
-
-// ✅ Validación del Paso 3: Técnico y Fechas
-function validarPasoSoporte3() {
-    const usuario = document.getElementById('wzUsuarioReporta').value.trim();
-    const diagnostico = document.getElementById('wzDiagnostico').value.trim();
-    const fecha = document.getElementById('wzFechaRequeridaSoporte').value;
-
-    if (!usuario) {
-        mostrarNotificacion('warning', 'Ingrese el nombre de quien reporta');
-        return false;
-    }
-    if (!diagnostico || diagnostico.length < 10) {
-        mostrarNotificacion('warning', 'El diagnóstico debe tener al menos 10 caracteres');
-        return false;
-    }
-    if (!fecha) {
-        mostrarNotificacion('warning', 'Seleccione la fecha requerida de entrega');
-        return false;
-    }
-    return true;
-}
-
-function generarResumenSoporte() {
-    const tipo = document.querySelector('input[name="tipo_equipo"]:checked')?.value;
-    const lista = document.getElementById('resumenFichaSoporte');
-    if (!lista) return;
-
-    let items = [];
-    if (tipo === 'existente') {
-        const sel = document.getElementById('wzActivoId');
-        if (sel && sel.selectedIndex >= 0) {
-            items.push(`<li><strong>Equipo:</strong> ${sel.options[sel.selectedIndex].text}</li>`);
-        }
-    } else {
-        const serial = document.querySelector('input[name="nuevo_equipo[serial]"]').value;
-        const marca = document.querySelector('input[name="nuevo_equipo[marca]"]').value;
-        const modelo = document.querySelector('input[name="nuevo_equipo[modelo_nombre]"]').value;
-        const instSel = document.getElementById('wzInstitucionSoporte');
-        const respSel = document.getElementById('wzResponsableSoporte');
-
-        items.push(`<li><strong>Equipo nuevo:</strong> ${escapeHtml(marca)} ${escapeHtml(modelo)} (${escapeHtml(serial)})</li>`);
-
-        if (instSel && instSel.selectedIndex >= 0 && instSel.value) {
-            items.push(`<li><strong>Institución:</strong> ${instSel.options[instSel.selectedIndex].text}</li>`);
-        }
-        if (respSel && respSel.selectedIndex >= 0 && respSel.value) {
-            items.push(`<li><strong>Responsable:</strong> ${respSel.options[respSel.selectedIndex].text}</li>`);
-        }
-    }
-
-    const tecnico = document.getElementById('wzTecnicoSoporte');
-    if (tecnico && tecnico.selectedIndex >= 0) {
-        items.push(`<li><strong>Técnico:</strong> ${tecnico.options[tecnico.selectedIndex].text}</li>`);
-    }
-
-    items.push(`<li><strong>Reporta:</strong> ${escapeHtml(document.getElementById('wzUsuarioReporta').value)}</li>`);
-    items.push(`<li><strong>Diagnóstico:</strong> ${escapeHtml(document.getElementById('wzDiagnostico').value)}</li>`);
-    items.push(`<li><strong>Fecha requerida:</strong> ${document.getElementById('wzFechaRequeridaSoporte').value}</li>`);
-
-    const estadoSel = document.getElementById('wzEstadoInicial');
-    if (estadoSel && estadoSel.selectedIndex >= 0) {
-        items.push(`<li><strong>Estado inicial:</strong> ${estadoSel.options[estadoSel.selectedIndex].text}</li>`);
-    }
-
-    lista.innerHTML = items.join('');
-}
-
-// ============================================================
-// INICIALIZACIÓN (DOMContentLoaded)
-// ============================================================
-document.addEventListener('DOMContentLoaded', function () {
-    console.log('✅ Módulo de fichas de soporte inicializado');
-
-    // ========== FILTROS DE FICHAS ==========
-    const buscarInput = document.getElementById('buscarFichas');
-    const estadoSelect = document.getElementById('filtroEstadoFichas');
-    const limpiarBtn = document.getElementById('limpiarFiltros');
-
-    if (buscarInput) buscarInput.addEventListener('input', aplicarFiltrosConDebounce);
-    if (estadoSelect) estadoSelect.addEventListener('change', aplicarFiltros);
-    if (limpiarBtn) {
-        limpiarBtn.addEventListener('click', function () {
-            if (buscarInput) buscarInput.value = '';
-            if (estadoSelect) estadoSelect.value = '';
-            aplicarFiltros();
+        let html = '';
+        tecnicos.forEach(item => {
+            html += `
+                <div class="card-tecnico-asignado">
+                    <div class="tecnico-header-card">
+                        <div class="tecnico-info">
+                            <div class="tecnico-avatar">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                            </div>
+                            <span class="tecnico-nombre">${escapeHtml(item.tecnico.nombre)}</span>
+                        </div>
+                        <span class="tecnico-badge">
+                            ${item.equipos.length} equipo(s) en reparación
+                        </span>
+                    </div>
+                    <div class="tecnico-tabla-wrapper">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Ficha</th>
+                                    <th>Equipo</th>
+                                    <th>Serial</th>
+                                    <th>Institución</th>
+                                    <th>Fecha Ingreso</th>
+                                    <th class="text-center">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${item.equipos.map(equipo => `
+                                    <tr>
+                                        <td><span class="badge-ficha-id">#${equipo.ficha_id}</span></td>
+                                        <td>${escapeHtml(equipo.equipo_nombre)}</td>
+                                        <td><strong style="color:#1e3c72;">${escapeHtml(equipo.equipo_serial)}</strong></td>
+                                        <td>${escapeHtml(equipo.institucion)}</td>
+                                        <td>${escapeHtml(equipo.fecha_ingreso)}</td>
+                                        <td class="text-center">
+                                            <button class="btn-action btn-outline-primary-dark" onclick='mostrarDetalleEquipo(${JSON.stringify(equipo).replace(/'/g, "&apos;")})' title="Mostrar detalles">
+                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                                    <circle cx="12" cy="12" r="3"></circle>
+                                                </svg>
+                                                Mostrar
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
         });
+
+        containerTecnicos.innerHTML = html;
     }
 
-    actualizarBadgeCorreosSoporte();
+    window.mostrarDetalleEquipo = function(equipo) {
+        const modalBody = document.getElementById('detalleEquipoReparacionBody');
+        const modalLabel = document.getElementById('detalleEquipoReparacionLabel');
 
-    // ========== SUBMIT FORM CERRAR FICHA ==========
-    const formCerrarFicha = document.getElementById('formCerrarFicha');
-    if (formCerrarFicha) {
-        formCerrarFicha.addEventListener('submit', async function (e) {
-            e.preventDefault();
-            const id = document.getElementById('cerrarFichaId').value;
-            const submitBtn = this.querySelector('button[type="submit"]');
-            const originalText = submitBtn.innerHTML;
-            submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Finalizando...';
-            submitBtn.disabled = true;
+        modalLabel.textContent = `Detalle del Equipo: ${equipo.equipo_serial}`;
 
-            try {
-                const response = await fetch(`/admin/soporte/${id}/close`, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                    body: new FormData(this)
-                });
-                const result = await response.json();
+        modalBody.innerHTML = `
+            <div class="container-fluid">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3 h-100" style="border-left: 4px solid #1e3c72;">
+                            <h6 class="fw-bold mb-3" style="color:#1e3c72;">Información del Equipo</h6>
+                            <p class="mb-2"><strong>Equipo:</strong> ${escapeHtml(equipo.equipo_nombre)}</p>
+                            <p class="mb-2"><strong>Serial:</strong> ${escapeHtml(equipo.equipo_serial)}</p>
+                            <p class="mb-0"><strong>Institución:</strong> ${escapeHtml(equipo.institucion)}</p>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="p-3 bg-light rounded-3 h-100" style="border-left: 4px solid #f59e0b;">
+                            <h6 class="fw-bold mb-3" style="color:#1e3c72;">Información de la Reparación</h6>
+                            <p class="mb-2"><strong>Ficha #:</strong> ${equipo.ficha_id}</p>
+                            <p class="mb-0"><strong>Fecha de Ingreso:</strong> ${escapeHtml(equipo.fecha_ingreso)}</p>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="p-3 bg-light rounded-3" style="border-left: 4px solid #17a2b8;">
+                            <h6 class="fw-bold mb-3" style="color:#1e3c72;">Diagnóstico / Problema</h6>
+                            <p class="mb-0" style="white-space: pre-wrap;">${escapeHtml(equipo.diagnostico || 'No especificado')}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
 
-                if (response.ok && result.success) {
-                    mostrarNotificacion('success', result.message || 'Ficha finalizada');
-                    bootstrap.Modal.getInstance(document.getElementById('modalCerrarFicha')).hide();
-                    cargarPagina(currentPage);
-                    actualizarEstadisticas();
-                } else {
-                    mostrarNotificacion('error', result.message || 'Error al finalizar la ficha');
+        const modal = new bootstrap.Modal(document.getElementById('modalDetalleEquipoReparacion'));
+        modal.show();
+    };
+
+    // ============================================================
+    // CORREOS
+    // ============================================================
+    async function cargarCorreosSoporte() {
+        const container = document.getElementById('listaCorreos');
+        if (!container) return;
+
+        const buscar = document.getElementById('buscarCorreo')?.value || '';
+        const filtro = document.getElementById('filtroCorreo')?.value || '';
+        const params = new URLSearchParams();
+        if (buscar) params.append('buscar', buscar);
+        if (filtro) params.append('filtro', filtro);
+
+        container.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2">Cargando correos...</p>
+            </div>
+        `;
+
+        try {
+            const response = await fetch(`/admin/soporte/correos/lista?${params}`, {
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            renderizarCorreosSoporte(data.data || []);
+        } catch (error) {
+            console.error('Error al cargar correos:', error);
+            container.innerHTML = `
+                <div class="text-center py-5 text-danger">
+                    <p>Error al cargar correos: ${escapeHtml(error.message)}</p>
+                    <button class="btn btn-sm btn-primary-dark mt-2" onclick="cargarCorreosSoporte()">Reintentar</button>
+                </div>
+            `;
+        }
+    }
+
+    function renderizarCorreosSoporte(correos) {
+        const container = document.getElementById('listaCorreos');
+        if (!container) return;
+
+        if (!correos.length) {
+            container.innerHTML = `
+                <div class="text-center py-5 text-muted">
+                    <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5">
+                        <rect x="2" y="4" width="20" height="16" rx="2"/>
+                        <path d="M22 7l-10 7L2 7"/>
+                    </svg>
+                    <p class="mt-3">No hay correos de soporte recibidos</p>
+                    <p class="small">Haz clic en "Revisar ahora" para buscar nuevos correos</p>
+                </div>
+            `;
+            return;
+        }
+
+        let html = '';
+        correos.forEach(c => {
+            const clases = ['correo-item'];
+            if (!c.leido) clases.push('no-leido');
+            if (c.procesado) clases.push('procesado');
+            const badge = !c.leido ? '<span class="badge-nueva">NUEVO</span>' : '';
+
+            html += `
+                <div class="${clases.join(' ')}" onclick="abrirCorreoSoporte(${c.id})">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div style="flex:1">
+                            <div class="fw-bold">${escapeHtml(c.from_name || c.from_email)} ${badge}</div>
+                            <div class="text-muted small">${escapeHtml(c.from_email)}</div>
+                            <div class="fw-semibold mt-1">${escapeHtml(c.subject || '(Sin asunto)')}</div>
+                            <div class="text-muted small mt-1">${escapeHtml((c.body_text || '').substring(0, 150))}...</div>
+                        </div>
+                        <div class="text-end ms-3">
+                            <div class="small text-muted">${formatearFechaHora(c.received_at)}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+    async function actualizarBadgeCorreosSoporte() {
+        try {
+            const response = await fetch('/admin/soporte/correos/contador', {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            });
+            const data = await response.json();
+            if (data.success) {
+                const badge = document.getElementById('tabCorreosBadge');
+                if (badge && data.no_procesados > 0) {
+                    badge.textContent = data.no_procesados;
+                    badge.style.display = 'inline-block';
+                } else if (badge) {
+                    badge.style.display = 'none';
                 }
-            } catch (error) {
-                console.error('Error:', error);
-                mostrarNotificacion('error', 'Error de conexión');
-            } finally {
-                submitBtn.innerHTML = originalText;
-                submitBtn.disabled = false;
             }
-        });
+        } catch (error) {
+            console.error('Error al actualizar badge:', error);
+        }
     }
 
-    // ========== SUBMIT FORM WIZARD SOPORTE ==========
-    const formWizardSoporte = document.getElementById('formWizardSoporte');
-    if (formWizardSoporte) {
-        formWizardSoporte.addEventListener('submit', async function (e) {
-            e.preventDefault();
+    window.revisarCorreos = async function() {
+        const btn = document.getElementById('btnRevisarCorreos');
+        if (!btn) return;
+        const original = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Revisando...';
+        btn.disabled = true;
 
-            if (!validarPasoSoporte1()) {
-                irPasoSoporte(1);
-                return;
-            }
-            if (!validarPasoSoporte2()) {
-                irPasoSoporte(2);
-                return;
-            }
-            if (!validarPasoSoporte3()) {
-                irPasoSoporte(3);
-                return;
-            }
-
-            const btn = document.getElementById('btnGuardarWizardSoporte');
-            const original = btn.innerHTML;
-            btn.disabled = true;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Creando ficha...';
-
-            const correoId = document.getElementById('wizardCorreoSoporteId').value;
-
-            try {
-                const response = await fetch(`/admin/soporte/correos/${correoId}/convertir`, {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                    credentials: 'same-origin',
-                    body: new FormData(this)
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    mostrarNotificacion('success', data.message || 'Ficha de soporte creada');
-                    bootstrap.Modal.getInstance(document.getElementById('modalCorreoSoporte'))?.hide();
-                    cargarCorreosSoporte();
-                    actualizarBadgeCorreosSoporte();
-                    cargarPagina(1);
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    let msg = data.message || 'Error al crear la ficha';
-                    if (data.errors) msg += '\n\n' + Object.values(data.errors).flat().join('\n');
-                    mostrarNotificacion('error', msg);
-                }
-            } catch (error) {
-                mostrarNotificacion('error', 'Error de conexión: ' + error.message);
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = original;
-            }
-        });
-    }
-
-    // ========== CONFIRMAR ELIMINAR ==========
-    const btnConfirmarEliminar = document.getElementById('btnConfirmarEliminar');
-    if (btnConfirmarEliminar) {
-        btnConfirmarEliminar.addEventListener('click', async function () {
-            if (!fichaAEliminar) return;
-            try {
-                const response = await fetch(`/admin/soporte/${fichaAEliminar}`, {
-                    method: 'DELETE',
-                    headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
-                    credentials: 'same-origin'
-                });
-                const result = await response.json();
-                bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
-                if (response.ok && result.success) {
-                    mostrarNotificacion('success', result.message);
-                    cargarPagina(currentPage);
-                } else {
-                    mostrarNotificacion('error', result.message || 'Error al eliminar');
-                }
-                fichaAEliminar = null;
-            } catch (error) {
-                console.error('Error:', error);
-                mostrarNotificacion('error', 'Error de conexión');
-                fichaAEliminar = null;
-            }
-        });
-    }
-
-    // ========== TAB DE CORREOS (Lazy Loading) ==========
-    const tabCorreos = document.getElementById('tab-correos');
-    if (tabCorreos) {
-        tabCorreos.addEventListener('shown.bs.tab', function () {
+        try {
+            const response = await fetch('/admin/soporte/correos/revisar', {
+                method: 'POST',
+                headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            });
+            const data = await response.json();
+            mostrarNotificacion('info', data.message || 'Revisión completada');
             cargarCorreosSoporte();
             actualizarBadgeCorreosSoporte();
+        } catch (error) {
+            mostrarNotificacion('error', 'Error al revisar correos: ' + error.message);
+        } finally {
+            btn.innerHTML = original;
+            btn.disabled = false;
+        }
+    };
+
+    window.abrirCorreoSoporte = async function(id) {
+        try {
+            const response = await fetch(`/admin/soporte/correos/${id}`, {
+                headers: { 'Accept': 'application/json' },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const data = await response.json();
+            if (!data.success) {
+                mostrarNotificacion('error', 'Error al cargar el correo');
+                return;
+            }
+
+            correoActualSoporte = data.data;
+
+            document.getElementById('correoFromSoporte').textContent =
+                `${correoActualSoporte.from_name || ''} <${correoActualSoporte.from_email}>`;
+            document.getElementById('correoFechaSoporte').textContent =
+                formatearFechaHora(correoActualSoporte.received_at);
+            document.getElementById('correoAsuntoSoporte').textContent =
+                correoActualSoporte.subject || '(Sin asunto)';
+            document.getElementById('correoCuerpoSoporte').textContent =
+                correoActualSoporte.body_text || '(Sin contenido)';
+
+            if (correoActualSoporte.procesado) {
+                document.getElementById('botonIniciarWizardSoporte').innerHTML = `
+                    <div class="alert alert-success">
+                        ✅ Este correo ya fue convertido en la ficha de soporte #${correoActualSoporte.ficha_soporte_id}
+                    </div>
+                `;
+            } else {
+                document.getElementById('botonIniciarWizardSoporte').innerHTML = `
+                    <button class="btn btn-success btn-lg" onclick="iniciarWizardSoporte()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" style="display:inline; margin-right:6px;">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                        Convertir en Ficha de Soporte (Wizard)
+                    </button>
+                `;
+            }
+
+            document.getElementById('wizardContainerSoporte').style.display = 'none';
+            document.getElementById('infoCorreoSoporte').style.display = 'block';
+            document.getElementById('botonIniciarWizardSoporte').style.display = 'block';
+
+            new bootstrap.Modal(document.getElementById('modalCorreoSoporte')).show();
+        } catch (error) {
+            console.error('Error:', error);
+            mostrarNotificacion('error', 'Error al cargar el correo: ' + error.message);
+        }
+    };
+
+    // ============================================================
+    // WIZARD DE CORREO A FICHA
+    // ============================================================
+    window.iniciarWizardSoporte = function() {
+        if (!correoActualSoporte) return;
+
+        document.getElementById('infoCorreoSoporte').style.display = 'none';
+        document.getElementById('botonIniciarWizardSoporte').style.display = 'none';
+        document.getElementById('wizardContainerSoporte').style.display = 'block';
+        document.getElementById('wizardCorreoSoporteId').value = correoActualSoporte.id;
+
+        const datos = correoActualSoporte.datos_extraidos || {};
+
+        if (datos.problema) document.getElementById('wzDiagnostico').value = datos.problema;
+        if (datos.fecha_requerida) document.getElementById('wzFechaRequeridaSoporte').value = datos.fecha_requerida;
+
+        irPasoSoporte(1);
+    };
+
+    window.irPasoSoporte = function(paso) {
+        document.querySelectorAll('.wizard-step-soporte').forEach(el => el.classList.remove('active'));
+        const stepEl = document.getElementById('stepSop' + paso);
+        if (stepEl) stepEl.classList.add('active');
+
+        [1, 2, 3, 4].forEach(i => {
+            const circle = document.getElementById('stepSop' + i + 'Circle');
+            if (!circle) return;
+            circle.classList.remove('active', 'completed');
+            if (i < paso) { circle.classList.add('completed'); circle.textContent = '✓'; }
+            else if (i === paso) { circle.classList.add('active'); circle.textContent = i; }
+            else { circle.textContent = i; }
         });
-    }
 
-    // ========== BUSCADOR DE CORREOS ==========
-    const buscarCorreo = document.getElementById('buscarCorreo');
-    if (buscarCorreo) {
-        let t;
-        buscarCorreo.addEventListener('input', function () {
-            clearTimeout(t);
-            t = setTimeout(cargarCorreosSoporte, 400);
-        });
-    }
+        const progreso = ((paso - 1) / 3) * 100 + 25;
+        const bar = document.getElementById('wizardProgressSoporte');
+        if (bar) bar.style.width = Math.min(progreso, 100) + '%';
+    };
 
-    const filtroCorreo = document.getElementById('filtroCorreo');
-    if (filtroCorreo) {
-        filtroCorreo.addEventListener('change', cargarCorreosSoporte);
-    }
+    // ============================================================
+    // INICIALIZACIÓN
+    // ============================================================
+    cargarFichas(1);
+    actualizarBadgeCorreosSoporte();
 
-    // ========== TOGGLE EQUIPO EXISTENTE/NUEVO (Wizard) ==========
-    document.querySelectorAll('input[name="tipo_equipo"]').forEach(radio => {
-        radio.addEventListener('change', actualizarVistaInstitucionWizard);
+    document.getElementById('buscarCorreo')?.addEventListener('input', debounce(cargarCorreosSoporte, 400));
+    document.getElementById('filtroCorreo')?.addEventListener('change', cargarCorreosSoporte);
+
+    document.getElementById('tab-correos')?.addEventListener('shown.bs.tab', function() {
+        cargarCorreosSoporte();
+        actualizarBadgeCorreosSoporte();
     });
 
-    // ========== LISTENERS DEL WIZARD: institución → departamentos → responsables ==========
-    const selInstWz = document.getElementById('wzInstitucionSoporte');
-    if (selInstWz) {
-        selInstWz.addEventListener('change', function () {
-            const instId = this.value;
-            cargarDepartamentosWizardSoporte(instId);
-            cargarResponsablesWizardSoporte(instId);
-        });
-    }
+    intervaloNotificaciones = setInterval(actualizarBadgeCorreosSoporte, 30000);
 
-    const selDeptoWz = document.getElementById('wzDepartamentoSoporte');
-    if (selDeptoWz) {
-        selDeptoWz.addEventListener('change', function () {
-            const deptoId = this.value;
-            const instId = document.getElementById('wzInstitucionSoporte')?.value;
-            if (instId) {
-                cargarResponsablesWizardSoporte(instId, deptoId);
-            }
-        });
-    }
-
-    // ========== REFRESCO AUTOMÁTICO DEL BADGE ==========
-    setInterval(actualizarBadgeCorreosSoporte, 30000);
+    console.log('✅ Módulo de soporte técnico inicializado correctamente');
 });
 
 // ============================================================
-// CERRAR FICHA (abrir modal)
-// ============================================================
-window.abrirModalCerrarFicha = async function (id) {
-    // ✅ FIX: quitar foco activo antes de abrir
-    if (document.activeElement && document.activeElement !== document.body) {
-        document.activeElement.blur();
-    }
-
-    try {
-        const response = await fetch(`/admin/soporte/${id}/componentes`, {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'same-origin'
-        });
-        const result = await response.json();
-
-        if (result.success && result.data) {
-            document.getElementById('cerrarFichaId').value = id;
-            let componentesHtml = '';
-            for (const det of result.data) {
-                componentesHtml += `
-                    <div class="componente-row border rounded p-3 mb-3" style="background: #f8f9fc;">
-                        <input type="hidden" name="detalles[${det.id}][id]" value="${det.id}">
-                        <div class="fw-bold mb-2" style="color: #1e3c72;">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline; margin-right:5px;">
-                                <rect x="2" y="6" width="20" height="12" rx="2"/>
-                            </svg>
-                            ${escapeHtml(det.componente_nombre)}
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label small fw-bold">Estado Salida</label>
-                                <select name="detalles[${det.id}][estado_salida]" class="form-select form-select-sm">
-                                    <option value="funcionando">✅ Funcionando</option>
-                                    <option value="dañado">⚠️ Dañado</option>
-                                    <option value="reemplazado">🔄 Reemplazado</option>
-                                    <option value="reparado">🔧 Reparado</option>
-                                    <option value="no_aplica">❌ No Aplica</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label small fw-bold">Observaciones</label>
-                                <input type="text" name="detalles[${det.id}][observaciones]" class="form-control form-control-sm" placeholder="Observaciones del componente...">
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-            document.getElementById('componentesContainer').innerHTML = componentesHtml;
-            new bootstrap.Modal(document.getElementById('modalCerrarFicha')).show();
-        } else {
-            mostrarNotificacion('error', 'No se pudieron cargar los componentes');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        mostrarNotificacion('error', 'Error de conexión al cargar componentes');
-    }
-};
-
-// ============================================================
-// VER DETALLE DE FICHA
-// ============================================================
-window.verDetalle = async function (id) {
-    // ✅ FIX: quitar foco activo antes de abrir
-    if (document.activeElement && document.activeElement !== document.body) {
-        document.activeElement.blur();
-    }
-
-    const modalBody = document.getElementById('detalleContenido');
-    modalBody.innerHTML = `
-        <div class="text-center py-5">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Cargando detalles de la ficha...</p>
-        </div>
-    `;
-    new bootstrap.Modal(document.getElementById('modalDetalle')).show();
-
-    try {
-        const response = await fetch(`/admin/soporte/${id}`, {
-            headers: { 'Accept': 'application/json' },
-            credentials: 'same-origin'
-        });
-        const result = await response.json();
-
-        if (!result.success || !result.data) {
-            modalBody.innerHTML = `<div class="text-center text-danger py-5"><p>Error al cargar el detalle</p></div>`;
-            return;
-        }
-
-        const f = result.data;
-
-        const fmtFecha = (fecha) => {
-            if (!fecha) return null;
-            const d = new Date(fecha);
-            if (isNaN(d.getTime())) return fecha;
-            return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        };
-        const fmtFechaHora = (fecha) => {
-            if (!fecha) return null;
-            const d = new Date(fecha);
-            if (isNaN(d.getTime())) return fecha;
-            return d.toLocaleDateString('es-ES', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-            });
-        };
-
-        const fechaIngreso = fmtFechaHora(f.fecha_ingreso) || 'No registrada';
-        const fechaSalida = fmtFechaHora(f.fecha_salida) || 'En proceso';
-        const fechaRequerida = fmtFecha(f.fecha_requerida_entrega);
-
-        const esEnProceso = f.estado === 'en_proceso';
-        const estadoBg = esEnProceso ? 'linear-gradient(135deg, #f6c23e, #f4b619)' : 'linear-gradient(135deg, #1e7e34, #28a745)';
-        const estadoIcono = esEnProceso ? '🔧' : '✅';
-        const estadoTexto = esEnProceso ? 'En Proceso' : 'Finalizado';
-
-        const serial = f.activo?.serial || 'N/A';
-        const modelo = f.activo?.modelo?.nombre || 'N/A';
-        const marca = f.activo?.modelo?.marca?.nombre || 'N/A';
-        const institucion = f.activo?.institucion?.nombre || 'No especificada';
-        const responsable = f.activo?.responsable?.nombre || 'No especificado';
-
-        let componentesHtml = '';
-        if (f.detalles && f.detalles.length > 0) {
-            componentesHtml = f.detalles.map(det => {
-                const estadoSalida = det.estado_salida;
-                let badgeClass = 'bg-secondary';
-                let badgeIcon = '❓';
-                if (estadoSalida === 'funcionando') { badgeClass = 'bg-success'; badgeIcon = '✅'; }
-                else if (estadoSalida === 'reemplazado') { badgeClass = 'bg-warning text-dark'; badgeIcon = '🔄'; }
-                else if (estadoSalida === 'reparado') { badgeClass = 'bg-info text-dark'; badgeIcon = '🔧'; }
-                else if (estadoSalida === 'dañado') { badgeClass = 'bg-danger'; badgeIcon = '⚠️'; }
-                else if (estadoSalida === 'no_aplica') { badgeClass = 'bg-secondary'; badgeIcon = '❌'; }
-
-                return `
-                    <div class="componente-card">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
-                            <div class="componente-nombre">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e3c72" stroke-width="2" style="display:inline; margin-right:6px;">
-                                    <rect x="2" y="6" width="20" height="12" rx="2"/>
-                                </svg>
-                                ${escapeHtml(det.componente_nombre || 'Componente')}
-                            </div>
-                            ${estadoSalida
-                                ? `<span class="badge ${badgeClass}" style="font-size:0.72rem;">${badgeIcon} ${escapeHtml(estadoSalida)}</span>`
-                                : `<span class="badge bg-info text-dark" style="font-size:0.72rem;">📥 Ingreso: ${escapeHtml(det.estado_ingreso || 'N/A')}</span>`}
-                        </div>
-                        ${det.observaciones ? `
-                            <div class="componente-obs">
-                                <strong>Observaciones:</strong> ${escapeHtml(det.observaciones)}
-                            </div>
-                        ` : ''}
-                    </div>
-                `;
-            }).join('');
-        } else {
-            componentesHtml = `
-                <div class="text-center text-muted py-3" style="font-size:0.85rem;">
-                    <p class="mb-0 mt-2">No hay componentes registrados para esta ficha</p>
-                </div>
-            `;
-        }
-
-        const html = `
-            <div class="ficha-detalle-wrap">
-                <div class="ficha-header">
-                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-                        <div>
-                            <h4>Ficha de Soporte #${f.id}</h4>
-                            <div class="subtitulo">
-                                <strong>${escapeHtml(serial)}</strong> · ${escapeHtml(marca)} ${escapeHtml(modelo)}
-                            </div>
-                        </div>
-                        <span class="estado-badge" style="background: ${estadoBg}; color: white; padding: 0.45rem 1rem; border-radius: 30px; font-size: 0.8rem; font-weight: 600;">
-                            ${estadoIcono} ${estadoTexto}
-                        </span>
-                    </div>
-                </div>
-
-                <div class="info-grid">
-                    <div class="info-card">
-                        <div class="info-label">Técnico Asignado</div>
-                        <div class="info-value">${escapeHtml(f.tecnico_nombre || 'No asignado')}</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Usuario Reporta</div>
-                        <div class="info-value">${escapeHtml(f.usuario_reporta_nombre || 'No especificado')}</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Institución</div>
-                        <div class="info-value">${escapeHtml(institucion)}</div>
-                    </div>
-                    <div class="info-card">
-                        <div class="info-label">Responsable</div>
-                        <div class="info-value">${escapeHtml(responsable)}</div>
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <div class="seccion-titulo">Fechas del Proceso</div>
-                    <div class="d-flex flex-wrap gap-2">
-                        <span class="fecha-badge ingreso" style="background: #e7f1ff; color: #1e3c72; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600;">
-                            Ingreso: ${fechaIngreso}
-                        </span>
-                        <span class="fecha-badge" style="background: ${f.fecha_salida ? '#e8f5e9' : '#f0f0f0'}; color: ${f.fecha_salida ? '#1e7e34' : '#6c757d'}; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600;">
-                            Salida: ${fechaSalida}
-                        </span>
-                        ${fechaRequerida ? `
-                            <span class="fecha-badge" style="background: #fff8e1; color: #a67c00; padding: 0.3rem 0.75rem; border-radius: 20px; font-size: 0.78rem; font-weight: 600;">
-                                Requerida: ${fechaRequerida}
-                            </span>
-                        ` : ''}
-                    </div>
-                </div>
-
-                <div class="mb-4">
-                    <div class="seccion-titulo">Diagnóstico Inicial</div>
-                    <div style="background: #f8f9fc; border-left: 3px solid #f6c23e; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.9rem; color: #2c3e50; line-height: 1.55; white-space: pre-wrap;">
-                        ${escapeHtml(f.diagnostico || 'No se registró diagnóstico inicial.')}
-                    </div>
-                </div>
-
-                ${f.trabajo_realizado ? `
-                    <div class="mb-4">
-                        <div class="seccion-titulo">Trabajo Realizado</div>
-                        <div style="background: #f8f9fc; border-left: 3px solid #1e7e34; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.9rem; color: #2c3e50; line-height: 1.55; white-space: pre-wrap;">
-                            ${escapeHtml(f.trabajo_realizado)}
-                        </div>
-                    </div>
-                ` : ''}
-
-                <div class="mb-4">
-                    <div class="seccion-titulo">Observaciones</div>
-                    <div style="background: #f8f9fc; border-left: 3px solid #17a2b8; border-radius: 8px; padding: 0.85rem 1rem; font-size: 0.9rem; color: #2c3e50; line-height: 1.55; white-space: pre-wrap;">
-                        ${escapeHtml(f.observaciones || 'Sin observaciones registradas.')}
-                    </div>
-                </div>
-
-                <div class="mb-2">
-                    <div class="seccion-titulo">Componentes Revisados (${f.detalles?.length || 0})</div>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 0.75rem;">
-                        ${componentesHtml}
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.getElementById('modalDetalleLabel').textContent = 'Detalle de Ficha de Soporte';
-        modalBody.innerHTML = html;
-
-    } catch (error) {
-        console.error('Error:', error);
-        modalBody.innerHTML = `<div class="text-center text-danger py-5"><p>Error al cargar el detalle</p></div>`;
-    }
-};
-
-// ============================================================
-// CONFIRMAR ELIMINAR (abrir modal)
-// ============================================================
-window.confirmarEliminar = function (id) {
-    // ✅ FIX: quitar foco activo antes de abrir
-    if (document.activeElement && document.activeElement !== document.body) {
-        document.activeElement.blur();
-    }
-
-    fichaAEliminar = id;
-    document.getElementById('deleteNombre').textContent = `Ficha #${id}`;
-    new bootstrap.Modal(document.getElementById('modalEliminar')).show();
-};
-
-// ============================================================
-// EXPORTACIÓN CONTEXTUAL DE SOPORTE TÉCNICO
+// EXPORTACIÓN CONTEXTUAL - SOPORTE
 // ============================================================
 window.exportarSoporte = function (formato) {
     if (formato !== 'pdf' && formato !== 'xlsx') {
@@ -1622,26 +1113,16 @@ window.exportarSoporte = function (formato) {
         return;
     }
 
-    const buscarInput = document.getElementById('buscarFichas');
-    const estadoSelect = document.getElementById('filtroEstadoFichas');
-
-    const buscar = buscarInput ? buscarInput.value.trim() : '';
-    const estado = estadoSelect ? estadoSelect.value : '';
-
     const params = new URLSearchParams();
+    const buscar = document.getElementById('buscarFichas')?.value?.trim() || '';
     if (buscar) params.append('buscar', buscar);
+    const estado = document.getElementById('filtroEstadoFichas')?.value || '';
     if (estado) params.append('estado', estado);
 
     const qs = params.toString();
-    const url = '/admin/reportes/soporte-listado/export/' + formato + (qs ? '?' + qs : '');
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.target = '_blank';
-    link.rel = 'noopener noreferrer';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const url = `/admin/reportes/soporte-listado/export/${formato}` + (qs ? '?' + qs : '');
+    const ventana = window.open(url, '_blank');
+    if (!ventana) {
+        alert('Por favor, permita ventanas emergentes para exportar el reporte.');
+    }
 };
-
-console.log('✅ Código de soporte técnico cargado completamente');
