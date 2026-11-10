@@ -14,7 +14,7 @@ class TrabajadorSeeder extends Seeder
         $trabajadores = [
             // ============ 1. ADMINISTRADOR PRINCIPAL ============
             [
-                'cedula' => 'V-12345678',
+                'cedula' => '12345678',
                 'nombre' => 'Administrador',
                 'apellido' => 'Sistema',
                 'departamento' => 'Informática',
@@ -26,7 +26,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 2. INGENIERO DE SISTEMAS ============
             [
-                'cedula' => 'V-30776710',
+                'cedula' => '30776710',
                 'nombre' => 'Yorhan',
                 'apellido' => 'Melo',
                 'departamento' => 'Informática',
@@ -38,7 +38,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 3. TÉCNICO DE SOPORTE ============
             [
-                'cedula' => 'V-15456789',
+                'cedula' => '15456789',
                 'nombre' => 'Carlos',
                 'apellido' => 'Rodríguez',
                 'departamento' => 'Informática',
@@ -50,7 +50,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 4. TÉCNICO DE REDES ============
             [
-                'cedula' => 'V-17890123',
+                'cedula' => '17890123',
                 'nombre' => 'María',
                 'apellido' => 'González',
                 'departamento' => 'Informática',
@@ -62,7 +62,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 5. DESARROLLADOR ============
             [
-                'cedula' => 'V-20123456',
+                'cedula' => '20123456',
                 'nombre' => 'Luis',
                 'apellido' => 'Pérez',
                 'departamento' => 'Informática',
@@ -74,7 +74,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 6. ANALISTA DE SISTEMAS ============
             [
-                'cedula' => 'V-22334455',
+                'cedula' => '22334455',
                 'nombre' => 'Ana',
                 'apellido' => 'Martínez',
                 'departamento' => 'Informática',
@@ -86,7 +86,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 7. RECURSOS HUMANOS ============
             [
-                'cedula' => 'V-18987654',
+                'cedula' => '18987654',
                 'nombre' => 'Pedro',
                 'apellido' => 'Ramírez',
                 'departamento' => 'Recursos Humanos',
@@ -98,7 +98,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 8. ANALISTA DE RRHH ============
             [
-                'cedula' => 'V-15678901',
+                'cedula' => '15678901',
                 'nombre' => 'Carmen',
                 'apellido' => 'Torres',
                 'departamento' => 'Recursos Humanos',
@@ -110,7 +110,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 9. FINANZAS ============
             [
-                'cedula' => 'V-13765432',
+                'cedula' => '13765432',
                 'nombre' => 'José',
                 'apellido' => 'Fernández',
                 'departamento' => 'Finanzas',
@@ -122,7 +122,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 10. CONTADOR ============
             [
-                'cedula' => 'V-19543210',
+                'cedula' => '19543210',
                 'nombre' => 'Elena',
                 'apellido' => 'Sánchez',
                 'departamento' => 'Finanzas',
@@ -134,7 +134,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 11. PRESUPUESTO ============
             [
-                'cedula' => 'V-21111222',
+                'cedula' => '21111222',
                 'nombre' => 'Roberto',
                 'apellido' => 'Castro',
                 'departamento' => 'Finanzas',
@@ -146,7 +146,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 12. ADMINISTRACIÓN ============
             [
-                'cedula' => 'V-16543210',
+                'cedula' => '16543210',
                 'nombre' => 'Laura',
                 'apellido' => 'Díaz',
                 'departamento' => 'Administración',
@@ -158,7 +158,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 13. SECRETARIA ============
             [
-                'cedula' => 'V-17890123',
+                'cedula' => '13456789',   // ⚠️ antes era 17890123 (duplicada con María González)
                 'nombre' => 'Patricia',
                 'apellido' => 'Mendoza',
                 'departamento' => 'Administración',
@@ -170,7 +170,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 14. LOGÍSTICA ============
             [
-                'cedula' => 'V-14456789',
+                'cedula' => '14456789',
                 'nombre' => 'Miguel',
                 'apellido' => 'Hernández',
                 'departamento' => 'Logística',
@@ -182,7 +182,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 15. ALMACÉN ============
             [
-                'cedula' => 'V-19012345',
+                'cedula' => '19012345',
                 'nombre' => 'Sofía',
                 'apellido' => 'Rojas',
                 'departamento' => 'Logística',
@@ -194,7 +194,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 16. MANTENIMIENTO ============
             [
-                'cedula' => 'V-12345098',
+                'cedula' => '12345098',
                 'nombre' => 'Jorge',
                 'apellido' => 'Méndez',
                 'departamento' => 'Mantenimiento',
@@ -206,7 +206,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 17. ELECTRICISTA ============
             [
-                'cedula' => 'V-20123456',
+                'cedula' => '20456789',   // ⚠️ antes era 20123456 (duplicada con Luis Pérez)
                 'nombre' => 'Alberto',
                 'apellido' => 'Vargas',
                 'departamento' => 'Mantenimiento',
@@ -218,7 +218,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 18. PLOMERO ============
             [
-                'cedula' => 'V-17654321',
+                'cedula' => '17654321',
                 'nombre' => 'Ricardo',
                 'apellido' => 'Ortiz',
                 'departamento' => 'Mantenimiento',
@@ -230,7 +230,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 19. ATENCIÓN AL CIUDADANO ============
             [
-                'cedula' => 'V-15987654',
+                'cedula' => '15987654',
                 'nombre' => 'Valentina',
                 'apellido' => 'Silva',
                 'departamento' => 'Atención al Ciudadano',
@@ -242,7 +242,7 @@ class TrabajadorSeeder extends Seeder
 
             // ============ 20. ORIENTADOR ============
             [
-                'cedula' => 'V-21345678',
+                'cedula' => '21345678',
                 'nombre' => 'Daniel',
                 'apellido' => 'Rivas',
                 'departamento' => 'Atención al Ciudadano',

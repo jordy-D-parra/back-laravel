@@ -263,7 +263,7 @@
                                 </svg>
                             </span>
                             <input type="text" class="form-control" id="usuarioCedulaSearch"
-                                   placeholder="V-12345678" autocomplete="off">
+                                   placeholder="12345678" autocomplete="off">
                         </div>
                         <div id="cedulaSearchResults" class="mt-2" style="display:none;"></div>
                         <div id="infoTrabajadorEncontrado" class="mt-3" style="display:none;">

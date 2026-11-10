@@ -252,7 +252,7 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label small fw-bold">Cédula <span class="text-danger">*</span></label>
-                            <input type="text" class="form-control" id="trabajadorCedula" name="cedula" placeholder="V-12345678" required>
+                            <input type="text" class="form-control" id="trabajadorCedula" name="cedula" placeholder="12345678" required>
                             <div id="cedulaFeedback" class="cedula-feedback" style="font-size:0.75rem;margin-top:4px;"></div>
                         </div>
                         <div class="col-md-6 mb-3">

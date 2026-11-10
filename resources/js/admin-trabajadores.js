@@ -212,24 +212,23 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===========================
-    // VALIDACIÓN DE CÉDULA
+    // VALIDACIÓN DE CÉDULA (SOLO DÍGITOS, SIN V-)
     // ===========================
     const cedulaInput = document.getElementById('trabajadorCedula');
     const cedulaFeedback = document.getElementById('cedulaFeedback');
 
     if (cedulaInput) {
         cedulaInput.addEventListener('input', function () {
-            let value = this.value.replace(/[^0-9VvEe-]/g, '').toUpperCase();
-            if (/^\d{7,8}$/.test(value)) {
-                value = 'V-' + value;
-            }
-            this.value = value;
+            // Solo dígitos, sin V-, sin puntos, sin guiones
+            this.value = this.value.replace(/[^0-9]/g, '');
 
-            const regexCedula = /^[VEJPG]-\d{7,8}$/;
-            if (value.length === 0) {
+            const valor = this.value;
+            const regexCedula = /^\d{6,10}$/;
+
+            if (valor.length === 0) {
                 this.classList.remove('cedula-valid', 'cedula-invalid');
                 if (cedulaFeedback) cedulaFeedback.textContent = '';
-            } else if (regexCedula.test(value)) {
+            } else if (regexCedula.test(valor)) {
                 this.classList.add('cedula-valid');
                 this.classList.remove('cedula-invalid');
                 if (cedulaFeedback) {
@@ -240,7 +239,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 this.classList.add('cedula-invalid');
                 this.classList.remove('cedula-valid');
                 if (cedulaFeedback) {
-                    cedulaFeedback.textContent = 'Formato: V-12345678';
+                    cedulaFeedback.textContent = 'Debe tener entre 6 y 10 dígitos';
                     cedulaFeedback.style.color = '#c5221f';
                 }
             }

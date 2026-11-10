@@ -191,4 +191,31 @@ class Usuario extends Authenticatable
         }
         return $this->usuario;
     }
+
+    public static function normalizarCedula(?string $value): ?string
+    {
+        if (blank($value)) return null;
+        $limpio = preg_replace('/^[vVeE][\-\s\.]*/', '', trim($value));
+        $limpio = preg_replace('/[^0-9]/', '', $limpio);
+        return $limpio !== '' ? $limpio : null;
+    }
+
+    /**
+     * Devuelve la cédula SIN prefijo V-.
+     * Ej: "12345678" => "12345678"
+     */
+    public function cedulaFormateada(): string
+    {
+        return self::normalizarCedula($this->trabajador?->cedula ?? '') ?? '';
+    }
+
+    public function scopeBuscarPorCedula($query, ?string $cedula)
+    {
+        $numero = static::normalizarCedula($cedula);
+        if ($numero === null) return $query;
+
+        return $query->whereHas('trabajador', function ($q) use ($numero) {
+            $q->where('cedula', 'LIKE', "%{$numero}%");
+        });
+    }
 }

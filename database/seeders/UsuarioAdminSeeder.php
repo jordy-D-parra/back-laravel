@@ -39,11 +39,11 @@ class UsuarioAdminSeeder extends Seeder
         // ============================================
         // 2. DEFINICIÓN DE USUARIOS
         // ============================================
-        // Cada usuario se asocia a un trabajador por CÉDULA
+        // Cada usuario se asocia a un trabajador por CÉDULA (solo dígitos, sin V-)
         $usuariosData = [
             // ========== 1-2: ADMINISTRADORES PRINCIPALES ==========
             [
-                'cedula_trabajador' => 'V-12345678',
+                'cedula_trabajador' => '12345678',
                 'usuario' => 'jordy',
                 'password' => 'Mortadela1$',
                 'rol' => 'admin',
@@ -51,7 +51,7 @@ class UsuarioAdminSeeder extends Seeder
                 'must_change_password' => false,
             ],
             [
-                'cedula_trabajador' => 'V-30776710',
+                'cedula_trabajador' => '30776710',
                 'usuario' => 'melo',
                 'password' => 'Melo2004$',
                 'rol' => 'admin',
@@ -61,7 +61,7 @@ class UsuarioAdminSeeder extends Seeder
 
             // ========== 3: INGENIERO ==========
             [
-                'cedula_trabajador' => 'V-17890123',
+                'cedula_trabajador' => '17890123',   // María González
                 'usuario' => 'mgonzalez',
                 'password' => 'Ingeniero2024$',
                 'rol' => 'ingeniero',
@@ -71,7 +71,7 @@ class UsuarioAdminSeeder extends Seeder
 
             // ========== 4-6: TÉCNICOS ==========
             [
-                'cedula_trabajador' => 'V-15456789',
+                'cedula_trabajador' => '15456789',   // Carlos Rodríguez
                 'usuario' => 'crodriguez',
                 'password' => 'Tecnico2024$',
                 'rol' => 'tecnico',
@@ -79,7 +79,7 @@ class UsuarioAdminSeeder extends Seeder
                 'must_change_password' => false,
             ],
             [
-                'cedula_trabajador' => 'V-20123456',
+                'cedula_trabajador' => '20123456',   // Luis Pérez
                 'usuario' => 'lperez',
                 'password' => 'Tecnico2024$',
                 'rol' => 'tecnico',
@@ -87,7 +87,7 @@ class UsuarioAdminSeeder extends Seeder
                 'must_change_password' => false,
             ],
             [
-                'cedula_trabajador' => 'V-22334455',
+                'cedula_trabajador' => '22334455',   // Ana Martínez
                 'usuario' => 'amartinez',
                 'password' => 'Tecnico2024$',
                 'rol' => 'tecnico',
@@ -97,7 +97,7 @@ class UsuarioAdminSeeder extends Seeder
 
             // ========== 7-8: SECRETARIAS ==========
             [
-                'cedula_trabajador' => 'V-17890123', // ⚠️ Ya existe, pero usaremos otro trabajador
+                'cedula_trabajador' => '13456789',   // Patricia Mendoza (antes 17890123 duplicada)
                 'usuario' => 'pmendoza',
                 'password' => 'Secretaria2024$',
                 'rol' => 'secretaria',
@@ -105,7 +105,7 @@ class UsuarioAdminSeeder extends Seeder
                 'must_change_password' => false,
             ],
             [
-                'cedula_trabajador' => 'V-15987654',
+                'cedula_trabajador' => '15987654',   // Valentina Silva
                 'usuario' => 'vsilva',
                 'password' => 'Secretaria2024$',
                 'rol' => 'secretaria',
@@ -115,7 +115,7 @@ class UsuarioAdminSeeder extends Seeder
 
             // ========== 9-12: MÁS USUARIOS (roles variados) ==========
             [
-                'cedula_trabajador' => 'V-18987654',
+                'cedula_trabajador' => '18987654',   // Pedro Ramírez
                 'usuario' => 'pramirez',
                 'password' => 'Usuario2024$',
                 'rol' => 'ingeniero',
@@ -123,7 +123,7 @@ class UsuarioAdminSeeder extends Seeder
                 'must_change_password' => false,
             ],
             [
-                'cedula_trabajador' => 'V-13765432',
+                'cedula_trabajador' => '13765432',   // José Fernández
                 'usuario' => 'jfernandez',
                 'password' => 'Usuario2024$',
                 'rol' => 'ingeniero',
@@ -131,7 +131,7 @@ class UsuarioAdminSeeder extends Seeder
                 'must_change_password' => false,
             ],
             [
-                'cedula_trabajador' => 'V-16543210',
+                'cedula_trabajador' => '16543210',   // Laura Díaz
                 'usuario' => 'ldiaz',
                 'password' => 'Usuario2024$',
                 'rol' => 'secretaria',
@@ -139,7 +139,7 @@ class UsuarioAdminSeeder extends Seeder
                 'must_change_password' => false,
             ],
             [
-                'cedula_trabajador' => 'V-12345098',
+                'cedula_trabajador' => '12345098',   // Jorge Méndez
                 'usuario' => 'jmendez',
                 'password' => 'Usuario2024$',
                 'rol' => 'tecnico',
@@ -149,7 +149,7 @@ class UsuarioAdminSeeder extends Seeder
 
             // ========== 13: USUARIO INACTIVO (para pruebas) ==========
             [
-                'cedula_trabajador' => 'V-19012345',
+                'cedula_trabajador' => '19012345',   // Sofía Rojas
                 'usuario' => 'srojas',
                 'password' => 'Usuario2024$',
                 'rol' => 'secretaria',
@@ -159,17 +159,17 @@ class UsuarioAdminSeeder extends Seeder
 
             // ========== 14: USUARIO CON CAMBIO DE CONTRASEÑA PENDIENTE ==========
             [
-                'cedula_trabajador' => 'V-14456789',
+                'cedula_trabajador' => '14456789',   // Miguel Hernández
                 'usuario' => 'mhernandez',
                 'password' => 'Temporal2024$',
                 'rol' => 'tecnico',
                 'status' => 'activo',
-                'must_change_password' => true, // ← Se le pedirá cambiarla al primer login
+                'must_change_password' => true,
             ],
 
             // ========== 15: NUNCA HA INICIADO SESIÓN ==========
             [
-                'cedula_trabajador' => 'V-20123456', // ⚠️ Ya usado, buscar otro abajo
+                'cedula_trabajador' => '20456789',   // Alberto Vargas (antes 20123456 duplicada)
                 'usuario' => 'avargas',
                 'password' => 'Usuario2024$',
                 'rol' => 'tecnico',
@@ -187,7 +187,7 @@ class UsuarioAdminSeeder extends Seeder
 
         foreach ($usuariosData as $data) {
             try {
-                // Buscar trabajador por cédula
+                // Buscar trabajador por cédula (solo dígitos en BD)
                 $trabajador = Trabajador::where('cedula', $data['cedula_trabajador'])->first();
 
                 if (!$trabajador) {

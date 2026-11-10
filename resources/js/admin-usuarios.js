@@ -594,7 +594,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // ===========================
-    // BUSCADOR DE CÉDULA (MODAL)
+    // BUSCADOR DE CÉDULA (MODAL) — SOLO DÍGITOS, SIN V-
     // ===========================
     const cedulaSearch = document.getElementById('usuarioCedulaSearch');
     const resultsDiv = document.getElementById('cedulaSearchResults');
@@ -607,6 +607,9 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (cedulaSearch) {
         cedulaSearch.addEventListener('input', function () {
+            // Solo dígitos, sin V-, sin puntos, sin guiones
+            this.value = this.value.replace(/[^0-9]/g, '');
+
             const cedula = this.value.trim();
             clearTimeout(timeoutCedulaBusqueda);
 
