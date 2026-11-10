@@ -658,9 +658,9 @@
             </div>
             <div class="modal-footer" style="background:#f8fafc; border-top:1px solid #e9ecef;">
                 <button type="button" class="btn" style="background:#f1f5f9; color:#475569; border-radius:10px; padding: 0.5rem 1.25rem;" data-bs-dismiss="modal">Cerrar</button>
-                <a href="#" id="modalDetallePrestamoActionBtn" class="btn" style="background:#1e3c72; color:white; border-radius:10px; padding: 0.5rem 1.25rem;" target="_blank">
-                    Ver en el sistema
-                </a>
+                <a href="#" id="modalDetallePrestamoActionBtn" class="btn" style="background:#1e3c72; color:white; border-radius:10px; padding: 0.5rem 1.25rem;">
+    Ver en el sistema
+</a>
             </div>
         </div>
     </div>
@@ -1088,6 +1088,8 @@ function abrirDetalleDesdeTimeline(eventId) {
 
 // ============================================================
 // DETALLE PRÉSTAMO
+// ✅ CORREGIDO: el botón "Ver en el sistema" ahora abre en la
+//    misma pestaña (cierra el modal y navega con window.location.href)
 // ============================================================
 function verDetallePrestamo(id) {
     const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetallePrestamo'));
@@ -1168,7 +1170,17 @@ function verDetallePrestamo(id) {
         }
 
         document.getElementById('modalDetallePrestamoBody').innerHTML = html;
-        document.getElementById('modalDetallePrestamoActionBtn').href = '{{ route("admin.prestamos.index") }}?search=' + encodeURIComponent(d.codigo);
+
+        // ✅ CORREGIDO: navegar en la misma pestaña (sin target="_blank")
+        const btnAccion = document.getElementById('modalDetallePrestamoActionBtn');
+        btnAccion.href = '{{ route("admin.prestamos.index") }}?search=' + encodeURIComponent(d.codigo);
+        btnAccion.onclick = function (e) {
+            e.preventDefault();
+            const modalEl = document.getElementById('modalDetallePrestamo');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+            window.location.href = btnAccion.href;
+        };
     })
     .catch(err => {
         console.error(err);
@@ -1182,6 +1194,8 @@ function verDetallePrestamo(id) {
 
 // ============================================================
 // DETALLE SOLICITUD
+// ✅ CORREGIDO: el botón "Ver en el sistema" ahora abre en la
+//    misma pestaña (cierra el modal y navega con window.location.href)
 // ============================================================
 function verDetalleSolicitud(id) {
     const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetallePrestamo'));
@@ -1269,7 +1283,17 @@ function verDetalleSolicitud(id) {
         }
 
         document.getElementById('modalDetallePrestamoBody').innerHTML = html;
-        document.getElementById('modalDetallePrestamoActionBtn').href = '{{ route("admin.solicitudes.index") }}';
+
+        // ✅ CORREGIDO: navegar en la misma pestaña (sin target="_blank")
+        const btnAccion = document.getElementById('modalDetallePrestamoActionBtn');
+        btnAccion.href = '{{ route("admin.solicitudes.index") }}';
+        btnAccion.onclick = function (e) {
+            e.preventDefault();
+            const modalEl = document.getElementById('modalDetallePrestamo');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+            window.location.href = btnAccion.href;
+        };
     })
     .catch(err => {
         console.error(err);
