@@ -54,3 +54,20 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 });
+
+document.addEventListener('DOMContentLoaded', () => {
+    const toggle = document.getElementById('togglePassword');
+    const input  = document.getElementById('password');
+    const eye    = document.getElementById('iconEye');
+    const eyeOff = document.getElementById('iconEyeSlash');
+
+    if (!toggle || !input) return;
+
+    toggle.addEventListener('click', () => {
+        const oculto = input.type === 'password';
+        input.type = oculto ? 'text' : 'password';
+        eye.classList.toggle('d-none', oculto);
+        eyeOff.classList.toggle('d-none', !oculto);
+        toggle.setAttribute('aria-label', oculto ? 'Ocultar contraseña' : 'Mostrar contraseña');
+    });
+});
