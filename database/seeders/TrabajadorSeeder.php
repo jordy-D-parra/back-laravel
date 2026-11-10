@@ -33,7 +33,7 @@ class TrabajadorSeeder extends Seeder
                 'cargo' => 'Ingeniero de Sistemas',
                 'especialidad' => 'Desarrollo y soporte técnico',
                 'telefono' => '0416-7654321',
-                'email' => 'yorhanjose2004@gmail.com',
+                'email' => 'gobernacionyaracuy30@gmail.com',
             ],
 
             // ============ 3. TÉCNICO DE SOPORTE ============
