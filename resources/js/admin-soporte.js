@@ -15,6 +15,10 @@ document.addEventListener('DOMContentLoaded', function () {
     let itemWizardSoporteCount = 0;
     let intervaloNotificaciones = null;
 
+    // ✅ NUEVO: Paginación de correos
+    let correosSoportePage = 1;
+    let correosSoporteLastPage = 1;
+
     // ============================================================
     // HELPERS
     // ============================================================
@@ -860,15 +864,20 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // ============================================================
-    // CORREOS
+    // ✅ CORREOS DE SOPORTE CON PAGINACIÓN
     // ============================================================
-    async function cargarCorreosSoporte() {
+    async function cargarCorreosSoporte(page) {
+        page = page || 1;
         const container = document.getElementById('listaCorreos');
+        const paginacionContainer = document.getElementById('paginacionCorreos');
         if (!container) return;
 
         const buscar = document.getElementById('buscarCorreo')?.value || '';
         const filtro = document.getElementById('filtroCorreo')?.value || '';
+
         const params = new URLSearchParams();
+        params.append('page', page);
+        params.append('per_page', 10);
         if (buscar) params.append('buscar', buscar);
         if (filtro) params.append('filtro', filtro);
 
@@ -878,34 +887,102 @@ document.addEventListener('DOMContentLoaded', function () {
                 <p class="mt-2">Cargando correos...</p>
             </div>
         `;
+        if (paginacionContainer) paginacionContainer.innerHTML = '';
 
         try {
-            const response = await fetch(`/admin/soporte/correos/lista?${params}`, {
-                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            const response = await fetch(`/admin/soporte/correos/lista?${params.toString()}`, {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
                 credentials: 'same-origin'
             });
 
             if (!response.ok) throw new Error(`HTTP ${response.status}`);
 
             const data = await response.json();
-            renderizarCorreosSoporte(data.data || []);
+
+            correosSoportePage = data.current_page || 1;
+            correosSoporteLastPage = data.last_page || 1;
+
+            // ✅ Solo la lista va en #listaCorreos
+            container.innerHTML = renderizarCorreosSoporte(data.data || []);
+
+            // ✅ La paginación va en su propio contenedor
+            if (paginacionContainer) {
+                paginacionContainer.innerHTML = renderPaginacionCorreosSoporte(
+                    correosSoportePage,
+                    correosSoporteLastPage,
+                    data.total || 0,
+                    data.from || 0,
+                    data.to || 0
+                );
+            }
+
         } catch (error) {
             console.error('Error al cargar correos:', error);
             container.innerHTML = `
                 <div class="text-center py-5 text-danger">
                     <p>Error al cargar correos: ${escapeHtml(error.message)}</p>
-                    <button class="btn btn-sm btn-primary-dark mt-2" onclick="cargarCorreosSoporte()">Reintentar</button>
+                    <button class="btn btn-sm btn-primary-dark mt-2" onclick="cargarCorreosSoporte(1)">Reintentar</button>
                 </div>
             `;
         }
     }
 
-    function renderizarCorreosSoporte(correos) {
-        const container = document.getElementById('listaCorreos');
-        if (!container) return;
+    window.cargarCorreosSoporte = cargarCorreosSoporte;
 
+    function renderPaginacionCorreosSoporte(currentPage, lastPage, total, from, to) {
+        if (lastPage <= 1) {
+            return `<div class="pagination-bar" style="border-top:none;">
+                <div class="pagination-info">${total} correo(s) en total</div>
+            </div>`;
+        }
+
+        let html = `<div class="pagination-bar">
+            <div class="pagination-info">Mostrando ${from || 0} a ${to || 0} de ${total} correos</div>
+            <div class="pagination-btns">`;
+
+        html += `<button class="pagination-btn ${currentPage === 1 ? 'disabled' : ''}"
+                    onclick="cambiarPaginaCorreosSoporte(${currentPage - 1})"
+                    ${currentPage === 1 ? 'disabled' : ''}>«</button>`;
+
+        const inicio = Math.max(1, currentPage - 2);
+        const fin = Math.min(lastPage, currentPage + 2);
+
+        if (inicio > 1) {
+            html += `<button class="pagination-btn" onclick="cambiarPaginaCorreosSoporte(1)">1</button>`;
+            if (inicio > 2) html += `<span class="pagination-ellipsis">...</span>`;
+        }
+
+        for (let i = inicio; i <= fin; i++) {
+            html += `<button class="pagination-btn ${i === currentPage ? 'active' : ''}"
+                        onclick="cambiarPaginaCorreosSoporte(${i})">${i}</button>`;
+        }
+
+        if (fin < lastPage) {
+            if (fin < lastPage - 1) html += `<span class="pagination-ellipsis">...</span>`;
+            html += `<button class="pagination-btn" onclick="cambiarPaginaCorreosSoporte(${lastPage})">${lastPage}</button>`;
+        }
+
+        html += `<button class="pagination-btn ${currentPage === lastPage ? 'disabled' : ''}"
+                    onclick="cambiarPaginaCorreosSoporte(${currentPage + 1})"
+                    ${currentPage === lastPage ? 'disabled' : ''}>»</button>`;
+
+        html += `</div></div>`;
+        return html;
+    }
+
+    window.cambiarPaginaCorreosSoporte = function(page) {
+        if (page < 1 || page > correosSoporteLastPage) return;
+        correosSoportePage = page;
+        cargarCorreosSoporte(page);
+        document.getElementById('listaCorreos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+
+    function renderizarCorreosSoporte(correos) {
         if (!correos.length) {
-            container.innerHTML = `
+            return `
                 <div class="text-center py-5 text-muted">
                     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="#adb5bd" stroke-width="1.5">
                         <rect x="2" y="4" width="20" height="16" rx="2"/>
@@ -915,7 +992,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     <p class="small">Haz clic en "Revisar ahora" para buscar nuevos correos</p>
                 </div>
             `;
-            return;
         }
 
         let html = '';
@@ -941,8 +1017,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 </div>
             `;
         });
-
-        container.innerHTML = html;
+        return html;
     }
 
     async function actualizarBadgeCorreosSoporte() {
@@ -981,7 +1056,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
             const data = await response.json();
             mostrarNotificacion('info', data.message || 'Revisión completada');
-            cargarCorreosSoporte();
+            cargarCorreosSoporte(1);
             actualizarBadgeCorreosSoporte();
         } catch (error) {
             mostrarNotificacion('error', 'Error al revisar correos: ' + error.message);
@@ -1046,7 +1121,7 @@ document.addEventListener('DOMContentLoaded', function () {
     };
 
     // ============================================================
-    // ✅ WIZARD DE CORREO A FICHA — CORREGIDO
+    // ✅ WIZARD DE CORREO A FICHA
     // ============================================================
     window.iniciarWizardSoporte = function() {
         if (!correoActualSoporte) return;
@@ -1058,7 +1133,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const datos = correoActualSoporte.datos_extraidos || {};
 
-        // ✅ Rellenar datos extraídos del correo
         if (datos.problema) {
             document.getElementById('wzDiagnostico').value = datos.problema;
         }
@@ -1066,7 +1140,6 @@ document.addEventListener('DOMContentLoaded', function () {
             document.getElementById('wzFechaRequeridaSoporte').value = datos.fecha_requerida;
         }
 
-        // ✅ Rellenar los campos del equipo externo con lo extraído del correo
         const equipoNuevoFields = document.getElementById('equipoNuevoFields');
         if (equipoNuevoFields) {
             const inputSerial = equipoNuevoFields.querySelector('input[name="nuevo_equipo[serial]"]');
@@ -1086,7 +1159,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // ✅ Rellenar el usuario que reporta con el nombre del remitente del correo
         const inputUsuarioReporta = document.getElementById('wzUsuarioReporta');
         if (inputUsuarioReporta && correoActualSoporte.from_name) {
             inputUsuarioReporta.value = correoActualSoporte.from_name;
@@ -1094,16 +1166,11 @@ document.addEventListener('DOMContentLoaded', function () {
             inputUsuarioReporta.value = correoActualSoporte.from_email;
         }
 
-        // ✅ Inicializar listeners del wizard
         inicializarWizardSoporte();
 
-        // ✅ Reiniciar el wizard en el paso 1 (limpiando estilos inline)
         irPasoSoporte(1);
     };
 
-    // ============================================================
-    // ✅ NUEVO: Inicializar listeners del wizard de soporte
-    // ============================================================
     function inicializarWizardSoporte() {
         const radioExistente = document.getElementById('equipoExistente');
         const radioNuevo = document.getElementById('equipoNuevo');
@@ -1126,7 +1193,6 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
 
-        // Limpiar listeners previos (evitar duplicados)
         if (radioExistente) {
             radioExistente.onchange = () => aplicarTipoEquipo('existente');
         }
@@ -1134,11 +1200,9 @@ document.addEventListener('DOMContentLoaded', function () {
             radioNuevo.onchange = () => aplicarTipoEquipo('nuevo');
         }
 
-        // Aplicar estado inicial
         const tipoActual = radioNuevo?.checked ? 'nuevo' : 'existente';
         aplicarTipoEquipo(tipoActual);
 
-        // ✅ Listener del select de institución para cargar departamentos
         const selectInstitucion = document.getElementById('wzInstitucionSoporte');
         const selectDepartamento = document.getElementById('wzDepartamentoSoporte');
         const selectResponsable = document.getElementById('wzResponsableSoporte');
@@ -1156,7 +1220,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (!instId) return;
 
-                // Cargar departamentos
                 fetch(`/admin/departamentos/por-institucion/${instId}`, {
                     headers: { 'Accept': 'application/json' }
                 })
@@ -1172,7 +1235,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 })
                 .catch(err => console.error('Error al cargar departamentos:', err));
 
-                // Cargar responsables de la institución
                 fetch(`/admin/api/institucion/${instId}/responsable`, {
                     headers: { 'Accept': 'application/json' }
                 })
@@ -1189,7 +1251,6 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         }
 
-        // ✅ Listener del select de departamento para cargar responsables
         if (selectDepartamento) {
             selectDepartamento.onchange = function() {
                 const deptoId = this.value;
@@ -1208,7 +1269,6 @@ document.addEventListener('DOMContentLoaded', function () {
             };
         }
 
-        // ✅ Listener del select de activo existente (opcional, para mostrar info)
         const selectActivo = document.getElementById('wzActivoId');
         if (selectActivo) {
             selectActivo.onchange = function() {
@@ -1217,24 +1277,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
-    // ============================================================
-    // ✅ irPasoSoporte — CORREGIDO (limpia el style inline)
-    // ============================================================
     window.irPasoSoporte = function(paso) {
-        // 1. Ocultar TODOS los pasos: quitar clase Y limpiar style inline
         document.querySelectorAll('.wizard-step-soporte').forEach(el => {
             el.classList.remove('active');
-            el.style.display = 'none';   // ← CLAVE: forzamos ocultar
+            el.style.display = 'none';
         });
 
-        // 2. Mostrar el paso solicitado
         const stepEl = document.getElementById('stepSop' + paso);
         if (stepEl) {
             stepEl.classList.add('active');
-            stepEl.style.display = 'block';   // ← CLAVE: forzamos mostrar
+            stepEl.style.display = 'block';
         }
 
-        // 3. Actualizar círculos indicadores
         [1, 2, 3, 4].forEach(i => {
             const circle = document.getElementById('stepSop' + i + 'Circle');
             if (!circle) return;
@@ -1252,20 +1306,15 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
 
-        // 4. Actualizar barra de progreso
         const progreso = ((paso - 1) / 3) * 100 + 25;
         const bar = document.getElementById('wizardProgressSoporte');
         if (bar) bar.style.width = Math.min(progreso, 100) + '%';
 
-        // ✅ NUEVO: Si es el paso 4, generar el resumen
         if (paso === 4) {
             generarResumenFichaSoporte();
         }
     };
 
-    // ============================================================
-    // ✅ NUEVO: Generar el resumen del paso 4
-    // ============================================================
     function generarResumenFichaSoporte() {
         const contenedor = document.getElementById('resumenFichaSoporte');
         if (!contenedor) return;
@@ -1275,7 +1324,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const formData = new FormData(form);
 
-        // Datos básicos
         const tipoEquipo = formData.get('tipo_equipo') || 'existente';
         const usuarioReporta = formData.get('usuario_reporta_nombre') || 'No especificado';
         const diagnostico = formData.get('diagnostico') || 'No especificado';
@@ -1286,7 +1334,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const estadoLabel = estadoInicial === 'aceptada' ? 'Aceptada' :
                             estadoInicial === 'rechazada' ? 'Rechazada' : 'En Proceso';
 
-        // Datos del equipo
         let equipoInfo = '';
         let tecnicoInfo = '';
 
@@ -1319,7 +1366,6 @@ document.addEventListener('DOMContentLoaded', function () {
                          `Responsable: <strong>${escapeHtml(respTexto)}</strong>`;
         }
 
-        // Técnico
         const tecnicoSelect = document.getElementById('wzTecnicoSoporte');
         const tecnicoId = formData.get('tecnico_id');
         if (tecnicoId && tecnicoSelect) {
@@ -1340,9 +1386,6 @@ document.addEventListener('DOMContentLoaded', function () {
         `;
     }
 
-    // ============================================================
-    // ✅ NUEVO: Handler del submit del wizard de soporte
-    // ============================================================
     document.getElementById('formWizardSoporte')?.addEventListener('submit', async function(e) {
         e.preventDefault();
 
@@ -1358,10 +1401,8 @@ document.addEventListener('DOMContentLoaded', function () {
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creando ficha...';
 
         try {
-            // Construir FormData (el form ya contiene todo lo necesario)
             const formData = new FormData(this);
 
-            // Validar tipo_equipo y campos requeridos según el caso
             const tipoEquipo = formData.get('tipo_equipo');
             if (tipoEquipo === 'existente') {
                 if (!formData.get('activo_id')) {
@@ -1405,16 +1446,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (data.success) {
-                // Cerrar el modal
                 const modal = bootstrap.Modal.getInstance(document.getElementById('modalCorreoSoporte'));
                 if (modal) modal.hide();
 
                 mostrarNotificacion('success', data.message || 'Ficha de soporte creada exitosamente.');
 
-                // Recargar la lista de fichas y actualizar contador
                 cargarFichas(1);
                 actualizarBadgeCorreosSoporte();
-                cargarCorreosSoporte();
+                cargarCorreosSoporte(1);
             } else {
                 let msg = data.message || 'Error al crear la ficha de soporte.';
                 if (data.errors) {
@@ -1438,11 +1477,19 @@ document.addEventListener('DOMContentLoaded', function () {
     cargarFichas(1);
     actualizarBadgeCorreosSoporte();
 
-    document.getElementById('buscarCorreo')?.addEventListener('input', debounce(cargarCorreosSoporte, 400));
-    document.getElementById('filtroCorreo')?.addEventListener('change', cargarCorreosSoporte);
+    // Listeners de correos con reset de página
+    document.getElementById('buscarCorreo')?.addEventListener('input', debounce(() => {
+        correosSoportePage = 1;
+        cargarCorreosSoporte(1);
+    }, 400));
+
+    document.getElementById('filtroCorreo')?.addEventListener('change', () => {
+        correosSoportePage = 1;
+        cargarCorreosSoporte(1);
+    });
 
     document.getElementById('tab-correos')?.addEventListener('shown.bs.tab', function() {
-        cargarCorreosSoporte();
+        cargarCorreosSoporte(1);
         actualizarBadgeCorreosSoporte();
     });
 

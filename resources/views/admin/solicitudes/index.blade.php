@@ -241,11 +241,14 @@
                 </div>
             </div>
 
-            <div id="listaCorreos" class="p-3" style="background: white; border-radius: 12px;">
+            <div id="listaCorreos" class="p-3" style="background: white; border-radius: 12px 12px 0 0;">
                 <div class="text-center py-5 text-muted">
                     <p>Cargando correos...</p>
                 </div>
             </div>
+
+            {{-- ✅ Contenedor de paginación de correos --}}
+            <div id="paginacionCorreos" style="background: white; border-radius: 0 0 12px 12px; border-top: 1px solid #e9ecef;"></div>
         </div>
         @endif
     </div>

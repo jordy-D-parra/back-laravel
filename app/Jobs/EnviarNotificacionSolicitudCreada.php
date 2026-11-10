@@ -40,7 +40,7 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
         }
         $this->evento = $evento;
 
-        Log::info("🔔 [Job Solicitud] Procesando notificación", [
+        Log::info("[Job Solicitud] Procesando notificacion", [
             'solicitud_id' => $this->solicitudId,
             'evento' => $evento,
             'intento' => $this->attempts(),
@@ -55,16 +55,14 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
         ])->find($this->solicitudId);
 
         if (!$solicitud) {
-            Log::warning("⚠️ [Job Solicitud] Solicitud #{$this->solicitudId} no encontrada");
+            Log::warning("[Job Solicitud] Solicitud #{$this->solicitudId} no encontrada");
             return;
         }
 
         $this->notificarResponsable($solicitud, $notificacionService);
         $this->notificarSolicitante($solicitud, $notificacionService);
 
-        // ❌ ELIMINADO: $this->notificarAdmins($solicitud, $notificacionService);
-
-        Log::info("✅ [Job Solicitud] Notificación completada", [
+        Log::info("[Job Solicitud] Notificacion completada", [
             'solicitud_id' => $solicitud->id,
             'evento' => $evento,
         ]);
@@ -75,7 +73,7 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
         $responsable = $this->obtenerResponsableConEmail($solicitud);
 
         if (!$responsable) {
-            Log::warning("⚠️ [Job Solicitud] No se encontró responsable con email", [
+            Log::warning("[Job Solicitud] No se encontro responsable con email", [
                 'solicitud_id' => $solicitud->id,
                 'responsable_id' => $solicitud->responsable_id,
                 'departamento_id' => $solicitud->departamento_id,
@@ -84,7 +82,7 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
             return;
         }
 
-        Log::info("📧 [Job Solicitud] Enviando notificación al responsable", [
+        Log::info("[Job Solicitud] Enviando notificacion al responsable", [
             'solicitud_id' => $solicitud->id,
             'responsable' => $responsable->nombre,
             'email' => $responsable->email,
@@ -93,7 +91,7 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
 
         $entidad = $solicitud->tipo_solicitante === 'interno'
             ? ($solicitud->departamento?->nombre ?? 'Departamento')
-            : ($solicitud->institucion?->nombre ?? 'Institución');
+            : ($solicitud->institucion?->nombre ?? 'Institucion');
 
         $solicitante = $solicitud->usuario?->trabajador
             ? trim($solicitud->usuario->trabajador->nombre . ' ' . $solicitud->usuario->trabajador->apellido)
@@ -109,79 +107,79 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
 
         $itemsTexto = '';
         foreach ($solicitud->detalles as $det) {
-            $itemsTexto .= " • " . ($det->descripcion_personalizada ?? 'Item')
+            $itemsTexto .= " - " . ($det->descripcion_personalizada ?? 'Item')
                 . " (Cant: {$det->cantidad_solicitada})\n";
         }
 
         if ($this->evento === 'creada') {
-            $titulo = '📋 Nueva Solicitud de Préstamo - En Proceso';
+            $titulo = 'Nueva Solicitud de Prestamo - En Proceso';
             $mensaje =
-                "📋 NUEVA SOLICITUD DE PRÉSTAMO REGISTRADA\n\n" .
+                "NUEVA SOLICITUD DE PRESTAMO REGISTRADA\n\n" .
                 "Estimado/a {$responsable->nombre},\n\n" .
-                "Se ha registrado una nueva solicitud de préstamo donde usted figura como responsable.\n\n" .
-                "📌 Detalles:\n" .
-                " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
-                " • Entidad: {$entidad}\n" .
-                " • Solicitante: {$solicitante}\n" .
-                " • Fecha requerida: {$fechaRequerida}\n" .
-                " • Fecha fin estimada: {$fechaFin}\n" .
-                " • Prioridad: " . strtoupper($solicitud->prioridad ?? 'normal') . "\n\n" .
-                "📦 Items solicitados:\n" . ($itemsTexto ?: " • Sin items registrados\n") . "\n" .
-                "📝 Justificación:\n {$solicitud->justificacion}\n\n" .
-                "⏳ Estado actual: EN PROCESO (pendiente de aprobación)\n\n" .
+                "Se ha registrado una nueva solicitud de prestamo donde usted figura como responsable.\n\n" .
+                "Detalles:\n" .
+                " - Codigo: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                " - Entidad: {$entidad}\n" .
+                " - Solicitante: {$solicitante}\n" .
+                " - Fecha requerida: {$fechaRequerida}\n" .
+                " - Fecha fin estimada: {$fechaFin}\n" .
+                " - Prioridad: " . strtoupper($solicitud->prioridad ?? 'normal') . "\n\n" .
+                "Items solicitados:\n" . ($itemsTexto ?: " - Sin items registrados\n") . "\n" .
+                "Justificacion:\n {$solicitud->justificacion}\n\n" .
+                "Estado actual: EN PROCESO (pendiente de aprobacion)\n\n" .
                 "Le notificaremos cuando la solicitud sea APROBADA o RECHAZADA.\n\n" .
                 "Gracias.";
 
         } elseif ($this->evento === 'aprobada') {
-            $titulo = '✅ Solicitud de Préstamo APROBADA';
+            $titulo = 'Solicitud de Prestamo Aprobada';
             $mensaje =
-                "✅ SOLICITUD DE PRÉSTAMO APROBADA\n\n" .
+                "SOLICITUD DE PRESTAMO APROBADA\n\n" .
                 "Estimado/a {$responsable->nombre},\n\n" .
-                "Le informamos que su solicitud de préstamo ha sido APROBADA.\n\n" .
-                "📌 Detalles:\n" .
-                " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
-                " • Entidad: {$entidad}\n" .
-                " • Solicitante: {$solicitante}\n" .
-                " • Fecha requerida: {$fechaRequerida}\n" .
-                " • Fecha fin estimada: {$fechaFin}\n" .
-                " • Prioridad: " . strtoupper($solicitud->prioridad ?? 'normal') . "\n\n" .
-                "📦 Items:\n" . ($itemsTexto ?: " • Sin items\n") . "\n" .
-                "📄 Se ha generado el Acta de Retiro que encontrará adjunta en otro correo.\n\n" .
-                "📍 Próximos pasos:\n" .
+                "Le informamos que su solicitud de prestamo ha sido APROBADA.\n\n" .
+                "Detalles:\n" .
+                " - Codigo: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                " - Entidad: {$entidad}\n" .
+                " - Solicitante: {$solicitante}\n" .
+                " - Fecha requerida: {$fechaRequerida}\n" .
+                " - Fecha fin estimada: {$fechaFin}\n" .
+                " - Prioridad: " . strtoupper($solicitud->prioridad ?? 'normal') . "\n\n" .
+                "Items:\n" . ($itemsTexto ?: " - Sin items\n") . "\n" .
+                "Se ha generado el Acta de Retiro que encontrara adjunta en otro correo.\n\n" .
+                "Proximos pasos:\n" .
                 " 1. Descargue e imprima el Acta de Retiro\n" .
-                " 2. Fírmela\n" .
-                " 3. Preséntese en el Departamento de Informática con su cédula\n\n" .
+                " 2. Firmela\n" .
+                " 3. Presentese en el Departamento de Informatica con su cedula\n\n" .
                 "Gracias.";
 
         } elseif ($this->evento === 'rechazada') {
-            $titulo = '❌ Solicitud de Préstamo RECHAZADA';
+            $titulo = 'Solicitud de Prestamo Rechazada';
             $mensaje =
-                "❌ SOLICITUD DE PRÉSTAMO RECHAZADA\n\n" .
+                "SOLICITUD DE PRESTAMO RECHAZADA\n\n" .
                 "Estimado/a {$responsable->nombre},\n\n" .
-                "Lamentamos informarle que su solicitud de préstamo ha sido RECHAZADA.\n\n" .
-                "📌 Detalles:\n" .
-                " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
-                " • Entidad: {$entidad}\n" .
-                " • Solicitante: {$solicitante}\n\n" .
-                "📝 Motivo del rechazo:\n" . ($solicitud->observaciones ?? 'No especificado') . "\n\n" .
-                "Si tiene dudas, contacte al Departamento de Informática.\n\n" .
+                "Lamentamos informarle que su solicitud de prestamo ha sido RECHAZADA.\n\n" .
+                "Detalles:\n" .
+                " - Codigo: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                " - Entidad: {$entidad}\n" .
+                " - Solicitante: {$solicitante}\n\n" .
+                "Motivo del rechazo:\n" . ($solicitud->observaciones ?? 'No especificado') . "\n\n" .
+                "Si tiene dudas, contacte al Departamento de Informatica.\n\n" .
                 "Gracias.";
 
         } elseif ($this->evento === 'cancelada') {
-            $titulo = '🚫 Solicitud de Préstamo CANCELADA';
+            $titulo = 'Solicitud de Prestamo Cancelada';
             $mensaje =
-                "🚫 SOLICITUD DE PRÉSTAMO CANCELADA\n\n" .
+                "SOLICITUD DE PRESTAMO CANCELADA\n\n" .
                 "Estimado/a {$responsable->nombre},\n\n" .
                 "La solicitud ha sido CANCELADA.\n\n" .
-                "📌 Detalles:\n" .
-                " • Código: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
-                " • Entidad: {$entidad}\n" .
-                " • Motivo: " . ($solicitud->observaciones ?? 'Cancelada por el solicitante') . "\n\n" .
-                "Si no solicitó esta cancelación, contacte al Departamento de Informática.";
+                "Detalles:\n" .
+                " - Codigo: SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . "\n" .
+                " - Entidad: {$entidad}\n" .
+                " - Motivo: " . ($solicitud->observaciones ?? 'Cancelada por el solicitante') . "\n\n" .
+                "Si no solicito esta cancelacion, contacte al Departamento de Informatica.";
 
         } else {
-            $titulo = '📋 Actualización de Solicitud';
-            $mensaje = "Actualización de la solicitud #{$solicitud->id}";
+            $titulo = 'Actualizacion de Solicitud';
+            $mensaje = "Actualizacion de la solicitud #{$solicitud->id}";
         }
 
         try {
@@ -194,14 +192,14 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
                 route('admin.solicitudes.index')
             );
 
-            Log::info("📧 ✅ Correo enviado al responsable", [
+            Log::info("[Job Solicitud] Correo enviado al responsable", [
                 'solicitud_id' => $solicitud->id,
                 'email' => $responsable->email,
                 'evento' => $this->evento,
             ]);
 
         } catch (\Throwable $e) {
-            Log::error("❌ [Job Solicitud] Error al enviar al responsable", [
+            Log::error("[Job Solicitud] Error al enviar al responsable", [
                 'solicitud_id' => $solicitud->id,
                 'email' => $responsable->email,
                 'error' => $e->getMessage(),
@@ -215,18 +213,18 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
         $usuario = $solicitud->usuario;
 
         if (!$usuario || !$usuario->email) {
-            Log::info("ℹ️ [Job Solicitud] Solicitante sin email, omitiendo", [
+            Log::info("[Job Solicitud] Solicitante sin email, omitiendo", [
                 'solicitud_id' => $solicitud->id,
             ]);
             return;
         }
 
         $titulo = match($this->evento) {
-            'creada' => '📋 Solicitud de Préstamo Registrada - En Proceso',
-            'aprobada' => '✅ Su Solicitud fue Aprobada',
-            'rechazada' => '❌ Su Solicitud fue Rechazada',
-            'cancelada' => '🚫 Su Solicitud fue Cancelada',
-            default => '📋 Actualización de Solicitud',
+            'creada' => 'Solicitud de Prestamo Registrada - En Proceso',
+            'aprobada' => 'Su Solicitud fue Aprobada',
+            'rechazada' => 'Su Solicitud fue Rechazada',
+            'cancelada' => 'Su Solicitud fue Cancelada',
+            default => 'Actualizacion de Solicitud',
         };
 
         $mensaje = "Estimado/a " . ($usuario->trabajador?->nombre ?? $usuario->usuario) . ",\n\n";
@@ -236,8 +234,8 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
             $mensaje .= "Estado: EN PROCESO\n\n";
             $mensaje .= "Le notificaremos cuando sea aprobada o rechazada.\n\nGracias.";
         } elseif ($this->evento === 'aprobada') {
-            $mensaje .= "¡Buenas noticias! Su solicitud #SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . " ha sido APROBADA.\n";
-            $mensaje .= "Pronto recibirá el Acta de Retiro.\n\nGracias.";
+            $mensaje .= "Buenas noticias. Su solicitud #SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . " ha sido APROBADA.\n";
+            $mensaje .= "Pronto recibira el Acta de Retiro.\n\nGracias.";
         } elseif ($this->evento === 'rechazada') {
             $mensaje .= "Su solicitud #SOL-" . str_pad($solicitud->id, 6, '0', STR_PAD_LEFT) . " ha sido RECHAZADA.\n";
             $mensaje .= "Motivo: " . ($solicitud->observaciones ?? 'No especificado') . "\n\n";
@@ -255,18 +253,15 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
                 route('admin.solicitudes.index')
             );
         } catch (\Throwable $e) {
-            Log::error("❌ [Job Solicitud] Error al notificar solicitante: " . $e->getMessage());
+            Log::error("[Job Solicitud] Error al notificar solicitante: " . $e->getMessage());
         }
     }
-
-    // ❌ MÉTODO ELIMINADO: notificarAdmins()
-    // protected function notificarAdmins(Solicitud $solicitud, NotificacionService $service): void { ... }
 
     protected function obtenerResponsableConEmail(Solicitud $solicitud): ?Responsable
     {
         $responsable = $solicitud->responsable;
         if ($responsable && !empty($responsable->email)) {
-            Log::info("✅ [Job Solicitud] Usando responsable directo", [
+            Log::info("[Job Solicitud] Usando responsable directo", [
                 'solicitud_id' => $solicitud->id,
                 'responsable_id' => $responsable->id,
                 'email' => $responsable->email,
@@ -282,7 +277,7 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
                 ->first();
 
             if ($respDepto) {
-                Log::info("✅ [Job Solicitud] Usando responsable del departamento", [
+                Log::info("[Job Solicitud] Usando responsable del departamento", [
                     'solicitud_id' => $solicitud->id,
                     'departamento_id' => $solicitud->departamento_id,
                     'email' => $respDepto->email,
@@ -300,7 +295,7 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
                 ->first();
 
             if ($respInst) {
-                Log::info("✅ [Job Solicitud] Usando responsable institucional", [
+                Log::info("[Job Solicitud] Usando responsable institucional", [
                     'solicitud_id' => $solicitud->id,
                     'institucion_id' => $solicitud->institucion_id,
                     'email' => $respInst->email,
@@ -315,7 +310,7 @@ class EnviarNotificacionSolicitudCreada implements ShouldQueue
                 ->first();
 
             if ($respCualquiera) {
-                Log::info("✅ [Job Solicitud] Usando cualquier responsable de la institución", [
+                Log::info("[Job Solicitud] Usando cualquier responsable de la institucion", [
                     'solicitud_id' => $solicitud->id,
                     'email' => $respCualquiera->email,
                 ]);

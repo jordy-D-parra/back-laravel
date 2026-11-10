@@ -45,11 +45,17 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
         }
         $this->evento = $evento;
 
-        Log::info("🔔 [Job Soporte] Iniciando notificación", [
+        Log::info("[Job Soporte] Iniciando notificacion", [
             'ficha_id' => $this->fichaId,
             'evento' => $evento,
             'correo_id' => $this->correoId,
             'intento' => $this->attempts(),
+            'mailer' => config('mail.default'),
+            'mail_host' => config('mail.mailers.smtp.host'),
+            'mail_port' => config('mail.mailers.smtp.port'),
+            'mail_encryption' => config('mail.mailers.smtp.encryption'),
+            'mail_username' => config('mail.mailers.smtp.username'),
+            'mail_password_length' => strlen(config('mail.mailers.smtp.password') ?? ''),
         ]);
 
         $ficha = FichaSoporte::with([
@@ -64,19 +70,17 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
         ])->find($this->fichaId);
 
         if (!$ficha) {
-            Log::warning("⚠️ [Job Soporte] Ficha #{$this->fichaId} no encontrada");
+            Log::warning("[Job Soporte] Ficha #{$this->fichaId} no encontrada");
             return;
         }
 
-        // 1. Notificar al responsable (CRÍTICO)
+        // 1. Notificar al responsable (CRITICO)
         $this->notificarResponsable($ficha, $notificacionService);
 
-        // 2. Notificar al técnico
+        // 2. Notificar al tecnico
         $this->notificarTecnico($ficha, $notificacionService);
 
-        // ❌ 3. Notificar a los admins → ELIMINADO
-
-        Log::info("✅ [Job Soporte] Notificación completada", [
+        Log::info("[Job Soporte] Notificacion completada", [
             'ficha_id' => $ficha->id,
             'evento' => $evento,
         ]);
@@ -87,7 +91,7 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
         $responsable = $this->obtenerResponsableConEmail($ficha->activo);
 
         if (!$responsable) {
-            Log::warning("⚠️ [Job Soporte] No hay responsable con email", [
+            Log::warning("[Job Soporte] No hay responsable con email", [
                 'ficha_id' => $ficha->id,
                 'activo_id' => $ficha->activo_id,
                 'departamento_id' => $ficha->activo?->departamento_id,
@@ -99,7 +103,7 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
         $titulo = $this->tituloResponsable();
         $mensaje = $this->mensajeResponsable($ficha, $responsable);
 
-        Log::info("📧 [Job Soporte] Enviando notificación al responsable", [
+        Log::info("[Job Soporte] Enviando notificacion al responsable", [
             'ficha_id' => $ficha->id,
             'responsable' => $responsable->nombre,
             'email' => $responsable->email,
@@ -117,14 +121,14 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
                 'leida' => false,
             ]);
         } catch (\Throwable $e) {
-            Log::error("❌ [Job Soporte] Error al registrar notificación externa", [
+            Log::error("[Job Soporte] Error al registrar notificacion externa", [
                 'ficha_id' => $ficha->id,
                 'error' => $e->getMessage(),
             ]);
         }
 
         try {
-            $service->enviarAResponsable(
+            $resultado = $service->enviarAResponsable(
                 $responsable->email,
                 $responsable->nombre,
                 $titulo,
@@ -133,19 +137,28 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
                 route('admin.soporte.index')
             );
 
-            Log::info("📧 ✅ Correo enviado al responsable", [
-                'ficha_id' => $ficha->id,
-                'evento' => $this->evento,
-                'email' => $responsable->email,
-            ]);
+            if ($resultado) {
+                Log::info("[Job Soporte] Correo enviado al responsable", [
+                    'ficha_id' => $ficha->id,
+                    'evento' => $this->evento,
+                    'email' => $responsable->email,
+                ]);
+            } else {
+                Log::warning("[Job Soporte] El servicio devolvio FALSE al enviar", [
+                    'ficha_id' => $ficha->id,
+                    'email' => $responsable->email,
+                    'revisar_log_del_servicio' => true,
+                ]);
+            }
 
         } catch (\Throwable $e) {
-            Log::error("❌ [Job Soporte] Error al enviar al responsable", [
+            Log::error("[Job Soporte] Error CRITICO al enviar al responsable", [
                 'ficha_id' => $ficha->id,
                 'email' => $responsable->email,
                 'error' => $e->getMessage(),
+                'error_class' => get_class($e),
+                'trace' => $e->getTraceAsString(),
             ]);
-            throw $e;
         }
     }
 
@@ -157,7 +170,7 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
 
         if (!$tecnico) return;
 
-        Log::info("📧 [Job Soporte] Enviando notificación al técnico", [
+        Log::info("[Job Soporte] Enviando notificacion al tecnico", [
             'ficha_id' => $ficha->id,
             'tecnico_id' => $tecnico->id,
             'evento' => $this->evento,
@@ -172,22 +185,19 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
                 route('admin.soporte.index')
             );
         } catch (\Throwable $e) {
-            Log::error("❌ [Job Soporte] Error al notificar técnico: " . $e->getMessage());
+            Log::error("[Job Soporte] Error al notificar tecnico: " . $e->getMessage());
         }
     }
-
-    // ❌ MÉTODO ELIMINADO: notificarAdmins()
-    // protected function notificarAdmins(FichaSoporte $ficha, NotificacionService $service): void { ... }
 
     protected function obtenerResponsableConEmail(?Activo $activo): ?Responsable
     {
         if (!$activo) {
-            Log::warning("⚠️ [Job Soporte] Activo es null, no se puede buscar responsable");
+            Log::warning("[Job Soporte] Activo es null, no se puede buscar responsable");
             return null;
         }
 
         if ($activo->responsable && !empty($activo->responsable->email)) {
-            Log::info("✅ [Job Soporte] Usando responsable directo del activo", [
+            Log::info("[Job Soporte] Usando responsable directo del activo", [
                 'activo_id' => $activo->id,
                 'responsable_id' => $activo->responsable->id,
                 'email' => $activo->responsable->email,
@@ -203,7 +213,7 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
                 ->first();
 
             if ($respDepto) {
-                Log::info("✅ [Job Soporte] Usando responsable del departamento del activo", [
+                Log::info("[Job Soporte] Usando responsable del departamento del activo", [
                     'activo_id' => $activo->id,
                     'departamento_id' => $activo->departamento_id,
                     'email' => $respDepto->email,
@@ -211,7 +221,7 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
                 return $respDepto;
             }
 
-            Log::warning("⚠️ [Job Soporte] Departamento sin responsable con email. NO se hará fallback a institución.", [
+            Log::warning("[Job Soporte] Departamento sin responsable con email. NO se hara fallback a institucion.", [
                 'activo_id' => $activo->id,
                 'departamento_id' => $activo->departamento_id,
             ]);
@@ -227,7 +237,7 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
                 ->first();
 
             if ($respInst) {
-                Log::info("✅ [Job Soporte] Usando responsable institucional", [
+                Log::info("[Job Soporte] Usando responsable institucional", [
                     'activo_id' => $activo->id,
                     'institucion_id' => $activo->institucion_id,
                     'email' => $respInst->email,
@@ -236,7 +246,7 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
             }
         }
 
-        Log::warning("❌ [Job Soporte] No se encontró responsable con email", [
+        Log::warning("[Job Soporte] No se encontro responsable con email", [
             'activo_id' => $activo->id,
             'departamento_id' => $activo->departamento_id,
             'institucion_id' => $activo->institucion_id,
@@ -256,63 +266,60 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
     protected function tituloResponsable(): string
     {
         return match ($this->evento) {
-            'creada' => '🔄 Solicitud de Reparación en Proceso',
-            'aceptada' => '✅ Solicitud de Reparación ACEPTADA',
-            'rechazada' => '❌ Solicitud de Reparación RECHAZADA',
-            'finalizada' => '✅ Reparación Finalizada - RETIRAR EQUIPO',
-            'eliminada' => '⚠️ Solicitud de Reparación Cancelada',
-            default => 'Actualización de Solicitud de Reparación',
+            'creada' => 'Solicitud de Reparacion en Proceso',
+            'aceptada' => 'Solicitud de Reparacion Aceptada',
+            'rechazada' => 'Solicitud de Reparacion Rechazada',
+            'finalizada' => 'Reparacion Finalizada - Retirar Equipo',
+            'eliminada' => 'Solicitud de Reparacion Cancelada',
+            default => 'Actualizacion de Solicitud de Reparacion',
         };
     }
 
     protected function tituloTecnico(): string
     {
         return match ($this->evento) {
-            'creada' => '🔧 Nueva Ficha de Soporte Asignada',
-            'aceptada' => '✅ Ficha de Soporte ACEPTADA',
-            'finalizada' => '✅ Ficha de Soporte Finalizada',
-            default => 'Actualización de Ficha de Soporte',
+            'creada' => 'Nueva Ficha de Soporte Asignada',
+            'aceptada' => 'Ficha de Soporte Aceptada',
+            'finalizada' => 'Ficha de Soporte Finalizada',
+            default => 'Actualizacion de Ficha de Soporte',
         };
     }
-
-    // ❌ MÉTODO ELIMINADO: tituloAdmin()
-    // protected function tituloAdmin(): string { ... }
 
     protected function mensajeResponsable(FichaSoporte $ficha, Responsable $responsable): string
     {
         $base = "Estimado/a {$responsable->nombre},\n\n";
         $equipo = $this->nombreEquipo($ficha);
         $institucion = $ficha->activo?->institucion?->nombre ?? 'No especificada';
-        $detalle = "📌 Ficha #{$ficha->id}\n🔧 Equipo: {$equipo}\n🏢 Institución: {$institucion}\n\n";
+        $detalle = "Ficha #{$ficha->id}\nEquipo: {$equipo}\nInstitucion: {$institucion}\n\n";
 
         return match ($this->evento) {
             'creada' =>
-                $base . "🔄 SU SOLICITUD DE REPARACIÓN ESTÁ EN PROCESO\n\n" . $detalle .
-                "📝 Diagnóstico:\n" . ($ficha->diagnostico ?? 'N/A') . "\n\n" .
-                "📅 Fecha requerida: " . ($ficha->fecha_requerida_entrega ? $ficha->fecha_requerida_entrega->format('d/m/Y') : 'No especificada') . "\n\n" .
-                "📍 Lugar de reparación:\nGobernación del Estado Yaracuy\nDepartamento de Informática\nSan Felipe, Edo. Yaracuy\n\n" .
-                "📌 Instrucciones:\n1. Lleve el equipo.\n2. Presente este correo.\n3. Le notificaremos al ser ACEPTADA o RECHAZADA.\n\nGracias.",
+                $base . "SU SOLICITUD DE REPARACION ESTA EN PROCESO\n\n" . $detalle .
+                "Diagnostico:\n" . ($ficha->diagnostico ?? 'N/A') . "\n\n" .
+                "Fecha requerida: " . ($ficha->fecha_requerida_entrega ? $ficha->fecha_requerida_entrega->format('d/m/Y') : 'No especificada') . "\n\n" .
+                "Lugar de reparacion:\nGobernacion del Estado Yaracuy\nDepartamento de Informatica\nSan Felipe, Edo. Yaracuy\n\n" .
+                "Instrucciones:\n1. Lleve el equipo.\n2. Presente este correo.\n3. Le notificaremos al ser ACEPTADA o RECHAZADA.\n\nGracias.",
 
             'aceptada' =>
-                $base . "✅ SU SOLICITUD HA SIDO ACEPTADA\n\n" . $detalle .
-                "📅 Aceptada: " . ($ficha->fecha_aceptacion ? $ficha->fecha_aceptacion->format('d/m/Y H:i') : now()->format('d/m/Y H:i')) . "\n" .
-                "👨‍🔧 Técnico: " . ($ficha->tecnico_nombre ?? 'Pendiente') . "\n\n" .
-                "Procederemos con la reparación.\n\nGracias.",
+                $base . "SU SOLICITUD HA SIDO ACEPTADA\n\n" . $detalle .
+                "Aceptada: " . ($ficha->fecha_aceptacion ? $ficha->fecha_aceptacion->format('d/m/Y H:i') : now()->format('d/m/Y H:i')) . "\n" .
+                "Tecnico: " . ($ficha->tecnico_nombre ?? 'Pendiente') . "\n\n" .
+                "Procederemos con la reparacion.\n\nGracias.",
 
             'rechazada' =>
-                $base . "❌ SU SOLICITUD HA SIDO RECHAZADA\n\n" . $detalle .
-                "📝 Motivo:\n" . ($ficha->motivo_rechazo ?? 'No especificado') . "\n\n" .
-                "📍 Puede retirar su equipo en:\nGobernación del Estado Yaracuy\nDepartamento de Informática\nSan Felipe, Edo. Yaracuy\n\nGracias.",
+                $base . "SU SOLICITUD HA SIDO RECHAZADA\n\n" . $detalle .
+                "Motivo:\n" . ($ficha->motivo_rechazo ?? 'No especificado') . "\n\n" .
+                "Puede retirar su equipo en:\nGobernacion del Estado Yaracuy\nDepartamento de Informatica\nSan Felipe, Edo. Yaracuy\n\nGracias.",
 
             'finalizada' =>
-                $base . "✅ REPARACIÓN FINALIZADA\n\n" . $detalle .
-                "📝 Trabajo:\n" . ($ficha->trabajo_realizado ?? 'No especificado') . "\n\n" .
-                "📍 Puede retirar el equipo en:\nGobernación del Estado Yaracuy\nDepartamento de Informática\nSan Felipe, Edo. Yaracuy\n\n" .
-                "📌 Instrucciones:\n1. Presente este correo.\n2. Horario: L-V 8AM-4PM.\n\nGracias.",
+                $base . "REPARACION FINALIZADA\n\n" . $detalle .
+                "Trabajo:\n" . ($ficha->trabajo_realizado ?? 'No especificado') . "\n\n" .
+                "Puede retirar el equipo en:\nGobernacion del Estado Yaracuy\nDepartamento de Informatica\nSan Felipe, Edo. Yaracuy\n\n" .
+                "Instrucciones:\n1. Presente este correo.\n2. Horario: L-V 8AM-4PM.\n\nGracias.",
 
             'eliminada' =>
-                $base . "⚠️ SOLICITUD CANCELADA\n\n" . $detalle .
-                "📍 Si ya llevó el equipo, puede retirarlo en:\nGobernación del Estado Yaracuy\nDepartamento de Informática\n\nGracias.",
+                $base . "SOLICITUD CANCELADA\n\n" . $detalle .
+                "Si ya llevo el equipo, puede retirarlo en:\nGobernacion del Estado Yaracuy\nDepartamento de Informatica\n\nGracias.",
 
             default => $base . $detalle,
         };
@@ -324,13 +331,10 @@ class EnviarNotificacionFichaSoporte implements ShouldQueue
         $institucion = $ficha->activo?->institucion?->nombre ?? 'No especificada';
 
         return match ($this->evento) {
-            'creada' => "Se te asignó la ficha #{$ficha->id}.\n\n🔧 Equipo: {$equipo}\n🏢 Institución: {$institucion}\n📝 Diagnóstico: " . substr($ficha->diagnostico ?? 'N/A', 0, 200) . "\n📅 Fecha requerida: " . ($ficha->fecha_requerida_entrega ? $ficha->fecha_requerida_entrega->format('d/m/Y') : 'N/A') . "\n\nProcede con la reparación.",
-            'aceptada' => "Ficha #{$ficha->id} ACEPTADA. Procede con la reparación.",
-            'finalizada' => "Ficha #{$ficha->id} FINALIZADA.\n\n🔧 Equipo: {$equipo}\n📝 Trabajo: " . substr($ficha->trabajo_realizado ?? 'N/A', 0, 200),
-            default => "Actualización de la ficha #{$ficha->id}.",
+            'creada' => "Se te asigno la ficha #{$ficha->id}.\n\nEquipo: {$equipo}\nInstitucion: {$institucion}\nDiagnostico: " . substr($ficha->diagnostico ?? 'N/A', 0, 200) . "\nFecha requerida: " . ($ficha->fecha_requerida_entrega ? $ficha->fecha_requerida_entrega->format('d/m/Y') : 'N/A') . "\n\nProcede con la reparacion.",
+            'aceptada' => "Ficha #{$ficha->id} ACEPTADA. Procede con la reparacion.",
+            'finalizada' => "Ficha #{$ficha->id} FINALIZADA.\n\nEquipo: {$equipo}\nTrabajo: " . substr($ficha->trabajo_realizado ?? 'N/A', 0, 200),
+            default => "Actualizacion de la ficha #{$ficha->id}.",
         };
     }
-
-    // ❌ MÉTODO ELIMINADO: mensajeAdmin()
-    // protected function mensajeAdmin(FichaSoporte $ficha): string { ... }
 }

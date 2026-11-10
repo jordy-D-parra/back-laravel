@@ -780,45 +780,48 @@ class SolicitudController extends Controller
         }
     }
 
-    // ============================================================
-    // CORREOS
-    // ============================================================
     public function correosIndex(Request $request)
-    {
-        if (!auth()->user()->hasPermission('ver-solicitudes')) {
-            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
-        }
-
-        $query = CorreoRecibido::deTipoSolicitud()
-            ->with(['solicitud', 'usuario'])
-            ->orderBy('received_at', 'desc');
-
-        if ($request->filled('buscar')) {
-            $buscar = $request->buscar;
-            $query->where(function ($q) use ($buscar) {
-                $q->where('from_email', 'ILIKE', "%{$buscar}%")
-                  ->orWhere('from_name', 'ILIKE', "%{$buscar}%")
-                  ->orWhere('subject', 'ILIKE', "%{$buscar}%")
-                  ->orWhere('body_text', 'ILIKE', "%{$buscar}%");
-            });
-        }
-
-        if ($request->filled('filtro')) {
-            if ($request->filtro === 'no_leidos') $query->where('leido', false);
-            elseif ($request->filtro === 'no_procesados') $query->where('procesado', false);
-            elseif ($request->filtro === 'procesados') $query->where('procesado', true);
-        }
-
-        $correos = $query->paginate(20);
-
-        return response()->json([
-            'success' => true,
-            'data' => $correos->items(),
-            'total' => $correos->total(),
-            'no_leidos' => CorreoRecibido::deTipoSolicitud()->where('leido', false)->count(),
-            'no_procesados' => CorreoRecibido::deTipoSolicitud()->where('procesado', false)->count(),
-        ]);
+{
+    if (!auth()->user()->hasPermission('ver-solicitudes')) {
+        return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
     }
+
+    $query = CorreoRecibido::deTipoSolicitud()
+        ->with(['solicitud', 'usuario'])
+        ->orderBy('received_at', 'desc');
+
+    if ($request->filled('buscar')) {
+        $buscar = $request->buscar;
+        $query->where(function ($q) use ($buscar) {
+            $q->where('from_email', 'ILIKE', "%{$buscar}%")
+              ->orWhere('from_name', 'ILIKE', "%{$buscar}%")
+              ->orWhere('subject', 'ILIKE', "%{$buscar}%")
+              ->orWhere('body_text', 'ILIKE', "%{$buscar}%");
+        });
+    }
+
+    if ($request->filled('filtro')) {
+        if ($request->filtro === 'no_leidos') $query->where('leido', false);
+        elseif ($request->filtro === 'no_procesados') $query->where('procesado', false);
+        elseif ($request->filtro === 'procesados') $query->where('procesado', true);
+    }
+
+    $perPage = (int) $request->input('per_page', 10);
+    $correos = $query->paginate($perPage)->appends($request->query());
+
+    return response()->json([
+        'success'          => true,
+        'data'             => $correos->items(),
+        'total'            => $correos->total(),
+        'current_page'     => $correos->currentPage(),
+        'last_page'        => $correos->lastPage(),
+        'per_page'         => $correos->perPage(),
+        'from'             => $correos->firstItem(),
+        'to'               => $correos->lastItem(),
+        'no_leidos'        => CorreoRecibido::deTipoSolicitud()->where('leido', false)->count(),
+        'no_procesados'    => CorreoRecibido::deTipoSolicitud()->where('procesado', false)->count(),
+    ]);
+}
 
     public function correoShow($id)
     {

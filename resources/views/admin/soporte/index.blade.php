@@ -22,7 +22,6 @@
             </h4>
             <p>Gestión de mantenimiento y reparaciones</p>
         </div>
-        {{-- ✅ Botón "Nueva Ficha" ELIMINADO --}}
     </div>
 
     {{-- ========== TARJETAS DE ESTADÍSTICAS ========== --}}
@@ -98,7 +97,6 @@
             </button>
         </li>
         @endif
-        {{-- ✅ NUEVO TAB: TÉCNICOS ASIGNADOS --}}
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="tab-tecnicos-asignados" data-bs-toggle="tab" data-bs-target="#panel-tecnicos-asignados" type="button" role="tab">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -434,12 +432,15 @@
                     </button>
                 </div>
             </div>
-            <div id="listaCorreos" class="p-3" style="background: white; border-radius: 12px;">
+            <div id="listaCorreos" class="p-3" style="background: white; border-radius: 12px 12px 0 0;">
                 <div class="text-center py-5 text-muted">
                     <div class="spinner-border text-primary" role="status"></div>
                     <p class="mt-2">Cargando correos...</p>
                 </div>
             </div>
+
+            {{-- ✅ Contenedor de paginación de correos --}}
+            <div id="paginacionCorreos" style="background: white; border-radius: 0 0 12px 12px; border-top: 1px solid #e9ecef;"></div>
         </div>
         @endif
 
@@ -783,7 +784,7 @@
     </div>
 </div>
 
-{{-- ✅ NUEVO MODAL: Detalle de Equipo en Reparación (Técnicos Asignados) --}}
+{{-- Modal Detalle de Equipo en Reparación (Técnicos Asignados) --}}
 <div class="modal fade" id="modalDetalleEquipoReparacion" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">

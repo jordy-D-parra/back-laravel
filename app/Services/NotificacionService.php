@@ -42,11 +42,29 @@ class NotificacionService
             // Verificar configuración de correo
             $mailer = config('mail.default');
             $fromAddress = config('mail.from.address');
+            $smtpHost = config('mail.mailers.smtp.host');
+            $smtpPort = config('mail.mailers.smtp.port');
+            $smtpEncryption = config('mail.mailers.smtp.encryption');
+            $smtpUsername = config('mail.mailers.smtp.username');
+            $smtpPasswordLength = strlen(config('mail.mailers.smtp.password') ?? '');
 
             Log::debug("📧 [NotificacionService] Configuración de correo", [
                 'mailer' => $mailer,
                 'from_address' => $fromAddress,
+                'smtp_host' => $smtpHost,
+                'smtp_port' => $smtpPort,
+                'smtp_encryption' => $smtpEncryption,
+                'smtp_username' => $smtpUsername,
+                'smtp_password_length' => $smtpPasswordLength,
             ]);
+
+            if (empty($smtpUsername) || $smtpPasswordLength === 0) {
+                Log::error("❌ [NotificacionService] Credenciales SMTP vacías", [
+                    'smtp_username' => $smtpUsername,
+                    'smtp_password_length' => $smtpPasswordLength,
+                ]);
+                return false;
+            }
 
             // Enviar el correo
             Mail::to($email)->send(new NotificacionMail(
@@ -68,21 +86,22 @@ class NotificacionService
                 'nombre' => $nombre,
                 'titulo' => $titulo,
                 'error' => $e->getMessage(),
+                'error_class' => get_class($e),
                 'trace' => $e->getTraceAsString(),
                 'mailer' => config('mail.default'),
+                'smtp_host' => config('mail.mailers.smtp.host'),
+                'smtp_port' => config('mail.mailers.smtp.port'),
+                'smtp_encryption' => config('mail.mailers.smtp.encryption'),
+                'smtp_username' => config('mail.mailers.smtp.username'),
             ]);
 
             // No lanzar la excepción para que no detenga el proceso
-            // pero registramos el error
             return false;
         }
     }
 
     /**
      * Envía una notificación interna (campanita) y opcionalmente por email.
-     *
-     * ✅ EXCLUYE a los administradores y super_administradores:
-     *    Por diseño del sistema, el admin NO recibe notificaciones automáticas.
      */
     public function enviarAUsuario(
         Usuario $usuario,
