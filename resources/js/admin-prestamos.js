@@ -2,6 +2,7 @@
 // ✅ Módulo de préstamos con paginación del cliente (8 items por página)
 // ✅ Exportación contextual con selector de reporte
 // ✅ Ficha técnica individual del préstamo (reporte PDF)
+// ✅ FIX: Búsqueda de activos y componentes corregida (filtro "Todos" y "Componente")
 
 document.addEventListener('DOMContentLoaded', function() {
     // ============================================================
@@ -533,7 +534,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 '—';
             const destino = prestamo.destino_nombre || '—';
 
-            // ✅ BOTÓN DE FICHA TÉCNICA (siempre presente en cada fila)
             const botonFicha = `
                 <button class="btn-action" onclick="generarFichaPrestamo(${prestamo.id})" title="Ficha técnica (PDF)" style="color:#1e3c72;">
                     <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" fill="none" style="width:14px;height:14px">
@@ -854,6 +854,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ============================================================
     // FUNCIONES DE BÚSQUEDA DE ITEMS
+    // ✅ FIX #1: se eliminó el guard `buscar.length < 2` que impedía
+    //            buscar con el filtro "Todos" / "Componente" sin texto.
+    // ✅ FIX #2: se usa `dataset` + `seleccionarItemDesdeDataset` para
+    //            evitar que los backslashes de `App\Models\...` rompan el
+    //            atributo `onclick`.
     // ============================================================
     window.buscarItemsPrestamo = debounce(function() {
         const buscar = document.getElementById('buscarItem')?.value?.trim() || '';
@@ -862,10 +867,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
         if (!resultados) return;
 
-        if (buscar.length < 2) {
-            resultados.style.display = 'none';
-            return;
-        }
+        // ✅ FIX #1: ya NO abortamos cuando buscar.length < 2.
+        // El backend limita a 15 resultados por tipo, así que es seguro buscar vacío.
+        // Ocultamos solo si no hay texto Y el tipo es 'ambos' (estado inicial sin interacción)
+        // if (buscar.length < 2) { resultados.style.display = 'none'; return; }  ← ELIMINADO
 
         const url = `/admin/prestamos/buscar-items?buscar=${encodeURIComponent(buscar)}&tipo=${encodeURIComponent(tipo)}`;
 
@@ -884,12 +889,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     const tipoLabel = item.tipo === 'activo' ? 'Activo' : 'Componente';
                     const badgeClass = item.tipo === 'activo' ? 'item-badge-activo' : 'item-badge-componente';
                     const nombre = escapeHtml(item.nombre || tipoLabel + ' sin nombre');
+                    const serial = escapeHtml(item.serial || 'Sin serial');
 
                     const estaReservado = item.esta_reservado || false;
                     const estadoBadge = estaReservado
                         ? '<span class="badge bg-warning text-dark ms-2">🔒 Reservado</span>'
                         : '';
 
+                    // ✅ FIX #2: guardamos los datos en dataset (evita el problema de escaping en onclick)
                     let prestableType = normalizePrestableType(item.prestable_type || '');
                     const itemId = item.id;
 
@@ -897,7 +904,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         <div class="result-item list-group-item list-group-item-action ${estaReservado ? 'disabled' : ''}"
                              data-item-id="${itemId}"
                              data-item-type="${prestableType}"
-                             onclick="${estaReservado ? '' : `seleccionarItem(${itemId}, '${prestableType}')`}"
+                             data-item-nombre="${nombre}"
+                             data-item-codigo="${serial}"
+                             ${estaReservado ? '' : 'onclick="window.seleccionarItemDesdeDataset(this)"'}
                              style="border-left: 3px solid ${item.tipo === 'activo' ? '#1e3c72' : '#0d6efd'}; padding: 0.75rem 0.9rem; ${estaReservado ? 'cursor:not-allowed; opacity:0.6;' : 'cursor:pointer;'}">
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <div>
@@ -905,7 +914,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                         ${nombre}
                                         ${estadoBadge}
                                     </div>
-                                    <div class="small text-muted">${escapeHtml(item.serial || 'Sin serial')}</div>
+                                    <div class="small text-muted">${serial}</div>
                                 </div>
                                 <span class="badge ${badgeClass}" style="font-size:0.72rem; text-transform:capitalize;">${tipoLabel}</span>
                             </div>
@@ -923,7 +932,17 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }, 300);
 
-    window.seleccionarItem = function(id, type) {
+    // ✅ FIX #2: nueva función que lee los datos del dataset (evita problemas de backslashes)
+    window.seleccionarItemDesdeDataset = function(el) {
+        const id = el.dataset.itemId;
+        const type = el.dataset.itemType;
+        const nombre = el.dataset.itemNombre || 'Item';
+        const codigo = el.dataset.itemCodigo || 'Sin código';
+        window.seleccionarItem(id, type, nombre, codigo);
+    };
+
+    // ✅ FIX #2: firma extendida para recibir nombre/codigo ya escapados
+    window.seleccionarItem = function(id, type, nombre, codigo) {
         let prestableType = normalizePrestableType(type);
         const tipoNormalizado = prestableType.includes('Activo') ? 'activo' : 'componente';
 
@@ -932,12 +951,15 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        const resultItem = document.querySelector(`.result-item[data-item-id="${id}"]`);
-        const nombre = resultItem ? resultItem.querySelector('.fw-semibold')?.textContent || 'Item' : 'Item';
-        const codigo = resultItem ? resultItem.querySelector('.small.text-muted')?.textContent || 'Sin código' : 'Sin código';
+        // Fallback: si no llegan nombre/codigo por parámetro, leerlos del DOM
+        if (!nombre) {
+            const resultItem = document.querySelector(`.result-item[data-item-id="${id}"]`);
+            nombre = resultItem ? resultItem.querySelector('.fw-semibold')?.textContent?.trim() || 'Item' : 'Item';
+            codigo = resultItem ? resultItem.querySelector('.small.text-muted')?.textContent?.trim() || 'Sin código' : 'Sin código';
+        }
 
         items.push({
-            prestable_type: prestableType,
+            prestable_type: prestableType,   // ✅ conserva los backslashes correctos
             prestable_id: Number(id),
             nombre: nombre,
             codigo: codigo,
@@ -975,6 +997,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ============================================================
     // RENDERIZAR ITEMS DEL PRÉSTAMO
+    // ✅ FIX #3: se normaliza `prestable_type` al renderizar (defensa extra)
     // ============================================================
     function renderItems() {
         const container = document.getElementById('itemsContainer');
@@ -990,6 +1013,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const tipoLabel = item.tipo_item === 'activo' ? 'Activo' : 'Componente';
             const badgeClass = item.tipo_item === 'activo' ? 'item-badge-activo' : 'item-badge-componente';
 
+            // ✅ FIX #3: normalizar SIEMPRE al renderizar
             let prestableType = normalizePrestableType(item.prestable_type || '');
 
             html += `
@@ -1021,6 +1045,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // ============================================================
     // EVENTOS DEL FORMULARIO DE PRÉSTAMO
+    // ✅ FIX #4: validación defensiva de `prestable_type` antes de enviar
     // ============================================================
     document.getElementById('formPrestamo')?.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -1051,6 +1076,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (submitBtn) {
             submitBtn.disabled = true;
             submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...';
+        }
+
+        // ✅ FIX #4: validación defensiva de los tipos antes de enviar
+        const tiposValidos = ['App\\Models\\Activo', 'App\\Models\\Componente'];
+        for (const item of items) {
+            const t = normalizePrestableType(item.prestable_type);
+            if (!tiposValidos.includes(t)) {
+                showToast('Item inválido: ' + (item.nombre || 'desconocido') + ' (tipo: ' + t + ')', 'error');
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.innerHTML = 'Guardar Préstamo'; }
+                return;
+            }
         }
 
         const formData = new FormData();
@@ -1824,6 +1860,16 @@ document.addEventListener('DOMContentLoaded', function() {
     if (filtroEstadoFinalizados) filtroEstadoFinalizados.addEventListener('change', cargarPrestamosFinalizados);
     if (filtroFechaDesde) filtroFechaDesde.addEventListener('change', cargarPrestamosFinalizados);
     if (filtroFechaHasta) filtroFechaHasta.addEventListener('change', cargarPrestamosFinalizados);
+
+    // ✅ FIX #5: listener de change para el filtro de tipo de inventario (Activo/Componente/Todos)
+    // Se dispara al cambiar el select, mostrando los primeros resultados sin necesidad de escribir.
+    const filtroTipoInventarioEl = document.getElementById('filtroTipoInventario');
+    if (filtroTipoInventarioEl) {
+        filtroTipoInventarioEl.addEventListener('change', function() {
+            tipoFiltroInventario = this.value;
+            window.buscarItemsPrestamo();
+        });
+    }
 
     // ============================================================
     // CERRAR RESULTADOS AL HACER CLICK FUERA

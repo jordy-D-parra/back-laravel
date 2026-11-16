@@ -871,50 +871,44 @@ class PrestamoController extends Controller
         ]);
     }
 
-    // ===========================
-    // API: BUSCAR ACTIVOS/COMPONENTES DISPONIBLES (EXCLUYE RESERVADOS)
-    // ===========================
-    public function buscarItems(Request $request)
-    {
-        $request->validate([
-            'buscar' => 'nullable|string|max:100',
-            'tipo' => 'nullable|in:activo,componente,ambos',
-        ]);
+   public function buscarItems(Request $request)
+{
+    $request->validate([
+        'buscar' => 'nullable|string|max:100',
+        'tipo' => 'nullable|in:activo,componente,ambos',
+    ]);
 
+    try {
         $resultados = [];
         $tipo = $request->tipo ?? 'ambos';
         $buscar = $request->buscar;
 
+        // =========================
+        // ACTIVOS
+        // =========================
         if ($tipo === 'ambos' || $tipo === 'activo') {
-            $activos = Activo::with(['modelo.marca', 'modelo.categoria'])
-                ->when($buscar, function($q) use ($buscar) {
-                    $q->where(function($q) use ($buscar) {
+            $query = Activo::with(['modelo.marca', 'modelo.categoria'])
+                ->when($buscar, function ($q) use ($buscar) {
+                    $q->where(function ($q) use ($buscar) {
                         $q->where('serial', 'ILIKE', "%{$buscar}%")
-                          ->orWhereHas('modelo', function($q) use ($buscar) {
-                              $q->where('nombre', 'ILIKE', "%{$buscar}%");
-                          })
-                          ->orWhereHas('modelo.marca', function($q) use ($buscar) {
-                              $q->where('nombre', 'ILIKE', "%{$buscar}%");
-                          })
-                          ->orWhereHas('modelo.categoria', function($q) use ($buscar) {
-                              $q->where('nombre', 'ILIKE', "%{$buscar}%");
-                          });
+                          ->orWhereHas('modelo', fn($qq) => $qq->where('nombre', 'ILIKE', "%{$buscar}%"))
+                          ->orWhereHas('modelo.marca', fn($qq) => $qq->where('nombre', 'ILIKE', "%{$buscar}%"))
+                          ->orWhereHas('modelo.categoria', fn($qq) => $qq->where('nombre', 'ILIKE', "%{$buscar}%"));
                     });
                 })
-                // ========== EXCLUIR RESERVADOS Y NO DISPONIBLES ==========
-                ->whereNull('reservado_en_prestamo_id')
-                ->whereHas('estatus', function($q) {
-                    $q->where('permite_prestamo', true);
-                })
-                ->limit(15)
-                ->get();
+                ->whereHas('estatus', fn($q) => $q->where('permite_prestamo', true))
+                ->whereNull('reservado_en_prestamo_id');
 
-            foreach ($activos as $activo) {
+            foreach ($query->limit(15)->get() as $activo) {
                 $resultados[] = [
                     'id' => $activo->id,
                     'tipo' => 'activo',
                     'prestable_type' => Activo::class,
-                    'nombre' => trim(($activo->modelo->marca->nombre ?? '') . ' ' . ($activo->modelo->nombre ?? '') . ' ' . $activo->serial),
+                    'nombre' => trim(
+                        ($activo->modelo->marca->nombre ?? '') . ' ' .
+                        ($activo->modelo->nombre ?? '') . ' ' .
+                        $activo->serial
+                    ),
                     'serial' => $activo->serial,
                     'marca' => $activo->modelo->marca->nombre ?? '',
                     'modelo' => $activo->modelo->nombre ?? '',
@@ -923,28 +917,33 @@ class PrestamoController extends Controller
             }
         }
 
+        // =========================
+        // COMPONENTES (SIN with('modeloComponente') — esa relación NO existe)
+        // =========================
         if ($tipo === 'ambos' || $tipo === 'componente') {
-            $componentes = Componente::with('modeloComponente')
-                ->when($buscar, function($q) use ($buscar) {
-                    $q->where(function($q) use ($buscar) {
+            $query = Componente::query()   // ✅ sin with()
+                ->when($buscar, function ($q) use ($buscar) {
+                    $q->where(function ($q) use ($buscar) {
                         $q->where('serial', 'ILIKE', "%{$buscar}%")
                           ->orWhere('tipo', 'ILIKE', "%{$buscar}%")
                           ->orWhere('marca', 'ILIKE', "%{$buscar}%")
                           ->orWhere('modelo', 'ILIKE', "%{$buscar}%");
                     });
                 })
-                // ========== EXCLUIR RESERVADOS ==========
                 ->where('estado', 'en_bodega')
-                ->whereNull('reservado_en_prestamo_id')
-                ->limit(15)
-                ->get();
+                ->whereNull('reservado_en_prestamo_id');
 
-            foreach ($componentes as $componente) {
+            foreach ($query->limit(15)->get() as $componente) {
                 $resultados[] = [
                     'id' => $componente->id,
                     'tipo' => 'componente',
                     'prestable_type' => Componente::class,
-                    'nombre' => trim($componente->tipo . ' ' . $componente->marca . ' ' . $componente->modelo . ' ' . $componente->serial),
+                    'nombre' => trim(
+                        $componente->tipo . ' ' .
+                        $componente->marca . ' ' .
+                        $componente->modelo . ' ' .
+                        $componente->serial
+                    ),
                     'serial' => $componente->serial,
                     'marca' => $componente->marca,
                     'modelo' => $componente->modelo,
@@ -953,31 +952,39 @@ class PrestamoController extends Controller
             }
         }
 
-        // Ordenar resultados
+        // Ordenar por relevancia
         if ($buscar) {
             $buscarLower = strtolower($buscar);
-            usort($resultados, function($a, $b) use ($buscarLower) {
-                $aScore = 0;
-                $bScore = 0;
-
+            usort($resultados, function ($a, $b) use ($buscarLower) {
+                $aScore = $bScore = 0;
                 if (strpos(strtolower($a['serial'] ?? ''), $buscarLower) !== false) $aScore += 10;
                 if (strpos(strtolower($b['serial'] ?? ''), $buscarLower) !== false) $bScore += 10;
-
                 if (strpos(strtolower($a['modelo'] ?? ''), $buscarLower) !== false) $aScore += 5;
                 if (strpos(strtolower($b['modelo'] ?? ''), $buscarLower) !== false) $bScore += 5;
-
                 if (strpos(strtolower($a['marca'] ?? ''), $buscarLower) !== false) $aScore += 3;
                 if (strpos(strtolower($b['marca'] ?? ''), $buscarLower) !== false) $bScore += 3;
-
                 return $bScore - $aScore;
             });
         }
 
         return response()->json([
             'success' => true,
-            'data' => $resultados
+            'data' => $resultados,
         ]);
+    } catch (\Throwable $e) {
+        Log::error('buscarItems error: ' . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'tipo' => $request->tipo,
+            'buscar' => $request->buscar,
+        ]);
+        return response()->json([
+            'success' => false,
+            'message' => 'Error al buscar items: ' . $e->getMessage(),
+            'data' => [],
+        ], 500);
     }
+}
 
     // ===========================
     // API: SOLICITUDES PARA PRÉSTAMO
