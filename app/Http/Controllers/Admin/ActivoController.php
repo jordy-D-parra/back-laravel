@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Activo;
 use App\Models\Componente;
 use App\Models\Estatus;
+use App\Models\FichaSoporte;   // ✅ NUEVO
 use App\Models\Modelo;
 use App\Models\Institucion;
 use App\Models\Departamento;
@@ -76,7 +77,7 @@ class ActivoController extends Controller
         }
     }
 
-        /**
+    /**
      * Endpoint JSON filtrado para la pantalla de Inventario.
      * Usa el scope conFiltros() — mismo que usa InventarioListadoReport.
      */
@@ -252,6 +253,7 @@ class ActivoController extends Controller
     // ============================================================
     // UPDATE — Actualizar activo + sincronizar componentes
     // ✅ RESPONSABLE AUTO-ASIGNADO desde institución/departamento
+    // ✅ NUEVO: cambio de estatus devuelve bloque "soporte"
     // ============================================================
     public function update(Request $request, $id)
     {
@@ -262,22 +264,76 @@ class ActivoController extends Controller
         try {
             $activo = Activo::findOrFail($id);
 
-            // Soporte para cambio de estado parcial (desde modal de cambio de estado)
+            // ========================================================
+            // CAMBIO DE ESTADO PARCIAL (desde modal de cambio de estado)
+            // ========================================================
             if ($request->has('id_estatus') && count($request->all()) <= 2) {
                 $request->validate([
                     'id_estatus' => 'required|exists:estatus,id',
                 ]);
 
-                $activo->update(['id_estatus' => $request->id_estatus]);
+                $nuevoEstatusId = (int) $request->id_estatus;
 
-                return response()->json([
+                $activo->update(['id_estatus' => $nuevoEstatusId]);
+
+                // Cargar relaciones para el prefill del modal de soporte
+                $activo->load([
+                    'estatus',
+                    'modelo.marca',
+                    'modelo.categoria',
+                    'institucion',
+                    'responsable',
+                ]);
+
+                $response = [
                     'success' => true,
                     'message' => 'Estado actualizado correctamente',
-                    'data' => $activo->fresh(['estatus']),
-                ]);
+                    'data'    => $activo->fresh(['estatus']),
+                ];
+
+                // 🆕 ¿Ofrecer crear ficha de soporte?
+                if (config('soporte.auto_crear_ficha_desde_activo')
+                    && $activo->requiereFichaSoporte($nuevoEstatusId)) {
+
+                    $puedeCrear = auth()->user()->hasPermission('crear-ficha-soporte');
+
+                    $fichaExistente = null;
+                    if ($puedeCrear) {
+                        $fichaExistente = FichaSoporte::where('activo_id', $activo->id)
+                            ->whereIn('estado', config('soporte.estados_ficha_abierta'))
+                            ->first();
+                    }
+
+                    $response['soporte'] = [
+                        'debe_ofrecer_ficha' => true,
+                        'puede_crear_ficha'  => $puedeCrear,
+                        'ficha_existente'    => $fichaExistente ? [
+                            'id'           => $fichaExistente->id,
+                            'estado'       => $fichaExistente->estado,
+                            'estado_label' => $fichaExistente->estado_label,
+                            'url'          => route('admin.soporte.show', $fichaExistente->id),
+                        ] : null,
+                        'prefill' => [
+                            'activo_id'     => $activo->id,
+                            'serial'        => $activo->serial,
+                            'marca'         => $activo->modelo?->marca?->nombre,
+                            'modelo'        => $activo->modelo?->nombre,
+                            'categoria'     => $activo->modelo?->categoria?->nombre,
+                            'ubicacion'     => $activo->ubicacion,
+                            'institucion'   => $activo->institucion?->nombre,
+                            'responsable'   => $activo->responsable?->nombre,
+                            'reportado_por' => auth()->user()->usuario ?? auth()->user()->name ?? 'Usuario',
+                            'fecha_reporte' => now()->toIso8601String(),
+                        ],
+                    ];
+                }
+
+                return response()->json($response);
             }
 
-            // Actualización completa
+            // ========================================================
+            // ACTUALIZACIÓN COMPLETA
+            // ========================================================
             $validated = $request->validate([
                 'serial' => 'required|string|max:100|unique:activos,serial,' . $id,
                 'modelo_id' => 'required|exists:modelos,id',
@@ -507,7 +563,7 @@ class ActivoController extends Controller
     // ============================================================
 
     /**
-     * ✅ NUEVO: Resolver responsable automático.
+     * ✅ Resolver responsable automático.
      * Prioridad:
      *   1. Si hay departamento → responsable del departamento
      *   2. Si hay institución → responsable directo (sin departamento)

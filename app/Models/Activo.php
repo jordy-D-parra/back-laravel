@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Activo extends Model
 {
@@ -352,4 +353,19 @@ class Activo extends Model
 
         return $query;
     }
+
+public function requiereFichaSoporte(int $nuevoEstatusId): bool
+{
+    $estatus = Estatus::find($nuevoEstatusId);
+    if (!$estatus || !$estatus->descripcion) {
+        return false;
+    }
+
+    $normalizado = strtolower(trim(Str::ascii($estatus->descripcion)));
+
+    // Solo 'Averiado' (o sus variantes sinónimas) dispara la ficha.
+    // 'En reparación' NO dispara, porque la ficha ya existe.
+    return in_array($normalizado, ['averiado', 'danado'], true);
+}
+
 }

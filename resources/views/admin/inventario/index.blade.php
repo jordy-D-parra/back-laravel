@@ -552,6 +552,7 @@
 {{-- Contenedor de Notificaciones --}}
 <div id="notification-container" style="position: fixed; top: 20px; right: 20px; z-index: 99999; width: 340px;"></div>
 
+@include('admin.inventario.partials.modal-ficha-desde-activo')
 @endsection
 
 @section('scripts')

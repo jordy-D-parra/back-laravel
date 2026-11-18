@@ -18,7 +18,7 @@ use App\Http\Controllers\Admin\ModeloComponenteController;
 use App\Http\Controllers\Admin\ActivoController;
 use App\Http\Controllers\Admin\ComponenteController;
 use App\Http\Controllers\Admin\InventarioController;
-use App\Http\Controllers\Admin\ImportController;          
+use App\Http\Controllers\Admin\ImportController;    
 use App\Http\Controllers\Admin\SolicitudController;
 use App\Http\Controllers\Admin\FichaSoporteController;
 use App\Http\Controllers\Admin\PrestamoController;
@@ -298,7 +298,7 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
         Route::delete("/componentes/{componente}", [ComponenteController::class, "destroy"])->middleware("permission:eliminar-componente")->name("componentes.destroy");
         Route::patch("/componentes/{componente}/toggle-status", [ComponenteController::class, "toggleStatus"])->middleware("permission:editar-componente")->name("componentes.toggle-status");
 
-                // ============================================================
+        // ============================================================
         // IMPORTACIÓN DE ACTIVOS DESDE EXCEL
         // ============================================================
         Route::prefix("importar")->name("importar.")->middleware("permission:crear-activo")->group(function () {
@@ -401,15 +401,16 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
                 Route::post("/{id}/convertir", [FichaSoporteController::class, "correoConvertir"])->middleware("permission:crear-ficha-soporte")->where("id", "[0-9]+")->name("convertir");
             });
 
-            Route::get("/tecnicos-asignados", [FichaSoporteController::class, "getTecnicosAsignados"])
-                ->middleware("permission:ver-fichas-soporte")
-                ->name("tecnicos-asignados");
-
             Route::middleware("permission:ver-fichas-soporte")->group(function () {
                 Route::get("/", [FichaSoporteController::class, "index"])->name("index");
                 Route::get("/{id}", [FichaSoporteController::class, "show"])->where("id", "[0-9]+")->name("show");
                 Route::get("/{id}/componentes", [FichaSoporteController::class, "getComponentesDetalle"])->where("id", "[0-9]+")->name("componentes");
             });
+
+            // 🆕 NUEVA: crear ficha desde cambio de estatus de un activo (Inventario)
+            Route::post("/desde-activo", [FichaSoporteController::class, "storeDesdeActivo"])
+                ->middleware("permission:crear-ficha-soporte")
+                ->name("desde-activo");
 
             Route::post("/", [FichaSoporteController::class, "store"])->middleware("permission:crear-ficha-soporte")->name("store");
             Route::post("/equipo-externo", [FichaSoporteController::class, "storeEquipoExterno"])->middleware("permission:crear-ficha-soporte")->name("equipo-externo");
@@ -417,7 +418,6 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
             Route::delete("/{id}", [FichaSoporteController::class, "destroy"])->middleware("permission:eliminar-ficha-soporte")->where("id", "[0-9]+")->name("destroy");
             Route::post("/{id}/close", [FichaSoporteController::class, "close"])->middleware("permission:cerrar-ficha-soporte")->where("id", "[0-9]+")->name("close");
 
-            // ✅ Aceptar y Rechazar ficha (despachan notificación al responsable)
             Route::post("/{id}/aceptar", [FichaSoporteController::class, "aceptar"])
                 ->middleware("permission:editar-ficha-soporte")
                 ->where("id", "[0-9]+")
@@ -444,10 +444,6 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
         // ============================================================
         Route::prefix("reportes")->name("reportes.")->middleware("permission:ver-reportes")->group(function () {
 
-            // ============================================================
-            // 1) REPORTES INDIVIDUALES (Ficha técnica de un solo registro)
-            //    ✅ VAN PRIMERO para que no las capture "/{key}/..."
-            // ============================================================
             Route::get("/ficha/{key}/{id}", [ReportController::class, "individual"])
                 ->where("key", "[a-z\-]+")
                 ->where("id", "[0-9]+")
@@ -458,17 +454,10 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
                 ->where("id", "[0-9]+")
                 ->name("individual.pdf");
 
-            // ============================================================
-            // 2) VISTA CLÁSICA (legacy)
-            // ============================================================
             Route::get("/", function () {
                 return view('admin.reportes.index');
             })->name("index");
 
-            // ============================================================
-            // 3) EXPLORADOR DE REPORTES (listados)
-            //    ⚠️ EXCLUIMOS "ficha" y "explorer" con regex negativa
-            // ============================================================
             Route::get("/explorer", [ReportController::class, "index"])->name("explorer");
 
             Route::get("/{key}/data", [ReportController::class, "data"])
@@ -480,9 +469,6 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
                 ->where("format", "pdf|xlsx|csv")
                 ->name("export");
 
-            // ============================================================
-            // 4) Rutas legacy (redirigen al explorador)
-            // ============================================================
             Route::get("/prestamos", fn() => redirect()->route('admin.reportes.explorer', ['key' => 'prestamos-periodo']))->name("prestamos");
             Route::get("/prestamos-vencidos", fn() => redirect()->route('admin.reportes.explorer', ['key' => 'prestamos-vencidos']))->name("prestamos-vencidos");
             Route::get("/inventario-completo", fn() => redirect()->route('admin.reportes.explorer', ['key' => 'inventario-completo']))->name("inventario-completo");
@@ -649,24 +635,14 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
 
         // ============================================================
         // API TECNICOS
-        // ✅ Listado con conteo semanal de reparaciones
         // ============================================================
         Route::prefix("api")->group(function () {
-
-            // ✅ LISTADO DE TÉCNICOS con conteo semanal de reparaciones
             Route::get("/tecnicos", function (Request $request) {
                 $search = $request->get("search");
-                $inicioSemana = now()->startOfWeek();
-                $finSemana = now()->endOfWeek();
 
                 $query = App\Models\Usuario::whereHas("rol", function ($q) {
-                        $q->whereIn("nombre", ["tecnico", "admin", "ingeniero"]);
-                    })
-                    ->with("trabajador")
-                    ->withCount(['fichasSoporteAsignadas as reparaciones_semana' => function ($q) use ($inicioSemana, $finSemana) {
-                        $q->whereIn('estado', ['en_proceso', 'aceptada'])
-                          ->whereBetween('fecha_ingreso', [$inicioSemana, $finSemana]);
-                    }]);
+                    $q->whereIn("nombre", ["tecnico", "admin", "ingeniero"]);
+                })->with("trabajador");
 
                 if ($search) {
                     $query->where(function ($q) use ($search) {
@@ -679,22 +655,7 @@ Route::middleware(["auth", "prevent-back-history"])->group(function () {
                     });
                 }
 
-                $tecnicos = $query->limit(15)->get()->map(function ($t) {
-                    return [
-                        'id' => $t->id,
-                        'usuario' => $t->usuario,
-                        'trabajador' => $t->trabajador ? [
-                            'cedula' => $t->trabajador->cedula,
-                            'nombre' => $t->trabajador->nombre,
-                            'apellido' => $t->trabajador->apellido,
-                            'cargo' => $t->trabajador->cargo,
-                        ] : null,
-                        'reparaciones_semana' => $t->reparaciones_semana ?? 0,
-                        'cupos_disponibles' => max(0, 5 - ($t->reparaciones_semana ?? 0)),
-                    ];
-                });
-
-                return response()->json($tecnicos);
+                return response()->json($query->limit(15)->get());
             });
 
             Route::get("/tecnicos/{id}", function ($id) {

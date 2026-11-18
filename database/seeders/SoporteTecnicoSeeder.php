@@ -32,7 +32,8 @@ class SoporteTecnicoSeeder extends Seeder
             return;
         }
 
-        // Validar estatus
+        // ✅ CORREGIDO: las fichas del seeder simulan equipos YA en taller,
+        // por eso el estatus es 'En reparación' (no 'Averiado').
         $estatusReparacion = Estatus::where('descripcion', 'En reparación')->first();
         $estatusDisponible = Estatus::where('descripcion', 'Disponible')->first();
 
@@ -65,7 +66,7 @@ class SoporteTecnicoSeeder extends Seeder
         $this->command->info("   - Usuario admin: {$usuarioAdmin->usuario} (ID: {$usuarioAdmin->id})");
         $this->command->info("   - Técnicos disponibles: {$tecnicos->count()}");
         $this->command->info("   - Activos disponibles: {$activos->count()}");
-        $this->command->info("   - Estatus reparación ID: {$estatusReparacion->id}");
+        $this->command->info("   - Estatus reparación: {$estatusReparacion->descripcion} (ID: {$estatusReparacion->id})");
 
         // ============================================================
         // 2. DATOS DE EJEMPLO
@@ -97,33 +98,21 @@ class SoporteTecnicoSeeder extends Seeder
         ];
 
         $nombresReportantes = [
-            'María González',
-            'Carlos Rodríguez',
-            'Ana Martínez',
-            'Luis Pérez',
-            'Elena Sánchez',
-            'José Fernández',
-            'Laura Díaz',
-            'Pedro Ramírez',
-            'Carmen Torres',
-            'Jorge Méndez',
+            'María González', 'Carlos Rodríguez', 'Ana Martínez', 'Luis Pérez',
+            'Elena Sánchez', 'José Fernández', 'Laura Díaz', 'Pedro Ramírez',
+            'Carmen Torres', 'Jorge Méndez',
         ];
 
         // ============================================================
         // 3. LIMPIAR DATOS PREVIOS DE FICHAS (borrado ordenado)
         // ============================================================
-        // ✅ FIX: En PostgreSQL, un usuario normal NO puede usar
-        //    SET session_replication_role. Se borra respetando el orden
-        //    de las foreign keys: primero los hijos, luego los padres.
         FichaSoporteDetalle::query()->delete();
         FichaSoporte::query()->delete();
 
-        // Reiniciar secuencias (por si acaso se quiere IDs limpios)
         try {
             DB::statement('ALTER SEQUENCE fichas_soporte_detalle_id_seq RESTART WITH 1');
             DB::statement('ALTER SEQUENCE fichas_soporte_id_seq RESTART WITH 1');
         } catch (\Throwable $e) {
-            // Si las secuencias no existen con ese nombre exacto, ignorar
             Log::warning('No se pudieron reiniciar las secuencias: ' . $e->getMessage());
         }
 
@@ -137,12 +126,10 @@ class SoporteTecnicoSeeder extends Seeder
         $fichasCreadas = 0;
         $detallesCreados = 0;
 
-        // Tomar los primeros 12 activos para asignarles fichas
         $activosParaFichas = $activos->take(12);
 
         foreach ($activosParaFichas as $index => $activo) {
             try {
-                // Alternar entre en_proceso y finalizado
                 $estado = $index < 7 ? 'en_proceso' : 'finalizado';
 
                 $tecnico = $tecnicos->random();
@@ -150,24 +137,20 @@ class SoporteTecnicoSeeder extends Seeder
                     ? $tecnico->trabajador->nombre . ' ' . $tecnico->trabajador->apellido
                     : $tecnico->usuario;
 
-                // Fechas
                 $fechaIngreso = now()->subDays(rand(1, 30));
                 $fechaSalida = $estado === 'finalizado'
                     ? $fechaIngreso->copy()->addDays(rand(1, 10))
                     : null;
 
-                // Fecha requerida de entrega (algunas fichas con fecha, otras sin)
                 $fechaRequerida = rand(0, 1)
                     ? $fechaIngreso->copy()->addDays(rand(5, 15))
                     : null;
 
-                // Diagnóstico y trabajo
                 $diagnostico = $diagnosticos[array_rand($diagnosticos)];
                 $trabajoRealizado = $estado === 'finalizado'
                     ? $trabajosRealizados[array_rand($trabajosRealizados)]
                     : null;
 
-                // Crear ficha
                 $ficha = FichaSoporte::create([
                     'activo_id' => $activo->id,
                     'tecnico_id' => $tecnico->id,
@@ -193,13 +176,10 @@ class SoporteTecnicoSeeder extends Seeder
                     $activo->update(['id_estatus' => $estatusDisponible->id]);
                 }
 
-                // ============================================================
-                // 5. CREAR DETALLES DE LA FICHA (Componentes)
-                // ============================================================
+                // Detalles
                 $componentes = Componente::where('activo_id', $activo->id)->get();
 
                 if ($componentes->isNotEmpty()) {
-                    // Seleccionar entre 1 y 3 componentes
                     $cantidadSeleccionar = min(rand(1, 3), $componentes->count());
                     $componentesSeleccionados = $componentes->random($cantidadSeleccionar);
 
@@ -221,7 +201,6 @@ class SoporteTecnicoSeeder extends Seeder
                         $detallesCreados++;
                     }
                 } else {
-                    // Si no hay componentes, crear detalles genéricos
                     $cantidadGenericos = rand(1, 2);
                     for ($j = 0; $j < $cantidadGenericos; $j++) {
                         $tipos = ['RAM', 'Disco Duro', 'Batería', 'Cargador', 'Pantalla'];
@@ -243,7 +222,6 @@ class SoporteTecnicoSeeder extends Seeder
                     }
                 }
 
-                // Mostrar progreso
                 if ($fichasCreadas % 3 === 0) {
                     $this->command->info("   📝 Fichas creadas: {$fichasCreadas}");
                 }
@@ -259,11 +237,10 @@ class SoporteTecnicoSeeder extends Seeder
         }
 
         // ============================================================
-        // 6. CREAR FICHAS ADICIONALES CON ESTADOS VARIADOS
+        // 5. FICHAS ADICIONALES (histórico finalizado)
         // ============================================================
         $this->command->info('📝 Creando fichas adicionales con estados variados...');
 
-        // Tomar otros activos para más variedad
         $activosExtra = $activos->skip(12)->take(8);
 
         foreach ($activosExtra as $index => $activo) {
@@ -294,10 +271,8 @@ class SoporteTecnicoSeeder extends Seeder
 
                 $fichasCreadas++;
 
-                // Asegurar que el activo esté disponible
                 $activo->update(['id_estatus' => $estatusDisponible->id]);
 
-                // Detalles genéricos
                 for ($j = 0; $j < rand(1, 2); $j++) {
                     $tipos = ['RAM', 'Disco Duro', 'Batería', 'Cargador'];
                     FichaSoporteDetalle::create([
@@ -318,7 +293,7 @@ class SoporteTecnicoSeeder extends Seeder
         }
 
         // ============================================================
-        // 7. RESUMEN FINAL
+        // 6. RESUMEN FINAL
         // ============================================================
         $this->command->newLine();
         $this->command->info('========================================');
@@ -332,12 +307,8 @@ class SoporteTecnicoSeeder extends Seeder
             ['Activos utilizados', min(20, $activos->count())],
         ];
 
-        $this->command->table(
-            ['Concepto', 'Cantidad'],
-            $totales
-        );
+        $this->command->table(['Concepto', 'Cantidad'], $totales);
 
-        // Resumen por estado
         $enProceso = FichaSoporte::where('estado', 'en_proceso')->count();
         $finalizados = FichaSoporte::where('estado', 'finalizado')->count();
 

@@ -241,6 +241,125 @@ class FichaSoporteController extends Controller
     }
 
     // ============================================================
+    // 🆕 STORE DESDE ACTIVO
+    // Crea ficha cuando el usuario cambia el estatus de un activo
+    // a "En reparación" (o similar) desde el Inventario.
+    //
+    // Se dispara desde admin-inventario.js cuando
+    // ActivoController@update devuelve `soporte.debe_ofrecer_ficha = true`.
+    // ============================================================
+    public function storeDesdeActivo(Request $request)
+    {
+        if (!auth()->user()->hasPermission('crear-ficha-soporte')) {
+            return response()->json(['success' => false, 'message' => 'No autorizado'], 403);
+        }
+
+        try {
+            $validated = $request->validate([
+                'activo_id'               => 'required|exists:activos,id',
+                'diagnostico'             => 'required|string|min:10|max:2000',
+                'tecnico_id'              => 'nullable|exists:usuarios,id',
+                'fecha_requerida_entrega' => 'nullable|date|after_or_equal:today',
+                'forzar'                  => 'nullable|boolean',
+            ]);
+
+            // ✅ REGLA DE NEGOCIO: máximo 5 reparaciones semanales por técnico
+            if (!empty($validated['tecnico_id'])) {
+                $validacion = $this->validarLimiteSemanalTecnico((int) $validated['tecnico_id']);
+                if (!$validacion['permitido']) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => $validacion['mensaje'],
+                    ], 422);
+                }
+            }
+
+            // ✅ Resolver nombre del técnico si no viene
+            $tecnicoNombre = null;
+            if (!empty($validated['tecnico_id'])) {
+                $tecnicoNombre = $this->resolverNombreTecnico((int) $validated['tecnico_id']);
+            }
+
+            // ✅ Verificar ficha abierta existente (salvo que se fuerce)
+            $estadosAbiertos = config('soporte.estados_ficha_abierta', ['en_proceso', 'aceptada', 'rechazada']);
+            $fichaExistente = FichaSoporte::where('activo_id', $validated['activo_id'])
+                ->whereIn('estado', $estadosAbiertos)
+                ->first();
+
+            if ($fichaExistente && !$request->boolean('forzar')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya existe una ficha abierta para este activo. Usa "forzar" para crear otra.',
+                    'ficha_existente' => [
+                        'id'     => $fichaExistente->id,
+                        'estado' => $fichaExistente->estado,
+                        'url'    => route('admin.soporte.show', $fichaExistente->id),
+                    ],
+                ], 409);
+            }
+
+            DB::beginTransaction();
+
+            $activo = Activo::with(['modelo.marca', 'institucion', 'responsable'])
+                ->findOrFail($validated['activo_id']);
+
+            $ficha = FichaSoporte::create([
+                'activo_id'                 => $activo->id,
+                'tecnico_id'                => $validated['tecnico_id'] ?? null,
+                'tecnico_nombre'            => $tecnicoNombre ?? 'No asignado',
+                'usuario_reporta_id'        => auth()->id(),
+                'usuario_reporta_nombre'    => auth()->user()->usuario
+                                                ?? auth()->user()->name
+                                                ?? 'Sistema',
+                'fecha_ingreso'             => now(),
+                'fecha_requerida_entrega'   => $validated['fecha_requerida_entrega'] ?? null,
+                'diagnostico'               => $validated['diagnostico'],
+                'estado'                    => 'en_proceso',
+                'origen'                    => 'estatus_activo', // 🆕 distingue este flujo
+            ]);
+
+            DB::commit();
+
+            // ✅ Despachar Job (igual que store manual)
+            EnviarNotificacionFichaSoporte::dispatch($ficha->id, 'creada')
+                ->onQueue('notifications');
+
+            Log::info('✅ Job EnviarNotificacionFichaSoporte despachado (desde cambio de estatus)', [
+                'ficha_id'  => $ficha->id,
+                'activo_id' => $activo->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Ficha de soporte creada exitosamente.',
+                'ficha'   => [
+                    'id'     => $ficha->id,
+                    'codigo' => 'FS-' . str_pad($ficha->id, 4, '0', STR_PAD_LEFT),
+                    'url'    => route('admin.soporte.show', $ficha->id),
+                ],
+                'data'    => $ficha->load(['activo.modelo.marca', 'tecnico.trabajador']),
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error de validación',
+                'errors'  => $e->errors(),
+            ], 422);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Error al crear ficha desde activo: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    // ============================================================
     // STORE EQUIPO EXTERNO
     // ✅ Valida límite semanal de 5 reparaciones por técnico
     // ✅ Resuelve y persiste tecnico_nombre

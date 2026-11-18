@@ -6,6 +6,7 @@
 // ✅ FIX: listener de institución/departamento usa .onchange (sin cloneNode)
 // ✅ NUEVO: Filtrado en servidor + Exportación contextual (PDF/Excel)
 // ✅ NUEVO: Botón de reporte individual (ficha técnica) por activo
+// ✅ NUEVO: Modal de ficha de soporte al cambiar estatus a "En reparación"/"Dañado"
 
 // ============================================================
 // VARIABLES GLOBALES
@@ -46,6 +47,9 @@ document.addEventListener('DOMContentLoaded', function() {
         cargarComponentes();
     });
     cargarSelectsBase();
+
+    // 🆕 Inicializar modal de ficha de soporte
+    initModalFichaSoporte();
 
     document.getElementById('formActivo')?.addEventListener('submit', function(e) {
         e.preventDefault();
@@ -1587,8 +1591,25 @@ function confirmarCambioEstado() {
     .then(function(response) {
         bootstrap.Modal.getInstance(document.getElementById('modalCambiarEstado')).hide();
         if (response.success) {
-            mostrarToast('Estado cambiado a ' + (nuevoEstado ? nuevoEstado.descripcion : ''), 'success');
-            cargarActivos();
+            // 🆕 Si el backend indica que se debe ofrecer ficha de soporte, abrir el modal
+            if (response.soporte && response.soporte.debe_ofrecer_ficha) {
+                if (response.soporte.puede_crear_ficha) {
+                    window.abrirModalFichaDesdeActivo(
+                        response.soporte.prefill,
+                        response.soporte.ficha_existente
+                    );
+                } else {
+                    mostrarToast(
+                        'Estado cambiado a ' + (nuevoEstado ? nuevoEstado.descripcion : '') +
+                        '.\nNo tienes permiso para crear la ficha de soporte. Contacta a un administrador.',
+                        'warning'
+                    );
+                    cargarActivos();
+                }
+            } else {
+                mostrarToast('Estado cambiado a ' + (nuevoEstado ? nuevoEstado.descripcion : ''), 'success');
+                cargarActivos();
+            }
         } else {
             mostrarToast(response.message || 'Error al cambiar estado', 'error');
         }
@@ -1723,3 +1744,150 @@ window.exportarComponentes = function (formato) {
         alert('Por favor, permita ventanas emergentes para exportar el reporte.');
     }
 };
+
+// ============================================================
+// 🆕 MODAL: Crear ficha de soporte al cambiar estatus a "En reparación"
+// Se dispara desde confirmarCambioEstado() cuando el backend devuelve
+// response.soporte.debe_ofrecer_ficha = true
+// ============================================================
+function initModalFichaSoporte() {
+    var modalEl = document.getElementById('modalFichaDesdeActivo');
+    if (!modalEl) return;
+
+    var modal = new bootstrap.Modal(modalEl);
+    var activoPendiente = null;
+    var forzarCreacion = false;
+    var tecnicosCargados = false;
+
+    function $(id) { return document.getElementById(id); }
+
+    // ---- Cargar técnicos (una sola vez) ----
+    function cargarTecnicos() {
+        if (tecnicosCargados) return;
+        fetch('/admin/api/tecnicos', {
+            headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+        })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                var select = $('fichaTecnicoId');
+                if (!select) return;
+
+                var lista = Array.isArray(data) ? data : (data.data || []);
+                lista.forEach(function(u) {
+                    var nombre = u.trabajador
+                        ? (u.trabajador.nombre + ' ' + (u.trabajador.apellido || '')).trim()
+                        : (u.usuario || ('Usuario #' + u.id));
+                    var opt = document.createElement('option');
+                    opt.value = u.id;
+                    opt.textContent = nombre;
+                    select.appendChild(opt);
+                });
+                tecnicosCargados = true;
+            })
+            .catch(function(e) {
+                console.warn('No se pudieron cargar técnicos:', e);
+            });
+    }
+
+    // ---- Exponer función global para abrir el modal ----
+    window.abrirModalFichaDesdeActivo = function (prefill, fichaExistente) {
+        forzarCreacion = false;
+        activoPendiente = prefill || {};
+
+        var alerta = $('fichaExistenteAlerta');
+        if (fichaExistente) {
+            alerta.classList.remove('d-none');
+            $('fichaExistenteTexto').textContent =
+                'Ficha ' + (fichaExistente.estado_label || fichaExistente.estado) +
+                ' (ID ' + fichaExistente.id + ')';
+            $('btnVerFichaExistente').href = fichaExistente.url || '#';
+        } else {
+            alerta.classList.add('d-none');
+        }
+
+        $('fichaActivoId').value = activoPendiente.activo_id || '';
+        $('prefillSerial').textContent        = activoPendiente.serial        || '—';
+        $('prefillMarca').textContent         = activoPendiente.marca         || '—';
+        $('prefillModelo').textContent        = activoPendiente.modelo        || '—';
+        $('prefillCategoria').textContent     = activoPendiente.categoria     || '—';
+        $('prefillUbicacion').textContent     = activoPendiente.ubicacion     || '—';
+        $('prefillInstitucion').textContent   = activoPendiente.institucion   || '—';
+        $('prefillResponsable').textContent   = activoPendiente.responsable   || '—';
+        $('prefillReportadoPor').textContent  = activoPendiente.reportado_por || '—';
+        $('prefillFecha').textContent         = activoPendiente.fecha_reporte
+            ? new Date(activoPendiente.fecha_reporte).toLocaleString('es-VE')
+            : new Date().toLocaleString('es-VE');
+
+        $('fichaDiagnostico').value = '';
+        $('fichaFechaRequerida').value = '';
+
+        cargarTecnicos();
+        modal.show();
+    };
+
+    // ---- Botón "Crear nueva de todas formas" ----
+    var btnForzar = $('btnCrearDeTodasFormas');
+    if (btnForzar) {
+        btnForzar.addEventListener('click', function() {
+            forzarCreacion = true;
+            $('fichaExistenteAlerta').classList.add('d-none');
+        });
+    }
+
+    // ---- Botón "Crear ficha" ----
+    var btnCrear = $('btnCrearFichaDesdeActivo');
+    if (btnCrear) {
+        btnCrear.addEventListener('click', function() {
+            var diagnostico = ($('fichaDiagnostico').value || '').trim();
+            if (diagnostico.length < 10) {
+                Swal.fire('Atención', 'El diagnóstico debe tener al menos 10 caracteres.', 'warning');
+                return;
+            }
+
+            btnCrear.disabled = true;
+            btnCrear.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creando...';
+
+            var payload = {
+                activo_id: activoPendiente.activo_id,
+                diagnostico: diagnostico,
+                tecnico_id: $('fichaTecnicoId').value || null,
+                fecha_requerida_entrega: $('fichaFechaRequerida').value || null,
+                forzar: forzarCreacion
+            };
+
+            fetch('/admin/soporte/desde-activo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(function(r) { return r.json().then(function(data) { return { ok: r.ok, data: data }; }); })
+            .then(function(res) {
+                if (!res.ok || !res.data.success) {
+                    throw new Error(res.data.message || 'Error al crear ficha');
+                }
+
+                modal.hide();
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Ficha creada',
+                    html: 'Se creó la ficha <b>' + res.data.ficha.codigo + '</b>.<br>' +
+                          '<a href="' + res.data.ficha.url + '" target="_blank" class="btn btn-sm btn-primary mt-2">Ver ficha</a>'
+                }).then(function() {
+                    cargarActivos();
+                });
+            })
+            .catch(function(err) {
+                Swal.fire('Error', err.message, 'error');
+            })
+            .finally(function() {
+                btnCrear.disabled = false;
+                btnCrear.textContent = 'Crear ficha';
+            });
+        });
+    }
+}
