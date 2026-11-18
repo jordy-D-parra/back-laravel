@@ -112,22 +112,6 @@
                 <span class="tab-badge" id="badgeComponentes">{{ $totalComponentes ?? 0 }}</span>
             </button>
         </li>
-
-        {{-- ============================================================ --}}
-        {{-- TAB IMPORTAR (solo si tiene permiso de crear activo)         --}}
-        {{-- ============================================================ --}}
-        @if(auth()->user()->hasPermission('crear-activo'))
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="importar-tab" data-bs-toggle="tab" data-bs-target="#importar" type="button" role="tab">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                    <polyline points="17 8 12 3 7 8"/>
-                    <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
-                Importar
-            </button>
-        </li>
-        @endif
     </ul>
 
     <div class="tab-content">
